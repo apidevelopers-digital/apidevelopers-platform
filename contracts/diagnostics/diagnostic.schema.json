@@ -1,0 +1,67 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://apidevelopers.digital/contracts/diagnostics/diagnostic.schema.json",
+  "title": "API Developers Diagnostic",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schemaVersion",
+    "validator",
+    "severity",
+    "code",
+    "message"
+  ],
+  "properties": {
+    "schemaVersion": {
+      "const": 1
+    },
+    "capability": {
+      "type": [
+        "string",
+        "null"
+      ],
+      "pattern": "^ap\\.[a-z][a-z0-9-]*$"
+    },
+    "validator": {
+      "type": "string",
+      "minLength": 3
+    },
+    "severity": {
+      "type": "string",
+      "enum": [
+        "error",
+        "warning",
+        "info"
+      ]
+    },
+    "code": {
+      "type": "string",
+      "pattern": "^[A-Z][A-Z0-9_]{2,63}$"
+    },
+    "message": {
+      "type": "string",
+      "minLength": 3
+    },
+    "recommendation": {
+      "type": [
+        "string",
+        "null"
+      ],
+      "minLength": 3
+    },
+    "evidence": {
+      "type": [
+        "object",
+        "null"
+      ],
+      "additionalProperties": true
+    },
+    "documentation": {
+      "type": [
+        "string",
+        "null"
+      ],
+      "format": "uri-reference"
+    }
+  }
+}
