@@ -1,0 +1,130 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://apidevelopers.digital/contracts/manifest/capability-manifest.schema.json",
+  "title": "API Developers Capability Manifest",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schemaVersion",
+    "id",
+    "displayName",
+    "category",
+    "owner",
+    "maturity",
+    "status",
+    "productIndependent",
+    "multiTenant",
+    "auditRequired",
+    "dependsOn",
+    "publishes",
+    "consumes",
+    "factoryTemplate",
+    "paths"
+  ],
+  "properties": {
+    "schemaVersion": {
+      "const": 1
+    },
+    "id": {
+      "type": "string",
+      "pattern": "^ap\\.[a-z][a-z0-9-]*$"
+    },
+    "displayName": {
+      "type": "string",
+      "minLength": 3
+    },
+    "category": {
+      "type": "string",
+      "enum": [
+        "foundation",
+        "infrastructure",
+        "intelligence",
+        "channels",
+        "business",
+        "developer-experience",
+        "engineering"
+      ]
+    },
+    "owner": {
+      "type": "string",
+      "minLength": 3
+    },
+    "maturity": {
+      "type": "string",
+      "enum": [
+        "L0",
+        "L1",
+        "L2",
+        "L3",
+        "L4",
+        "L5",
+        "L6"
+      ]
+    },
+    "status": {
+      "type": "string",
+      "enum": [
+        "planned",
+        "active",
+        "deprecated",
+        "retired"
+      ]
+    },
+    "productIndependent": {
+      "type": "boolean"
+    },
+    "multiTenant": {
+      "type": "boolean"
+    },
+    "auditRequired": {
+      "type": "boolean"
+    },
+    "dependsOn": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "pattern": "^ap\\.[a-z][a-z0-9-]*$"
+      },
+      "uniqueItems": true
+    },
+    "publishes": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "pattern": "^[a-z0-9.-]+\\.v[1-9][0-9]*$"
+      },
+      "uniqueItems": true
+    },
+    "consumes": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "pattern": "^[a-z0-9.-]+\\.v[1-9][0-9]*$"
+      },
+      "uniqueItems": true
+    },
+    "factoryTemplate": {
+      "type": "string",
+      "enum": [
+        "service",
+        "engine",
+        "package",
+        "app",
+        "adapter"
+      ]
+    },
+    "paths": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "readme"
+      ],
+      "properties": {
+        "readme": {
+          "type": "string",
+          "pattern": "^(services|engines|packages|apps)/[a-z0-9-]+/README\\.md$"
+        }
+      }
+    }
+  }
+}
