@@ -1,0 +1,76 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://apidevelopers.digital/contracts/artifacts/artifact.schema.json",
+  "title": "API Developers Generated Artifact",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schemaVersion",
+    "artifactType",
+    "path",
+    "capability",
+    "generator",
+    "factoryVersion",
+    "generatedAt",
+    "contentHash"
+  ],
+  "properties": {
+    "schemaVersion": {
+      "const": 1
+    },
+    "artifactType": {
+      "type": "string",
+      "enum": [
+        "readme",
+        "contract",
+        "test",
+        "documentation",
+        "catalog",
+        "workflow",
+        "source",
+        "configuration",
+        "report"
+      ]
+    },
+    "path": {
+      "type": "string",
+      "minLength": 1
+    },
+    "capability": {
+      "type": "string",
+      "pattern": "^ap\\.[a-z][a-z0-9-]*$"
+    },
+    "manifest": {
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "generator": {
+      "type": "string",
+      "minLength": 3
+    },
+    "factoryVersion": {
+      "type": "string",
+      "pattern": "^[0-9]+\\.[0-9]+\\.[0-9]+$"
+    },
+    "generatedAt": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "contentHash": {
+      "type": "string",
+      "pattern": "^sha256:[a-f0-9]{64}$"
+    },
+    "executionPlan": {
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "metadata": {
+      "type": "object",
+      "additionalProperties": true
+    }
+  }
+}
