@@ -10,11 +10,22 @@ import {
   loadContract,
   validateAgainstContract,
 } from "./lib/contract-validation.mjs";
+import {
+  loadValidationPolicies,
+  resolvePolicyProfile,
+  runPolicies,
+  shouldFailPolicyRun,
+} from "./lib/policy-runner.mjs";
 
 const rootDir = process.cwd();
 const capabilitiesDir = path.join(rootDir, "capabilities");
 const outputPath = path.join(rootDir, "generated", "capabilities.validation.json");
 const manifestContractPath = "contracts/manifest/capability-manifest.schema.json";
+
+function readArg(name) {
+  const index = process.argv.indexOf(name);
+  return index >= 0 ? process.argv[index + 1] ?? null : null;
+}
 
 async function loadManifests() {
   const entries = await readdir(capabilitiesDir, { withFileTypes: true });
@@ -34,8 +45,11 @@ async function loadManifests() {
 }
 
 async function main() {
+  const requestedProfile = readArg("--profile");
   const manifests = await loadManifests();
   const manifestContract = await loadContract(manifestContractPath, rootDir);
+  const policyConfig = await loadValidationPolicies(undefined, rootDir);
+  const { profileName, profile } = resolvePolicyProfile(policyConfig, requestedProfile);
 
   const contractDiagnostics = manifests.flatMap((manifest) =>
     validateAgainstContract(manifest, manifestContract, {
@@ -44,19 +58,26 @@ async function main() {
   );
 
   const { diagnostics: registryDiagnostics } = validateRegistry(manifests);
+  const policyDiagnostics = runPolicies(manifests, profileName, profile);
   const documentationDiagnostics = await validateDocumentation(manifests, rootDir);
+
   const diagnostics = [
     ...contractDiagnostics,
     ...registryDiagnostics,
+    ...policyDiagnostics,
     ...documentationDiagnostics,
   ];
   const summary = summarizeDiagnostics(diagnostics);
+  const blocked = shouldFailPolicyRun(diagnostics, profile);
 
   const report = {
     schemaVersion: 1,
     generatedAt: new Date().toISOString(),
+    profile: profileName,
     contract: manifestContractPath,
     capabilityCount: manifests.length,
+    blocked,
+    failOn: profile.failOn ?? ["error"],
     summary,
     diagnostics,
   };
@@ -65,10 +86,10 @@ async function main() {
   await writeFile(outputPath, `${JSON.stringify(report, null, 2)}\n`, "utf8");
 
   console.log(
-    `validation complete: ${manifests.length} capabilities, ${summary.error} errors, ${summary.warning} warnings`,
+    `validation complete: profile=${profileName}, ${manifests.length} capabilities, ${summary.error} errors, ${summary.warning} warnings, blocked=${blocked}`,
   );
 
-  if (summary.error > 0) {
+  if (blocked) {
     process.exitCode = 1;
   }
 }
