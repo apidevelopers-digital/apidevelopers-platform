@@ -6,10 +6,15 @@ import {
   validateDocumentation,
   validateRegistry,
 } from "./lib/capability-validation.mjs";
+import {
+  loadContract,
+  validateAgainstContract,
+} from "./lib/contract-validation.mjs";
 
 const rootDir = process.cwd();
 const capabilitiesDir = path.join(rootDir, "capabilities");
 const outputPath = path.join(rootDir, "generated", "capabilities.validation.json");
+const manifestContractPath = "contracts/manifest/capability-manifest.schema.json";
 
 async function loadManifests() {
   const entries = await readdir(capabilitiesDir, { withFileTypes: true });
@@ -30,14 +35,27 @@ async function loadManifests() {
 
 async function main() {
   const manifests = await loadManifests();
+  const manifestContract = await loadContract(manifestContractPath, rootDir);
+
+  const contractDiagnostics = manifests.flatMap((manifest) =>
+    validateAgainstContract(manifest, manifestContract, {
+      capability: manifest.id ?? null,
+    }),
+  );
+
   const { diagnostics: registryDiagnostics } = validateRegistry(manifests);
   const documentationDiagnostics = await validateDocumentation(manifests, rootDir);
-  const diagnostics = [...registryDiagnostics, ...documentationDiagnostics];
+  const diagnostics = [
+    ...contractDiagnostics,
+    ...registryDiagnostics,
+    ...documentationDiagnostics,
+  ];
   const summary = summarizeDiagnostics(diagnostics);
 
   const report = {
     schemaVersion: 1,
     generatedAt: new Date().toISOString(),
+    contract: manifestContractPath,
     capabilityCount: manifests.length,
     summary,
     diagnostics,
@@ -46,7 +64,9 @@ async function main() {
   await mkdir(path.dirname(outputPath), { recursive: true });
   await writeFile(outputPath, `${JSON.stringify(report, null, 2)}\n`, "utf8");
 
-  console.log(`validation complete: ${manifests.length} capabilities, {summary.error} errors, ${summary.warning} warnings`);
+  console.log(
+    `validation complete: ${manifests.length} capabilities, ${summary.error} errors, ${summary.warning} warnings`,
+  );
 
   if (summary.error > 0) {
     process.exitCode = 1;
