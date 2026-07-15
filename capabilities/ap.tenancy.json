@@ -1,0 +1,30 @@
+{
+  "schemaVersion": 1,
+  "id": "ap.tenancy",
+  "displayName": "AP Tenancy",
+  "category": "foundation",
+  "owner": "Platform Engineering",
+  "maturity": "L1",
+  "status": "active",
+  "productIndependent": true,
+  "multiTenant": true,
+  "auditRequired": true,
+  "dependsOn": [
+    "ap.identity",
+    "ap.auth",
+    "ap.events",
+    "ap.audit"
+  ],
+  "publishes": [
+    "tenancy.tenant.created.v1",
+    "tenancy.tenant.activated.v1",
+    "tenancy.tenant.suspended.v1",
+    "tenancy.membership.added.v1",
+    "tenancy.membership.removed.v1"
+  ],
+  "consumes": [],
+  "factoryTemplate": "service",
+  "paths": {
+    "readme": "services/tenancy/README.md"
+  }
+}
