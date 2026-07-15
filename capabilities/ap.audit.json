@@ -1,0 +1,26 @@
+{
+  "schemaVersion": 1,
+  "id": "ap.audit",
+  "displayName": "AP Audit",
+  "category": "foundation",
+  "owner": "Security Engineering",
+  "maturity": "L1",
+  "status": "active",
+  "productIndependent": true,
+  "multiTenant": true,
+  "auditRequired": true,
+  "dependsOn": [
+    "ap.tenancy",
+    "ap.events"
+  ],
+  "publishes": [
+    "audit.record.created.v1",
+    "audit.export.requested.v1",
+    "audit.export.completed.v1"
+  ],
+  "consumes": [],
+  "factoryTemplate": "service",
+  "paths": {
+    "readme": "services/audit/README.md"
+  }
+}
