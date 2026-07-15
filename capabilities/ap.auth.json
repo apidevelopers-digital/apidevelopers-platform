@@ -1,0 +1,31 @@
+{
+  "schemaVersion": 1,
+  "id": "ap.auth",
+  "displayName": "AP Auth",
+  "category": "foundation",
+  "owner": "Security Engineering",
+  "maturity": "L1",
+  "status": "active",
+  "productIndependent": true,
+  "multiTenant": true,
+  "auditRequired": true,
+  "dependsOn": [
+    "ap.identity",
+    "ap.tenancy",
+    "ap.audit"
+  ],
+  "publishes": [
+    "auth.authenticated.v1",
+    "auth.denied.v1",
+    "auth.api-key.created.v1",
+    "auth.api-key.rotated.v1",
+    "auth.api-key.revoked.v1",
+    "auth.session.created.v1",
+    "auth.session.revoked.v1"
+  ],
+  "consumes": [],
+  "factoryTemplate": "service",
+  "paths": {
+    "readme": "services/auth/README.md"
+  }
+}
