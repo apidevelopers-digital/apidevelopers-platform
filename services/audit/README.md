@@ -1,33 +1,60 @@
-# @apidevelopers/audit
+# AP Audit
 
-Serviço canônico de auditoria da API Developers.digital.
+Status: Foundation v1
+Owner: API Developers.digital
+Maturity: L1 -> L2
 
-## Responsabilidades
+## Mission
 
-- registrar acões de usuários, contas de serviço e processos automatizados;
-- preservar evidências imutáveis;
-- associar cada registro ao tenant, principal, request e correlation;
-- suportar retenção, exportação e consulta por permissões.
+Provide an immutable, queryable and tenant-scoped audit trail for sensitive and operational actions across the platform.
 
-## Campos mínimos
+## Responsibilities
 
-- `audit_id`
-- `tenant_id`
-- `principal_id`
-- `request_id`
-- `correlation_id`
-- `action`
-- `resource`
-- `result`
-- `timestamp`
+- record actions performed by users, service accounts and automated processes;
+- preserve evidence of who did what, when, where and with which result;
+- correlate audit records with requests, events and resources;
+- enforce tenant isolation and retention policies;
+- support secure search and export;
+- integrate with AP Events, AP Auth, AP Tenancy and AP Guard.
 
-## Regras
+## Out of scope
 
-1. Registros de auditoria são imutáveis.
-2. Nenhum segredo é armazenado.
-3. Toda operação sensível deve gerar evidência.
-4. Consultas respeitam isolamento por tenant.
+- application logs;
+- provider secrets or raw credentials;
+- product analytics;
+- mutable business records.
 
-## Status
+## Canonical fields
 
-Foundation v1 em implementação.
+- audit_id
+- tenant_id
+- principal_id
+- request_id
+- correlation_id
+- action
+- resource_type
+- resource_id
+- result
+- risk_level
+- occurred_at
+- metadata
+
+## Permanent rules
+
+1. Audit records are append-only.
+2. No secret or raw credential may be stored.
+3. Sensitive actions must always generate audit evidence.
+4. Cross-tenant audit access is denied by default.
+5. Retention and export follow risk and legal policies.
+6. Audit evidence does not replace domain events or operational logs.
+
+## Completion criteria
+
+- architecture documented;
+- contracts versioned;
+- executable package created;
+- immutable storage strategy defined;
+- tenant isolation tested;
+- sensitive actions covered;
+- search and export policies defined;
+- event and observability hooks implemented.
