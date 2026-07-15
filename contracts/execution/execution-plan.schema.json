@@ -1,0 +1,33 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://apidevelopers.digital/contracts/execution/execution-plan.schema.json",
+  "title": "API Developers Execution Plan",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schemaVersion",
+    "capability",
+    "mode",
+    "actions"
+  ],
+  "properties": {
+    "schemaVersion": { "const": 1 },
+    "capability": { "type": "string" },
+    "mode": {
+      "type": "string",
+      "enum": ["plan", "execute"]
+    },
+    "actions": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["type", "target"],
+        "properties": {
+          "type": { "type": "string" },
+          "target": { "type": "string" }
+        }
+      }
+    }
+  }
+}
