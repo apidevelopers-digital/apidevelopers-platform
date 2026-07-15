@@ -1,0 +1,22 @@
+{
+  "name": "@apidevelopers/platform",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Global multi-tenant technology platform for APIs, engines, channels and developer tooling.",
+  "type": "module",
+  "engines": {
+    "node": ">=22"
+  },
+  "workspaces": [
+    "apps/*",
+    "engines/*",
+    "services/*",
+    "packages/*",
+    "sdk/*"
+  ],
+  "scripts": {
+    "check": "npm run check:structure",
+    "check:structure": "node scripts/check-structure.mjs",
+    "test": "node --test"
+  }
+}
