@@ -1,0 +1,60 @@
+{
+  "schemaVersion": 1,
+  "defaultProfile": "development",
+  "profiles": {
+    "development": {
+      "failOn": [
+        "error"
+      ],
+      "policies": {
+        "requireReadme": true,
+        "requireOwner": true,
+        "requireVersionedEvents": true,
+        "requireTests": false,
+        "requireObservability": false,
+        "minimumMaturityForRelease": "L0"
+      }
+    },
+    "ci": {
+      "failOn": [
+        "error"
+      ],
+      "policies": {
+        "requireReadme": true,
+        "requireOwner": true,
+        "requireVersionedEvents": true,
+        "requireTests": true,
+        "requireObservability": false,
+        "minimumMaturityForRelease": "L1"
+      }
+    },
+    "release": {
+      "failOn": [
+        "error",
+        "warning"
+      ],
+      "policies": {
+        "requireReadme": true,
+        "requireOwner": true,
+        "requireVersionedEvents": true,
+        "requireTests": true,
+        "requireObservability": true,
+        "minimumMaturityForRelease": "L4"
+      }
+    },
+    "production": {
+      "failOn": [
+        "error",
+        "warning"
+      ],
+      "policies": {
+        "requireReadme": true,
+        "requireOwner": true,
+        "requireVersionedEvents": true,
+        "requireTests": true,
+        "requireObservability": true,
+        "minimumMaturityForRelease": "L5"
+      }
+    }
+  }
+}
