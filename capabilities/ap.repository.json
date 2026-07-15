@@ -1,0 +1,25 @@
+{
+  "schemaVersion": 1,
+  "id": "ap.repository",
+  "displayName": "AP Repository",
+  "category": "infrastructure",
+  "owner": "Platform Engineering",
+  "maturity": "L1",
+  "status": "active",
+  "productIndependent": true,
+  "multiTenant": true,
+  "auditRequired": true,
+  "dependsOn": [
+    "ap.auth",
+    "ap.audit"
+  ],
+  "publishes": [
+    "repository.file.created.v1",
+    "repository.file.updated.v1"
+  ],
+  "consumes": [],
+  "factoryTemplate": "service",
+  "paths": {
+    "readme": "services/repository/README.md"
+  }
+}
