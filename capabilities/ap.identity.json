@@ -1,0 +1,29 @@
+{
+  "schemaVersion": 1,
+  "id": "ap.identity",
+  "displayName": "AP Identity",
+  "category": "foundation",
+  "owner": "Platform Engineering",
+  "maturity": "L1",
+  "status": "active",
+  "productIndependent": true,
+  "multiTenant": true,
+  "auditRequired": true,
+  "dependsOn": [
+    "ap.events",
+    "ap.audit"
+  ],
+  "publishes": [
+    "identity.created.v1",
+    "identity.activated.v1",
+    "identity.suspended.v1",
+    "identity.revoked.v1",
+    "identity.external-linked.v1",
+    "identity.external-unlinked.v1"
+  ],
+  "consumes": [],
+  "factoryTemplate": "service",
+  "paths": {
+    "readme": "services/identity/README.md"
+  }
+}
