@@ -1,0 +1,25 @@
+{
+  "schemaVersion": 1,
+  "id": "ap.events",
+  "displayName": "AP Events",
+  "category": "foundation",
+  "owner": "Platform Engineering",
+  "maturity": "L1",
+  "status": "active",
+  "productIndependent": true,
+  "multiTenant": true,
+  "auditRequired": false,
+  "dependsOn": [
+    "ap.tenancy"
+  ],
+  "publishes": [
+    "events.published.v1",
+    "events.delivery.failed.v1",
+    "events.dead-lettered.v1"
+  ],
+  "consumes": [],
+  "factoryTemplate": "service",
+  "paths": {
+    "readme": "services/events/README.md"
+  }
+}
