@@ -1,0 +1,139 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://apidevelopers.digital/contracts/capabilities/capability.schema.json",
+  "title": "API Developers Capability",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schemaVersion",
+    "id",
+    "displayName",
+    "purpose",
+    "domain",
+    "owner",
+    "maturityStage",
+    "status",
+    "implementedBy",
+    "dependsOn",
+    "solutions",
+    "organizations",
+    "evidence"
+  ],
+  "properties": {
+    "schemaVersion": {
+      "const": 1
+    },
+    "id": {
+      "type": "string",
+      "pattern": "^capability\\.[a-z][a-z0-9.-]*$"
+    },
+    "displayName": {
+      "type": "string",
+      "minLength": 3
+    },
+    "purpose": {
+      "type": "string",
+      "minLength": 12
+    },
+    "domain": {
+      "type": "string",
+      "enum": [
+        "core",
+        "integration",
+        "intelligence",
+        "business",
+        "developer-experience"
+      ]
+    },
+    "owner": {
+      "type": "string",
+      "minLength": 3
+    },
+    "maturityStage": {
+      "type": "string",
+      "enum": [
+        "discovered",
+        "defined",
+        "implemented",
+        "validated",
+        "managed",
+        "certified",
+        "retired"
+      ]
+    },
+    "status": {
+      "type": "string",
+      "enum": [
+        "planned",
+        "active",
+        "blocked",
+        "deprecated",
+        "retired"
+      ]
+    },
+    "implementedBy": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "pattern": "^asset\\.[a-z][a-z0-9.-]*$"
+      },
+      "uniqueItems": true
+    },
+    "dependsOn": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "pattern": "^capability\\.[a-z][a-z0-9.-]*$"
+      },
+      "uniqueItems": true
+    },
+    "solutions": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "pattern": "^solution\\.[a-z][a-z0-9.-]*$"
+      },
+      "uniqueItems": true
+    },
+    "organizations": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "pattern": "^org\\.[a-z][a-z0-9.-]*$"
+      },
+      "uniqueItems": true
+    },
+    "evidence": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "definition",
+        "contracts",
+        "implementation",
+        "validation",
+        "observability"
+      ],
+      "properties": {
+        "definition": {
+          "type": "boolean"
+        },
+        "contracts": {
+          "type": "boolean"
+        },
+        "implementation": {
+          "type": "boolean"
+        },
+        "validation": {
+          "type": "boolean"
+        },
+        "observability": {
+          "type": "boolean"
+        }
+      }
+    },
+    "metadata": {
+      "type": "object",
+      "additionalProperties": true
+    }
+  }
+}
