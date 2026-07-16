@@ -1,0 +1,17 @@
+{
+  "name": "@apidevelopers/kernel-decision",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Advisory decision readiness evaluation for governed planning reports.",
+  "type": "module",
+  "exports": {
+    ".": "./src/index.mjs"
+  },
+  "scripts": {
+    "test": "node --test test/*.test.mjs",
+    "check": "node --check src/index.mjs && npm test"
+  },
+  "engines": {
+    "node": ">=22"
+  }
+}
