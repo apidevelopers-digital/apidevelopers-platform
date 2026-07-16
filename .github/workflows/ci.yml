@@ -28,37 +28,45 @@ jobs:
         with:
           node-version: "22"
 
-      - name: Install workspace
-        run: npm install -ignore-scripts --no-audit --no-fund
+      - name: Validate platform structure
+        run: node scripts/check-structure.mjs
 
-      - name: Validate platform structure and registry
-        run: npm run check
+      - name: Validate capability registry
+        run: node scripts/build-capability-index.mjs --check
 
       - name: Validate JSON contracts and manifests
         run: node scripts/check-json.mjs
 
-      - name: Run complete test suite
-        run: npm test
+      - name: Run tooling tests
+        run: node --test tests/tooling/*.test.mjs
 
-      - name: Check every implemented workspace
+      - name: Run package, service and engine tests
         shell: bash
         run: |
           set -euo pipefail
-          while IFS= read -r -d '' manifest; do
-            workspace="$(dirname "$manifest")"
-            npm --prefix "$workspace" run check --if-present
-          done < <(
-            find packages services engines \
-              -name package.json \
-              -not -path "*/node_modules/*" \
-              -print0 | sort -z
+          mapfile -d '' tests < <(
+            find packages services engines               -path "*/test/*.test.mjs"               -not -path "*/node_modules/*"               -print0 | sort -z
           )
+          if [ "${#tests[@]}" -eq 0 ]; then
+            echo "No workspace tests found."
+            exit 1
+          fi
+          node --test "${tests[@]}"
+
+      - name: Run integration tests
+        shell: bash
+        run: |
+          set -euo pipefail
+          mapfile -d '' tests < <(find tests/integration -name "*.test.mjs" -print0 | sort -z)
+          if [ "${#tests[@]}" -gt 0 ]; then
+            node --test "${tests[@]}"
+          fi
 
       - name: Reject transient publishing artifacts
         shell: bash
         run: |
           set -euo pipefail
           if find . -maxdepth 2 -type d \( -name ".wave*" -o -name ".publish*" \) | grep -q .; then
-            echo "Transient publishing artifacts are not allowed."
+            echo "Transient publhing artifacts are not allowed."
             exit 1
           fi
