@@ -4,6 +4,9 @@
   "private": true,
   "description": "Global multi-tenant technology platform for APIs, engines, channels and developer tooling.",
   "type": "module",
+  "bin": {
+    "apid": "./scripts/apid.mjs"
+  },
   "engines": {
     "node": ">=22"
   },
@@ -15,10 +18,34 @@
     "sdk/*"
   ],
   "scripts": {
-    "check": "npm run check:structure && npm run registry:check",
+    "apid": "node scripts/apid.mjs",
+    "doctor": "node scripts/apid.mjs doctor",
+    "validate:publish": "node scripts/apid.mjs validate",
+    "publish:file": "node scripts/apid.mjs publish",
+    "test:publish": "node --test tests/tooling/publish-pipeline.test.mjs",
+    "check": "npm run check:structure && npm run registry:check && npm run test:publish",
     "check:structure": "node scripts/check-structure.mjs",
     "registry:build": "node scripts/build-capability-index.mjs",
     "registry:check": "node scripts/build-capability-index.mjs --check",
     "test": "node --test"
+  },
+  "apid": {
+    "platform": "API Developers.digital",
+    "toolkit": "API Developers Engineering Toolkit",
+    "organizationPrefix": "org.",
+    "reservedCorePrefixes": [
+      "apid",
+      "kernel",
+      "platform",
+      "graph",
+      "registry",
+      "evidence",
+      "decision",
+      "policy"
+    ],
+    "forbiddenCorePrefixes": [
+      "uni",
+      "org.uni"
+    ]
   }
 }
