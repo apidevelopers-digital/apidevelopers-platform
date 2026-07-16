@@ -1,0 +1,34 @@
+{
+  "schemaVersion": 1,
+  "id": "asset.ap-events",
+  "displayName": "AP Events",
+  "assetType": "capability",
+  "category": "core",
+  "owner": "Platform",
+  "promotionStage": "prototype",
+  "status": "planned",
+  "capabilityRef": null,
+  "dependsOn": [
+    "asset.ap-guard"
+  ],
+  "providers": [],
+  "products": [],
+  "contracts": {
+    "manifest": null,
+    "api": null,
+    "events": "contracts/events/event-envelope.schema.json"
+  },
+  "evidence": {
+    "tests": false,
+    "observability": false,
+    "security": true,
+    "documentation": true
+  },
+  "metadata": {
+    "inventoryState": "candidate",
+    "source": "platform-foundation-and-event-contract-work",
+    "purpose": "organization-neutral event envelope, publication, consumption and correlation for platform assets",
+    "knownContract": "contracts/events/event-envelope.schema.json",
+    "nextGate": "technical inventory, delivery semantics, compatibility rules, retry model and observability evidence"
+  }
+}
