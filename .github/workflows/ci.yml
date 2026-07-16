@@ -26,6 +26,18 @@ jobs:
         with:
           node-version: "22"
 
+      - name: Check kernel-memory syntax
+        run: node --check packages/kernel-memory/src/index.mjs
+
+      - name: Test kernel-memory
+        run: npm --prefix packages/kernel-memory test
+
+      - name: Check kernel-reasoning syntax
+        run: node --check packages/kernel-reasoning/src/index.mjs
+
+      - name: Test kernel-reasoning
+        run: npm --prefix packages/kernel-reasoning test
+
       - name: Check Wave 5 syntax
         run: |
           node --check packages/kernel-policy/src/index.mjs
