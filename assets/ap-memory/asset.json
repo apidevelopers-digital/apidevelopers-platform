@@ -1,0 +1,44 @@
+{
+  "schemaVersion": 1,
+  "id": "asset.ap-memory",
+  "displayName": "AP Memory",
+  "assetType": "intelligence",
+  "category": "intelligence",
+  "owner": "Platform",
+  "promotionStage": "prototype",
+  "status": "planned",
+  "capabilityRef": null,
+  "dependsOn": [
+    "asset.ap-guard"
+  ],
+  "providers": [],
+  "products": [],
+  "contracts": {
+    "manifest": null,
+    "api": null,
+    "events": null
+  },
+  "evidence": {
+    "tests": false,
+    "observability": false,
+    "security": true,
+    "documentation": true
+  },
+  "metadata": {
+    "inventoryState": "candidate",
+    "source": "existing-memory-governance-and-platform-work",
+    "purpose": "tenant-isolated memory, retention, revocation and governed contextual recall",
+    "governance": {
+      "memoryIsAutomatic": false,
+      "requiresPurpose": true,
+      "requiresScope": true,
+      "requiresRisk": true,
+      "requiresAuthorization": true,
+      "requiresRetention": true,
+      "requiresRevocation": true,
+      "secretsBlocked": true,
+      "tenantIsolationRequired": true
+    },
+    "nextGate": "technical inventory, retention model, revocation model and isolation tests"
+  }
+}
