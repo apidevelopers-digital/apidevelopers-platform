@@ -1,0 +1,36 @@
+{
+  "schemaVersion": 1,
+  "id": "asset.ap-whatsapp",
+  "displayName": "AP WhatsApp",
+  "assetType": "integration",
+  "category": "integration",
+  "owner": "Platform",
+  "promotionStage": "prototype",
+  "status": "planned",
+  "capabilityRef": null,
+  "dependsOn": [
+    "asset.ap-guard"
+  ],
+  "providers": [
+    "WATI"
+  ],
+  "products": [],
+  "contracts": {
+    "manifest": null,
+    "api": null,
+    "events": null
+  },
+  "evidence": {
+    "tests": false,
+    "observability": false,
+    "security": false,
+    "documentation": true
+  },
+  "metadata": {
+    "inventoryState": "candidate",
+    "source": "existing-whatsapp-wati-vart-operation",
+    "purpose": "provider-independent messaging capability for WhatsApp operations",
+    "knownOperationalRoute": "apps/uni-whatsapp-5001-wati-webhook.php",
+    "nextGate": "technical inventory, contract extraction and adapter boundary definition"
+  }
+}
