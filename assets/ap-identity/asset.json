@@ -1,0 +1,33 @@
+{
+  "schemaVersion": 1,
+  "id": "asset.ap-identity",
+  "displayName": "AP Identity",
+  "assetType": "capability",
+  "category": "core",
+  "owner": "Platform",
+  "promotionStage": "prototype",
+  "status": "planned",
+  "capabilityRef": null,
+  "dependsOn": [
+    "asset.ap-guard"
+  ],
+  "providers": [],
+  "products": [],
+  "contracts": {
+    "manifest": null,
+    "api": null,
+    "events": null
+  },
+  "evidence": {
+    "tests": false,
+    "observability": false,
+    "security": true,
+    "documentation": false
+  },
+  "metadata": {
+    "inventoryState": "candidate",
+    "source": "platform-foundation-roadmap",
+    "purpose": "organization-neutral identity, authentication, authorization, sessions and tenant boundaries",
+    "nextGate": "technical inventory, contract definition, tenancy model and authentication tests"
+  }
+}
