@@ -9,7 +9,7 @@ import {
 function createMemory() {
   let tick = 0;
   return createInstitutionalMemory({
-    clock: () => `2026-07-16T12:00:0${tick"�}.000Z`,
+    clock: () => `2026-07-16T12:00:0${tick++}.000Z`,
   });
 }
 
@@ -20,7 +20,7 @@ function appendFixture(memory) {
     subject: "capability.publishing",
     cycleId: "cycle.0001",
     status: "open",
-    data: { summary: "Base64 inválido" },
+    data: { summary: "Base64 invÃ¡lido" },
     recordedBy: "apid-toolkit",
   });
 
@@ -31,7 +31,7 @@ function appendFixture(memory) {
     cycleId: "cycle.0001",
     status: "proposed",
     refs: ["memory.problem.0001"],
-    data: { summary: "Validar round-trip antes da publicação" },
+    data: { summary: "Validar round-trip antes da publicaÃ§Ã£o" },
     recordedBy: "planning-engine",
   });
 
@@ -43,7 +43,7 @@ function appendFixture(memory) {
     status: "accepted",
     refs: ["memory.problem.0001", "memory.plan.0001"],
     evidence: [{ id: "evidence.test.0001", result: "passed" }],
-    data: { lesson: "Publicar somente conteúdo validado localmente" },
+    data: { lesson: "Publicar somente conteÃºdo validado localmente" },
     recordedBy: "kernel-memory-test",
   });
 }
@@ -55,12 +55,12 @@ test("append records immutable institutional events", () => {
     type: "problem",
     subject: "capability.publishing",
     cycleId: "cycle.0001",
-    data: { summary: "Base64 inválido" },
+    data: { summary: "Base64 invÃ¡lido" },
   });
 
   assert.equal(created.id, "memory.problem.0001");
   assert.equal(created.recordedAt, "2026-07-16T12:00:00.000Z");
-  assert.equal(memory.get(created.id).data.summary, "Base64 �nválido");
+  assert.equal(memory.get(created.id).data.summary, "Base64 invÃ¡lido");
 });
 
 test("duplicate identifiers are rejected and history remains append-only", () => {
@@ -109,7 +109,7 @@ test("cycle and lessons provide stable read models", () => {
   assert.equal(lessons.length, 1);
   assert.equal(
     lessons[0].data.lesson,
-    "Publicar somente conteúdo validado localmente",
+    "Publicar somente conteÃºdo validado localmente",
   );
 });
 
@@ -124,7 +124,7 @@ test("returned values are cloned and cannot mutate internal memory", () => {
   const stored = memory.get("memory.lesson.0001");
   assert.equal(
     stored.data.lesson,
-    "Publicar somente conteúdo validado localmente",
+    "Publicar somente conteÃºdo validado localmente",
   );
   assert.equal(stored.refs.includes("memory.fake"), false);
 
@@ -132,7 +132,7 @@ test("returned values are cloned and cannot mutate internal memory", () => {
   snapshot.entries[0].data.summary = "corrompido";
   assert.equal(
     memory.get("memory.problem.0001").data.summary,
-    "Base64 inválido",
+    "Base64 invÃ¡lido",
   );
 });
 
