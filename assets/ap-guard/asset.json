@@ -1,0 +1,31 @@
+{
+  "schemaVersion": 1,
+  "id": "asset.ap-guard",
+  "displayName": "AP Guard",
+  "assetType": "capability",
+  "category": "core",
+  "owner": "Platform",
+  "promotionStage": "prototype",
+  "status": "planned",
+  "capabilityRef": null,
+  "dependsOn": [],
+  "providers": [],
+  "products": [],
+  "contracts": {
+    "manifest": null,
+    "api": null,
+    "events": null
+  },
+  "evidence": {
+    "tests": false,
+    "observability": false,
+    "security": true,
+    "documentation": true
+  },
+  "metadata": {
+    "inventoryState": "candidate",
+    "source": "existing-platform-work",
+    "purpose": "central risk classification, approval gates and execution safeguards",
+    "nextGate": "technical inventory and evidence collection"
+  }
+}
