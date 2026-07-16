@@ -1,0 +1,17 @@
+{
+  "name": "@apidevelopers/kernel-reasoning",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Deterministic and explainable institutional reasoning over knowledge graph snapshots.",
+  "type": "module",
+  "exports": {
+    ".": "./src/index.mjs"
+  },
+  "scripts": {
+    "test": "node --test test/*.test.mjs",
+    "check": "node --check src/index.mjs && npm test"
+  },
+  "engines": {
+    "node": ">=22"
+  }
+}
