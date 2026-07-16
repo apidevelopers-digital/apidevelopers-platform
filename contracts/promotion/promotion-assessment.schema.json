@@ -1,0 +1,111 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://apidevelopers.digital/contracts/promotion/promotion-assessment.schema.json",
+  "title": "API Developers Asset Promotion Assessment",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schemaVersion",
+    "assetId",
+    "currentStage",
+    "targetStage",
+    "decision",
+    "requiredEvidence",
+    "missingEvidence",
+    "reasons"
+  ],
+  "properties": {
+    "schemaVersion": {
+      "const": 1
+    },
+    "assetId": {
+      "type": "string",
+      "pattern": "^asset\\.[a-z][a-z0-9.-]*$"
+    },
+    "currentStage": {
+      "type": "string",
+      "enum": [
+        "experiment",
+        "prototype",
+        "managed",
+        "certified",
+        "official",
+        "deprecated",
+        "retired"
+      ]
+    },
+    "targetStage": {
+      "type": "string",
+      "enum": [
+        "prototype",
+        "managed",
+        "certified",
+        "official",
+        "deprecated",
+        "retired"
+      ]
+    },
+    "decision": {
+      "type": "string",
+      "enum": [
+        "approved",
+        "blocked",
+        "needs-review"
+      ]
+    },
+    "requiredEvidence": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "enum": [
+          "contracts",
+          "tests",
+          "observability",
+          "security",
+          "documentation",
+          "runtime",
+          "ownership"
+        ]
+      },
+      "uniqueItems": true
+    },
+    "missingEvidence": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "uniqueItems": true
+    },
+    "reasons": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "minLength": 3
+      }
+    },
+    "score": {
+      "type": [
+        "integer",
+        "null"
+      ],
+      "minimum": 0
+    },
+    "assessedAt": {
+      "type": [
+        "string",
+        "null"
+      ],
+      "format": "date-time"
+    },
+    "assessor": {
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "metadata": {
+      "type": "object",
+      "additionalProperties": true
+    }
+  }
+}
