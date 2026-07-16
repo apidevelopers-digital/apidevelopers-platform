@@ -1,0 +1,172 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://apidevelopers.digital/contracts/assets/platform-asset.schema.json",
+  "title": "API Developers Platform Asset",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schemaVersion",
+    "id",
+    "displayName",
+    "assetType",
+    "category",
+    "owner",
+    "promotionStage",
+    "status",
+    "capabilityRef",
+    "dependsOn",
+    "providers",
+    "products",
+    "contracts",
+    "evidence"
+  ],
+  "properties": {
+    "schemaVersion": {
+      "const": 1
+    },
+    "id": {
+      "type": "string",
+      "pattern": "^asset\\.[a-z][a-z0-9.-]*$"
+    },
+    "displayName": {
+      "type": "string",
+      "minLength": 3
+    },
+    "assetType": {
+      "type": "string",
+      "enum": [
+        "primitive",
+        "capability",
+        "engine",
+        "integration",
+        "business",
+        "intelligence",
+        "developer-tool"
+      ]
+    },
+    "category": {
+      "type": "string",
+      "enum": [
+        "core",
+        "integration",
+        "intelligence",
+        "business",
+        "developer-experience"
+      ]
+    },
+    "owner": {
+      "type": "string",
+      "minLength": 3
+    },
+    "promotionStage": {
+      "type": "string",
+      "enum": [
+        "experiment",
+        "prototype",
+        "managed",
+        "certified",
+        "official",
+        "deprecated",
+        "retired"
+      ]
+    },
+    "status": {
+      "type": "string",
+      "enum": [
+        "planned",
+        "active",
+        "blocked",
+        "deprecated",
+        "retired"
+      ]
+    },
+    "capabilityRef": {
+      "type": [
+        "string",
+        "null"
+      ],
+      "pattern": "^ap\\.[a-z][a-z0-9-]*$"
+    },
+    "dependsOn": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "pattern": "^asset\\.[a-z][a-z0-9.-]*$"
+      },
+      "uniqueItems": true
+    },
+    "providers": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "minLength": 2
+      },
+      "uniqueItems": true
+    },
+    "products": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "pattern": "^[a-z][a-z0-9_.-]*$"
+      },
+      "uniqueItems": true
+    },
+    "contracts": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "manifest",
+        "api",
+        "events"
+      ],
+      "properties": {
+        "manifest": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "api": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "events": {
+          "type": [
+            "string",
+            "null"
+          ]
+        }
+      }
+    },
+    "evidence": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "tests",
+        "observability",
+        "security",
+        "documentation"
+      ],
+      "properties": {
+        "tests": {
+          "type": "boolean"
+        },
+        "observability": {
+          "type": "boolean"
+        },
+        "security": {
+          "type": "boolean"
+        },
+        "documentation": {
+          "type": "boolean"
+        }
+      }
+    },
+    "metadata": {
+      "type": "object",
+      "additionalProperties": true
+    }
+  }
+}
