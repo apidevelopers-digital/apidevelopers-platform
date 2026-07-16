@@ -38,6 +38,22 @@ jobs:
       - name: Test kernel-reasoning
         run: npm --prefix packages/kernel-reasoning test
 
+
+      - name: Check kernel-planning syntax
+        run: node --check packages/kernel-planning/src/index.mjs
+
+      - name: Test kernel-planning
+        run: npm --prefix packages/kernel-planning test
+
+      - name: Check kernel-decision syntax
+        run: node --check packages/kernel-decision/src/index.mjs
+
+      - name: Test kernel-decision
+        run: npm --prefix packages/kernel-decision test
+
+      - name: Test planning and decision integration
+        run: node --test tests/integration/kernel-planning-decision.test.mjs
+
       - name: Check Wave 5 syntax
         run: |
           node --check packages/kernel-policy/src/index.mjs
