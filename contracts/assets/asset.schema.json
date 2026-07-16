@@ -1,0 +1,271 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://apidevelopers.digital/contracts/assets/asset.schema.json",
+  "title": "API Developers Asset",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schemaVersion",
+    "id",
+    "displayName",
+    "assetType",
+    "category",
+    "owner",
+    "capabilityRef",
+    "promotionStage",
+    "status",
+    "dependsOn",
+    "providers",
+    "solutions",
+    "organizations",
+    "contracts",
+    "evidence",
+    "metadata"
+  ],
+  "properties": {
+    "schemaVersion": {
+      "const": 1
+    },
+    "id": {
+      "type": "string",
+      "pattern": "^asset\\.[a-z][a-z0-9.-]*$"
+    },
+    "displayName": {
+      "type": "string",
+      "minLength": 3
+    },
+    "assetType": {
+      "type": "string",
+      "enum": [
+        "capability",
+        "integration",
+        "engine",
+        "runtime",
+        "adapter",
+        "knowledge",
+        "workflow",
+        "sdk",
+        "model",
+        "agent"
+      ]
+    },
+    "category": {
+      "type": "string",
+      "enum": [
+        "core",
+        "integration",
+        "intelligence",
+        "business",
+        "developer-experience"
+      ]
+    },
+    "owner": {
+      "type": "string",
+      "minLength": 3
+    },
+    "capabilityRef": {
+      "type": [
+        "string",
+        "null"
+      ],
+      "pattern": "^capability\\.[a-z][a-z0-9.-]*$"
+    },
+    "promotionStage": {
+      "type": "string",
+      "enum": [
+        "experiment",
+        "prototype",
+        "managed",
+        "certified",
+        "official",
+        "deprecated",
+        "retired"
+      ]
+    },
+    "status": {
+      "type": "string",
+      "enum": [
+        "planned",
+        "active",
+        "blocked",
+        "deprecated",
+        "retired"
+      ]
+    },
+    "dependsOn": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "pattern": "^asset\\.[a-z][a-z0-9.-]*$"
+      },
+      "uniqueItems": true
+    },
+    "providers": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "name",
+          "bindingType",
+          "status"
+        ],
+        "properties": {
+          "name": {
+            "type": "string",
+            "minLength": 2
+          },
+          "bindingType": {
+            "type": "string",
+            "enum": [
+              "adapter",
+              "managed-service",
+              "external-system",
+              "internal"
+            ]
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "planned",
+              "active",
+              "blocked",
+              "deprecated"
+            ]
+          },
+          "replaceable": {
+            "type": "boolean"
+          }
+        }
+      }
+    },
+    "solutions": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "pattern": "^solution\\.[a-z][a-z0-9.-]*$"
+      },
+      "uniqueItems": true
+    },
+    "organizations": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "pattern": "^org\\.[a-z][a-z0-9.-]*$"
+      },
+      "uniqueItems": true
+    },
+    "contracts": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "manifest",
+        "api",
+        "events"
+      ],
+      "properties": {
+        "manifest": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "api": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "events": {
+          "type": [
+            "string",
+            "null"
+          ]
+        }
+      }
+    },
+    "evidence": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "tests",
+        "observability",
+        "security",
+        "documentation",
+        "runtime",
+        "ownership"
+      ],
+      "properties": {
+        "tests": {
+          "type": "boolean"
+        },
+        "observability": {
+          "type": "boolean"
+        },
+        "security": {
+          "type": "boolean"
+        },
+        "documentation": {
+          "type": "boolean"
+        },
+        "runtime": {
+          "type": "boolean"
+        },
+        "ownership": {
+          "type": "boolean"
+        },
+        "refs": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "pattern": "^evidence\\.[a-z][a-z0-9.-]*$"
+          },
+          "uniqueItems": true
+        }
+      }
+    },
+    "promotion": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "targetStage": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "enum": [
+            "prototype",
+            "managed",
+            "certified",
+            "official",
+            "deprecated",
+            "retired",
+            null
+          ]
+        },
+        "lastAssessmentRef": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "decision": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "enum": [
+            "approved",
+            "blocked",
+            "needs-review",
+            null
+          ]
+        }
+      }
+    },
+    "metadata": {
+      "type": "object",
+      "additionalProperties": true
+    }
+  }
+}
