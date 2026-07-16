@@ -1,0 +1,18 @@
+import test from "node:test";
+import assert from "node:assert/strict";
+import { createRuntimeEngine } from "../src/index.mjs";
+const decision={decisionId:"d1",selectedProposalId:"p1",decisionState:"ready-for-human-decision",gates:{constitutionalConflict:false}};
+const plan={planId:"pl1",decisionId:"d1",proposalId:"p1",steps:[{stepId:"s1",action:"echo",input:{value:1}}]};
+const approval={decisionId:"d1",proposalId:"p1",status:"approved",approvedBy:"human",expiresAt:"2026-07-17T00:00:00.000Z"};
+const make=(handler=async input=>input)=>createRuntimeEngine({clock:(()=>{let i=0;return()=>`2026-07-16T21:00:0${i++}.000Z`;})(),actions:{echo:{handler,risk:"R1",reversible:true}}});
+test("dry-run is default and skips handler",async()=>{let calls=0;const r=await make(async()=>{calls++;}).run(decision,plan);assert.equal(r.state,"previewed");assert.equal(calls,0);});
+test("blocks unknown actions",async()=>{await assert.rejects(()=>make().run(decision,{...plan,steps:[{stepId:"s",action:"x"}]}),/unknown/);});
+test("requires approval for execution",async()=>{await assert.rejects(()=>make().run(decision,plan,{dryRun:false,confirmation:"EXECUTE_APPROVED_PLAN"}),/approval artifact/);});
+test("requires explicit confirmation",async()=>{await assert.rejects(()=>make().run(decision,plan,{dryRun:false,approval}),/confirmation/);});
+test("matches approval to decision and proposal",async()=>{await assert.rejects(()=>make().run(decision,plan,{dryRun:false,approval:{...approval,proposalId:"x"},confirmation:"EXECUTE_APPROVED_PLAN"}),/mismatch/);});
+test("rejects expired approval",async()=>{await assert.rejects(()=>make().run(decision,plan,{dryRun:false,approval:{...approval,expiresAt:"2026-07-16T20:00:00.000Z"},confirmation:"EXECUTE_APPROVED_PLAN"}),/expired/);});
+test("executes controlled adapter",async()=>{const r=await make().run(decision,plan,{dryRun:false,approval,confirmation:"EXECUTE_APPROVED_PLAN",tenantId:"t1"});assert.equal(r.state,"executed");assert.equal(r.steps[0].output.value,1);});
+test("stops after failure by default",async()=>{const p={...plan,steps:[...plan.steps,{stepId:"s2",action:"echo"}]};const r=await make(async()=>{throw new Error("boom")}).run(decision,p,{dryRun:false,approval,confirmation:"EXECUTE_APPROVED_PLAN"});assert.equal(r.steps.length,1);assert.equal(r.state,"failed");});
+test("redacts secret-like fields",async()=>{const p={...plan,steps:[{stepId:"s1",action:"echo",input:{api_key:"x"}}]};const r=await make(async()=>({token:"y"})).run(decision,p,{dryRun:false,approval,confirmation:"EXECUTE_APPROVED_PLAN"});assert.equal(r.steps[0].input.api_key,"[REDACTED]");assert.equal(r.steps[0].output.token,"[REDACTED]");});
+test("blocks unready or conflicted decisions",async()=>{await assert.rejects(()=>make().run({...decision,decisionState:"blocked"},plan),/not ready/);await assert.rejects(()=>make().run({...decision,gates:{constitutionalConflict:true}},plan),/constitutional/);});
+test("describes action metadata without handlers",()=>{assert.deepEqual(make().describeActions(),[{name:"echo",risk:"R1",reversible:true}]);});
