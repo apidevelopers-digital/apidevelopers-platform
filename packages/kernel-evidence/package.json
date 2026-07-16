@@ -1,0 +1,17 @@
+{
+  "name": "@apidevelopers/kernel-evidence",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Governed evidence records for the API Developers.digital Platform Kernel.",
+  "type": "module",
+  "exports": {
+    ".": "./src/index.mjs"
+  },
+  "scripts": {
+    "test": "node --test test/*.test.mjs",
+    "check": "node --check src/index.mjs && npm test"
+  },
+  "engines": {
+    "node": ">=22"
+  }
+}
