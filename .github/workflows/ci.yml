@@ -1,0 +1,64 @@
+name: Platform CI
+
+on:
+  push:
+    branches:
+      - main
+      - "foundation/**"
+  pull_request:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: platform-ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Use Node.js 22
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+
+      - name: Install workspace
+        run: npm install -ignore-scripts --no-audit --no-fund
+
+      - name: Validate platform structure and registry
+        run: npm run check
+
+      - name: Validate JSON contracts and manifests
+        run: node scripts/check-json.mjs
+
+      - name: Run complete test suite
+        run: npm test
+
+      - name: Check every implemented workspace
+        shell: bash
+        run: |
+          set -euo pipefail
+          while IFS= read -r -d '' manifest; do
+            workspace="$(dirname "$manifest")"
+            npm --prefix "$workspace" run check --if-present
+          done < <(
+            find packages services engines \
+              -name package.json \
+              -not -path "*/node_modules/*" \
+              -print0 | sort -z
+          )
+
+      - name: Reject transient publishing artifacts
+        shell: bash
+        run: |
+          set -euo pipefail
+          if find . -maxdepth 2 -type d \( -name ".wave*" -o -name ".publish*" \) | grep -q .; then
+            echo "Transient publishing artifacts are not allowed."
+            exit 1
+          fi
