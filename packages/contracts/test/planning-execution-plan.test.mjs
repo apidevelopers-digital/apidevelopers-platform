@@ -211,7 +211,7 @@ test("keeps the plan non-executable until downstream governance", () => {
     automaticApprovalAllowed: false,
     automaticExecutionAllowed: false,
     mutationAllowed: false,
-    executionAlowed: false,
+    executionAllowed: false,
   });
 });
 
@@ -229,7 +229,7 @@ test("does not mutate planning, decision, proposal or factory context", () => {
         return buildSteps(proposal, context);
       },
     },
-   );
+  );
 
   assert.deepEqual(data, before);
 });
