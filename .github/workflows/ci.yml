@@ -77,6 +77,15 @@ jobs:
       - name: Test kernel-governance
         run: npm --prefix packages/kernel-governance test
 
+      - name: Check contracts syntax
+        run: |
+          node --check packages/contracts/src/index.mjs
+          node --check packages/contracts/src/planning-execution-plan.mjs
+          node --check packages/contracts/test/planning-execution-plan.test.mjs
+
+      - name: Test contracts
+        run: npm --prefix packages/contracts test
+
       - name: Check Wave 5 syntax
         run: |
           node --check packages/kernel-policy/src/index.mjs
@@ -91,7 +100,6 @@ jobs:
 
       - name: Test governed runtime integration
         run: node --test tests/integration/kernel-governed-runtime.test.mjs
-
 
       - name: Test constitutional governance integration
         run: node --test tests/integration/kernel-constitutional-governance.test.mjs
