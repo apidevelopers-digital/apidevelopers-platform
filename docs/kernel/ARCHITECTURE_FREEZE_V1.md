@@ -182,7 +182,7 @@ The freeze may be lifted only when all criteria are satisfied:
 
 1. canonical ID contract and validator;
 2. central Registry;
-1. Event Envelope;
+3. Event Envelope;
 4. Observability Envelope;
 5. integration across the frozen pipeline;
 6. architecture review;
