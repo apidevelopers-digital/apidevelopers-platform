@@ -54,6 +54,12 @@ jobs:
       - name: Test planning and decision integration
         run: node --test tests/integration/kernel-planning-decision.test.mjs
 
+      - name: Check kernel-reflection syntax
+        run: node --check packages/kernel-reflection/src/index.mjs
+
+      - name: Test kernel-reflection
+        run: npm --prefix packages/kernel-reflection test
+
       - name: Check Wave 5 syntax
         run: |
           node --check packages/kernel-policy/src/index.mjs
