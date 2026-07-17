@@ -1,0 +1,40 @@
+name: Kernel Constitution CI
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - main
+      - "foundation/**"
+    paths:
+      - "packages/kernel-constitution/**"
+      - ".github/workflows/constitution-ci.yml"
+  pull_request:
+    paths:
+      - "packages/kernel-constitution/**"
+      - ".github/workflows/constitution-ci.yml"
+
+permissions:
+  contents: read
+
+concurrency:
+  group: kernel-constitution-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+      - name: Check syntax
+        run: |
+          node --check packages/kernel-constitution/src/core.mjs
+          node --check packages/kernel-constitution/src/engine.mjs
+          node --check packages/kernel-constitution/src/index.mjs
+          node --check packages/kernel-constitution/test/index.test.mjs
+      - name: Test kernel-constitution
+        run: npm --prefix packages/kernel-constitution test
