@@ -32,15 +32,37 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: "22"
+
       - name: Check syntax
         run: |
           node --check packages/kernel-planning/src/index.mjs
           node --check packages/kernel-planning/test/index.test.mjs
           node --check tests/integration/kernel-planning-decision.test.mjs
+
       - name: Test kernel-planning
         run: npm --prefix packages/kernel-planning test
+
       - name: Test planning-decision integration
         run: node --test tests/integration/kernel-planning-decision.test.mjs
+
       - name: Smoke public API
         run: |
-          node --input-type=module -e 'import { PlanningEngine, createPlanningEngine, planningPriorities } from "./packages/kernel-planning/src/index.mjs"; const engine = createPlanningEngine({ clock: () => "2026-07-17T00:00:00.000Z" }); if (!(engine instanceof PlanningEngine)) throw new Error("invalid engine"; if (!Array.isArray(planningPriorities)) throw new Error("invalid priorities");'
+          node --input-type=module <<'NODE'
+          import {
+            PlanningEngine,
+            createPlanningEngine,
+            planningPriorities,
+          } from "./packages/kernel-planning/src/index.mjs";
+
+          const engine = createPlanningEngine({
+            clock: () => "2026-07-17T00:00:00.000Z",
+          });
+
+          if (!(engine instanceof PlanningEngine)) {
+            throw new Error("invalid engine");
+          }
+
+          if (!Array.isArray(planningPriorities)) {
+            throw new Error("invalid priorities");
+          }
+          NODE
