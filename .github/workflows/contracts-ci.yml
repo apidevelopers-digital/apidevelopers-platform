@@ -21,6 +21,10 @@ concurrency:
   group: contracts-${{ github.ref }}
   cancel-in-progress: true
 
+defaults:
+  run:
+    working-directory: packages/contracts
+
 jobs:
   validate:
     runs-on: ubuntu-latest
@@ -31,9 +35,6 @@ jobs:
         with:
           node-version: "22"
       - name: Check syntax
-        run: |
-          node --check packages/contracts/src/index.mjs
-          node --check packages/contracts/src/planning-execution-plan.mjs
-          node --check packages/contracts/test/planning-execution-plan.test.mjs
+        run: npm run check -- -ignore-scripts
       - name: Test contracts
-        run: npm --prefix packages/contracts test
+        run: npm test
