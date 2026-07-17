@@ -1,0 +1,68 @@
+name: Kernel Decision CI
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - main
+      - "foundation/**"
+    paths:
+      - "packages/kernel-decision/**"
+      - "tests/integration/kernel-planning-decision.test.mjs"
+      - ".github/workflows/kernel-decision-ci.yml"
+  pull_request:
+    paths:
+      - "packages/kernel-decision/**"
+      - "tests/integration/kernel-planning-decision.test.mjs"
+      - ".github/workflows/kernel-decision-ci.yml"
+
+permissions:
+  contents: read
+
+concurrency:
+  group: kernel-decision-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+
+      - name: Check syntax
+        run: |
+          node --check packages/kernel-decision/src/index.mjs
+          node --check packages/kernel-decision/test/index.test.mjs
+          node --check tests/integration/kernel-planning-decision.test.mjs
+
+      - name: Test kernel-decision
+        run: npm --prefix packages/kernel-decision test
+
+      - name: Test planning-decision integration
+        run: node --test tests/integration/kernel-planning-decision.test.mjs
+
+      - name: Smoke public API
+        run: |
+          node --input-type=module <<'NODE'
+          import {
+            DecisionEngine,
+            createDecisionEngine,
+            decisionStates,
+          } from "./packages/kernel-decision/src/index.mjs";
+
+          const engine = createDecisionEngine({
+            clock: () => "2026-07-17T00:00:00.000Z",
+          });
+
+          if (!(engine instanceof DecisionEngine)) {
+            throw new Error("invalid engine");
+          }
+
+          if (!Array.isArray(decisionStates)) {
+            throw new Error("invalid states");
+          }
+          NODE
