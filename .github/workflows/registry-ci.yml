@@ -1,0 +1,49 @@
+name: Registry CI
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - main
+      - "foundation/**"
+    paths:
+      - "packages/registry/**"
+      - "packages/contracts/**"
+      - "capabilities/**"
+      - "scripts/build-capability-index.mjs"
+      - ".github/workflows/registry-ci.yml"
+  pull_request:
+    paths:
+      - "packages/registry/**"
+      - "packages/contracts/**"
+      - "capabilities/**"
+      - "scripts/build-capability-index.mjs"
+      - ".github/workflows/registry-ci.yml"
+
+permissions:
+  contents: read
+
+concurrency:
+  group: registry-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+      - name: Check registry syntax
+        run: |
+          node --check packages/registry/src/index.mjs
+          node --check packages/registry/test/index.test.mjs
+          node --check scripts/build-capability-index.mjs
+      - name: Test registry
+        run: npm --prefix packages/registry test
+      - name: Validate legacy capability manifests
+        run: npm run registry:check
+      - name: Reject generated artifact during check
+        run: test ! -e generated/capabilities.index.json
