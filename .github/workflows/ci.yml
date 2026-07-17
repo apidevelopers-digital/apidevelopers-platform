@@ -38,7 +38,6 @@ jobs:
       - name: Test kernel-reasoning
         run: npm --prefix packages/kernel-reasoning test
 
-
       - name: Check kernel-planning syntax
         run: node --check packages/kernel-planning/src/index.mjs
 
@@ -60,12 +59,17 @@ jobs:
       - name: Test kernel-reflection
         run: npm --prefix packages/kernel-reflection test
 
-
       - name: Check kernel-audit syntax
         run: node --check packages/kernel-audit/src/index.mjs
 
       - name: Test kernel-audit
         run: npm --prefix packages/kernel-audit test
+
+      - name: Check kernel-evolution syntax
+        run: node --check packages/kernel-evolution/src/index.mjs
+
+      - name: Test kernel-evolution
+        run: npm --prefix packages/kernel-evolution test
 
       - name: Check Wave 5 syntax
         run: |
