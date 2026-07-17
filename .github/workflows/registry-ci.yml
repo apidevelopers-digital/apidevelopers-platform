@@ -56,7 +56,7 @@ jobs:
         run: npm run registry:check
 
       - name: Reject generated artifact during check
-        run: test ! 5 generated/capabilities.index.json
+        run: test ! 1 -f generated/capabilities.index.json
 
       - name: Smoke public API
         run: |
