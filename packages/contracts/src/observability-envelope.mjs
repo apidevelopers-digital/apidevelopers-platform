@@ -1,4 +1,3 @@
-
 import { assertCanonicalId, parseCanonicalId } from "./canonical-ids.mjs";
 
 const SEMVER = /^(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)(?:-([0-9A-Za-z-]+(?:\.[0-9A-Za-z-]+)*))?$/;
@@ -39,7 +38,9 @@ function assertString(value, name) {
   if (typeof value !== "string" || value.trim() === "") {
     throw new TypeError(`${name} must be a non-empty string`);
   }
-  if (value !== value.trim()) throw new TypeError(`${name} must not contain surrounding whitespace`);
+  if (value !== value.trim()) {
+    throw new TypeError(`${name} must not contain surrounding whitespace`);
+  }
 }
 
 function assertNullableString(value, name) {
@@ -50,9 +51,13 @@ function assertNullableString(value, name) {
 function assertExactFields(value, fields, name) {
   const expected = new Set(fields);
   const unknown = Object.keys(value).filter((key) => !expected.has(key)).sort();
-  if (unknown.length) throw new TypeError(`${name} contains unknown field(s): ${unknown.join(", ")}`);
+  if (unknown.length) {
+    throw new TypeError(`${name} contains unknown field(s): ${unknown.join(", ")}`);
+  }
   const missing = fields.filter((key) => !Object.hasOwn(value, key));
-  if (missing.length) throw new TypeError(`${name} is missing field(s): ${missing.join(", ")}`);
+  if (missing.length) {
+    throw new TypeError(`${name} is missing field(s): ${missing.join(", ")}`);
+  }
 }
 
 function assertInstant(value, name, nullable = false) {
@@ -67,13 +72,15 @@ function assertInstant(value, name, nullable = false) {
 function assertComponent(value) {
   const parsed = parseCanonicalId(value);
   if (!["component", "capability"].includes(parsed.family)) {
-    throw new TypeError(componentId must be a canonical component or capability id);
+    throw new TypeError("componentId must be a canonical component or capability id");
   }
 }
 
 function assertDuration(value) {
   if (value === null) return;
-  if (!Number.isFinite(value) || value < 0) throw new TypeError("durationMs must be a non-negative finite number or null");
+  if (!Number.isFinite(value) || value < 0) {
+    throw new TypeError("durationMs must be a non-negative finite number or null");
+  }
 }
 
 function assertTiming(value) {
@@ -100,22 +107,34 @@ export function validateObservabilityEnvelope(value) {
   assertCanonicalId(value.traceId, { expectedFamily: "trace" });
   assertString(value.spanId, "observabilityEnvelope.spanId");
   assertNullableString(value.parentSpanId, "observabilityEnvelope.parentSpanId");
-  if (value.parentSpanId === value.spanId) throw new TypeError("parentSpanId must differ from spanId");
+  if (value.parentSpanId === value.spanId) {
+    throw new TypeError("parentSpanId must differ from spanId");
+  }
   assertComponent(value.componentId);
   assertString(value.componentVersion, "observabilityEnvelope.componentVersion");
-  if (!SEMVER.test(value.componentVersion)) throw new TypeError("componentVersion must be a semantic version");
+  if (!SEMVER.test(value.componentVersion)) {
+    throw new TypeError("componentVersion must be a semantic version");
+  }
   assertString(value.operation, "observabilityEnvelope.operation");
-  if (!STATUSES.includes(value.status)) throw new TypeError(`status must be one of: ${STATUSES.join(", ")}`);
+  if (!STATUSES.includes(value.status)) {
+    throw new TypeError(`status must be one of: ${STATUSES.join(", ")}`);
+  }
   assertInstant(value.startedAt, "observabilityEnvelope.startedAt");
   assertInstant(value.endedAt, "observabilityEnvelope.endedAt", true);
   assertDuration(value.durationMs);
   assertNullableString(value.tenantId, "observabilityEnvelope.tenantId");
-  if (value.decisionId !== null) assertCanonicalId(value.decisionId, { expectedFamily: "decision" });
+  if (value.decisionId !== null) {
+    assertCanonicalId(value.decisionId, { expectedFamily: "decision" });
+  }
   assertNullableString(value.requestId, "observabilityEnvelope.requestId");
   assertNullableString(value.correlationId, "observabilityEnvelope.correlationId");
   assertObject(value.attributes, "observabilityEnvelope.attributes");
   assertTiming(value);
-  return deepFreeze({ ...value, attributes: clone(value.attributes) });
+
+  return deepFreeze({
+    ...value,
+    attributes: clone(value.attributes),
+  });
 }
 
 export function createObservabilityEnvelope(value) {
