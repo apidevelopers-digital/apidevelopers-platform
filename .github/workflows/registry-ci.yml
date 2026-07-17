@@ -32,18 +32,60 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 10
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout4v4
       - uses: actions/setup-node@v4
         with:
           node-version: "22"
+
       - name: Check registry syntax
         run: |
           node --check packages/registry/src/index.mjs
           node --check packages/registry/test/index.test.mjs
+          node --check packages/registry/test/legacy-index.test.mjs
+          node --check packages/contracts/src/index.mjs
+          node --check packages/contracts/src/canonical-ids.mjs
           node --check scripts/build-capability-index.mjs
+
       - name: Test registry
         run: npm --prefix packages/registry test
+
+      - name: Test contracts dependency
+        run: npm --prefix packages/contracts test
+
       - name: Validate legacy capability manifests
         run: npm run registry:check
+
       - name: Reject generated artifact during check
-        run: test ! -e generated/capabilities.index.json
+        run: test ! 5 generated/capabilities.index.json
+
+      - name: Smoke public API
+        run: |
+          node --input-type=module <<'NODE'
+          import {
+            Registry,
+            createRegistry,
+            registryContractVersion,
+            registryKinds,
+            registryStatuses,
+            validateRegistryRecord,
+          } from "./packages/registry/src/index.mjs";
+
+          const record = validateRegistryRecord({
+            id: "component.platform.registry",
+            kind: "component",
+            version: "1.0.0",
+            owner: "Platform Engineering",
+            status: "active",
+            dependsOn: [],
+          });
+
+          const registry = createRegistry([record], {
+            clock: () => "2026-07-17T00:00:00.000Z",
+          });
+
+          if (!(registry instanceof Registry)) throw new Error("invalid registry");
+          if (registry.snapshot().count !== 1) throw new Error("invalid snapshot");
+          if (registryContractVersion !== "1.0.0") throw new Error("invalid version");
+          if (!registryKinds.includes("component")) throw new Error("invalid kinds");
+          if (!registryStatuses.includes("active")) throw new Error("invalid statuses");
+          NODE
