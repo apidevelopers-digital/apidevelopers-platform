@@ -3,7 +3,7 @@ import { mkdir, readdir, readFile, writeFile } from "node:fs/promises";
 import path from "node:path";
 import process from "node:process";
 
-import { createLegacyCapabilityIndex } from "../packages/registry/src/index.mjs";
+import { createLegacyCapabilityIndex } from "../packages/registry/src/legacy-index.mjs";
 
 const capabilitiesDir = path.resolve("capabilities");
 const outputPath = path.resolve("generated/capabilities.index.json");
