@@ -1,0 +1,16 @@
+{
+  "name": "@apidevelopers/kernel-audit",
+  "version": "0.1.0",
+  "description": "Read-only lifecycle audit engine for governed API Developers.digital artifacts.",
+  "type": "module",
+  "main": "./src/index.mjs",
+  "exports": "./src/index.mjs",
+  "scripts": {
+    "test": "node --test test/*.test.mjs"
+  },
+  "engines": {
+    "node": ">=22"
+  },
+  "license": "UNLICENSED",
+  "private": true
+}
