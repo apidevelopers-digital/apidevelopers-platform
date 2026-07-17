@@ -60,6 +60,13 @@ jobs:
       - name: Test kernel-reflection
         run: npm --prefix packages/kernel-reflection test
 
+
+      - name: Check kernel-audit syntax
+        run: node --check packages/kernel-audit/src/index.mjs
+
+      - name: Test kernel-audit
+        run: npm --prefix packages/kernel-audit test
+
       - name: Check Wave 5 syntax
         run: |
           node --check packages/kernel-policy/src/index.mjs
