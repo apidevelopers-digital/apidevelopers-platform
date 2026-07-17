@@ -1,38 +1,28 @@
-import {
-  assertCanonicalId,
-  parseCanonicalId,
-} from "./canonical-ids.mjs";
+import { assertCanonicalId, parseCanonicalId } from "./canonical-ids.mjs";
 
 const SEMVER = /^(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)(?:-([0-9A-Za-z-]+(?:\.[0-9A-Za-z-]+)*))?$/;
-
 const CANONICAL_FIELDS = Object.freeze([
-  "eventId",
-  "eventType",
-  "eventVersion",
-  "tenantId",
-  "requestId",
-  "correlationId",
-  "causationId",
-  "occurredAt",
-  "producer",
-  "data",
+  "eventId","eventType","eventVersion","tenantId","requestId",
+  "correlationId","causationId","occurredAt","producer","data",
 ]);
-
 const LEGACY_FIELDS = Object.freeze([
-  "event_id",
-  "event_type",
-  "event_version",
-  "tenant_id",
-  "request_id",
-  "correlation_id",
-  "causation_id",
-  "occurred_at",
-  "producer",
-  "data",
+  "event_id","event_type","event_version","tenant_id","request_id",
+  "correlation_id","causation_id","occurred_at","producer","data",
 ]);
 
 export const eventEnvelopeContractId = "contract.event-envelope.v1";
 export const eventEnvelopeContractVersion = "1.0.0";
+
+function clone(value) {
+  return value == null ? value : structuredClone(value);
+}
+
+function deepFreeze(value) {
+  if (!value || typeof value !== "object" || Object.isFrozen(value)) return value;
+  Object.freeze(value);
+  for (const child of Object.values(value)) deepFreeze(child);
+  return value;
+}
 
 export const institutionalEventContracts = deepFreeze({
   MemoryRecorded: {
@@ -62,17 +52,6 @@ export const institutionalEventContracts = deepFreeze({
   },
 });
 
-function clone(value) {
-  return value == null ? value : structuredClone(value);
-}
-
-function deepFreeze(value) {
-  if (!value || typeof value !== "object" || Object.isFrozen(value)) return value;
-  Object.freeze(value);
-  for (const child of Object.values(value)) deepFreeze(child);
-  return value;
-}
-
 function assertObject(value, name) {
   if (!value || typeof value !== "object" || Array.isArray(value)) {
     throw new TypeError(`${name} must be an object`);
@@ -96,7 +75,7 @@ function assertExactFields(value, expected, name) {
   }
   const missing = expected.filter((key) => !Object.hasOwn(value, key));
   if (missing.length) {
-    throw new TypeError($${name} is missing field(s): ${missing.join(", ")}$);
+    throw new TypeError(`${name} is missing field(s): ${missing.join(", ")}`);
   }
 }
 
@@ -111,7 +90,7 @@ function assertIsoInstant(value, name) {
   assertString(value, name);
   const parsed = new Date(value);
   if (Number.isNaN(parsed.getTime()) || parsed.toISOString() !== value) {
-    throw new TypeError($${name} must be a normalized UTC ISO-8601 instant$);
+    throw new TypeError(`${name} must be a normalized UTC ISO-8601 instant`);
   }
 }
 
@@ -171,8 +150,7 @@ export function isEventEnvelope(value) {
 
 export function adaptLegacyEventEnvelope(value) {
   assertObject(value, "legacyEventEnvelope");
-  assertExactFields(value, LEGACY_FIELDS- "legacyEventEnvelope");
-
+  assertExactFields(value, LEGACY_FIELDS, "legacyEventEnvelope");
   return validateEventEnvelope({
     eventId: value.event_id,
     eventType: value.event_type,
