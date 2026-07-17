@@ -9,7 +9,7 @@
   },
   "scripts": {
     "test": "node --test test/*.test.mjs",
-    "check": "node --check src/index.mjs && node --check src/planning-execution-plan.mjs && npm test"
+    "check": "node --check src/index.mjs && node --check src/planning-execution-plan.mjs && node --check src/canonical-ids.mjs && npm test"
   },
   "engines": {
     "node": ">=22"
