@@ -1,0 +1,17 @@
+{
+  "name": "@apidevelopers/kernel-evolution",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Deterministic advisory evolution proposals derived from governed audit reports.",
+  "type": "module",
+  "exports": {
+    ".": "./src/index.mjs"
+  },
+  "scripts": {
+    "test": "node --test test/*.test.mjs",
+    "check": "node --check src/index.mjs && npm test"
+  },
+  "engines": {
+    "node": ">=22"
+  }
+}
