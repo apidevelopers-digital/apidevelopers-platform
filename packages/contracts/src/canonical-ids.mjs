@@ -1,117 +1,82 @@
-const SEGMENT_PATTERN = /^[a-z0-9]+(?:-[a-z0-9]+)*$/;
-const CONTRACT_VERSION_PATTERN = /^v([1-9][0-9]*)$/;
+const SEGMENT = /^[a-z0-9]+(?:-[a-z0-9]+)*$/;
+const VERSION = /^v([1-9][0-9]*)$/;
 
-const FAMILY_DEFINITIONS = {
-  capability: { minSegments: 1 },
-  component: { minSegments: 2 },
-  contract: { minSegments: 1, versioned: true },
-  policy: { minSegments: 2 },
-  decision: { minSegments: 1 },
-  planning: { minSegments: 1 },
-  plan: { minSegments: 1 },
-  approval: { minSegments: 1 },
-  audit: { minSegments: 1 },
-  reflection: { minSegments: 1 },
-  evolution: { minSegments: 1 },
-  governance: { minSegments: 1 },
-  proposal: { minSegments: 1 },
-  evidence: { minSegments: 1 },
-  runtime: { minSegments: 1 },
-  event: { minSegments: 1 },
-  trace: { minSegments: 1 },
+const DEFINITIONS = {
+  capability: { min: 1 },
+  component: { min: 2 },
+  contract: { min: 1, versioned: true },
+  policy: { min: 2 },
+  decision: { min: 1 },
+  planning: { min: 1 },
+  plan: { min: 1 },
+  approval: { min: 1 },
+  audit: { min: 1 },
+  reflection: { min: 1 },
+  evolution: { min: 1 },
+  governance: { min: 1 },
+  proposal: { min: 1 },
+  evidence: { min: 1 },
+  runtime: { min: 1 },
+  event: { min: 1 },
+  trace: { min: 1 },
 };
 
 export const canonicalIdContractVersion = "1.0.0";
+export const canonicalIdFamilies = Object.freeze(Object.fromEntries(
+  Object.entries(DEFINITIONS).map(([name, value]) => [name, Object.freeze({ ...value, minSegments: value.min })]),
+));
 
-export const canonicalIdFamilies = Object.freeze(
-  Object.fromEntries(
-    Object.entries(FAMILY_DEFINITIONS).map(([family, definition]) => [
-      family,
-      Object.freeze({ ...definition }),
-    ]),
-  ),
-);
-
-function assertNonEmptyString(value, name) {
-  if (typeof value !== "string" || value.length === 0) {
-    throw new TypeError(`${name} must be a non-empty string`);
-  }
-}
-
-function validationError(code, message, details = {}) {
-  return Object.freeze({
-    valid: false,
-    code,
-    message,
-    ...details,
-  });
+function fail(code, message, details = {}) {
+  return Object.freeze({ valid: false, code, message, ...details });
 }
 
 export function validateCanonicalId(value, { expectedFamily } = {}) {
   if (typeof value !== "string" || value.length === 0) {
-    return validationError("ID_REQUIRED", "id must be a non-empty string");
+    return fail("ID_REQUIRED", "id must be a non-empty string");
   }
-
-  if (value !== value.trim()) {
-    return validationError("ID_WHITESPACE", "id must not contain surrounding whitespace");
-  }
-
-  if (value.toLowerCase() !== value) {
-    return validationError("ID_CASE", "id must use lowercase characters only");
-  }
+  if (value !== value.trim()) return fail("ID_WHITESPACE", "id must not contain surrounding whitespace");
+  if (value !== value.toLowerCase()) return fail("ID_CASE", "id must use lowercase characters only");
 
   const parts = value.split(".");
-  if (parts.some((part) => part.length === 0)) {
-    return validationError("ID_EMPTY_SEGMENT", "id must not contain empty segments");
-  }
+  if (parts.some((part) => part.length === 0)) return fail("ID_EMPTY_SEGMENT", "id must not contain empty segments");
 
   const [family, ...segments] = parts;
-  const definition = FAMILY_DEFINITIONS[family];
-
-  if (!definition) {
-    return validationError("ID_UNKNOWN_FAMILY", `unknown canonical id family: ${family}`, {
+  const definition = DEFINITIONS[family];
+  if (!definition) return fail("ID_UNKNOWN_FAMILY", `unknown canonical id family: ${family}`, { family });
+  if (expectedFamily != null && family !== expectedFamily) {
+    return fail("ID_FAMILY_MISMATCH", `expected canonical id family ${expectedFamily}, received ${family}`, {
       family,
+      expectedFamily,
     });
   }
 
-  if (expectedFamily != null && family !== expectedFamily) {
-    return validationError(
-      "ID_FAMILY_MISMATCH",
-      `expected canonical id family ${expectedFamily}, received ${family}`,
-      { family, expectedFamily },
-    );
-  }
-
   let versionMajor = null;
+  let semanticSegments = segments;
   if (definition.versioned) {
-    const versionSegment = segments.at(-1);
-    const match = CONTRACT_VERSION_PATTERN.exec(versionSegment ?? "");
+    const match = VERSION.exec(segments.at(-1) ?? "");
     if (!match) {
-      return validationError(
-        "ID_INVALID_VERSION",
-        "contract ids must end with a positive major version such as v1",
-        { family, versionSegment: versionSegment ?? null },
-      );
+      return fail("ID_INVALID_VERSION", "contract ids must end with a positive major version such as v1", {
+        family,
+        versionSegment: segments.at(-1) ?? null,
+      });
     }
     versionMajor = Number(match[1]);
+    semanticSegments = segments.slice(0, -1);
   }
 
-  const semanticSegments = definition.versioned ? segments.slice(0, -1) : segments;
-  if (semanticSegments.length < definition.minSegments) {
-    return validationError(
-      "ID_SEGMENT_COUNT",
-      `${family} ids require at least ${definition.minSegments} semantic segment(s)`,
-      { family, segments: Object.freeze([...segments]) },
-    );
+  if (semanticSegments.length < definition.min) {
+    return fail("ID_SEGMENT_COUNT", `${family} ids require at least ${definition.min} semantic segment(s)`, {
+      family,
+      segments: Object.freeze([...segments]),
+    });
   }
 
-  const invalidSegment = semanticSegments.find((segment) => !SEGMENT_PATTERN.test(segment));
+  const invalidSegment = semanticSegments.find((segment) => !SEGMENT.test(segment));
   if (invalidSegment) {
-    return validationError(
-      "ID_INVALID_SEGMENT",
-      `invalid canonical id segment: ${invalidSegment}`,
-      { family, segment: invalidSegment },
-    );
+    return fail("ID_INVALID_SEGMENT", `invalid canonical id segment: ${invalidSegment}`, {
+      family,
+      segment: invalidSegment,
+    });
   }
 
   return Object.freeze({
@@ -146,34 +111,29 @@ export function parseCanonicalId(value, options = {}) {
 }
 
 export function createCanonicalId({ family, segments, versionMajor } = {}) {
-  assertNonEmptyString(family, "family");
-  const definition = FAMILY_DEFINITIONS[family];
-  if (!definition) {
-    throw new TypeError(`unknown canonical id family: ${family}`);
-  }
-  if (!Array.isArray(segments) || segments.length === 0) {
-    throw new TypeError("segments must be a non-empty array");
-  }
+  if (typeof family !== "string" || family.length === 0) throw new TypeError("family must be a non-empty string");
+  const definition = DEFINITIONS[family];
+  if (!definition) throw new TypeError(`unknown canonical id family: ${family}`);
+  if (!Array.isArray(segments) || segments.length === 0) throw new TypeError("segments must be a non-empty array");
 
-  const normalizedSegments = segments.map((segment, index) => {
-    assertNonEmptyString(segment, `segments[${index}]`);
-    if (!SEGMENT_PATTERN.test(segment)) {
-      throw new TypeError(`invalid canonical id segment: ${segment}`);
+  for (const [index, segment] of segments.entries()) {
+    if (typeof segment !== "string" || segment.length === 0) {
+      throw new TypeError(`segments[${index}] must be a non-empty string`);
     }
-    return segment;
-  });
+    if (!SEGMENT.test(segment)) throw new TypeError(`invalid canonical id segment: ${segment}`);
+  }
 
-  let idSegments = [...normalizedSegments];
+  const output = [family, ...segments];
   if (definition.versioned) {
     if (!Number.isSafeInteger(versionMajor) || versionMajor < 1) {
       throw new TypeError("versionMajor must be a positive safe integer for contract ids");
     }
-    idSegments.push(`v${versionMajor}`);
-  } else if (versionMajor) != null) {
+    output.push(`v${versionMajor}`);
+  } else if (versionMajor != null) {
     throw new TypeError("versionMajor is only valid for contract ids");
   }
 
-  const id = [family, ...idSegments].join(".");
+  const id = output.join(".");
   assertCanonicalId(id, { expectedFamily: family });
   return id;
 }
