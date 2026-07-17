@@ -35,6 +35,9 @@ jobs:
         with:
           node-version: "22"
       - name: Check syntax
-        run: npm run check -- -ignore-scripts
+        run: |
+          node --check src/index.mjs
+          node --check src/planning-execution-plan.mjs
+          node --check test/planning-execution-plan.test.mjs
       - name: Test contracts
         run: npm test
