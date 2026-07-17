@@ -92,6 +92,10 @@ jobs:
       - name: Test governed runtime integration
         run: node --test tests/integration/kernel-governed-runtime.test.mjs
 
+
+      - name: Test constitutional governance integration
+        run: node --test tests/integration/kernel-constitutional-governance.test.mjs
+
       - name: Reject transient publishing artifacts
         run: |
           test ! -d .wave5
