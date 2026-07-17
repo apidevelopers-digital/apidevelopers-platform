@@ -71,6 +71,12 @@ jobs:
       - name: Test kernel-evolution
         run: npm --prefix packages/kernel-evolution test
 
+      - name: Check kernel-governance syntax
+        run: node --check packages/kernel-governance/src/index.mjs
+
+      - name: Test kernel-governance
+        run: npm --prefix packages/kernel-governance test
+
       - name: Check Wave 5 syntax
         run: |
           node --check packages/kernel-policy/src/index.mjs
