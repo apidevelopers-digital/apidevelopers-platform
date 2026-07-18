@@ -101,8 +101,8 @@ function candidateFor(proposal, evidence, reviews) {
 
 function sortCandidates(left, right) {
   return (
-    READINESS_INDEX.get(left.state) - READINESS_INDEX.get(right.state) ||
     PRIORITY_INDEX.get(left.priority) - PRIORITY_INDEX.get(right.priority) ||
+    READINESS_INDEX.get(left.state) - READINESS_INDEX.get(right.state) ||
     String(left.subject ?? "").localeCompare(String(right.subject ?? "")) ||
     left.proposalId.localeCompare(right.proposalId)
   );
