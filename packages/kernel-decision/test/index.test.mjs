@@ -168,6 +168,28 @@ test("selects the highest-priority ready candidate deterministically", () => {
   assert.equal(report.candidates[0].proposalId, "proposal.high");
 });
 
+test("keeps a higher-priority candidate selected even when it still needs review", () => {
+  const report = engine().evaluate(
+    plan([
+      proposal({
+        proposalId: "proposal.medium-ready",
+        subject: "component.medium",
+        priority: "medium",
+      }),
+      proposal({
+        proposalId: "proposal.critical-review",
+        subject: "component.critical",
+        priority: "critical",
+        requiredReviews: ["kernel-governance"],
+      }),
+    ]),
+  );
+
+  assert.equal(report.selectedProposalId, "proposal.critical-review");
+  assert.equal(report.decisionState, "needs-review");
+  assert.deepEqual(report.gates.missingReviews, ["kernel-governance"]);
+});
+
 test("does not mutate the planning report", () => {
   const input = plan([
     proposal({
