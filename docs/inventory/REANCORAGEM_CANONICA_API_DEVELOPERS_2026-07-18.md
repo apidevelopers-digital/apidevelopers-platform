@@ -3,90 +3,116 @@
 **Data:** 2026-07-18  
 **Status:** PREPARADO_PARA_CONTINUIDADE  
 **Branch operacional:** `foundation/global-platform-bootstrap-20260715`  
-**Commit-âncora anterior à documentação:** `aaa5594217d96efb247501955e4a4493c7324bda`  
-**Prontidão institucional:** 77%  
+**Commit-âncora técnico:** `64f53298b4828896156aeb44097190ae3b3c1169`  
+**Prontidão institucional:** 79,65% — operacionalmente 80%  
 **Merge:** NÃO EXECUTADO  
 **Deploy:** NÃO EXECUTADO
 
 ## 1. Ponto correto de retomada
 
-A continuidade correta não começa na comparação com `main`.
+A continuidade parte do estado em que a matriz oficial já havia identificado:
 
-O ponto correto é imediatamente após:
+- 16 diretórios em `packages/`;
+- 14 pacotes implementados;
+- `auth` e `tenancy` como módulos documentais;
+- Platform CI verde;
+- prontidão anterior em 77%.
 
-1. incorporação da auditoria institucional à branch foundation;
-2. commit `aaa55942` com a validação da auditoria no Platform CI;
-3. Platform CI confirmado em verde;
-4. prontidão institucional elevada para 77%;
-5. identificação de 16 diretórios em `packages/`;
-6. correção de que somente 14 são pacotes implementados;
-7. confirmação de que `auth` e `tenancy` são apenas documentais.
+A etapa seguinte foi concluída: formalização dos contratos que ainda estavam implícitos na cadeia cognitiva e definição do contrato mínimo de tenancy.
 
-A ação que estava em andamento era **salvar a matriz oficial de dependências e contratos** e corrigir o inventário institucional.
+## 2. Implementações concluídas
 
-## 2. Estado salvo nesta retomada
+### Tenancy compartilhada
 
-Foram preparados e persistidos:
+`packages/contracts/src/tenancy-context.mjs`
 
-- `docs/inventory/MATRIZ_DEPENDENCIAS_CONTRATOS_PACOTES_2026-07-18.md`;
-- atualização de `docs/inventory/INVENTARIO_PRONTIDAO_INSTITUCIONAL_API_DEVELOPERS_2026-07-18.md`;
-- esta reancoragem de continuidade.
+Fornece:
 
-## 3. Inventário canônico
+- `tenantId` opaco;
+- isolamento estrito;
+- `crossTenantAccessAllowed: false`;
+- `globalOperation: false`;
+- papéis e permissões;
+- bloqueio explícito de operações entre tenants.
+
+### Pipeline cognitivo
+
+`packages/contracts/src/cognitive-pipeline.mjs`
+
+Formaliza:
+
+- memory snapshot;
+- reasoning report;
+- reflection report;
+- planning report;
+- handoffs sequenciais permitidos;
+- bloqueio de saltos de etapa;
+- bloqueio de mutação, aprovação e execução automática.
+
+### Testes
+
+`packages/contracts/test/cognitive-pipeline.test.mjs`
+
+Cobertura:
+
+- contrato mínimo de tenant;
+- bloqueio cross-tenant;
+- quatro relatórios cognitivos;
+- três handoffs formais;
+- rejeição de transições não permitidas.
+
+## 3. Evidência técnica
+
+| Workflow | Run | Resultado |
+|---|---:|---|
+| Registry CI | `29669349266` | SUCESSO |
+| Contracts CI | `29669349276` | SUCESSO |
+| Platform CI | `29669349307` | SUCESSO |
+
+Todos executados no commit:
+
+`64f53298b4828896156aeb44097190ae3b3c1169`
+
+## 4. Estado institucional
 
 | Item | Estado |
 |---|---|
 | Diretórios em `packages/` | 16 |
 | Pacotes implementados | 14 |
-| Módulos documentais | 2 |
-| Documentais | `auth`, `tenancy` |
-| Platform CI no commit-âncora | VERDE |
-| Prontidão | 77% |
+| Módulos documentais | `auth`, `tenancy` |
+| Contrato mínimo de tenancy | IMPLEMENTADO EM `contracts` |
+| Handoffs cognitivos formais | IMPLEMENTADOS |
+| CI do commit-âncora | VERDE |
+| Prontidão | 79,65% / 80% operacional |
 | Merge | NÃO EXECUTADO |
 | Deploy | NÃO EXECUTADO |
 
-## 4. Cadeias comprovadas
+## 5. Limites desta âncora
 
-- `planning → decision`;
-- `planning → decision → policy → runtime → evidence → audit`;
-- `constitution → policy → audit → evolution → governance`.
+Esta reancoragem não declara:
 
-Os pacotes comunicam-se por contratos de dados e testes de integração, sem depender de acoplamento npm direto como mecanismo institucional principal.
+- pacote executável de `auth`;
+- pacote executável de `tenancy`;
+- consumo direto dos novos contratos por todos os kernels;
+- proteção de `main`;
+- release;
+- publicação;
+- deploy;
+- operação em produção.
 
-## 5. Lacunas que permanecem
+## 6. Próxima ação permitida
 
-- implementação real de `auth`;
-- implementação real de `tenancy`;
-- contratos públicos ainda implícitos em alguns fluxos;
-- adoção uniforme de `@apidevelopers/contracts`;
-- proteção de `main` e checks obrigatórios;
-- observabilidade operacional consolidada;
-- plano de promoção aprovado, sem merge automático.
-
-## 6. Efeito da reconstrução incorreta anterior
-
-Foi aberto um PR draft durante uma reconstrução baseada no painel errado da captura. Esse PR:
-
-- não integra esta âncora de continuidade;
-- não foi mesclado;
-- não realizou deploy;
-- não deve ser tratado como promoção aprovada.
-
-Qualquer fechamento, revisão ou reaproveitamento desse PR deve ser uma ação separada e consciente.
-
-## 7. Próxima ação permitida
-
-Formalizar os vínculos ainda implícitos em contratos públicos e testes, começando pela fronteira:
+Integrar os contratos públicos nos quatro kernels:
 
 `kernel-memory → kernel-reasoning → kernel-reflection → kernel-planning`
 
-Em paralelo documental, definir o contrato mínimo de `tenancy` antes de implementar `auth`.
+Depois, adicionar um teste cross-package que percorra a cadeia usando exclusivamente os exports de `@apidevelopers/contracts`.
 
 Nenhum merge, release ou deploy está autorizado por esta reancoragem.
 
-## 8. Governança
+## 7. Governança
 
-- **status:** PREPARADO_PARA_CONTINUIDADE
+- **status:** PREPARADO_PARA_CONTINUIDADE  
 - **versão_origem:** GitHub no commit `aaa5594217d96efb247501955e4a4493c7324bda`
 - **alvo:** API Developers.digital / foundation
 - **risco:** R2
