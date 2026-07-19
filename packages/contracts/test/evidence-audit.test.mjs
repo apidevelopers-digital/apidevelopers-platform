@@ -21,16 +21,6 @@ function fixtures() {
   const decision = {
     decisionId: "decision.0001",
     selectedProposalId: "proposal.0001",
-    decisionState: "ready-for-human-decision",
-    humanApprovalRequired: true,
-    approved: false,
-    mutationAllowed: false,
-    executionAllowed: false,
-    constraints: {
-      automaticDecisionAllowed: false,
-      automaticApprovalAllowed: false,
-      automaticExecutionAllowed: false,
-    },
   };
 
   const plan = {
@@ -44,21 +34,9 @@ function fixtures() {
   const policyDecision = {
     policyDecisionId: "policy.0001",
     effect: "allow",
-    executionAllowed: true,
-    mutationAllowed: true,
+    executionAllowed: false,
+    mutationAllowed: false,
     planHash: plan.planHash,
-  };
-
-  const approval = {
-    approvalId: "approval.0001",
-    status: "approved",
-    approvedBy: "human.operator",
-    tenantId: tenantContext.tenantId,
-    decisionId: decision.decisionId,
-    proposalId: plan.proposalId,
-    planHash: plan.planHash,
-    consumedAt: null,
-    used: false,
   };
 
   const runtimeReport = {
@@ -70,26 +48,26 @@ function fixtures() {
     cycleId: "cycle.0001",
     sourceHandoffId: "handoff.policy.runtime.0001",
     policyDecisionId: policyDecision.policyDecisionId,
-    approvalId: approval.approvalId,
-    requestedMode: "execute",
-    dryRun: false,
-    state: "executed",
+    approvalId: null,
+    requestedMode: "preview",
+    dryRun: true,
+    state: "previewed",
     startedAt: "2026-07-19T07:01:00.000Z",
     endedAt: "2026-07-19T07:01:01.000Z",
-    executionAuthorized: true,
-    executionObserved: true,
-    mutationObserved: true,
+    executionAuthorized: false,
+    executionObserved: false,
+    mutationObserved: false,
     steps: [{
       stepId: "step.0001",
       action: "echo",
-      status: "executed",
+      status: "previewed",
       risk: "R1",
-      output: { value: 1 },
+      output: { planned: true },
     }],
     evidence: [{
       evidenceId: "runtime-step.0001",
       stepId: "step.0001",
-      status: "executed",
+      status: "previewed",
     }],
     constraints: {
       policyGateRequired: true,
@@ -127,7 +105,7 @@ function fixtures() {
 
   return {
     tenantContext,
-    lifecycle: { decision, plan, policyDecision, approval },
+    lifecycle: { decision, plan, policyDecision, approval: null },
     evidenceRecord,
   };
 }
@@ -146,7 +124,7 @@ test("creates an immutable evidence -> audit handoff", () => {
   assert.equal(assertEvidenceAuditHandoffContract(handoff), handoff);
   assert.equal(handoff.mutationAllowed, false);
   assert.equal(handoff.approvalAllowed, false);
-  assert.equal(handoff.executionAlowed, false);
+  assert.equal(handoff.executionAllowed, false);
   assert.ok(Object.isFrozen(handoff));
   assert.ok(Object.isFrozen(handoff.payload.evidenceRecord));
 });
@@ -165,7 +143,7 @@ test("rejects cross-tenant evidence", () => {
   );
 });
 
-test("rejects replayed approval", () => {
+test("rejects approval carried by preview evidence", () => {
   const data = fixtures();
   assert.throws(
     () => createEvidenceAuditHandoff({
@@ -175,10 +153,20 @@ test("rejects replayed approval", () => {
       evidenceRecord: data.evidenceRecord,
       lifecycle: {
         ...data.lifecycle,
-        approval: { ...data.lifecycle.approval, used: true },
+        approval: {
+          approvalId: "approval.0001",
+          approvedBy: "human.operator",
+          tenantId: data.tenantContext.tenantId,
+          decisionId: data.lifecycle.decision.decisionId,
+          proposalId: data.lifecycle.plan.proposalId,
+          planHash: data.lifecycle.plan.planHash,
+          status: "approved",
+          consumedAt: null,
+          used: false,
+        },
       },
     }),
-    /must not be replayed/,
+    /preview must not carry approval/,
   );
 });
 
