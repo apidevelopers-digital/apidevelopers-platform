@@ -1,0 +1,40 @@
+name: Audit Evolution Integration CI
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - main
+      - "foundation/**"
+    paths:
+      - "packages/kernel-evolution/**"
+      - "packages/contracts/**"
+      - "tests/integration/kernel-audit-evolution-contracts.test.mjs"
+      - "tests/integration/kernel-audit-evolution-wrapper.mjs"
+      - "tests/integration/cleanup-cognitive-links.mjs"
+      - ".github/workflows/audit-evolution-integration-ci.yml"
+  pull_request:
+    paths:
+      - "packages/kernel-evolution/**"
+      - "packages/contracts/**"
+      - "tests/integration/kernel-audit-evolution-contracts.test.mjs"
+      - "tests/integration/kernel-audit-evolution-wrapper.mjs"
+      - "tests/integration/cleanup-cognitive-links.mjs"
+      - ".github/workflows/audit-evolution-integration-ci.yml"
+
+permissions:
+  contents: read
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+      - name: Check governed evolution adapter
+        run: node --check packages/kernel-evolution/src/governed.mjs
+      - name: Test audit evolution integration
+        run: node --test tests/integration/kernel-audit-evolution-wrapper.mjs
