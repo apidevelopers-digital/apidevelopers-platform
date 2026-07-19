@@ -5,11 +5,15 @@
   "description": "Deterministic and explainable institutional reasoning over knowledge graph snapshots.",
   "type": "module",
   "exports": {
-    ".": "./src/index.mjs"
+    ".": "./src/index.mjs",
+    "./governed": "./src/governed.mjs"
   },
   "scripts": {
     "test": "node --test test/*.test.mjs",
-    "check": "node --check src/index.mjs && npm test"
+    "check": "node --check src/index.mjs && node --check src/governed.mjs && npm test"
+  },
+  "dependencies": {
+    "@apidevelopers/contracts": "workspace:*"
   },
   "engines": {
     "node": ">=22"
