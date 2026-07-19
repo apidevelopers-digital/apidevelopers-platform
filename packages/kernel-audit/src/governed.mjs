@@ -31,7 +31,7 @@ export function runGovernedAudit({
     policyDecision: lifecycle.policyDecision,
     runtimeReport: evidenceRecord.payload.runtimeReport,
     evidence: [evidenceRecord],
-    approval: lifecycle.approval ?? unull,
+    approval: lifecycle.approval ?? null,
   });
 
   const report = deepFreeze({
