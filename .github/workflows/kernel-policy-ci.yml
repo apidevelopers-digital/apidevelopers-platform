@@ -1,0 +1,59 @@
+name: Kernel Policy CI 
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - main
+      - "foundation/**"
+    paths:
+      - "packages/kernel-policy/**"
+      - "packages/kernel-decision/**"
+      - "packages/contracts/**"
+      - "tests/integration/kernel-decision-policy-contracts.test.mjs"
+      - "tests/integration/kernel-decision-policy-wrapper.mjs"
+      - "tests/integration/cleanup-cognitive-links.mjs"
+      - ".github/workflows/kernel-policy-ci.yml"
+  pull_request:
+    paths:
+      - "packages/kernel-policy/**"
+      - "packages/kernel-decision/**"
+      - "packages/contracts/**"
+      - "tests/integration/kernel-decision-policy-contracts.test.mjs"
+      - "tests/integration/kernel-decision-policy-wrapper.mjs"
+      - "tests/integration/cleanup-cognitive-links.mjs"
+      - ".github/workflows/kernel-policy-ci.yml"
+
+permissions:
+  contents: read
+
+concurrency:
+  group: kernel-policy-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+
+      - name: Check syntax
+        run: |
+          node --check packages/kernel-policy/src/index.mjs
+          node --check packages/kernel-policy/src/governed.mjs
+          node --check packages/contracts/src/decision-policy.mjs
+          node --check tests/integration/kernel-decision-policy-contracts.test.mjs
+          node --check tests/integration/kernel-decision-policy-wrapper.mjs
+
+      - name: Test contracts
+        run: npm --prefix packages/contracts test
+
+      - name: Test kernel-policy
+        run: npm --prefix packages/kernel-policy test
+
+      - name: Test decision-policy integration
+        run: node --test tests/integration/kernel-decision-policy-wrapper.mjs
