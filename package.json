@@ -27,7 +27,8 @@
     "check:structure": "node scripts/check-structure.mjs",
     "registry:build": "node scripts/build-capability-index.mjs",
     "registry:check": "node scripts/build-capability-index.mjs --check",
-    "test": "node --test"
+    "test": "node --test",
+    "audit:institutional": "node scripts/institutional-audit/audit.mjs"
   },
   "apid": {
     "platform": "API Developers.digital",
