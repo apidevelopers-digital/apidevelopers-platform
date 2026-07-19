@@ -1,0 +1,46 @@
+name: API Gateway MVP CI
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - main
+      - "foundation/**"
+    paths:
+      - "apps/api-gateway/**"
+      - "apps/developer-portal/**"
+      - "docs/mvp/API_PLATFORM_MVP.md"
+      - ".github/workflows/api-gateway-mvp-ci.yml"
+  pull_request:
+    paths:
+      - "apps/api-gateway/**"
+      - "apps/developer-portal/**"
+      - "docs/mvp/API_PLATFORM_MVP.md"
+      - ".github/workflows/api-gateway-mvp-ci.yml"
+
+permissions:
+  contents: read
+
+concurrency:
+  group: api-gateway-mvp-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  validate:
+    runs-on: [self-hosted, macOS, X64]
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+      - name: Check API gateway
+        run: npm --prefix apps/api-gateway run check
+      - name: Check developer portal
+        run: npm --prefix apps/developer-portal run check
+      - name: Validate no committed API keys
+        run: |
+          if grep -RInE 'apid_[A-Za-z0-9_-]{20,}' apps docs --exclude='*.test.mjs'; then
+            echo "Potential API key committed"
+            exit 1
+          fi
