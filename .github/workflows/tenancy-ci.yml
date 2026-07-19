@@ -1,0 +1,44 @@
+name: Tenancy CI
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - main
+      - "foundation/**"
+    paths:
+      - "packages/tenancy/**"
+      - "packages/contracts/**"
+      - ".github/workflows/tenancy-ci.yml"
+  pull_request:
+    paths:
+      - "packages/tenancy/**"
+      - "packages/contracts/**"
+      - ".github/workflows/tenancy-ci.yml"
+
+permissions:
+  contents: read
+
+concurrency:
+  group: tenancy-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+     - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+      - name: Prepare local contracts link
+        run: |
+          mkdir -p node_modules/@apidevelopers
+          ln -s "$GITHUB_WORKSPACE/packages/contracts" node_modules/@apidevelopers/contracts
+      - name: Check syntax
+        run: |
+          node --check packages/tenancy/src/index.mjs
+          node --check packages/tenancy/test/index.test.mjs
+      - name: Test tenancy
+        run: npm --prefix packages/tenancy test
