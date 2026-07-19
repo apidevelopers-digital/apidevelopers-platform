@@ -17,7 +17,7 @@ concurrency:
 
 jobs:
   validate:
-    runs-on: ubuntu-latest
+    runs-on: [self-hosted, macOS, X64]
     timeout-minutes: 10
     steps:
       - uses: actions/checkout@v4
@@ -85,6 +85,9 @@ jobs:
           node --check packages/contracts/test/planning-execution-plan.test.mjs
       - name: Test contracts
         run: npm --prefix packages/contracts test
+
+      - name: Test auth tenancy integration
+        run: node --test tests/integration/auth-tenancy-wrapper.mjs 
 
       - name: Check Wave 5 syntax
         run: |
