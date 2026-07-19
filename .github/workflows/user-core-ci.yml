@@ -1,0 +1,40 @@
+name: User Core CI
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - main
+      - "foundation/**"
+    paths:
+      - "packages/user-core/**"
+      - ".github/workflows/user-core-ci.yml"
+  pull_request:
+    branches:
+      - main
+    paths:
+      - "packages/user-core/**"
+      - ".github/workflows/user-core-ci.yml"
+
+permissions:
+  contents: read
+
+concurrency:
+  group: user-core-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  validate:
+    runs-on: [self-hosted, macOS, X64]
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+      - name: Check user-core
+        run: npm --prefix packages/user-core run check
+      - name: Check auth package boundaries
+        run: |
+          node --check packages/auth/src/index.mjs
+          node --check packages/auth-core/src/index.mjs
