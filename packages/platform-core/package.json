@@ -1,0 +1,17 @@
+{
+  "name": "@apidevelopers/platform-core",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Request context, errors and HTTP response contracts for API Developers.digital.",
+  "type": "module",
+  "exports": {
+    ".": "./src/index.mjs"
+  },
+  "scripts": {
+    "test": "node --test test/*.test.mjs",
+    "check": "node --check src/index.mjs && npm test"
+  },
+  "engines": {
+    "node": ">=22"
+  }
+}
