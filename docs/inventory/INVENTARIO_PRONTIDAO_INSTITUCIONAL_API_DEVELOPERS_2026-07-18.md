@@ -2,65 +2,67 @@
 
 **Data:** 2026-07-19  
 **Branch:** `foundation/global-platform-bootstrap-20260715`  
-**Commit-âncora técnico:** `8f75606fbc77d2261cd3b13b2da3371aff0e1606`  
-**HEAD de validação integral:** `b67bc4ac29bf7b46bffecac3d492b96e3e70ab95`  
-**Prontidão:** 94%  
+**Commit-âncora técnico:** `d81fcf4304d13dbf1f429f38742705a1c9570e68`  
+**HEAD de validação integral:** `2a3c238b8e4a82cb2b105cfc8cf2ee6dbcf7a406`  
+**Prontidão:** 96%  
 **Merge / deploy:** NÃO EXECUTADOS
 
 ## Estado validado
 
-`memory → reasoning → reflection → planning → decision → policy → runtime → evidence → audit → evolution`
+`memory → reasoning → reflection → planning → decision → policy → runtime → evidence → audit → evolution → governance`
 
-A fronteira `audit → evolution` foi formalizada com:
+A fronteira `evolution → governance` foi formalizada com:
 
 - contrato versionado e handoff imutável;
-- preservação de tenant, ciclo, auditoria de origem e digest da Evidence;
-- propostas determinísticas e advisory;
-- revisão humana obrigatória;
-- mutação, aprovação, execução, evolução automática e promoção bloqueadas;
-- teste cross-package e etapa isolada no Platform CI.
+- vínculo de tenant, ciclo, decisão, proposta, Audit e digest da Evidence;
+- aprovação humana fresca, não consumida e não reproduzida;
+- sinal técnico do motor preservado sem autorização externa automática;
+- decisão humana explícita obrigatória;
+- mutação, aprovação, execução, governança automática e promoção bloqueadas;
+- integração cross-package executada isoladamente no Platform CI.
 
 ## Evidência técnica
 
 | Gate | Commit | Run | Estado |
 |---|---|---:|---|
-| Platform CI consolidado | `b67bc4ac` | `29674038605` | SUCESSO |
-| Kernel Evolution CI | `8f75606f` | `29673992221` | SUCESSO |
-| Audit Evolution Integration CI | `8f75606f` | `29673992223` | SUCESSO |
-| Audit Evolution Contract CI | `3d50c335` | `29673957618` | SUCESSO |
+| Platform CI consolidado | `2a3c238b` | `29674911676` | SUCESSO |
+| Kernel Governance CI | `d81fcf43` | `29674867483` | SUCESSO |
+| Evolution Governance Contract CI | `997031c6` | `29674856440` | SUCESSO |
 
-Teste principal: `tests/integration/kernel-audit-evolution-contracts.test.mjs`
+Contrato principal: `packages/contracts/src/evolution-governance.mjs`  
+Teste cross-package: `tests/integration/kernel-evolution-governance-contracts.test.mjs`
 
 ## Correções do marco
 
-- bloqueios `automaticEvolutionAllowed: false` e `promotionAllowed: false` explicitados no bloco `constraints`;
-- integração cross-package restaurada;
-- fronteira conectada ao Platform CI em processo isolado;
-- nenhuma regra de autoridade humana ou segurança foi reduzida.
+- parâmetro remoto corrompido `evolutionEport` corrigido para `evolutionReport`;
+- blob do contrato confirmado por SHA Git `07595d19e8b95b5f307ad2a351de6141fd496b3f`;
+- gate integral de Governance restaurado;
+- nova fronteira adicionada ao Platform CI em processo isolado;
+- cobertura anterior preservada.
 
 ## Estrutura e lacunas
 
 - 16 diretórios em `packages/`;
 - 14 pacotes implementados;
 - `auth` e `tenancy` permanecem documentais;
-- falta formalizar `evolution → governance`;
-- proteção de `main`, checks obrigatórios, promoção, release e deploy permanecem pendentes.
+- proteção de `main`, checks obrigatórios e política de promoção permanecem pendentes;
+- merge, release, publicação e deploy não foram executados.
 
 ## Próximo marco
 
-**Meta: 96%**
+**Meta: 98%**
 
-1. formalizar `evolution → governance`;
-2. adaptar `kernel-governance` ao relatório governado de Evolution;
-3. preservar revisão e aprovação humanas;
-4. criar teste cross-package e gate dedicado;
-5. validar no mesmo commit.
+1. tornar `auth` e `tenancy` executáveis com contratos públicos;
+2. provar isolamento e autorização em testes cross-package;
+3. criar gates dedicados e integrar ao Platform CI;
+4. preparar proposta de proteção de `main` e checks obrigatórios;
+5. aplicar proteção ou promoção somente após aprovação explícita.
 
 ## Governança
 
-- **status:** `INVENTARIO_ATUALIZADO_COM_PIPELINE_ATE_EVOLUTION`
+- **status:** `INVENTARIO_ATUALIZADO_COM_PIPELINE_ATE_GOVERNANCE`
 - **risco:** R2
 - **decisão_milena:** NÃO INFORMADA
 - **execução_igor:** CÓDIGO E DOCUMENTAÇÃO SALVOS NA BRANCH
 - **deploy:** NÃO EXECUTADO
-- **próximo_estado_permitido:** `evolution → governance`, sem promoção
+- **próximo_estado_permitido:** endurecimento de `auth` e `tenancy`, sem promoção
