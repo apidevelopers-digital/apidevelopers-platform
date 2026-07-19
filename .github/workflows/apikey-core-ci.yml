@@ -1,0 +1,42 @@
+name: API Key Core CI
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - main
+      - "foundation/**"
+    paths:
+      - "packages/apikey-core/**"
+      - "apps/api-gateway/src/client-registry.mjs"
+      - ".github/workflows/apikey-core-ci.yml"
+  pull_request:
+    branches:
+      - main
+    paths:
+      - "packages/apikey-core/**"
+      - "apps/api-gateway/src/client-registry.mjs"
+      - ".github/workflows/apikey-core-ci.yml"
+
+permissions:
+  contents: read
+
+concurrency:
+  group: apikey-core-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  validate:
+    runs-on: [self-hosted, macOS, X64]
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+      - name: Install workspace links
+        run: npm install --ignore-scripts --no-audit --no-fund --no-package-lock
+      - name: Check apikey-core
+        run: npm --workspace @apidevelopers/apikey-core run check
+      - name: Check Gateway integration
+        run: npm --workspace @apidevelopers/api-gateway run check
