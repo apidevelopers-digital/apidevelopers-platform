@@ -1,0 +1,9 @@
+{
+  "name": "@apidevelopers/developer-portal",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Portal est\u00e1tico do desenvolvedor e painel administrativo do MVP.",
+  "scripts": {
+    "check": "node -e \"const fs=require('node:fs'); for (const f of ['public/index.html']) { if (!fs.readFileSync(f,'utf8').includes('API Developers.digital')) process.exit(1) }\""
+  }
+}
