@@ -17,6 +17,7 @@ for (const packageName of [
   "kernel-runtime",
   "kernel-evidence",
   "kernel-audit",
+  "kernel-evolution",
 ]) {
   rmSync(path.join(namespaceRoot, packageName), { force: true });
 }
