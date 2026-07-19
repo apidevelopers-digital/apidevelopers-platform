@@ -1,0 +1,62 @@
+name: Kernel Audit CI
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - main
+      - "foundation/**"
+    paths:
+      - "packages/kernel-audit/**"
+      - "packages/kernel-evidence/**"
+      - "packages/contracts/**"
+      - "tests/integration/kernel-evidence-audit-contracts.test.mjs"
+      - "tests/integration/kernel-evidence-audit-wrapper.mjs"
+      - "tests/integration/cleanup-cognitive-links.mjs"
+      - ".github/workflows/kernel-audit-ci.yml"
+  pull_request:
+    paths:
+      - "packages/kernel-audit/**"
+      - "packages/kernel-evidence/**"
+      - "packages/contracts/**"
+      - "tests/integration/kernel-evidence-audit-contracts.test.mjs"
+      - "tests/integration/kernel-evidence-audit-wrapper.mjs"
+      - "tests/integration/cleanup-cognitive-links.mjs"
+      - ".github/workflows/kernel-audit-ci.yml"
+
+permissions:
+  contents: read
+
+concurrency:
+  group: kernel-audit-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+
+      - name: Check syntax
+        run: |
+          node --check packages/kernel-audit/src/index.mjs
+          node --check packages/kernel-audit/src/governed.mjs
+          node --check packages/contracts/src/evidence-audit.mjs
+          node --check tests/integration/kernel-evidence-audit-contracts.test.mjs
+          node --check tests/integration/kernel-evidence-audit-wrapper.mjs
+
+      - name: Test contracts
+        run: npm --prefix packages/contracts test
+
+      - name: Test kernel-evidence
+        run: npm --prefix packages/kernel-evidence test
+
+      - name: Test kernel-audit
+        run: npm --prefix packages/kernel-audit test
+
+      - name: Test evidence-audit integration
+        run: node --test tests/integration/kernel-evidence-audit-wrapper.mjs
