@@ -1,0 +1,17 @@
+{
+  "name": "@apidevelopers/apikey-core",
+  "version": "0.1.0",
+  "private": true,
+  "description": "API key generation, hashing, verification and lifecycle primitives.",
+  "type": "module",
+  "exports": {
+    ".": "./src/index.mjs"
+  },
+  "scripts": {
+    "test": "node --test test/*.test.mjs",
+    "check": "node --check src/index.mjs && npm test"
+  },
+  "engines": {
+    "node": ">=22"
+  }
+}
