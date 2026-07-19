@@ -70,25 +70,29 @@ export function createHttpServer({ app } = {}) {
   const resolvedApp = app ?? createRuntimeApp();
 
   return http.createServer(async (request, response) => {
-    const context = createRequestContext({
+    const requestInput = {
       method: request.method,
       url: request.url,
       headers: request.headers,
       remoteAddress: request.socket.remoteAddress,
-    });
+    };
+    let context;
 
     try {
-      const body = ["POST", "PUT", "PATCH"].includes(context.method)
+      const body = ["POST", "PUT", "PATCH"].includes(
+        String(request.method ?? "GET").toUpperCase(),
+      )
         ? await readBody(request)
         : undefined;
+
       const result = await resolvedApp.handleRequest({
-        context,
+        ...requestInput,
         body,
       });
-
       response.writeHead(result.status, result.headers);
       response.end(result.body);
     } catch (error) {
+      context = context ?? createRequestContext(requestInput);
       const result = toErrorResponse(error, context);
       response.writeHead(result.status, result.headers);
       response.end(result.body);
