@@ -1,0 +1,30 @@
+name: Runtime Evidence Module CI
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - main
+      - "foundation/**"
+    paths:
+      - "packages/contracts/**"
+      - ".github/workflows/runtime-evidence-module-ci.yml"
+  pull_request:
+    paths:
+      - "packages/contracts/**"
+      - ".github/workflows/runtime-evidence-module-ci.yml"
+
+permissions:
+  contents: read
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+      - name: Load runtime evidence module
+        run: node -e "import('./packages/contracts/src/runtime-evidence.mjs')"
