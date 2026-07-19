@@ -51,8 +51,9 @@ export function runGovernedEvolution({
     constraints: {
       ...raw.constraints,
       humanReviewRequired: true,
-      evidenceRequiredBeforePromotion: true,
       tenantIsolationRequired: true,
+      automaticEvolutionAllowed: false,
+      promotionAllowed: false,
       crossTenantAccessAllowed: false,
     },
   });
