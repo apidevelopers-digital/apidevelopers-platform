@@ -2,92 +2,67 @@
 
 **Data:** 2026-07-19  
 **Branch:** `foundation/global-platform-bootstrap-20260715`  
-**Commit-âncora técnico:** `72e9697a5141508fa35e7b758d50b51b3d3891ef`  
-**Status:** `INVENTARIO_ATUALIZADO_COM_PIPELINE_ATE_RUNTIME`  
+**Commit-âncora técnico:** `b2cb7bf2a7b44da9d6e29514f6d116cd8e7a4089`  
+**Prontidão:** 90%  
 **Merge / deploy:** NÃO EXECUTADOS
 
-## Resultado executivo
+## Estado validado
 
-**Prontidão institucional operacional: 88%**
+`memory → reasoning → reflection → planning → decision → policy → runtime → evidence`
 
-A cadeia governada está formalizada e validada até Runtime:
+A fronteira `runtime → evidence` foi formalizada com:
 
-`memory → reasoning → reflection → planning → decision → policy → runtime`
-
-## Estrutura confirmada
-
-- **16 diretórios** em `packages/`;
-- **14 pacotes implementados**;
-- **2 módulos documentais:** `auth` e `tenancy`;
-- contrato mínimo de tenancy em `@apidevelopers/contracts`;
-- `kernel-runtime` com fronteira pública `./governed`;
-- execução real condicionada a Policy, aprovação humana vinculada e confirmação explícita.
+- contrato versionado e handoff imutável;
+- registro append-only;
+- isolamento por tenant;
+- integridade SHA-256;
+- detecção de adulteração e duplicidade;
+- metadados `immutable: true` e `redacted: true`;
+- bloqueio de mutação, aprovação e execução na fronteira.
 
 ## Evidência técnica
 
-| Gate | Run | Resultado |
-|---|---:|---|
-| Contracts CI | `29671852254` | SUCESSO |
-| Kernel Runtime CI | `29671852261` | SUCESSO |
-| Kernel Policy CI | `29671852272` | SUCESSO |
-| Registry CI | `29671852262` | SUCESSO |
-| Platform CI | `29671852256` | SUCESSO |
+| Gate | Commit | Run | Estado |
+|---|---|---:|---|
+| Platform CI final | `b2cb7bf2` | `29672689326` | SUCESSO |
+| Contracts CI | `c4bccb1b` | `29672612408` | SUCESSO |
+| Kernel Evidence CI | `c4bccb1b` | `29672612383` | SUCESSO |
+| Kernel Runtime CI | `c4bccb1b` | `29672612411` | SUCESSO |
+| Registry CI | `c4bccb1b` | `29672612393` | SUCESSO |
+| Runtime Evidence Contract CI | `957431ec` | `29672583385` | SUCESSO |
 
-Todos os runs validam o commit:
+Teste principal: `tests/integration/kernel-runtime-evidence-contracts.test.mjs`
 
-`72e9697a5141508fa35e7b758d50b51b3d3891ef`
+## Correções do marco
 
-Teste cross-package principal:
+- fixtures independentes por teste;
+- cobertura integral `test/*.test.mjs` restaurada em modo serial;
+- wrappers governados executados em processos separados no Platform CI;
+- nenhuma regra de segurança ou integridade reduzida.
 
-`tests/integration/kernel-policy-runtime-contracts.test.mjs`
+## Estrutura e lacunas
 
-## Fronteira policy → runtime
-
-Foram formalizados:
-
-- contrato versionado `policy-runtime`;
-- handoff imutável `kernel-policy → kernel-runtime`;
-- vínculo entre tenant, ciclo, decisão, proposta, plano, Policy e aprovação;
-- prévia sem execução ou mutação observada;
-- bloqueio de execução sem aprovação humana válida;
-- bloqueio de execução sem confirmação explícita;
-- execução local reversível apenas após os dois gates;
-- relatório de Runtime com evidência e rastreabilidade;
-- proibição de execução automática.
-
-## Correção técnica do marco
-
-O primeiro gate encontrou uma chamada `new Error` sem parênteses em uma validação de vínculo da aprovação. O contrato integral validado foi reaplicado no commit-âncora, sem reduzir nenhuma regra de segurança.
-
-## Lacunas restantes
-
-1. `auth` continua documental.
-2. `tenancy` ainda não é pacote executável próprio.
-3. A fronteira `runtime → evidence` ainda precisa ser formalizada pelo mesmo padrão público.
-4. A cadeia até `audit` precisa consumir os novos contratos de Runtime.
-5. Proteção de `main`, checks obrigatórios e estratégia de promoção permanecem pendentes.
-6. Observabilidade operacional consolidada ainda não foi comprovada.
-7. Nenhum merge, release, publicação ou deploy foi executado.
+- 16 diretórios em `packages/`;
+- 14 pacotes implementados;
+- `auth` e `tenancy` permanecem documentais;
+- falta formalizar `evidence → audit`;
+- proteção de `main`, checks obrigatórios, release e deploy permanecem pendentes.
 
 ## Próximo marco
 
-**Meta seguinte: 90%**
+**Meta: 92%**
 
-Caminho mais curto:
-
-1. formalizar `runtime → evidence`;
-2. criar adaptador governado de Evidence;
-3. validar relatório e artefatos imutáveis;
-4. criar teste cross-package até Evidence;
+1. formalizar `evidence → audit`;
+2. adaptar `kernel-audit`;
+3. rejeitar evidência adulterada ou cross-tenant;
+4. criar teste cross-package até Audit;
 5. confirmar os gates no mesmo commit.
 
 ## Governança
 
-- **status:** `INVENTARIO_ATUALIZADO_COM_PIPELINE_ATE_RUNTIME`
-- **versão_origem:** GitHub no commit `72e9697a5141508fa35e7b758d50b51b3d3891ef`
-- **alvo:** API Developers.digital / foundation
+- **status:** `INVENTARIO_ATUALIZADO_COM_PIPELINE_ATE_EVIDENCE`
 - **risco:** R2
 - **decisão_milena:** NÃO INFORMADA
 - **execução_igor:** CÓDIGO E DOCUMENTAÇÃO SALVOS NA BRANCH
 - **deploy:** NÃO EXECUTADO
-- **próximo_estado_permitido:** integração governada `runtime → evidence`, sem promoção
+- **próximo_estado_permitido:** `evidence → audit`, sem promoção
