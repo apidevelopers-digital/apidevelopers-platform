@@ -14,6 +14,7 @@ for (const packageName of [
   "kernel-planning",
   "kernel-decision",
   "kernel-policy",
+  "kernel-runtime",
 ]) {
   rmSync(path.join(namespaceRoot, packageName), { force: true });
 }
