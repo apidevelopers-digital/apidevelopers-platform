@@ -80,6 +80,9 @@ jobs:
       - name: Test kernel-evolution
         run: npm --prefix packages/kernel-evolution test
 
+      - name: Test audit and evolution integration
+        run: node --test tests/integration/kernel-audit-evolution-wrapper.mjs
+
       - name: Check kernel-governance syntax
         run: node --check packages/kernel-governance/src/index.mjs
 
