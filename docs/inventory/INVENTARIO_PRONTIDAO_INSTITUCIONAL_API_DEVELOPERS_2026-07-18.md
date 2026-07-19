@@ -2,42 +2,44 @@
 
 **Data:** 2026-07-18  
 **Branch avaliada:** `foundation/global-platform-bootstrap-20260715`  
-**Head base da avaliação:** `125025554caba5f8658eaf2840874b7d5a4cc9fe`  
-**Status:** INVENTÁRIO_PRELIMINAR_COM_EVIDÊNCIA  
-**Execução real / deploy:** NÃO EXECUTADOS  
+**Commit-âncora da avaliação:** `aaa5594217d96efb247501955e4a4493c7324bda`  
+**Status:** INVENTÁRIO_ATUALIZADO_COM_EVIDÊNCIA  
+**Execução real / deploy:** NÃO EXECUTADOS
 
 ## Resultado executivo
 
-**Prontidão institucional estimada: 68%**
+**Prontidão institucional estimada: 77%**
 
-A estimativa mede a fundação institucional e técnica, não a conclusão comercial do produto. A estrutura principal existe e está documentada, mas ainda faltam evidências completas de integração, CI verde consolidado, observabilidade operacional, promoção formal e redução do legado.
+A estimativa mede a fundação institucional e técnica, não a conclusão comercial do produto. O avanço de 68% para 77% decorre da incorporação da auditoria institucional à foundation, da validação do Platform CI no commit-âncora e da comprovação da cadeia governada por testes de integração.
 
 ## Matriz de prontidão
 
 | Pilar | Peso | Nota | Contribuição |
 |---|---:|---:|---:|
-| Arquitetura e Constituição | 15% | 85% | 12,75 |
-| Kernel cognitivo e governado | 20% | 82% | 16,40 |
+| Arquitetura e Constituição | 15% | 90% | 13,50 |
+| Kernel cognitivo e governado | 20% | 90% | 18,00 |
 | Registry, contratos e tenancy | 15% | 72% | 10,80 |
-| Segurança e políticas | 10% | 75% | 7,50 |
-| Testes e CI | 15% | 55% | 8,25 |
-| Documentação e inventário | 10% | 82% | 8,20 |
-| Observabilidade e auditoria contínua | 8% | 45% | 3,60 |
-| Promoção, release e operação | 7% | 15% | 1,05 |
-| **Total** | **100%** |  | **68,55%** |
+| Segurança e políticas | 10% | 85% | 8,50 |
+| Testes e CI | 15% | 82% | 12,30 |
+| Documentação e inventário | 10% | 92% | 9,20 |
+| Observabilidade e auditoria contínua | 8% | 55% | 4,40 |
+| Promoção, release e operação | 7% | 5% | 0,35 |
+| **Total** | **100%** |  | **77,05%** |
 
-Percentual operacional arredondado: **68%**.
+Percentual operacional arredondado: **77%**.
 
-## Evidências confirmadas
+## Correção oficial da estrutura de pacotes
 
-### Estrutura de pacotes
+A conferência detalhada de `packages/` confirmou:
 
-Foram confirmados 17 pacotes:
+- **16 diretórios**, e não 17;
+- **14 pacotes implementados**;
+- **2 módulos documentais:** `auth` e `tenancy`.
 
-- `auth`
+### Pacotes implementados
+
 - `contracts`
 - `registry`
-- `tenancy`
 - `kernel-audit`
 - `kernel-constitution`
 - `kernel-decision`
@@ -51,143 +53,104 @@ Foram confirmados 17 pacotes:
 - `kernel-reflection`
 - `kernel-runtime`
 
-Os pacotes centrais seguem o padrão esperado de manifesto, implementação, README e testes. Isso foi conferido diretamente em pacotes como `kernel-planning` e `kernel-decision`.
+### Módulos ainda documentais
 
-### Kernel
+- `auth`
+- `tenancy`
 
-A cadeia institucional já possui componentes para:
+Ambos possuem somente documentação no estado conferido, sem manifesto, implementação ou testes próprios.
 
-- memória;
-- reasoning;
-- planning;
-- decision;
-- reflection;
-- audit;
-- evolution;
-- governance;
-- constitution;
-- evidence;
-- policy;
-- runtime.
+## Evidências adicionadas desde o inventário preliminar
 
-A Onda 2 está concluída. O `kernel-decision` recebeu correção recente para priorizar criticidade antes de prontidão e teste específico para esse comportamento.
+### Auditoria institucional incorporada
 
-### CI e automação
+A auditoria incremental passou a fazer parte da branch foundation e foi incluída no Platform CI.
 
-Foram confirmados 10 workflows ativos:
+### Platform CI validado
 
-- Platform CI
-- Kernel Constitution CI
-- Contracts CI
-- Kernel Decision CI
-- Kernel Planning CI
-- Registry CI
-- Wave 3 atomic publisher
-- Wave 4 atomic publisher
-- Wave 5 atomic publisher
-- Wave 5 atomic publish trigger
+O Platform CI foi confirmado em estado verde no commit:
 
-A existência dos workflows está confirmada. O estado verde mais recente de todos eles ainda não foi consolidado.
+`aaa5594217d96efb247501955e4a4493c7324bda`
 
-### Documentação e governança
+### Integração governada comprovada
 
-Estão presentes:
+Os testes de integração cobrem:
 
-- auditoria consolidada de repositórios e ativos;
-- classificação inicial de APIs;
-- inventário técnico do núcleo;
-- achados sobre canais e memória;
-- reancoragem canônica atualizada;
-- documentação arquitetural e operacional;
-- regras de não execução automática, evidência, dry-run e separação entre decisão e execução.
+1. `kernel-planning → kernel-decision`;
+2. `kernel-planning → kernel-decision → kernel-policy → kernel-runtime → kernel-evidence`;
+3. ciclo até `kernel-audit`;
+4. `kernel-constitution → kernel-policy → kernel-audit → kernel-evolution → kernel-governance`;
+5. prevalência constitucional e bloqueio de promoção;
+6. ausência de mutação/execução automática nas etapas cognitivas e decisórias.
+
+### Matriz oficial de dependências e contratos
+
+Foi criada a referência:
+
+`docs/inventory/MATRIZ_DEPENDENCIAS_CONTRATOS_PACOTES_2026-07-18.md`
+
+Ela distingue dependência lógica, contrato de dados, integração testada e lacuna documental.
 
 ## O que já pode ser considerado pronto
 
 - identidade institucional e nomenclatura;
-- branch de fundação definida;
-- arquitetura-alvo documentada;
-- Kernel modular criado;
-- Registry, contracts, tenancy e auth iniciados formalmente;
-- testes unitários em módulos centrais;
-- workflows dedicados;
-- documentação de inventário;
-- reancoragem persistida no próprio repositório;
-- separação entre decisão, planejamento e execução.
+- arquitetura-alvo e Constituição documentadas;
+- 14 pacotes executáveis;
+- Planning e Decision implementados;
+- Policy, Runtime, Evidence e Audit integrados;
+- ciclo Constitution, Audit, Evolution e Governance comprovado;
+- auditoria institucional incorporada;
+- Platform CI verde no commit-âncora;
+- Registry e contratos implementados;
+- matriz oficial de dependências e contratos;
+- reancoragem persistida no repositório;
+- separação entre reasoning, planning, decisão, governança e execução.
 
-## O que ainda impede nota superior
+## O que ainda impede 80%
 
-### Integração não comprovada
+### `auth` e `tenancy` documentais
 
-A presença dos pacotes não demonstra que Planning, Decision, Policy, Evidence, Audit e Runtime já operam como uma cadeia integrada e governada.
+Os módulos existem como intenção arquitetural, mas ainda não como pacotes executáveis.
 
-### CI não consolidado
+### Contratos parcialmente implícitos
 
-Não há evidência atual reunida de que todos os workflows estejam verdes no mesmo head. O Registry CI possuía histórico recente de falha de configuração.
-
-### Auditoria contínua fragmentada
-
-O mecanismo de auditoria incremental está na branch `audit/institutional-recovery`, ainda separado da foundation.
+Parte da cadeia troca objetos compatíveis em testes de integração, mas ainda não usa uniformemente contratos públicos versionados do pacote `contracts`.
 
 ### Promoção institucional pendente
 
-- não há PR aberto da foundation para `main`;
-- `main` permanece muito atrás;
-- não há release estável;
-- não há deploy institucional;
-- proteção de branch não foi confirmada.
+- nenhum merge autorizado;
+- nenhum deploy executado;
+- proteção de `main` ainda não comprovada;
+- estratégia final de promoção ainda não aprovada.
 
-### Legado e ativos externos
+### Observabilidade incompleta
 
-O inventário anterior identifica ativos ainda espalhados em repositórios, branches, bridges e MVPs, sem promoção uniforme para a fonte oficial.
+A auditoria técnica existe, mas ainda faltam painel operacional, métricas de saúde e alertas institucionais consolidados.
 
-### Observabilidade
+### Legado
 
-Existem conceitos e componentes de audit/evidence, mas não foi comprovado um painel operacional consolidado, métricas de saúde, rastreamento completo e alertas institucionais.
-
-## Faixas de interpretação
-
-| Percentual | Interpretação |
-|---:|---|
-| 0–25% | ideia e protótipos |
-| 26–50% | fundação parcial |
-| 51–70% | fundação funcional em consolidação |
-| 71–85% | plataforma integrada em estabilização |
-| 86–95% | candidata a produção |
-| 96–100% | instituição operacional comprovada |
-
-A API Developers.digital está em **fundação funcional em consolidação**, próxima da faixa de plataforma integrada.
-
-## Caminho mais curto para 80%
-
-1. Auditar a integração Planning → Decision → Policy → Evidence → Audit → Runtime.
-2. Confirmar todos os workflows verdes no mesmo commit.
-3. Incorporar ou formalmente rejeitar a auditoria incremental separada.
-4. Criar relatório de contratos e dependências entre pacotes.
-5. Confirmar branch protection e estratégia de promoção.
-6. Preparar PR draft para `main`, sem merge.
-7. Atualizar o inventário de ativos legados e definir destino de cada um.
+Ativos e compatibilidades antigas ainda precisam de destino formal.
 
 ## Próximo marco
 
 **Meta institucional seguinte: 80%**
 
-Critério para atingir:
+Critérios mais curtos:
 
-- integração central comprovada por testes;
-- CI consolidado;
-- auditoria contínua na branch oficial;
-- matriz de contratos;
-- plano formal de promoção para `main`;
-- nenhum deploy ainda necessário.
+1. formalizar contratos para os vínculos ainda implícitos;
+2. implementar ou aprovar plano fechado para `auth` e `tenancy`;
+3. validar proteção de branch e checks obrigatórios;
+4. registrar plano de promoção sem executar merge;
+5. ampliar evidência de observabilidade.
 
-## Relatório de governança
+## Governança
 
-- **status:** INVENTÁRIO_PRELIMINAR_COM_EVIDÊNCIA
-- **versão_origem:** GitHub até `125025554caba5f8658eaf2840874b7d5a4cc9fe`
+- **status:** INVENTÁRIO_ATUALIZADO_COM_EVIDÊNCIA
+- **versão_origem:** GitHub no commit `aaa5594217d96efb247501955e4a4493c7324bda`
 - **alvo:** API Developers.digital
 - **risco:** R2
 - **decisão_milena:** NÃO INFORMADA
-- **execução_igor:** DOCUMENTAÇÃO SALVA
+- **execução_igor:** DOCUMENTAÇÃO TÉCNICA SALVA
 - **deploy:** NÃO EXECUTADO
-- **evidência_técnica:** pacotes, branches, documentos, commits e workflows conferidos
-- **próximo_estado_permitido:** auditoria de integração e consolidação de CI
+- **evidência_técnica:** auditoria incorporada, Platform CI verde, quatro testes de integração, 16 diretórios conferidos e matriz oficial
+- **próximo_estado_permitido:** formalização dos contratos implícitos e definição técnica de `auth`/`tenancy`
