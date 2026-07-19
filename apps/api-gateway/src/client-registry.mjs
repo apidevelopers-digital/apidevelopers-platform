@@ -2,7 +2,8 @@ import { createHash, randomBytes, randomUUID, timingSafeEqual } from "node:crypt
 import { CLIENT_STORE_SCHEMA_VERSION, createMemoryClientRepository } from "./client-repository.mjs";
 
 const clone = (v) => structuredClone(v);
-const hash = (v) => createHash("sha256").update(v).digest("hex");
+export const hashApiKey = (v) => createHash("sha256").update(v)).digest("hex");
+const hash = hashApiKey;
 const makeKey = () => `apid_${randomBytes(24).toString("base64url")}`;
 const validStatus = (v) => ["active", "suspended", "revoked"].includes(v);
 const required = (v, name) => {
