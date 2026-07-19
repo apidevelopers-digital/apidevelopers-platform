@@ -53,6 +53,15 @@ jobs:
       - name: Test planning and decision integration
         run: node --test tests/integration/kernel-planning-decision.test.mjs
 
+      - name: Test decision and policy integration
+        run: node --test tests/integration/kernel-decision-policy-wrapper.mjs
+
+      - name: Test policy and runtime integration
+        run: node --test tests/integration/kernel-policy-runtime-wrapper.mjs
+
+      - name: Test runtime and evidence integration
+        run: node --test tests/integration/kernel-runtime-evidence-wrapper.mjs
+
       - name: Check kernel-reflection syntax
         run: node --check packages/kernel-reflection/src/index.mjs
 
@@ -89,6 +98,7 @@ jobs:
       - name: Check Wave 5 syntax
         run: |
           node --check packages/kernel-policy/src/index.mjs
+
           node --check services/guard/src/index.mjs
           node --check scripts/check-json.mjs
 
@@ -103,7 +113,6 @@ jobs:
 
       - name: Test constitutional governance integration
         run: node --test tests/integration/kernel-constitutional-governance.test.mjs
-
 
       - name: Test governed audit lifecycle integration
         run: node --test tests/integration/kernel-audit-lifecycle.test.mjs
