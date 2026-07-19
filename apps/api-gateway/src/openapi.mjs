@@ -1,114 +1,121 @@
+const security = [{ ApiKeyAuth: [] }];
+const json = (schema) => ({ "application/json": { schema } });
+const ok = (description = "Success") => ({ 200: { description } });
+const adminErrors = {
+  401: { description: "API Key ausente ou inválida" },
+  403: { description: "Privilégio administrativo necessário" },
+  429: { description: "Rate limit excedido" },
+};
+
 export const openApiDocument = Object.freeze({
   openapi: "3.1.0",
   info: {
     title: "API Developers.digital Platform API",
-    version: "0.1.0",
-    description:
-      "MVP do gateway público com catálogo, autenticação por API Key e administração de clientes.",
+    version: "0.2.0",
+    description: "Gateway MVP com clientes, API Keys, rotação, revogação, auditoria e rate limiting.",
   },
-  servers: [{ url: "http://localhost:3000", description: "Desenvolvimento local" }],
-  tags: [
-    { name: "Platform" },
-    { name: "Developer" },
-    { name: "Administration" },
-  ],
+  servers: [{ url: "http://127.0.0.1:3000", description: "Desenvolvimento local" }],
   components: {
     securitySchemes: {
-      ApiKeyAuth: {
-        type: "apiKey",
-        in: "header",
-        name: "x-api-key",
-      },
+      ApiKeyAuth: { type: "apiKey", in: "header", name: "x-api-key" },
     },
     schemas: {
-      Error: {
+      ApiKey: {
         type: "object",
-        required: ["error", "message"],
         properties: {
-          error: { type: "string" },
-          message: { type: "string" },
-          requestId: { type: "string" },
+          id: { type: "string" },
+          prefix: { type: "string" },
+          status: { type: "string", enum: ["active", "revoked"] },
+          createdAt: { type: "string", format: "date-time" },
+          revokedAt: { type: ["string", "null"], format: "date-time" },
         },
       },
       Client: {
         type: "object",
-        required: ["id", "name", "contactEmail", "status", "scopes"],
+        required: ["id", "name", "contactEmail", "status", "scopes", "keys"],
         properties: {
           id: { type: "string" },
           name: { type: "string" },
           contactEmail: { type: "string", format: "email" },
           status: { type: "string", enum: ["active", "suspended", "revoked"] },
           scopes: { type: "array", items: { type: "string" } },
-          createdAt: { type: "string", format: "date-time" },
-          updatedAt: { type: "string", format: "date-time" },
+          keys: { type: "array", items: { $ref: "#/components/schemas/ApiKey" } },
         },
       },
     },
   },
   paths: {
     "/health": {
-      get: {
-        tags: ["Platform"],
-        summary: "Verifica a saúde do gateway",
-        responses: { 200: { description: "Gateway operacional" } },
-      },
+      get: { summary: "Verifica a saúde do gateway", responses: ok("Gateway operacional") },
     },
     "/v1/apis": {
-      get: {
-        tags: ["Platform"],
-        summary: "Lista o catálogo público de APIs",
-        responses: { 200: { description: "Catálogo público" } },
-      },
+      get: { summary: "Lista o catálogo público", responses: ok("Catálogo público") },
+    },
+    "/openapi.json": {
+      get: { summary: "Retorna este contrato OpenAPI", responses: ok("Contrato OpenAPI") },
     },
     "/v1/me": {
       get: {
-        tags: ["Developer"],
-        summary: "Retorna o cliente autenticado",
-        security: [{ ApiKeyAuth: [] }],
-        responses: {
-          200: { description: "Identidade autenticada" },
-          401: { description: "API Key ausente ou inválida" },
-        },
+        summary: "Retorna a identidade autenticada",
+        security,
+        responses: { ...ok("Identidade autenticada"), 401: { description: "API Key inválida" }, 429: { description: "Rate limit excedido" } },
       },
     },
+    "/v1/admin/status": {
+      get: { summary: "Retorna status administrativo", security, responses: { ...ok(), ...adminErrors } },
+    },
     "/v1/admin/clients": {
-      get: {
-        tags: ["Administration"],
-        summary: "Lista clientes cadastrados",
-        security: [{ ApiKeyAuth: [] }],
-        responses: {
-          200: { description: "Clientes cadastrados" },
-          401: { description: "API Key ausente ou inválida" },
-          403: { description: "Privilégio administrativo necessário" },
-        },
-      },
+      get: { summary: "Lista clientes", security, responses: { ...ok(), ...adminErrors } },
       post: {
-        tags: ["Administration"],
-        summary: "Cadastra cliente e emite uma API Key",
-        description: "A API Key é retornada uma única vez e não é persistida em texto puro.",
-        security: [{ ApiKeyAuth: [] }],
+        summary: "Cadastra cliente e emite a primeira API Key",
+        security,
         requestBody: {
           required: true,
-          content: {
-            "application/json": {
-              schema: {
-                type: "object",
-                required: ["name", "contactEmail"],
-                properties: {
-                  name: { type: "string" },
-                  contactEmail: { type: "string", format: "email" },
-                  scopes: { type: "array", items: { type: "string" } },
-                },
-              },
+          content: json({
+            type: "object",
+            required: ["name", "contactEmail"],
+            properties: {
+              name: { type: "string" },
+              contactEmail: { type: "string", format: "email" },
+              scopes: { type: "array", items: { type: "string" } },
             },
-          },
+          }),
         },
-        responses: {
-          201: { description: "Cliente criado" },
-          400: { description: "Payload inválido" },
-          401: { description: "API Key ausente ou inválida" },
-          403: { description: "Privilégio administrativo necessário" },
-        },
+        responses: { 201: { description: "Cliente criado; chave retornada uma única vez" }, ...adminErrors },
+      },
+    },
+    "/v1/admin/clients/{clientId}": {
+      parameters: [{ name: "clientId", in: "path", required: true, schema: { type: "string" } }],
+      get: { summary: "Obtém cliente", security, responses: { ...ok(), ...adminErrors, 404: { description: "Cliente não encontrado" } } },
+      patch: {
+        summary: "Atualiza status do cliente",
+        security,
+        requestBody: { required: true, content: json({ type: "object", required: ["status"], properties: { status: { type: "string", enum: ["active", "suspended", "revoked"] } } }) },
+        responses: { ...ok(), ...adminErrors, 404: { description: "Cliente não encontrado" } },
+      },
+    },
+    "/v1/admin/clients/{clientId}/keys": {
+      parameters: [{ name: "clientId", in: "path", required: true, schema: { type: "string" } }],
+      post: {
+        summary: "Emite ou rotaciona API Key",
+        security,
+        requestBody: { content: json({ type: "object", properties: { revokeExisting: { type: "boolean", default: false } } }) },
+        responses: { 201: { description: "Chave emitida uma única vez" }, ...adminErrors },
+      },
+    },
+    "/v1/admin/clients/{clientId}/keys/{keyId}": {
+      parameters: [
+        { name: "clientId", in: "path", required: true, schema: { type: "string" } },
+        { name: "keyId", in: "path", required: true, schema: { type: "string" } },
+      ],
+      delete: { summary: "Revoga uma API Key", security, responses: { ...ok(), ...adminErrors, 404: { description: "Chave não encontrada" } } },
+    },
+    "/v1/admin/audit": {
+      get: {
+        summary: "Lista eventos administrativos auditados",
+        security,
+        parameters: [{ name: "limit", in: "query", schema: { type: "integer", minimum: 1, maximum: 500 } }],
+        responses: { ...ok(), ...adminErrors },
       },
     },
   },
