@@ -1,0 +1,36 @@
+name: Developer Portal CI
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - main
+      - "foundation/**"
+    paths:
+      - "apps/developer-portal/**"
+      - ".github/workflows/developer-portal-ci.yml"
+  pull_request:
+    branches:
+      - main
+    paths:
+      - "apps/developer-portal/**"
+      - ".github/workflows/developer-portal-ci.yml"
+
+permissions:
+  contents: read
+
+concurrency:
+  group: developer-portal-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  validate:
+    runs-on: [self-hosted, macOS, X64]
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+      - name: Check developer portal
+        run: npm --prefix apps/developer-portal run check
