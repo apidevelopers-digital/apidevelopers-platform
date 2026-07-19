@@ -2,67 +2,88 @@
 
 **Data:** 2026-07-19  
 **Branch:** `foundation/global-platform-bootstrap-20260715`  
-**Commit-âncora técnico:** `d81fcf4304d13dbf1f429f38742705a1c9570e68`  
-**HEAD de validação integral:** `2a3c238b8e4a82cb2b105cfc8cf2ee6dbcf7a406`  
-**Prontidão:** 96%  
-**Merge / deploy:** NÃO EXECUTADOS
+**Âncora técnica:** `58437ccc51eda6e6bcac3e0cc688f49495875219`  
+**Prontidão:** 98%  
+**Merge / release / deploy:** NÃO EXECUTADOS
 
 ## Estado validado
 
+A cadeia governada permanece íntegra:
+
 `memory → reasoning → reflection → planning → decision → policy → runtime → evidence → audit → evolution → governance`
 
-A fronteira `evolution → governance` foi formalizada com:
+Os módulos anteriormente documentais `auth` e `tenancy` agora são executáveis, privados e deny-by-default.
 
-- contrato versionado e handoff imutável;
-- vínculo de tenant, ciclo, decisão, proposta, Audit e digest da Evidence;
-- aprovação humana fresca, não consumida e não reproduzida;
-- sinal técnico do motor preservado sem autorização externa automática;
-- decisão humana explícita obrigatória;
-- mutação, aprovação, execução, governança automática e promoção bloqueadas;
-- integração cross-package executada isoladamente no Platform CI.
+### Auth
+
+- produz `AuthContext` público, versionado e imutável;
+- valida principal ativo e credencial opaca ativa;
+- rejeita credenciais expiradas ou revogadas antes da verificação;
+- não persiste nem retorna prova, senha, token ou material secreto;
+- autentica sem autorizar automaticamente;
+- não associa tenant implicitamente.
+
+### Tenancy
+
+- exige `AuthContext` válido;
+- exige membership ativo e vinculado ao principal;
+- exige permissão explícita;
+- produz `TenantContext` estrito e imutável;
+- bloqueia membership e recursos cross-tenant;
+- não provisiona, altera ou remove tenants;
+- não executa ações externas.
 
 ## Evidência técnica
 
 | Gate | Commit | Run | Estado |
 |---|---|---:|---|
-| Platform CI consolidado | `2a3c238b` | `29674911676` | SUCESSO |
-| Kernel Governance CI | `d81fcf43` | `29674867483` | SUCESSO |
-| Evolution Governance Contract CI | `997031c6` | `29674856440` | SUCESSO |
+| Runner Smoke CI | `db3c3b4f` | `29676938643` | SUCESSO |
+| Auth CI | `a654ae0d` | `29677063089` | SUCESSO |
+| Auth Tenancy Integration CI | `5d8314ec` | `29677100351` | SUCESSO |
+| Tenancy CI | `58437ccc` | `29677178317` | SUCESSO |
+| Platform CI consolidado | `58437ccc` | `29677178352` | SUCESSO |
 
-Contrato principal: `packages/contracts/src/evolution-governance.mjs`  
-Teste cross-package: `tests/integration/kernel-evolution-governance-contracts.test.mjs`
+A validação final foi executada em runner próprio:
 
-## Correções do marco
+`self-hosted + macOS + X64`
 
-- parâmetro remoto corrompido `evolutionEport` corrigido para `evolutionReport`;
-- blob do contrato confirmado por SHA Git `07595d19e8b95b5f307ad2a351de6141fd496b3f`;
-- gate integral de Governance restaurado;
-- nova fronteira adicionada ao Platform CI em processo isolado;
-- cobertura anterior preservada.
+Não foi necessário tornar o repositório público nem habilitar cobrança adicional de GitHub Actions.
 
-## Estrutura e lacunas
+## Estrutura
 
 - 16 diretórios em `packages/`;
-- 14 pacotes implementados;
-- `auth` e `tenancy` permanecem documentais;
-- proteção de `main`, checks obrigatórios e política de promoção permanecem pendentes;
-- merge, release, publicação e deploy não foram executados.
+- 16 pacotes com implementação executável;
+- contratos públicos de autenticação e tenant compartilhados;
+- testes unitários e cross-package;
+- gates dedicados integrados ao Platform CI;
+- versões mantidas em `0.1.0` e pacotes privados.
+
+## Pendências institucionais
+
+- proteção de `main` e checks obrigatórios;
+- decisão formal sobre merge e promoção;
+- plano de versionamento, release e publicação;
+- decisão sobre infraestrutura permanente de CI;
+- revisão dos workflows diagnósticos históricos ainda ligados ao runner hospedado;
+- nenhum merge, release, publicação ou deploy foi executado.
 
 ## Próximo marco
 
-**Meta: 98%**
+**Meta: 100% institucional**
 
-1. tornar `auth` e `tenancy` executáveis com contratos públicos;
-2. provar isolamento e autorização em testes cross-package;
-3. criar gates dedicados e integrar ao Platform CI;
-4. preparar proposta de proteção de `main` e checks obrigatórios;
-5. aplicar proteção ou promoção somente após aprovação explícita.
+1. preparar proposta de proteção de `main` e checks obrigatórios;
+2. preparar plano de versão e release;
+3. revisar política de promoção e rollback;
+4. aplicar qualquer alteração de governança somente após aprovação explícita.
 
 ## Governança
 
-- **status:** `INVENTARIO_ATUALIZADO_COM_PIPELINE_ATE_GOVERNANCE`
+- **status:** `INVENTARIO_ATUALIZADO_COM_AUTH_TENANCY_EXECUTAVEIS`
+- **versão_origem:** 96%
+- **alvo:** 98%
 - **risco:** R2
 - **decisão_milena:** NÃO INFORMADA
-- **execução_igor:** CÓDIGO E DOCUMENTAÇÃO SALVOS NA BRANCH
+- **execução_igor:** CÓDIGO, RUNNER E GATES VALIDADOS NA BRANCH
 - **deploy:** NÃO EXECUTADO
-- **próximo_estado_permitido:** endurecimento de `auth` e `tenancy`, sem promoção
+- **evidência_técnica:** runs `29677063089`, `29677100351`, `29677178317`, `29677178352`
+- **próximo_estado_permitido:** proposta de endurecimento institucional, sem promoção automática
