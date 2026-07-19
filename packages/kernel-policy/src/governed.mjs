@@ -34,4 +34,46 @@ export function runGovernedPolicy({
 
   const rawReport = engine.evaluate({
     tenantId: handoff.tenantContext.tenantId,
-    action;
+    action,
+    decision: decisionReport,
+    plan: executionPlan,
+    dryRun,
+    approval,
+    context,
+  });
+
+  const report = Object.freeze({
+    ...rawReport,
+    cycleId: handoff.cycleId,
+    sourceHandoffId: handoff.handoffId,
+    decisionId: decisionReport.decisionId,
+    planId: executionPlan.planId,
+    approvalId: approval?.approvalId ?? null,
+  });
+
+  assertPolicyDecisionContract(report);
+  return report;
+}
+
+export function createGovernedPolicyRuntimeHandoff({
+  policyDecision,
+  decisionReport,
+  executionPlan,
+  approval = null,
+  tenantContext,
+  cycleId = policyDecision?.cycleId,
+  handoffId,
+  createdAt = new Date().toISOString(),
+} = {}) {
+  assertPolicyDecisionContract(policyDecision);
+  return createPolicyRuntimeHandoff({
+    handoffId,
+    cycleId,
+    tenantContext,
+    policyDecision,
+    decisionReport,
+    executionPlan,
+    approval,
+    createdAt,
+  });
+}
