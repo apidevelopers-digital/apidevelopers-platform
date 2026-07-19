@@ -1,7 +1,6 @@
 name: Tenancy CI
 
 on:
-  workflow_dispatch:
   push:
     branches:
       - main
@@ -19,20 +18,16 @@ on:
 permissions:
   contents: read
 
-concurrency:
-  group: tenancy-${{ github.ref }}
-  cancel-in-progress: true
-
 jobs:
   validate:
     runs-on: ubuntu-latest
     timeout-minutes: 10
     steps:
       - uses: actions/checkout@v4
-     - uses: actions/setup-node@v4
+      - uses: actions/setup-node@v4
         with:
           node-version: "22"
-      - name: Prepare local contracts link
+      - name: Prepare contracts
         run: |
           mkdir -p node_modules/@apidevelopers
           ln -s "$GITHUB_WORKSPACE/packages/contracts" node_modules/@apidevelopers/contracts
