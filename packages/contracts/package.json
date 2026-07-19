@@ -9,7 +9,7 @@
   },
   "scripts": {
     "test": "node --test test/*.test.mjs",
-    "check": "node --check src/index.mjs && node --check src/planning-execution-plan.mjs && node --check src/canonical-ids.mjs && node --check src/event-envelope.mjs && node --check src/observability-envelope.mjs && node --check src/tenancy-context.mjs && node --check src/cognitive-pipeline.mjs && node --check src/decision-policy.mjs && npm test"
+    "check": "node --check src/index.mjs && node --check src/planning-execution-plan.mjs && node --check src/canonical-ids.mjs && node --check src/event-envelope.mjs && node --check src/observability-envelope.mjs && node --check src/tenancy-context.mjs && node --check src/cognitive-pipeline.mjs && node --check src/decision-policy.mjs && node --check src/policy-runtime.mjs && npm test"
   },
   "engines": {
     "node": ">=22"
