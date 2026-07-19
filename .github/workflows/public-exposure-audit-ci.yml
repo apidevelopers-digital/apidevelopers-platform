@@ -1,0 +1,54 @@
+name: Public Exposure Audit CI
+
+on:
+  push:
+    branches:
+      - "foundation/**"
+    paths:
+      - "scripts/audit-public-exposure.mjs"
+      - ".github/workflows/public-exposure-audit-ci.yml"
+      - "docs/**"
+      - "assets/**"
+      - "config/**"
+      - "services/**"
+      - "contracts/**"
+      - "engines/**"
+      - ".github/workflows/**"
+  pull_request:
+    paths:
+      - "scripts/audit-public-exposure.mjs"
+      - ".github/workflows/public-exposure-audit-ci.yml"
+      - "docs/**"
+      - "assets/**"
+      - "config/**"
+      - "services/**"
+      - "contracts/**"
+      - "engines/**"
+      - ".github/workflows/**"
+
+permissions:
+  contents: read
+
+concurrency:
+  group: public-exposure-audit-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  audit:
+    runs-on: [self-hosted, macOS, X64]
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+      - name: Check scanner syntax
+        run: node --check scripts/audit-public-exposure.mjs
+      - name: Run public exposure audit
+        run: node scripts/audit-public-exposure.mjs
+      - name: Validate report artifacts
+        run: |
+          test -f .audit/public-exposure-report.json
+          test -f .audit/public-exposure-report.md
