@@ -1,6 +1,14 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import { assertRuntimeReportContract } from "../src/policy-runtime.mjs";
+import { createRuntimeEvidenceHandoff } from "../src/runtime-evidence.mjs";
+import { createTenantContext } from "../src/tenancy-context.mjs";
+
+const tenantContext = createTenantContext({
+  tenantId: "tenant_demo_0001",
+  principalId: "principal.operator",
+  requestId: "request.evidence.0001",
+  createdAt: "2026-07-19T06:00:00.000Z",
+});
 
 const runtimeReport = {
   reportId: "runtime.0001",
@@ -20,18 +28,8 @@ const runtimeReport = {
   executionAuthorized: false,
   executionObserved: false,
   mutationObserved: false,
-  steps: [{
-    stepId: "step.0001",
-    action: "echo",
-    status: "previewed",
-    risk: "R1",
-    output: { planned: true },
-  }],
-  evidence: [{
-    evidenceId: "runtime-step.0001",
-    stepId: "step.0001",
-    status: "previewed",
-  }],
+  steps: [{ stepId: "step.0001", action: "echo", status: "previewed", risk: "R1", output: { planned: true } }],
+  evidence: [{ evidenceId: "runtime-step.0001", stepId: "step.0001", status: "previewed" }],
   constraints: {
     policyGateRequired: true,
     explicitConfirmationRequired: true,
@@ -41,6 +39,13 @@ const runtimeReport = {
   },
 };
 
-test("runtime evidence report fixture", () => {
-  assert.equal(assertRuntimeReportContract(runtimeReport), runtimeReport);
+test("runtime evidence handoff construction", () => {
+  const handoff = createRuntimeEvidenceHandoff({
+    handoffId: "handoff.runtime.evidence.0001",
+    cycleId: "cycle.0001",
+    tenantContext,
+    runtimeReport,
+    createdAt: "2026-07-19T06:02:00.000Z",
+  });
+  assert.ok(handoff);
 });
