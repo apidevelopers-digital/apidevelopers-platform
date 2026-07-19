@@ -17,30 +17,22 @@ on:
 permissions:
   contents: read
 
-concurrency:
-  group: contracts-core-${{ github.ref }}
-  cancel-in-progress: true
-
-defaults:
-  run:
-    working-directory: packages/contracts
-
 jobs:
   validate:
     runs-on: ubuntu-latest
     timeout-minutes: 10
     steps:
-     - uses: actions/checkout@v4
-     - uses: actions/setup-node@v4
-       with:
-        node-version: "22"
-     - name: Test consolidated contracts
-      run: |
-        node --test --test-concurrency=1 \
-          test/canonical-ids.test.mjs \
-          test/cognitive-decision.test.mjs \
-          test/cognitive-pipeline.test.mjs \
-          test/decision-policy.test.mjs \
-          test/event-envelope.test.mjs \
-          test/planning-execution-plan.test.mjs \
-          test/policy-runtime.test.mjs
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+      - name: Test consolidated contracts
+        run: >
+          node --test --test-concurrency=1
+          packages/contracts/test/canonical-ids.test.mjs
+          packages/contracts/test/cognitive-decision.test.mjs
+          packages/contracts/test/cognitive-pipeline.test.mjs
+          packages/contracts/test/decision-policy.test.mjs
+          packages/contracts/test/event-envelope.test.mjs
+          packages/contracts/test/planning-execution-plan.test.mjs
+          packages/contracts/test/policy-runtime.test.mjs
