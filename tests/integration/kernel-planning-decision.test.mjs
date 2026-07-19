@@ -1,3 +1,4 @@
+import "./kernel-cognitive-decision-contracts.test.mjs";
 
 import test from "node:test";
 import assert from "node:assert/strict";
