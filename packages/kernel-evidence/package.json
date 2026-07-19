@@ -5,11 +5,15 @@
   "description": "Governed evidence records for the API Developers.digital Platform Kernel.",
   "type": "module",
   "exports": {
-    ".": "./src/index.mjs"
+    ".": "./src/index.mjs",
+    "./governed": "./src/governed.mjs"
   },
   "scripts": {
     "test": "node --test test/*.test.mjs",
-    "check": "node --check src/index.mjs && npm test"
+    "check": "node --check src/index.mjs && node --check src/governed.mjs && npm test"
+  },
+  "dependencies": {
+    "@apidevelopers/contracts": "0.1.0"
   },
   "engines": {
     "node": ">=22"
