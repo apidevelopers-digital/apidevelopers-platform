@@ -1,0 +1,53 @@
+name: Kernel Evolution CI
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - main
+      - "foundation/**"
+    paths:
+      - "packages/kernel-evolution/**"
+      - "packages/contracts/**"
+      - "tests/integration/kernel-audit-evolution-contracts.test.mjs"
+      - "tests/integration/kernel-audit-evolution-wrapper.mjs"
+      - "tests/integration/cleanup-cognitive-links.mjs"
+      - ".github/workflows/kernel-evolution-ci.yml"
+  pull_request:
+    paths:
+      - "packages/kernel-evolution/**"
+      - "packages/contracts/**"
+      - "tests/integration/kernel-audit-evolution-contracts.test.mjs"
+      - "tests/integration/kernel-audit-evolution-wrapper.mjs"
+      - "tests/integration/cleanup-cognitive-links.mjs"
+      - ".github/workflows/kernel-evolution-ci.yml"
+
+permissions:
+  contents: read
+
+concurrency:
+  group: kernel-evolution-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+      - name: Check syntax
+        run: |
+          node --check packages/kernel-evolution/src/index.mjs
+          node --check packages/kernel-evolution/src/governed.mjs
+          node --check packages/contracts/src/audit-evolution.mjs
+          node --check tests/integration/kernel-audit-evolution-contracts.test.mjs
+          node --check tests/integration/kernel-audit-evolution-wrapper.mjs
+      - name: Test contracts
+        run: npm --prefix packages/contracts test
+      - name: Test kernel-evolution
+        run: npm --prefix packages/kernel-evolution test
+      - name: Test audit-evolution integration
+        run: node --test tests/integration/kernel-audit-evolution-wrapper.mjs
