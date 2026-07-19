@@ -1,0 +1,50 @@
+name: Auth Tenancy Integration CI
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - main
+      - "foundation/**"
+    paths:
+      - "packages/auth/**"
+      - "packages/tenancy/**"
+      - "packages/contracts/**"
+      - "tests/integration/auth-tenancy-contracts.test.mjs"
+      - "tests/integration/auth-tenancy-wrapper.mjs"
+      - "tests/integration/cleanup-cognitive-links.mjs"
+      - ".github/workflows/auth-tenancy-integration-ci.yml"
+  pull_request:
+    paths:
+      - "packages/auth/**"
+      - "packages/tenancy/**"
+      - "packages/contracts/**"
+      - "tests/integration/auth-tenancy-contracts.test.mjs"
+      - "tests/integration/auth-tenancy-wrapper.mjs"
+      - "tests/integration/cleanup-cognitive-links.mjs"
+      - ".github/workflows/auth-tenancy-integration-ci.yml"
+
+permissions:
+  contents: read
+
+concurrency:
+  group: auth-tenancy-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+      - name: Check syntax
+        run: |
+          node --check packages/auth/src/index.mjs
+          node --check packages/tenancy/src/index.mjs
+          node --check tests/integration/auth-tenancy-contracts.test.mjs
+          node --check tests/integration/auth-tenancy-wrapper.mjs
+      - name: Test auth tenancy integration
+        run: node --test tests/integration/auth-tenancy-wrapper.mjs
