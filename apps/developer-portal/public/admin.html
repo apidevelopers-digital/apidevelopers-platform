@@ -1,0 +1,45 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>API Developers.digital — Administração 0.2</title>
+<style>
+:root{color-scheme:dark;--bg:#090d14;--panel:#121923;--line:#283448;--text:#edf4ff;--muted:#93a4bb;--accent:#7dd3fc}
+*{box-sizing:border-box}body{margin:0;background:radial-gradient(circle at 15% 0,#17243b,var(--bg) 42%);color:var(--text);font:15px/1.5 system-ui,sans-serif}
+main{width:min(1100px,calc(100% - 32px));margin:auto;padding:48px 0}.grid{display:grid;grid-template-columns:repeat(12,1fr);gap:16px}.card{grid-column:span 6;background:var(--panel);border:1px solid var(--line);border-radius:16px;padding:20px}.wide{grid-column:1/-1}
+label{display:block;color:var(--muted);margin:10px 0 5px}input,select,button{font:inherit;border:1px solid var(--line);border-radius:10px;padding:10px 12px}input,select{width:100%;background:#0b1018;color:var(--text)}button{background:#172236;color:var(--text);cursor:pointer;margin:8px 6px 0 0}button:hover{border-color:var(--accent)}pre{white-space:pre-wrap;word-break:break-word;background:#070a10;border:1px solid var(--line);border-radius:12px;padding:16px;min-height:120px}.note{color:#fde68a}@media(max-width:760px){.card{grid-column:1/-1}}
+</style>
+</head>
+<body><main>
+<p>Administração · MVP 0.2</p><h1>API Developers.digital</h1>
+<p>Cadastro, status, rotação, revogação e auditoria. Chaves permanecem somente na memória desta página.</p>
+<section class="grid">
+<div class="card wide"><label>API base URL</label><input id="base" value="http://127.0.0.1:3000"><label>API Key administrativa</label><input id="admin" type="password" autocomplete="off"><button data-action="clients">Listar clientes</button><button data-action="audit">Ver auditoria</button><button data-action="status">Status</button></div>
+<div class="card"><h2>Novo cliente</h2><label>Nome</label><input id="name"><label>E-mail</label><input id="email" type="email"><label>Escopos</label><input id="scopes" value="api:read,catalog:read"><button data-action="create">Cadastrar</button></div>
+<div class="card"><h2>Gerenciar cliente</h2><label>Client ID</label><input id="clientId"><label>Status</label><select id="clientStatus"><option>active</option><option>suspended</option><option>revoked</option></select><button data-action="update">Atualizar status</button><button data-action="rotate">Rotacionar chave</button><button data-action="rotateRevoke">Rotacionar e revogar anteriores</button><label>Key ID</label><input id="keyId"><button data-action="revoke">Revogar chave</button></div>
+<pre id="out" class="wide">Nenhuma operação executada.</pre>
+<p class="wide note">Guarde imediatamente qualquer API Key retornada. O gateway não a exibirá novamente.</p>
+</section>
+</main>
+<script>
+const $=id=>document.getElementById(id),out=$("out");
+const base=()=>$("base").value.replace(/\/+$/,"");
+async function api(path,{method="GET",body}={}){
+ const response=await fetch(base()+path,{method,headers:{"x-api-key":$("admin").value,"content-type":"application/json"},body:body?JSON.stringify(body):undefined});
+ const payload=await response.json(); return {status:response.status,payload};
+}
+const show=value=>out.textContent=JSON.stringify(value,null,2);
+document.addEventListener("click",async e=>{
+ const action=e.target.dataset.action;if(!action)return;e.target.disabled=true;
+ try{
+  const client=encodeURIComponent($("clientId").value),key=encodeURIComponent($("keyId").value);
+  if(action==="clients")show(await api("/v1/admin/clients"));
+  if(action==="audit")show(await api("/v1/admin/audit?limit=100"));
+  if(action==="status")show(await api("/v1/admin/status"));
+  if(action==="create")show(await api("/v1/admin/clients",{method:"POST",body:{name:$("name").value,contactEmail:$("email").value,scopes:$("scopes").value.split(",").map(v=>v.trim()).filter(Boolean)}}));
+  if(action==="update")show(await api(`/v1/admin/clients/${client}`,{method:"PATCH",body:{status:$("clientStatus").value}}));
+  if(action==="rotate"||action==="rotateRevoke")show(await api(`/v1/admin/clients/${client}/keys`,{method:"POST",body:{revokeExisting:action==="rotateRevoke"}}));
+  if(action==="revoke")show(await api(`/v1/admin/clients/${client}/keys/${key}`,{method:"DELETE"}));
+ }catch(error){show({error:"request_failed",message:error.message})}finally{e.target.disabled=false}
+});
+</script></body></html>
