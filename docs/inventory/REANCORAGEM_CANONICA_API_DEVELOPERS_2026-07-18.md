@@ -3,59 +3,57 @@
 **Data:** 2026-07-19  
 **Status:** `PREPARADO_PARA_CONTINUIDADE`  
 **Branch:** `foundation/global-platform-bootstrap-20260715`  
-**Commit-âncora técnico:** `8f75606fbc77d2261cd3b13b2da3371aff0e1606`  
-**HEAD de validação integral:** `b67bc4ac29bf7b46bffecac3d492b96e3e70ab95`  
-**Prontidão institucional:** 94%  
+**Commit-âncora técnico:** `d81fcf4304d13dbf1f429f38742705a1c9570e68`  
+**HEAD de validação integral:** `2a3c238b8e4a82cb2b105cfc8cf2ee6dbcf7a406`  
+**Prontidão institucional:** 96%  
 **Merge / deploy:** NÃO EXECUTADOS
 
 ## Ponto correto de retomada
 
-A cadeia governada está validada até Evolution:
+A cadeia governada está validada até Governance:
 
-`memory → reasoning → reflection → planning → decision → policy → runtime → evidence → audit → evolution`
+`memory → reasoning → reflection → planning → decision → policy → runtime → evidence → audit → evolution → governance`
 
-Retomar exatamente em:
+Retomar exatamente pelo endurecimento institucional de:
 
-`evolution → governance`
+`auth + tenancy`
 
-Não retomar por `main`, PR draft, release, publicação ou deploy.
+Não retomar por `main`, PR, release, publicação ou deploy.
 
 ## Estado consolidado
 
-- Audit entrega relatório governado, read-only e rastreável;
-- Evolution consome somente o handoff versionado de Audit;
-- tenant, ciclo, auditoria e digest da Evidence permanecem vinculados;
-- propostas são determinísticas e advisory;
-- revisão humana é obrigatória;
-- mutação, aprovação, execução, evolução automática e promoção são proibidas;
-- o teste cross-package roda isoladamente no Platform CI.
+- Governance consome somente handoff versionado de Evolution;
+- tenant, ciclo, decisão, proposta, Audit e digest permanecem vinculados;
+- o motor pode emitir sinal técnico, mas não autoriza externamente;
+- decisão humana explícita continua obrigatória;
+- aprovação reproduzida ou consumida é rejeitada;
+- mutação, execução, governança automática e promoção permanecem proibidas;
+- a integração roda isoladamente no Platform CI.
 
 ## Evidência
 
 | Gate | Commit | Run | Estado |
 |---|---|---:|---|
-| Platform CI consolidado | `b67bc4ac` | `29674038605` | SUCESSO |
-| Kernel Evolution CI | `8f75606f` | `29673992221` | SUCESSO |
-| Audit Evolution Integration CI | `8f75606f` | `29673992223` | SUCESSO |
-| Audit Evolution Contract CI | `3d50c335` | `29673957618` | SUCESSO |
+| Platform CI consolidado | `2a3c238b` | `29674911676` | SUCESSO |
+| Kernel Governance CI | `d81fcf43` | `29674867483` | SUCESSO |
+| Evolution Governance Contract CI | `997031c6` | `29674856440` | SUCESSO |
 
 ## Próxima ação exata
 
-1. criar contrato público `evolution → governance`;
-2. adaptar `kernel-governance` para consumir o relatório governado de Evolution;
-3. bloquear promoção ou aplicação automática;
-4. exigir decisão humana explícita;
-5. criar teste cross-package e gate dedicado;
-6. atualizar o inventário somente após CI verde.
+1. inventariar os módulos documentais `auth` e `tenancy`;
+2. criar contratos executáveis mínimos e deny-by-default;
+3. validar identidade, tenant e isolamento cross-tenant;
+4. criar testes cross-package e gates dedicados;
+5. integrar ao Platform CI sem habilitar promoção;
+6. preparar, mas não aplicar sem aprovação, proteção de `main` e checks obrigatórios.
 
-**Meta seguinte:** 96%.
+**Meta seguinte:** 98%.
 
 ## Limites e governança
 
-Esta âncora não autoriza merge, promoção para `main`, release, publicação, deploy, produção ou aprovação humana automática.
+Esta âncora não autoriza merge, promoção para `main`, release, publicação, deploy, produção, alteração de proteção de branch ou aprovação humana automática.
 
 - **risco:** R2
 - **decisão_milena:** NÃO INFORMADA
 - **execução_igor:** CÓDIGO E DOCUMENTAÇÃO SALVOS NA BRANCH
-- **deploy:** NÃO EXECUTADO
-- **próximo_estado_permitido:** `evolution → governance`, sem promoção
+- **próximo_estado_permitido:** `auth + tenancy` executáveis, sem promoção
