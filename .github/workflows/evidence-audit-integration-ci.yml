@@ -1,0 +1,42 @@
+name: Evidence Audit Integration CI
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - main
+      - "foundation/**"
+    paths:
+      - "packages/kernel-audit/**"
+      - "packages/kernel-evidence/**"
+      - "packages/contracts/**"
+      - "tests/integration/kernel-evidence-audit-contracts.test.mjs"
+      - "tests/integration/kernel-evidence-audit-wrapper.mjs"
+      - "tests/integration/cleanup-cognitive-links.mjs"
+      - ".github/workflows/evidence-audit-integration-ci.yml"
+  pull_request:
+    paths:
+      - "packages/kernel-audit/**"
+      - "packages/kernel-evidence/**"
+      - "packages/contracts/**"
+      - "tests/integration/kernel-evidence-audit-contracts.test.mjs"
+      - "tests/integration/kernel-evidence-audit-wrapper.mjs"
+      - "tests/integration/cleanup-cognitive-links.mjs"
+      - ".github/workflows/evidence-audit-integration-ci.yml"
+
+permissions:
+  contents: read
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+      - name: Check governed audit adapter
+        run: node --check packages/kernel-audit/src/governed.mjs
+      - name: Test evidence audit integration
+        run: node --test tests/integration/kernel-evidence-audit-wrapper.mjs
