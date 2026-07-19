@@ -13,6 +13,7 @@ for (const packageName of [
   "kernel-reflection",
   "kernel-planning",
   "kernel-decision",
+  "kernel-policy",
 ]) {
   rmSync(path.join(namespaceRoot, packageName), { force: true });
 }
