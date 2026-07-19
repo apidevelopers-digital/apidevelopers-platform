@@ -1,0 +1,32 @@
+name: Audit Evolution Contract CI
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - main
+      - "foundation/**"
+    paths:
+      - "packages/contracts/**"
+      - ".github/workflows/audit-evolution-contract-ci.yml"
+  pull_request:
+    paths:
+      - "packages/contracts/**"
+      - ".github/workflows/audit-evolution-contract-ci.yml"
+
+permissions:
+  contents: read
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+      - name: Check audit evolution contract
+        run: node --check packages/contracts/src/audit-evolution.mjs
+      - name: Test audit evolution contract
+        run: node --test packages/contracts/test/audit-evolution.test.mjs
