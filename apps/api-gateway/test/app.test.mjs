@@ -48,12 +48,10 @@ test("serves health, catalog and OpenAPI publicly", async () => {
 
   const health = await app.handleRequest({ url: "/health" });
   const catalog = await app.handleRequest({ url: "/v1/apis" });
-  const openapi = await app.handleRequest({
-    url: "/openapi.json",
-  });
+  const openapi = await app.handleRequest({ url: "/openapi.json" });
 
   assert.equal(health.status, 200);
-  assert.equal(parse(health).version, "0.2.0");
+  assert.equal(parse(health).version, "0.3.0");
   assert.equal(catalog.status, 200);
   assert.ok(parse(catalog).meta.count >= 1);
   assert.equal(openapi.status, 200);
@@ -151,10 +149,7 @@ test("client status and audit routes are administrative", async () => {
   });
   assert.equal(audit.status, 200);
   assert.equal(parse(audit).data[0].action, "client.status.update");
-  assert.equal(
-    JSON.stringify(parse(audit)).includes(created.apiKey),
-    false,
-  );
+  assert.equal(JSON.stringify(parse(audit)).includes(created.apiKey), false);
 });
 
 test("returns 429 with rate limit headers", async () => {
