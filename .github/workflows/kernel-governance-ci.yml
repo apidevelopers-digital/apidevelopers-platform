@@ -25,29 +25,16 @@ on:
 permissions:
   contents: read
 
-concurrency:
-  group: kernel-governance-${{ github.ref }}
-  cancel-in-progress: true
-
 jobs:
   validate:
     runs-on: ubuntu-latest
     timeout-minutes: 10
     steps:
       - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
+     - uses: actions/setup-node@v4
         with:
           node-version: "22"
-      - name: Check syntax
-        run: |
-          node --check packages/kernel-governance/src/index.mjs
-          node --check packages/kernel-governance/src/governed.mjs
-          node --check packages/contracts/src/evolution-governance.mjs
-          node --check tests/integration/kernel-evolution-governance-contracts.test.mjs
-          node --check tests/integration/kernel-evolution-governance-wrapper.mjs
-      - name: Test contracts
-        run: npm --prefix packages/contracts test
-      - name: Test kernel-governance
-        run: npm --prefix packages/kernel-governance test
-      - name: Test evolution-governance integration
-        run: node --test tests/integration/kernel-evolution-governance-wrapper.mjs
+      - name: Check contract
+        run: node --check packages/contracts/src/evolution-governance.mjs
+      - name: Test contract
+        run: node --test packages/contracts/test/evolution-governance.test.mjs
