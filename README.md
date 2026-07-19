@@ -2,6 +2,15 @@
 
 Official source of truth for the API Developers.digital technology platform.
 
+## Canonical product source
+
+The repository is the official source of truth. Chat attachments, `sandbox:` files and local copies are not canonical.
+
+- [Commercial Catalog and Automation Matrix V1](CATALOGO_COMERCIAL_E_MATRIZ_DE_AUTOMACAO_V1.md)
+- [Complete normative specification](docs/CATALOGO_COMERCIAL_E_MATRIZ_DE_AUTOMACAO_V1.md)
+
+All product, plan, automation, billing and launch decisions must be committed here before they are treated as implemented or approved.
+
 ## Mission
 
 Build and operate a global, multi-tenant platform of APIs, engines and reusable technology services for `uni.` and external customers.
@@ -24,7 +33,7 @@ Build and operate a global, multi-tenant platform of APIs, engines and reusable 
 ## Target structure
 
 ```text
-iapps/
+apps/
 engines/
 services/
 packages/
@@ -36,4 +45,4 @@ docs/
 
 ## Status
 
-Global foundation in progress.
+Global foundation in progress. Commercial sale remains blocked until the full automated journey and launch gates are validated.
