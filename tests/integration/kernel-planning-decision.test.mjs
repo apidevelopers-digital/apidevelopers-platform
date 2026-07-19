@@ -1,3 +1,4 @@
+import "./kernel-decision-policy-wrapper.mjs";
 import "./kernel-cognitive-decision-wrapper.mjs";
 
 import test from "node:test";
