@@ -27,7 +27,7 @@ export function runGovernedAudit({
     tenantId: evidenceRecord.tenantId,
     cycleId: handoff.cycleId,
     decision: lifecycle.decision,
-    planRecord: lifecycle.plan,
+    plan: lifecycle.plan,
     policyDecision: lifecycle.policyDecision,
     runtimeReport: evidenceRecord.payload.runtimeReport,
     evidence: [evidenceRecord],
