@@ -143,7 +143,7 @@ export function assertEvolutionGovernanceHandoffContract(
     throw new Error(`${name} audit cycleId mismatch`);
   }
   if (lifecycle.constitutionDecision.tenantId !== handoff.tenantContext.tenantId) {
-    throw new Error `${name} constitution tenantId mismatch`);
+    throw new Error(`${name} constitution tenantId mismatch`);
   }
   if (lifecycle.policyDecision.tenantId !== handoff.tenantContext.tenantId) {
     throw new Error(`${name} policy tenantId mismatch`);
@@ -229,7 +229,7 @@ export function assertGovernedGovernanceReportContract(
     throw new Error(`${name}.mode must be advisory-governance-review`);
   }
   if (!["ready-for-human-decision", "needs-review", "needs-evidence", "blocked"].includes(report.status)) {
-    throw new Error `${name}.status is invalid`);
+    throw new Error(`${name}.status is invalid`);
   }
   if (!["authorized", "needs-review", "needs-evidence", "blocked"].includes(report.engineStatus)) {
     throw new Error(`${name}.engineStatus is invalid`);
@@ -247,7 +247,7 @@ export function assertGovernedGovernanceReportContract(
   falseOnly(report.promotionAllowed, `${name}.promotionAllowed`);
 
   if (!Array.isArray(report.checks) || report.checks.length === 0) {
-    throw new TypeError `${name}.checks must be a non-empty array`);
+    throw new TypeError(`${name}.checks must be a non-empty array`);
   }
   object(report.summary, `${name}.summary`);
   const total =
@@ -256,7 +256,7 @@ export function assertGovernedGovernanceReportContract(
     report.summary.fail +
     report.summary.unknown;
   if (report.summary.total !== total || report.summary.total !== report.checks.length) {
-    throw new Error `${name}.summary is inconsistent`);
+    throw new Error(`${name}.summary is inconsistent`);
   }
 
   object(report.constraints, `${name}.constraints`);
