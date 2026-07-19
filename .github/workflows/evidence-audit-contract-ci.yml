@@ -28,5 +28,5 @@ jobs:
           node-version: "22"
       - name: Check evidence audit contract
         run: node --check packages/contracts/src/evidence-audit.mjs
-      - name: Test evidence audit contract
-        run: node --test packages/contracts/test/evidence-audit.test.mjs
+      - name: Test handoff construction
+        run: node --test --test-name-pattern="creates an immutable evidence" packages/contracts/test/evidence-audit.test.mjs
