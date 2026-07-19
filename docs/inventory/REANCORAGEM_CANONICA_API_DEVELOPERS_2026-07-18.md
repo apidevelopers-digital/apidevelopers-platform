@@ -3,83 +3,81 @@
 **Data:** 2026-07-19  
 **Status:** PREPARADO_PARA_CONTINUIDADE  
 **Branch:** `foundation/global-platform-bootstrap-20260715`  
-**Commit-âncora técnico:** `db65f464c6aea7312019090c82de358688c5d999`  
-**Prontidão institucional:** 84%  
+**Commit-âncora técnico:** `cf7a3dcca8ebfb62ee8462ee7fa058ee6bc1700b`  
+**Prontidão institucional:** 86%  
 **Merge:** NÃO EXECUTADO  
 **Deploy:** NÃO EXECUTADO
 
 ## 1. Ponto correto de retomada
 
-A cadeia cognitiva governada está implementada e validada até a decisão formal:
+A cadeia governada está implementada e validada até Policy:
 
-`memory → reasoning → reflection → planning → decision`
+`memory → reasoning → reflection → planning → decision → policy`
 
-A continuidade deve partir da fronteira:
+A continuidade deve partir exatamente da fronteira:
 
-`decision → policy`
+`policy → runtime`
 
-Não retomar pela comparação com `main`, pelo PR draft ou por tarefas de promoção.
+Não retomar por comparação com `main`, PR draft, promoção, release ou deploy.
 
 ## 2. Estado técnico consolidado
 
 - 16 diretórios em `packages/`;
 - 14 pacotes implementados;
 - `auth` e `tenancy` permanecem documentais;
-- contrato mínimo de tenancy disponível em `@apidevelopers/contracts`;
-- quatro kernels cognitivos e `kernel-decision` possuem fronteiras governadas;
-- `kernel-planning` produz handoff formal para `kernel-decision`;
-- `kernel-decision` produz decisão advisory;
-- aprovação humana permanece obrigatória;
-- mutação e execução automática permanecem bloqueadas.
+- contrato mínimo de tenancy existe em `@apidevelopers/contracts`;
+- `kernel-decision` produz handoff formal para Policy;
+- `kernel-policy` possui adaptador público `./governed`;
+- Policy opera deny-by-default;
+- dry-run permite somente prévia;
+- execução real exige aprovação humana vinculada;
+- risco R5 e replay de aprovação permanecem bloqueados.
 
-## 3. Correção técnica concluída
-
-A suíte de contratos falhava por divergência no nome da flag:
-
-- incorreto: `automaticApprovalAlowed`
-- canônico: `automaticApprovalAllowed`
-
-Correção efetiva:
-
-`db65f464c6aea7312019090c82de358688c5d999`
-
-A fixture foi reproduzida localmente e validada com 3 testes aprovados antes da confirmação no GitHub.
-
-## 4. Evidência técnica
+## 3. Evidência técnica
 
 | Gate | Run | Resultado |
 |---|---:|---|
-| Contracts CI | `29670951299` | SUCESSO |
-| Registry CI | `29670951312` | SUCESSO |
-| Platform CI | `29670951310` | SUCESSO |
-| Kernel Planning CI | `29670622660` | SUCESSO |
-| Kernel Decision CI | `29670622659` | SUCESSO |
+| Contracts CI | `29671342143` | SUCESSO |
+| Kernel Policy CI | `29671342134` | SUCESSO |
+| Registry CI | `29671342167` | SUCESSO |
+| Platform CI | `29671342150` | SUCESSO |
+
+Commit validado:
+
+`cf7a3dcca8ebfb62ee8462ee7fa058ee6bc1700b`
 
 Teste principal:
 
-`tests/integration/kernel-cognitive-decision-contracts.test.mjs`
+`tests/integration/kernel-decision-policy-contracts.test.mjs`
+
+## 4. Correção aplicada
+
+A fixture de decisão tinha uma proposta selecionada sem candidata correspondente. A candidata foi adicionada, preservando rastreabilidade e mantendo todas as restrições de aprovação e execução.
 
 ## 5. Invariantes preservados
 
-- `tenantId` opaco;
-- isolamento entre tenants;
-- rastreabilidade por ciclo e handoff;
-- `mode: advisory`;
-- `humanApprovalRequired: true`;
-- `approved: false`;
-- `mutationAllowed: false`;
-- `executionAllowed: false`;
-- decisão, aprovação e execução automáticas bloqueadas.
+- tenant opaco e isolado;
+- rastreabilidade por ciclo, handoff, decisão e plano;
+- decisão em modo advisory;
+- aprovação humana obrigatória;
+- dry-run sem mutação;
+- execução real bloqueada sem aprovação válida;
+- aprovação vinculada ao plano;
+- replay bloqueado;
+- risco R5 bloqueado;
+- nenhuma aprovação humana automática.
 
 ## 6. Próxima ação exata
 
-1. Formalizar a fronteira pública `kernel-decision → kernel-policy`.
-2. Ajustar ou criar o adaptador governado do `kernel-policy`.
-3. Criar teste cross-package até policy.
-4. Confirmar Contracts CI, Policy CI quando aplicável e Platform CI no mesmo `HEAD`.
-5. Atualizar inventário somente com evidência verde.
+1. formalizar o contrato público `policy → runtime`;
+2. adaptar `kernel-runtime` para consumir a saída validada de Policy;
+3. preservar dry-run como primeira rota;
+4. impedir execução real sem aprovação válida e vinculada;
+5. criar teste cross-package até Runtime;
+6. confirmar Contracts CI, Runtime CI quando aplicável e Platform CI no mesmo `HEAD`;
+7. atualizar inventário somente após evidência verde.
 
-**Meta seguinte:** 86%.
+**Meta seguinte:** 88%.
 
 ## 7. Limites
 
@@ -95,12 +93,11 @@ Esta âncora não autoriza:
 
 ## 8. Governança
 
-- **status:** PREPARADO_PARA_CONTINUIDADE  
-- **versão_origem:** GitHub no commit `db65f464c6aea7312019090c82de358688c5d999`
+- **status:** PREPARADO_PARA_CONTINUIDADE
+- **versão_origem:** GitHub no commit `cf7a3dcca8ebfb62ee8462ee7fa058ee6bc1700b`
 - **alvo:** API Developers.digital / foundation
 - **risco:** R2
 - **decisão_milena:** NÃO INFORMADA
 - **execução_igor:** CÓDIGO E DOCUMENTAÇÃO SALVOS NA BRANCH
 - **deploy:** NÃO EXECUTADO
-- **evidência_técnica:** cinco gates verdes e pipeline público até decision
-- **próximo_estado_permitido:** integração governada `decision → policy`, sem promoção
+- **próximo_estado_permitido:** integração governada `policy → runtime`, sem promoção
