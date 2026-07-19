@@ -5,53 +5,37 @@ import { assertTenantContextContract } from "./tenancy-context.mjs";
 const VERSION = 1;
 const HEX_256 = /^[a-f0-9]{64}$/;
 
-function object(value, name) {
+function obj(value, name) {
   if (!value || typeof value !== "object" || Array.isArray(value)) {
     throw new TypeError(`${name} must be an object`);
   }
 }
-
-function string(value, name) {
-  if (typeof value !== "string" || value.trim() === "") {
+function str(value, name) {
+  if (typeof value !== "string" || !value.trim()) {
     throw new TypeError(`${name} must be a non-empty string`);
   }
 }
-
-function falseOnly(value, name) {
-  if (value !== false) throw new Error(`${name} must be false`);
+function must(value, expected, name) {
+  if (value !== expected) throw new Error(`${name} must be ${expected}`);
 }
-
-function trueOnly(value, name) {
-  if (value !== true) throw new Error(`${name} must be true`);
-}
-
 function clone(value) {
   return value == null ? value : structuredClone(value);
 }
-
-function deepFreeze(value) {
+function freeze(value) {
   if (!value || typeof value !== "object" || Object.isFrozen(value)) return value;
   Object.freeze(value);
-  for (const child of Object.values(value)) deepFreeze(child);
+  for (const child of Object.values(value)) freeze(child);
   return value;
 }
 
 function assertLifecycle(lifecycle, evolutionReport, name) {
-  object(lifecycle, name);
-  const {
-    decisionId,
-    proposalId,
-    constitutionDecision,
-    policyDecision,
-    approval,
-    auditReport,
-  } = lifecycle;
-
-  string(decisionId, `${name}.decisionId`);
-  string(proposalId, `${name}.proposalId`);
-  object(constitutionDecision, `${name}.constitutionDecision`);
-  object(policyDecision, `${name}.policyDecision`);
-  object(approval, `${name}.approval`);
+  obj(lifecycle, name);
+  const { decisionId, proposalId, constitutionDecision, policyDecision, approval, auditReport } = lifecycle;
+  str(decisionId, `${name}.decisionId`);
+  str(proposalId, `${name}.proposalId`);
+  obj(constitutionDecision, `${name}.constitutionDecision`);
+  obj(policyDecision, `${name}.policyDecision`);
+  obj(approval, `${name}.approval`);
   assertGovernedAuditReportContract(auditReport, `${name}.auditReport`);
 
   for (const [field, value] of [
@@ -64,105 +48,52 @@ function assertLifecycle(lifecycle, evolutionReport, name) {
     ["approval.tenantId", approval.tenantId],
     ["approval.decisionId", approval.decisionId],
     ["approval.proposalId", approval.proposalId],
-  ]) {
-    string(value, `${name}.${field}`);
-  }
+  ]) str(value, `${name}.${field}`);
 
-  if (constitutionDecision.decisionId !== decisionId) {
-    throw new Error(`${name} constitution decision mismatch`);
-  }
-  if (policyDecision.decisionId !== decisionId) {
-    throw new Error(`${name} policy decision mismatch`);
-  }
-  if (approval.decisionId !== decisionId) {
-    throw new Error(`${name} approval decision mismatch`);
-  }
-  if (approval.proposalId !== proposalId) {
-    throw new Error(`${name} approval proposal mismatch`);
-  }
-  if (approval.status !== "approved") {
-    throw new Error(`${name}.approval.status must be approved`);
-  }
+  if (constitutionDecision.decisionId !== decisionId) throw new Error(`${name} constitution decision mismatch`);
+  if (policyDecision.decisionId !== decisionId) throw new Error(`${name} policy decision mismatch`);
+  if (approval.decisionId !== decisionId) throw new Error(`${name} approval decision mismatch`);
+  if (approval.proposalId !== proposalId) throw new Error(`${name} approval proposal mismatch`);
+  if (approval.status !== "approved") throw new Error(`${name}.approval.status must be approved`);
   if (approval.consumedAt != null || approval.used === true || approval.replayed === true) {
     throw new Error(`${name} approval must be fresh and not replayed`);
   }
-  if (evolutionReport.sourceAuditId !== auditReport.auditId) {
-    throw new Error(`${name} audit lineage mismatch`);
-  }
-  if (evolutionReport.sourceEvidenceId !== auditReport.sourceEvidenceId) {
-    throw new Error(`${name} evidence lineage mismatch`);
-  }
-  if (evolutionReport.sourceEvidenceDigest !== auditReport.sourceEvidenceDigest) {
-    throw new Error(`${name} evidence digest mismatch`);
-  }
-
+  if (evolutionReport.sourceAuditId !== auditReport.auditId) throw new Error(`${name} audit lineage mismatch`);
+  if (evolutionReport.sourceEvidenceId !== auditReport.sourceEvidenceId) throw new Error(`${name} evidence lineage mismatch`);
+  if (evolutionReport.sourceEvidenceDigest !== auditReport.sourceEvidenceDigest) throw new Error(`${name} evidence digest mismatch`);
   return lifecycle;
 }
 
 export const evolutionGovernanceContractVersion = VERSION;
 
-export function assertEvolutionGovernanceHandoffContract(
-  handoff,
-  name = "evolutionGovernanceHandoff",
-) {
-  object(handoff, name);
-  if (handoff.schemaVersion !== VERSION) {
-    throw new Error(`${name}.schemaVersion must be ${VERSION}`);
-  }
+export function assertEvolutionGovernanceHandoffContract(handoff, name = "evolutionGovernanceHandoff") {
+  obj(handoff, name);
+  must(handoff.schemaVersion, VERSION, `${name}.schemaVersion`);
   if (handoff.from !== "kernel-evolution" || handoff.to !== "kernel-governance") {
     throw new Error(`${name} must route kernel-evolution -> kernel-governance`);
   }
-
-  for (const field of ["handoffId", "cycleId", "createdAt"]) {
-    string(handoff[field], `${name}.${field}`);
-  }
+  for (const field of ["handoffId", "cycleId", "createdAt"]) str(handoff[field], `${name}.${field}`);
   assertTenantContextContract(handoff.tenantContext, `${name}.tenantContext`);
-  object(handoff.payload, `${name}.payload`);
-  assertGovernedEvolutionReportContract(
-    handoff.payload.evolutionReport,
-    `${name}.payload.evolutionReport`,
-  );
-  assertLifecycle(
-    handoff.payload.lifecycle,
-    handoff.payload.evolutionReport,
-    `${name}.payload.lifecycle`,
-  );
+  obj(handoff.payload, `${name}.payload`);
+  assertGovernedEvolutionReportContract(handoff.payload.evolutionReport, `${name}.payload.evolutionReport`);
+  assertLifecycle(handoff.payload.lifecycle, handoff.payload.evolutionReport, `${name}.payload.lifecycle`);
 
   const report = handoff.payload.evolutionReport;
   const lifecycle = handoff.payload.lifecycle;
-  if (report.tenantId !== handoff.tenantContext.tenantId) {
-    throw new Error(`${name} tenantId mismatch`);
-  }
-  if (report.cycleId !== handoff.cycleId) {
-    throw new Error(`${name} cycleId mismatch`);
-  }
-  if (lifecycle.auditReport.tenantId !== handoff.tenantContext.tenantId) {
-    throw new Error(`${name} audit tenantId mismatch`);
-  }
-  if (lifecycle.auditReport.cycleId !== handoff.cycleId) {
-    throw new Error(`${name} audit cycleId mismatch`);
-  }
-  if (lifecycle.constitutionDecision.tenantId !== handoff.tenantContext.tenantId) {
-    throw new Error(`${name} constitution tenantId mismatch`);
-  }
-  if (lifecycle.policyDecision.tenantId !== handoff.tenantContext.tenantId) {
-    throw new Error(`${name} policy tenantId mismatch`);
-  }
-  if (lifecycle.approval.tenantId !== handoff.tenantContext.tenantId) {
-    throw new Error(`${name} approval tenantId mismatch`);
-  }
-
-  for (const field of [
-    "mutationAllowed",
-    "approvalAllowed",
-    "executionAllowed",
-    "automaticGovernanceAllowed",
-    "promotionAllowed",
+  if (report.tenantId !== handoff.tenantContext.tenantId) throw new Error(`${name} tenantId mismatch`);
+  if (report.cycleId !== handoff.cycleId) throw new Error(`${name} cycleId mismatch`);
+  for (const [label, tenantId] of [
+    ["audit", lifecycle.auditReport.tenantId],
+    ["constitution", lifecycle.constitutionDecision.tenantId],
+    ["policy", lifecycle.policyDecision.tenantId],
+    ["approval", lifecycle.approval.tenantId],
   ]) {
-    falseOnly(handoff[field], `${name}.${field}`);
+    if (tenantId !== handoff.tenantContext.tenantId) throw new Error(`${name} ${label} tenantId mismatch`);
   }
-  trueOnly(handoff.humanDecisionRequired, `${name}.humanDecisionRequired`);
-
+  for (const field of ["mutationAllowed", "approvalAllowed", "executionAllowed", "automaticGovernanceAllowed", "promotionAllowed"]) {
+    must(handoff[field], false, `${name}.${field}`);
+  }
+  must(handoff.humanDecisionRequired, true, `${name}.humanDecisionRequired`);
   return handoff;
 }
 
@@ -170,21 +101,18 @@ export function createEvolutionGovernanceHandoff({
   handoffId,
   cycleId,
   tenantContext,
-  evolutionEport,
+  evolutionReport,
   lifecycle,
   createdAt = new Date().toISOString(),
 } = {}) {
   const handoff = {
-    schemaVersion: VERSION,,
+    schemaVersion: VERSION,
     handoffId,
     from: "kernel-evolution",
     to: "kernel-governance",
     cycleId,
     tenantContext: clone(tenantContext),
-    payload: {
-      evolutionReport: clone(evolutionReport),
-      lifecycle: clone(lifecycle),
-    },
+    payload: { evolutionReport: clone(evolutionReport), lifecycle: clone(lifecycle) },
     createdAt,
     mutationAllowed: false,
     approvalAllowed: false,
@@ -193,93 +121,40 @@ export function createEvolutionGovernanceHandoff({
     promotionAllowed: false,
     humanDecisionRequired: true,
   };
-
   assertEvolutionGovernanceHandoffContract(handoff);
-  return deepFreeze(handoff);
+  return freeze(handoff);
 }
 
-export function assertGovernedGovernanceReportContract(
-  report,
-  name = "governedGovernanceReport",
-) {
-  object(report, name);
-
+export function assertGovernedGovernanceReportContract(report, name = "governedGovernanceReport") {
+  obj(report, name);
   for (const field of [
-    "governanceReviewId",
-    "generatedAt",
-    "requestedBy",
-    "scope",
-    "tenantId",
-    "cycleId",
-    "sourceHandoffId",
-    "sourceEvolutionId",
-    "sourceAuditId",
-    "sourceEvidenceId",
-    "sourceEvidenceDigest",
-    "decisionId",
-    "proposalId",
-  ]) {
-    string(report[field], `${name}.${field}`);
-  }
-
-  if (!HEX_256.test(report.sourceEvidenceDigest)) {
-    throw new Error(`${name}.sourceEvidenceDigest must be a sha256 hex digest`);
-  }
-  if (report.mode !== "advisory-governance-review") {
-    throw new Error(`${name}.mode must be advisory-governance-review`);
-  }
+    "governanceReviewId", "generatedAt", "requestedBy", "scope", "tenantId", "cycleId",
+    "sourceHandoffId", "sourceEvolutionId", "sourceAuditId", "sourceEvidenceId",
+    "sourceEvidenceDigest", "decisionId", "proposalId",
+  ]) str(report[field], `${name}.${field}`);
+  if (!HEX_256.test(report.sourceEvidenceDigest)) throw new Error(`${name}.sourceEvidenceDigest must be sha256`);
+  if (report.mode !== "advisory-governance-review") throw new Error(`${name}.mode is invalid`);
   if (!["ready-for-human-decision", "needs-review", "needs-evidence", "blocked"].includes(report.status)) {
     throw new Error(`${name}.status is invalid`);
   }
   if (!["authorized", "needs-review", "needs-evidence", "blocked"].includes(report.engineStatus)) {
     throw new Error(`${name}.engineStatus is invalid`);
   }
-  if (typeof report.engineAuthorized !== "boolean") {
-    throw new TypeError(`${name}.engineAuthorized must be boolean`);
+  if (typeof report.engineAuthorized !== "boolean") throw new TypeError(`${name}.engineAuthorized must be boolean`);
+  must(report.humanDecisionRequired, true, `${name}.humanDecisionRequired`);
+  for (const field of ["authorized", "mutationAllowed", "approvalAllowed", "executionAllowed", "automaticGovernanceAllowed", "promotionAllowed"]) {
+    must(report[field], false, `${name}.${field}`);
   }
-
-  trueOnly(report.humanDecisionRequired, `${name}.humanDecisionRequired`);
-  falseOnly(report.authorized, `${name}.authorized`);
-  falseOnly(report.mutationAllowed, `${name}.mutationAllowed`);
-  falseOnly(report.approvalAllowed, `${name}.approvalAllowed`);
-  falseOnly(report.executionAllowed, `${name}.executionAllowed`);
-  falseOnly(report.automaticGovernanceAllowed, `${name}.automaticGovernanceAllowed`);
-  falseOnly(report.promotionAllowed, `${name}.promotionAllowed`);
-
-  if (!Array.isArray(report.checks) || report.checks.length === 0) {
-    throw new TypeError(`${name}.checks must be a non-empty array`);
+  if (!Array.isArray(report.checks) || report.checks.length === 0) throw new TypeError(`${name}.checks must be non-empty`);
+  obj(report.summary, `${name}.summary`);
+  const total = report.summary.pass + report.summary.review + report.summary.fail + report.summary.unknown;
+  if (report.summary.total !== total || total !== report.checks.length) throw new Error(`${name}.summary is inconsistent`);
+  obj(report.constraints, `${name}.constraints`);
+  for (const field of ["humanDecisionRequired", "explicitApprovalRequired", "denyByDefault", "tenantIsolationRequired", "evidenceIntegrityRequired", "traceabilityRequired"]) {
+    must(report.constraints[field], true, `${name}.constraints.${field}`);
   }
-  object(report.summary, `${name}.summary`);
-  const total =
-    report.summary.pass +
-    report.summary.review +
-    report.summary.fail +
-    report.summary.unknown;
-  if (report.summary.total !== total || report.summary.total !== report.checks.length) {
-    throw new Error(`${name}.summary is inconsistent`);
+  for (const field of ["mutationAllowed", "executionAllowed", "automaticApprovalAllowed", "automaticGovernanceAllowed", "promotionAllowed", "crossTenantAccessAllowed"]) {
+    must(report.constraints[field], false, `${name}.constraints.${field}`);
   }
-
-  object(report.constraints, `${name}.constraints`);
-  for (const field of [
-    "humanDecisionRequired",
-    "explicitApprovalRequired",
-    "denyByDefault",
-    "tenantIsolationRequired",
-    "evidenceIntegrityRequired",
-    "traceabilityRequired",
-  ]) {
-    trueOnly(report.constraints[field], `${name}.constraints.${field}`);
-  }
-  for (const field of [
-    "mutationAllowed",
-    "executionAllowed",
-    "automaticApprovalAllowed",
-    "automaticGovernanceAllowed",
-    "promotionAllowed",
-    "crossTenantAccessAllowed",
-  ]) {
-    falseOnly(report.constraints[field], `${name}.constraints.${field}`);
-  }
-
   return report;
 }
