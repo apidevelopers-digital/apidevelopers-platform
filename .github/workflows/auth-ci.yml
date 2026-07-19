@@ -1,0 +1,47 @@
+name: Auth CI
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - main
+      - "foundation/**"
+    paths:
+      - "packages/auth/**"
+      - "packages/contracts/**"
+      - ".github/workflows/auth-ci.yml"
+  pull_request:
+    paths:
+      - "packages/auth/**"
+      - "packages/contracts/**"
+      - ".github/workflows/auth-ci.yml"
+
+permissions:
+  contents: read
+
+concurrency:
+  group: auth-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+      - name: Prepare local contracts link
+        run: |
+          mkdir -p node_modules/@apidevelopers
+          ln -s "$GITHUB_WORKSPACE/packages/contracts" node_modules/@apidevelopers/contracts
+      - name: Check syntax
+        run: |
+          node --check packages/contracts/src/auth-context.mjs
+          node --check packages/auth/src/index.mjs
+          node --check packages/auth/test/index.test.mjs
+      - name: Test contracts
+        run: npm --prefix packages/contracts test
+      - name: Test auth
+        run: npm --prefix packages/auth test
