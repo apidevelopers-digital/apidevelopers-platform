@@ -29,4 +29,4 @@ jobs:
       - name: Check evidence audit contract
         run: node --check packages/contracts/src/evidence-audit.mjs
       - name: Test handoff construction
-        run: node --test --test-name-pattern="creates an immutable evidence" packages/contracts/test/evidence-audit.test.mjs
+        run: node --test packages/contracts/test/evidence-audit.test.mjs
