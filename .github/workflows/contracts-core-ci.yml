@@ -1,0 +1,46 @@
+name: Contracts Core CI
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - main
+      - "foundation/**"
+    paths:
+      - "packages/contracts/**"
+      - ".github/workflows/contracts-core-ci.yml"
+  pull_request:
+    paths:
+      - "packages/contracts/**"
+      - ".github/workflows/contracts-core-ci.yml"
+
+permissions:
+  contents: read
+
+concurrency:
+  group: contracts-core-${{ github.ref }}
+  cancel-in-progress: true
+
+defaults:
+  run:
+    working-directory: packages/contracts
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+     - uses: actions/checkout@v4
+     - uses: actions/setup-node@v4
+       with:
+        node-version: "22"
+     - name: Test consolidated contracts
+      run: |
+        node --test --test-concurrency=1 \
+          test/canonical-ids.test.mjs \
+          test/cognitive-decision.test.mjs \
+          test/cognitive-pipeline.test.mjs \
+          test/decision-policy.test.mjs \
+          test/event-envelope.test.mjs \
+          test/planning-execution-plan.test.mjs \
+          test/policy-runtime.test.mjs
