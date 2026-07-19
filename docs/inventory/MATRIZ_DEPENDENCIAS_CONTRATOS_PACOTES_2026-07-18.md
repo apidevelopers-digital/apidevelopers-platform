@@ -2,107 +2,127 @@
 
 **Data da conferência:** 2026-07-18  
 **Branch:** `foundation/global-platform-bootstrap-20260715`  
-**Commit-âncora técnico:** `aaa5594217d96efb247501955e4a4493c7324bda`  
-**Status:** MATRIZ_OFICIAL_SALVA  
+**Commit-âncora técnico:** `64f53298b4828896156aeb44097190ae3b3c1169`  
+**Status:** MATRIZ_OFICIAL_ATUALIZADA  
 **Escopo:** `packages/`  
-**Execução real / deploy:** NÃO EXECUTADOS
+**Merge / deploy:** NÃO EXECUTADOS
 
-## 1. Resultado do inventário
+## 1. Inventário oficial
 
-Foram confirmados **16 diretórios** em `packages/`:
+Foram confirmados **16 diretórios**:
 
-- **14 pacotes implementados**, com manifesto e código executável;
-- **2 módulos documentais**, sem `package.json`, `src/` ou testes próprios: `auth` e `tenancy`.
+- **14 pacotes implementados**;
+- **2 módulos documentais:** `auth` e `tenancy`.
 
-A contagem anterior de 17 pacotes estava incorreta. Esta matriz passa a ser a referência oficial para a estrutura verificada no commit-âncora.
+O contrato mínimo de tenancy está implementado no pacote compartilhado `@apidevelopers/contracts`, mas o diretório `packages/tenancy` ainda não constitui pacote executável próprio.
 
-## 2. Regra de integração institucional
+## 2. Regra de integração
 
-Os pacotes comunicam-se principalmente por:
+Os pacotes comunicam-se por:
 
-1. contratos de dados e identificadores versionados;
-2. relatórios/envelopes produzidos por uma etapa e consumidos pela etapa seguinte;
-3. testes de integração no repositório;
-4. composição pelo runtime e por serviços de guarda.
+1. contratos públicos versionados;
+2. relatórios e envelopes imutáveis;
+3. identificadores canônicos;
+4. testes de integração;
+5. gates de política, autorização, evidência e auditoria.
 
-A ausência de dependência npm direta entre pacotes **não significa ausência de vínculo lógico**. O acoplamento institucional é realizado pelos contratos e validado pela integração.
+Dependência npm direta não é requisito para existir vínculo lógico. O vínculo institucional deve ser comprovado por contrato público e teste.
 
-## 3. Matriz dos 16 diretórios
+## 3. Matriz resumida dos 16 diretórios
 
-| Diretório | Estado | Entrada/contrato principal | Saída/contrato principal | Relações institucionais | Evidência |
-|---|---|---|---|---|---|
-| `auth` | DOCUMENTAL | identidade, autoridade e credenciais não secretas | decisão de autenticação/autorização | futuro vínculo com `tenancy`, `kernel-policy` e `kernel-governance` | somente `README.md`; implementação pendente |
-| `contracts` | IMPLEMENTADO | esquemas e IDs canônicos | contratos compartilhados versionados | base transversal para Registry e cadeia governada | manifesto, código e testes |
-| `kernel-audit` | IMPLEMENTADO | decisão, plano, política, aprovação, runtime e evidências | relatório de auditoria | recebe da cadeia governada e alimenta `kernel-evolution` | teste de ciclo completo |
-| `kernel-constitution` | IMPLEMENTADO | constituição, tenant, ação e proposta | decisão constitucional | antecede `kernel-policy` e condiciona `kernel-governance` | teste constitucional integrado |
-| `kernel-decision` | IMPLEMENTADO | relatório de planejamento | registro formal de decisão | recebe de `kernel-planning`; alimenta política e runtime; não executa | teste Planning → Decision |
-| `kernel-evidence` | IMPLEMENTADO | registros de evidência | evidência verificável e listagem por tenant | usado por runtime, guarda e auditoria | teste de runtime governado |
-| `kernel-evolution` | IMPLEMENTADO | relatório de auditoria | relatório/propostas de evolução | recebe de `kernel-audit`; alimenta `kernel-governance` | teste constitucional integrado |
-| `kernel-governance` | IMPLEMENTADO | constituição, política, aprovação, auditoria e evolução | relatório de governança/autorização | consolida o ciclo sem permitir execução direta | teste constitucional integrado |
-| `kernel-memory` | IMPLEMEMENTADO | candidatos e registros de menória | memória governada e recuperável | fornece contexto para reasoning; isolamento por tenant permanece requisito transversal | manifesto, código e testes próprios |
-| `kernel-planning` | IMPLEMENTADO | achados/reflexão | relatório de planejamento e propostas | recebe da reflexão; alimenta `kernel-decision`; não decide nem executa | teste Planning → Decision |
-| `kernel-policy` | IMPLEMENTADO | ação, decisão, plano, aprovação e modo dry-run | decisão de política e hash do plano | antecede runtime/guarda e é auditável | testes de runtime e governança |
-| `kernel-reasoning` | IMPLEMENTADO | contexto e evidências | relatório de raciocínio | antecede reflexão/planning no desenho institucional | manifesto, código e testes próprios |
-| `kernel-reflection` | IMPLEMENTADO | resultados e achados cognitivos | relatório de reflexão/findings | produz a entrada lógica de `kernel-planning` | manifesto, código e testes próprios |
-| `kernel-runtime` | IMPLEMENTADO | decisão, plano, aprovação, confirmação e ações registradas | relatório de runtime e evidências | executa apenas pelo gateway governado; dry-run primeiro | testes de runtime e auditoria |
-| `registry` | IMPLEMENTADO | descritores de capacidades e contratos | índice de capacidades/ativos | organiza descoberta e promoção de componentes | manifesto, código, testes e workflow |
-| `tenancy` | DOCUMENTAL | identidade opaca de tenant e contexto de isolamento | escopo/limites de tenant | requisito transversal para memória, registry, evidence, runtime e audit | somente `README.md`;  implementação pendente |
+| Diretório | Estado | Contrato / função principal | Relação principal |
+|---|---|---|---|
+| `auth` | DOCUMENTAL | identidade e autorização | futuro vínculo com tenancy, policy e governance |
+| `contracts` | IMPLEMENTADO | IDs, envelopes, tenancy e handoffs cognitivos | base transversal |
+| `kernel-audit` | IMPLEMENTADO | auditoria | recebe runtime/evidence; alimenta evolution |
+| `kernel-constitution` | IMPLEMENTADO | decisão constitucional | antecede policy e governance |
+| `kernel-decision` | IMPLEMENTADO | decisão formal | recebe planning; alimenta policy/runtime |
+| `kernel-evidence` | IMPLEMENTADO | evidência verificável | recebe runtime; alimenta audit |
+| `kernel-evolution` | IMPLEMENTADO | propostas de evolução | recebe audit; alimenta governance |
+| `kernel-governance` | IMPLEMENTADO | governança e autorização | consolida o ciclo |
+| `kernel-memory` | IMPLEMENTADO | memória append-only | produz snapshot para reasoning |
+| `kernel-planning` | IMPLEMENTADO | planos e propostas | recebe reflection; alimenta decision |
+| `kernel-policy` | IMPLEMENTADO | decisão de política | antecede runtime |
+| `kernel-reasoning` | IMPLEMENTADO | relatório de raciocínio | recebe memory; alimenta reflection |
+| `kernel-reflection` | IMPLEMENTADO | findings e reflexão | recebe reasoning; alimenta planning |
+| `kernel-runtime` | IMPLEMENTADO | execução governada | recebe decisão/policy; produz evidence |
+| `registry` | IMPLEMENTADO | catálogo de capacidades | descoberta e promoção controlada |
+| `tenancy` | DOCUMENTAL | isolamento por tenant | contrato mínimo disponível em `contracts` |
 
-## 4. Cadeias comprovadas por integração
+## 4. Cadeias formalizadas
 
-### Cadeia de decisão
+### Pipeline cognitivo
 
-`reflection/findings → kernel-planning → kernel-decision`
+`kernel-memory → kernel-reasoning → kernel-reflection → kernel-planning`
 
-Evidência: teste de integração que preserva imutabilidade e mantém aprovação, mutação e execução automáticas bloqueadas.
+Contrato público:
 
-### Cadeia de runtime governado
+`packages/contracts/src/cognitive-pipeline.mjs`
+
+Valida:
+
+- payload por etapa;
+- transições permitidas;
+- `tenantContext`;
+- imutabilidade;
+- bloqueio de aprovação e execução.
+
+### Tenancy transversal
+
+Contrato público:
+
+`packages/contracts/src/tenancy-context.mjs`
+
+Regras:
+
+- `tenantId` opaco;
+- isolamento estrito;
+- acesso cross-tenant bloqueado;
+- operação global bloqueada por padrão.
+
+### Runtime governado
 
 `kernel-planning → kernel-decision → kernel-policy → kernel-runtime → kernel-evidence → kernel-audit`
 
-Evidência: testes de integração com dry-run, hash do plano, aprovação explícita, evidência e auditoria.
-
-### Cadeia constitucional
+### Ciclo constitucional
 
 `kernel-constitution → kernel-policy → kernel-audit → kernel-evolution → kernel-governance`
 
-Evidência: teste integrado em que a Constituição prevalece, a governança pode bloquear promoção e nenhuma etapa executa por conta própria.
+## 5. Evidência de validação
 
-## 5. Pontos ainda implícitos
+| Workflow | Run | Resultado |
+|---|---:|---|
+| Registry CI | `29669349266` | SUCESSO |
+| Contracts CI | `29669349276` | SUCESSO |
+| Platform CI | `29669349307` | SUCESSO |
 
-Os vínculos abaixo existem no desenho ou no fluxo de dados, mas ainda precisam de contrato compartilhado formal e/ou teste de integração dedicado:
+Commit validado:
 
-- `kernel-memory → kernel-reasoning`;
-- `kernel-reasoning → kernel-reflection`;
-- `kernel-reflection → kernel-planning`;
-- `registry → runtime/serviços`;
-- `tenancy → todos os componentes com estado`;
-- `auth → tenancy/policy/governance`;
-- adoção uniforme de `@apidevelopers/contracts` por todos os pacotes.
+`64f53298b4828896156aeb44097190ae3b3c1169`
 
-## 6. Lacunas oficiais
+## 6. Pontos ainda pendentes
 
-1. `auth` ainda não é pacote executável.
-2. `tenancy` ainda não é pacote executável.
-3. Parte dos contratos continua estruturalmente implícita nos objetos usados pelos testes.
-4. Nem todos os pacotes possuem CI dedicado.
-5. A integração completa deve migrar de imports relativos de teste para contratos públicos estáveis.
-6. A promoção para `main` permanece fora do escopo desta matriz.
+- consumo direto dos validadores compartilhados pelos quatro kernels cognitivos;
+- teste cross-package da cadeia cognitiva completa;
+- pacote executável de tenancy;
+- pacote executável de auth;
+- adoção uniforme de `@apidevelopers/contracts`;
+- CI dedicado para todos os pacotes;
+- proteção de `main` e política formal de promoção;
+- observabilidade operacional consolidada.
 
 ## 7. Impacto na prontidão
 
-Com a auditoria institucional integrada, o Platform CI verde no commit-âncora e a cadeia central comprovada, a prontidão institucional fica registrada em **77%**.
-
-A matriz reduz a incerteza documental, mas não eleva a plataforma a 80% sozinha porque `auth`, `tenancy`, proteção de branch, promoção formal e observabilidade consolidada continuam pendentes.
+A formalização dos handoffs, o contrato mínimo de tenancy e os três workflows verdes elevam a prontidão calculada de **77,05% para 79,65%**, arredondada operacionalmente para **80%**.
 
 ## 8. Governança
 
-- **status:** MATRIZ_OFICIAL_SALVA
-- **versão_origem:** GitHub no commit `aaa5594217d96efb247501955e4a4493c7324bda`
+- **status:** MATRIZ_OFICIAL_ATUALIZADA
+- **versão_origem:** GitHub no commit `64f53298b4828896156aeb44097190ae3b3c1169`
 - **alvo:** API Developers.digital
 - **risco:** R2
 - **decisão_milena:** NÃO INFORMADA
-- **execução_igor:** DOCUMENTAÇÃO TÉCNICA SALVA
+- **execução_igor:** DOCUMENTAÇÃO TÉCNICA ATUALIZADA
 - **deploy:** NÃO EXECUTADO
-- **evidência_técnica:** 16 diretórios conferidos; 14 implementados; `auth` e `tenancy` documentais; testes de integração centrais presentes
-- **próximo_estado_permitido:** transformar os pontos implícitos em contratos públicos/testes e decidir a implementação de `auth` e `tenancy`
+- **evidência_técnica:** contratos, testes e três CIs verdes
+- **próximo_estado_permitido:** adoção dos contratos pelos kernels e teste cross-package
