@@ -35,12 +35,19 @@ jobs:
         with:
           node-version: "22"
       - name: Link Gateway Core workspaces
+        shell: bash
         run: |
-          mkdir -p node_modules/@apidevelopers
-          ln -s ../../packages/registry-core node_modules/@apidevelopers/registry-core
-          ln -s ../../packages/platform-core node_modules/@apidevelopers/platform-core
-          ln -s ../../packages/auth-core node_modules/@apidevelopers/auth-core
-          ln -s ../../packages/apikey-core node_modules/@apidevelopers/apikey-core
+          set -euo pipefail
+          scope_dir="$GITHUB_WORKSPACE/node_modules/@apidevelopers"
+          mkdir -p "$scope_dir"
+          for package in registry-core platform-core auth-core apikey-core; do
+            source_dir="$GITHUB_WORKSPACE/packages/$package"
+            target="$scope_dir/$package"
+            test -f "$source_dir/package.json"
+            rm -rf "$target"
+            ln -s "$source_dir" "$target"
+            test -f "$target/package.json"
+          done
       - name: Check API Gateway
         run: npm --workspace @apidevelopers/api-gateway run check
       - name: Validate no committed API keys
