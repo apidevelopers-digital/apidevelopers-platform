@@ -34,8 +34,13 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: "22"
-      - name: Install Gateway workspace links
-        run: npm install --workspace @apidevelopers/api-gateway --include-workspace-root=false --ignore-scripts --no-audit --no-fund --no-package-lock
+      - name: Link Gateway Core workspaces
+        run: |
+          mkdir -p node_modules/@apidevelopers
+          ln -s ../../packages/registry-core node_modules/@apidevelopers/registry-core
+          ln -s ../../packages/platform-core node_modules/@apidevelopers/platform-core
+          ln -s ../../packages/auth-core node_modules/@apidevelopers/auth-core
+          ln -s ../../packages/apikey-core node_modules/@apidevelopers/apikey-core
       - name: Check API Gateway
         run: npm --workspace @apidevelopers/api-gateway run check
       - name: Validate no committed API keys
