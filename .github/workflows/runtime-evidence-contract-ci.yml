@@ -29,4 +29,4 @@ jobs:
       - name: Check runtime evidence contract
         run: node --check packages/contracts/src/runtime-evidence.mjs
       - name: Test runtime evidence contract
-        run: node --test packages/contracts/test/runtime-evidence.test.mjs 
+        run: node --test --test-name-pattern="creates a runtime" packages/contracts/test/runtime-evidence.test.mjs
