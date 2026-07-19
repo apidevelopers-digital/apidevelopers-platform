@@ -8,6 +8,8 @@ const namespaceRoot = path.join(nodeModulesRoot, "@apidevelopers");
 
 for (const packageName of [
   "contracts",
+  "auth",
+  "tenancy",
   "kernel-memory",
   "kernel-reasoning",
   "kernel-reflection",
