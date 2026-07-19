@@ -1,3 +1,4 @@
+import "./kernel-runtime-evidence-wrapper.mjs";
 import "./kernel-policy-runtime-wrapper.mjs";
 import "./kernel-decision-policy-wrapper.mjs";
 import "./kernel-cognitive-decision-wrapper.mjs";
