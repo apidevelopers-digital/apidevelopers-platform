@@ -5,6 +5,8 @@ on:
     branches:
       - "foundation/**"
     paths:
+      - "README.md"
+      - "CATALOGO_COMERCIAL_E_MATRIZ_DE_AUTOMACAO_V1.md"
       - "scripts/audit-public-exposure.mjs"
       - ".github/workflows/public-exposure-audit-ci.yml"
       - "docs/**"
@@ -16,6 +18,8 @@ on:
       - ".github/workflows/**"
   pull_request:
     paths:
+      - "README.md"
+      - "CATALOGO_COMERCIAL_E_MATRIZ_DE_AUTOMACAO_V1.md"
       - "scripts/audit-public-exposure.mjs"
       - ".github/workflows/public-exposure-audit-ci.yml"
       - "docs/**"
