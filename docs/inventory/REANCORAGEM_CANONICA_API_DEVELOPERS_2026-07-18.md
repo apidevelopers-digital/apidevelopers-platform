@@ -3,55 +3,53 @@
 **Data:** 2026-07-19  
 **Status:** `PREPARADO_PARA_CONTINUIDADE`  
 **Branch:** `foundation/global-platform-bootstrap-20260715`  
-**Commit-âncora técnico:** `b2cb7bf2a7b44da9d6e29514f6d116cd8e7a4089`  
-**Prontidão:** 90%  
+**Commit-âncora técnico:** `3dc830109b8efc3ff3126bb5475e55601c9fd1d1`  
+**HEAD de validação:** `2bf738fc3d6a389df3bb53e7ffbc9fde5d1b6d4a`  
+**Prontidão institucional:** 92%  
 **Merge / deploy:** NÃO EXECUTADOS
 
 ## Ponto correto de retomada
 
-A cadeia governada está validada até Evidence:
+A cadeia governada está validada até Audit:
 
-`memory → reasoning → reflection → planning → decision → policy → runtime → evidence`
+`memory → reasoning → reflection → planning → decision → policy → runtime → evidence → audit`
 
 Retomar exatamente em:
 
-`evidence → audit`
+`audit → evolution`
 
 Não retomar por `main`, PR draft, release ou deploy.
 
 ## Estado consolidado
 
-- contrato público `runtime-evidence`;
-- handoff `kernel-runtime → kernel-evidence`;
-- Evidence append-only e isolada por tenant;
-- digest SHA-256 verificável;
-- adulteração e duplicidade rejeitadas;
-- artefato imutável e redigido;
-- wrappers governados isolados por processo no Platform CI;
-- nenhuma decisão, aprovação ou execução automática.
+- Evidence é append-only, isolada por tenant e verificável por SHA-256;
+- o handoff `kernel-evidence → kernel-audit` é imutável;
+- Audit verifica a integridade do artefato antes de avaliar o ciclo;
+- tenant, ciclo, decisão, proposta, plano, Policy, aprovação e origem permanecem vinculados;
+- adulteração, cross-tenant e replay são bloqueados;
+- Audit opera em modo read-only e advisory;
+- nenhuma decisão, aprovação, mutação ou execução automática foi habilitada.
 
 ## Evidência
 
 | Gate | Commit | Run | Estado |
 |---|---|---:|---|
-| Platform CI final | `b2cb7bf2` | `29672689326` | SUCESSO |
-| Contracts CI | `c4bccb1b` | `29672612408` | SUCESSO |
-| Kernel Evidence CI | `c4bccb1b` | `29672612383` | SUCESSO |
-| Kernel Runtime CI | `c4bccb1b` | `29672612411` | SUCESSO |
-| Registry CI | `c4bccb1b` | `29672612393` | SUCESSO |
-| Runtime Evidence Contract CI | `957431ec` | `29672583385` | SUCESSO |
+| Platform CI final | `2bf738fc` | `29673461253` | SUCESSO |
+| Evidence Audit Contract CI | `2bf738fc` | `29673461255` | SUCESSO |
+| Evidence Audit Integration CI | `3dc83010` | `29673436377` | SUCESSO |
+| Contracts CI | `3dc83010` | `29673436414` | SUCESSO |
+| Kernel Audit CI | `3dc83010` | `29673436427` | SUCESSO |
 
 ## Próxima ação exata
 
-1. criar contrato `evidence → audit`;
-2. adaptar `kernel-audit` para consumir o artefato verificável;
-3. validar tenant, ciclo, digest e origem;
-4. rejeitar adulteração, duplicidade e cross-tenant;
-5. criar teste cross-package;
-6. confirmar Contracts CI, Audit CI e Platform CI no mesmo `HEAD`;
-7. atualizar inventário somente após evidência verde.
+1. criar contrato público `audit → evolution`;
+2. adaptar `kernel-evolution` para consumir somente relatório governado de Audit;
+3. bloquear evolução automática e exigir revisão humana;
+4. preservar tenant, ciclo, evidências e findings;
+5. criar teste cross-package e gate dedicado;
+6. atualizar inventário somente após CI verde.
 
-**Meta seguinte:** 92%.
+**Meta seguinte:** 94%.
 
 ## Limites e governança
 
@@ -60,4 +58,4 @@ Esta âncora não autoriza merge, promoção para `main`, release, publicação,
 - **risco:** R2
 - **decisão_milena:** NÃO INFORMADA
 - **execução_igor:** CÓDIGO E DOCUMENTAÇÃO SALVOS NA BRANCH
-- **próximo_estado_permitido:** `evidence → audit`, sem promoção
+- **próximo_estado_permitido:** `audit → evolution`, sem promoção
