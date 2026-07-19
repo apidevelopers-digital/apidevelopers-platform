@@ -2,67 +2,67 @@
 
 **Data:** 2026-07-19  
 **Branch:** `foundation/global-platform-bootstrap-20260715`  
-**Commit-âncora técnico:** `b2cb7bf2a7b44da9d6e29514f6d116cd8e7a4089`  
-**Prontidão:** 90%  
+**Commit-âncora técnico:** `3dc830109b8efc3ff3126bb5475e55601c9fd1d1`  
+**HEAD de validação:** `2bf738fc3d6a389df3bb53e7ffbc9fde5d1b6d4a`  
+**Prontidão:** 92%  
 **Merge / deploy:** NÃO EXECUTADOS
 
 ## Estado validado
 
-`memory → reasoning → reflection → planning → decision → policy → runtime → evidence`
+`memory → reasoning → reflection → planning → decision → policy → runtime → evidence → audit`
 
-A fronteira `runtime → evidence` foi formalizada com:
+A fronteira `evidence → audit` foi formalizada com:
 
 - contrato versionado e handoff imutável;
-- registro append-only;
-- isolamento por tenant;
-- integridade SHA-256;
-- detecção de adulteração e duplicidade;
-- metadados `immutable: true` e `redacted: true`;
-- bloqueio de mutação, aprovação e execução na fronteira.
+- validação cruzada de tenant, ciclo, decisão, proposta, plano, Policy e origem;
+- verificação SHA-256 do artefato de Evidence antes da auditoria;
+- bloqueio cross-tenant, adulteração e replay de aprovação;
+- Audit read-only e advisory;
+- relatório governado sem mutação ou execução.
 
 ## Evidência técnica
 
 | Gate | Commit | Run | Estado |
 |---|---|---:|---|
-| Platform CI final | `b2cb7bf2` | `29672689326` | SUCESSO |
-| Contracts CI | `c4bccb1b` | `29672612408` | SUCESSO |
-| Kernel Evidence CI | `c4bccb1b` | `29672612383` | SUCESSO |
-| Kernel Runtime CI | `c4bccb1b` | `29672612411` | SUCESSO |
-| Registry CI | `c4bccb1b` | `29672612393` | SUCESSO |
-| Runtime Evidence Contract CI | `957431ec` | `29672583385` | SUCESSO |
+| Platform CI final | `2bf738fc` | `29673461253` | SUCESSO |
+| Evidence Audit Contract CI | `2bf738fc` | `29673461255` | SUCESSO |
+| Evidence Audit Integration CI | `3dc83010` | `29673436377` | SUCESSO |
+| Contracts CI | `3dc83010` | `29673436414` | SUCESSO |
+| Kernel Audit CI | `3dc83010` | `29673436427` | SUCESSO |
 
-Teste principal: `tests/integration/kernel-runtime-evidence-contracts.test.mjs`
+Teste cross-package principal: `tests/integration/kernel-evidence-audit-contracts.test.mjs`
 
 ## Correções do marco
 
-- fixtures independentes por teste;
-- cobertura integral `test/*.test.mjs` restaurada em modo serial;
-- wrappers governados executados em processos separados no Platform CI;
-- nenhuma regra de segurança ou integridade reduzida.
+- fallback de aprovação corrigido de `unull` para `null`;
+- entrada do motor alinhada de `planRecord` para `plan`;
+- fixture unitária alinhada ao modo preview;
+- execução aprovada permaneceu coberta pela integração cross-package;
+- suíte integral do contrato restaurada e validada.
 
 ## Estrutura e lacunas
 
 - 16 diretórios em `packages/`;
 - 14 pacotes implementados;
 - `auth` e `tenancy` permanecem documentais;
-- falta formalizar `evidence → audit`;
-- proteção de `main`, checks obrigatórios, release e deploy permanecem pendentes.
+- falta formalizar `audit → evolution`;
+- proteção de `main`, checks obrigatórios, promoção, release e deploy permanecem pendentes.
 
 ## Próximo marco
 
-**Meta: 92%**
+**Meta: 94%**
 
-1. formalizar `evidence → audit`;
-2. adaptar `kernel-audit`;
-3. rejeitar evidência adulterada ou cross-tenant;
-4. criar teste cross-package até Audit;
+1. formalizar `audit → evolution`;
+2. adaptar `kernel-evolution` ao relatório governado de Audit;
+3. preservar autoridade humana e execução proibida;
+4. criar teste cross-package e gate dedicado;
 5. confirmar os gates no mesmo commit.
 
 ## Governança
 
-- **status:** `INVENTARIO_ATUALIZADO_COM_PIPELINE_ATE_EVIDENCE`
+- **status:** `INVENTARIO_ATUALIZADO_COM_PIPELINE_ATE_AUDIT`
 - **risco:** R2
 - **decisão_milena:** NÃO INFORMADA
 - **execução_igor:** CÓDIGO E DOCUMENTAÇÃO SALVOS NA BRANCH
 - **deploy:** NÃO EXECUTADO
-- **próximo_estado_permitido:** `evidence → audit`, sem promoção
+- **próximo_estado_permitido:** `audit → evolution`, sem promoção
