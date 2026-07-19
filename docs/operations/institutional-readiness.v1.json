@@ -1,0 +1,35 @@
+{
+  "schemaVersion": 1,
+  "generatedAt": "2026-07-19",
+  "repository": "sitedauni/apidevelopers-platform",
+  "targetBranch": "main",
+  "sourceBranch": "foundation/global-platform-bootstrap-20260715",
+  "status": "proposal-prepared",
+  "readinessPercent": 98,
+  "requiredCheckProposal": "Platform CI / validate",
+  "requiredHumanApprovalsProposal": 1,
+  "runner": {
+    "name": "igor-mac-runner",
+    "labels": [
+      "self-hosted",
+      "macOS",
+      "X64"
+    ],
+    "productionServer": false
+  },
+  "controls": {
+    "branchProtectionApplied": false,
+    "mergeAuthorized": false,
+    "releaseAuthorized": false,
+    "packagePublicationAuthorized": false,
+    "deployAuthorized": false,
+    "autoMergeAllowed": false,
+    "forcePushAllowed": false,
+    "branchDeletionAllowed": false
+  },
+  "decision": {
+    "milena": "NOT_INFORMED",
+    "igorExecutionAuthorization": "NOT_GRANTED"
+  },
+  "nextAllowedState": "explicit-human-approval-for-main-protection"
+}
