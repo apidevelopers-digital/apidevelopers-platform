@@ -3,10 +3,9 @@
 **Data:** 2026-07-19  
 **Status:** `PREPARADO_PARA_CONTINUIDADE`  
 **Branch:** `foundation/global-platform-bootstrap-20260715`  
-**Commit-âncora técnico:** `d81fcf4304d13dbf1f429f38742705a1c9570e68`  
-**HEAD de validação integral:** `2a3c238b8e4a82cb2b105cfc8cf2ee6dbcf7a406`  
-**Prontidão institucional:** 96%  
-**Merge / deploy:** NÃO EXECUTADOS
+**Âncora técnica:** `58437ccc51eda6e6bcac3e0cc688f49495875219`  
+**Prontidão institucional:** 98%  
+**Merge / release / deploy:** NÃO EXECUTADOS
 
 ## Ponto correto de retomada
 
@@ -14,46 +13,71 @@ A cadeia governada está validada até Governance:
 
 `memory → reasoning → reflection → planning → decision → policy → runtime → evidence → audit → evolution → governance`
 
-Retomar exatamente pelo endurecimento institucional de:
+Os limites institucionais de entrada também estão executáveis:
 
-`auth + tenancy`
+`auth → tenancy → contexto governado`
 
 Não retomar por `main`, PR, release, publicação ou deploy.
 
 ## Estado consolidado
 
-- Governance consome somente handoff versionado de Evolution;
-- tenant, ciclo, decisão, proposta, Audit e digest permanecem vinculados;
-- o motor pode emitir sinal técnico, mas não autoriza externamente;
-- decisão humana explícita continua obrigatória;
-- aprovação reproduzida ou consumida é rejeitada;
-- mutação, execução, governança automática e promoção permanecem proibidas;
-- a integração roda isoladamente no Platform CI.
+### Auth
 
-## Evidência
+- autenticação deny-by-default;
+- `AuthContext` público, versionado, imutável e sem segredo;
+- principal e credencial precisam estar ativos;
+- expiração e revogação são rejeitadas;
+- autenticação não concede autorização nem tenant automaticamente.
+
+### Tenancy
+
+- membership ativo e correspondente ao principal;
+- permissão explícita obrigatória;
+- isolamento estrito;
+- cross-tenant bloqueado por padrão;
+- `TenantContext` imutável;
+- sem provisionamento, mutação, remoção ou execução externa.
+
+### CI
+
+O Mac `igor-mac-runner` está registrado como self-hosted runner com labels:
+
+`self-hosted`, `macOS`, `X64`
+
+Gates confirmados:
 
 | Gate | Commit | Run | Estado |
 |---|---|---:|---|
-| Platform CI consolidado | `2a3c238b` | `29674911676` | SUCESSO |
-| Kernel Governance CI | `d81fcf43` | `29674867483` | SUCESSO |
-| Evolution Governance Contract CI | `997031c6` | `29674856440` | SUCESSO |
+| Runner Smoke CI | `db3c3b4f` | `29676938643` | SUCESSO |
+| Auth CI | `a654ae0d` | `29677063089` | SUCESSO |
+| Auth Tenancy Integration CI | `5d8314ec` | `29677100351` | SUCESSO |
+| Tenancy CI | `58437ccc` | `29677178317` | SUCESSO |
+| Platform CI consolidado | `58437ccc` | `29677178352` | SUCESSO |
+
+O repositório permanece privado e a validação final não dependeu de minutos pagos do runner hospedado.
 
 ## Próxima ação exata
 
-1. inventariar os módulos documentais `auth` e `tenancy`;
-2. criar contratos executáveis mínimos e deny-by-default;
-3. validar identidade, tenant e isolamento cross-tenant;
-4. criar testes cross-package e gates dedicados;
-5. integrar ao Platform CI sem habilitar promoção;
-6. preparar, mas não aplicar sem aprovação, proteção de `main` e checks obrigatórios.
+Preparar, sem aplicar:
 
-**Meta seguinte:** 98%.
+1. proposta de proteção de `main`;
+2. lista de checks obrigatórios;
+3. plano de versionamento e release;
+4. política de promoção, rollback e evidência;
+5. plano futuro para runner permanente ou VPS separada de produção.
+
+**Meta seguinte:** 100% institucional.
 
 ## Limites e governança
 
 Esta âncora não autoriza merge, promoção para `main`, release, publicação, deploy, produção, alteração de proteção de branch ou aprovação humana automática.
 
+- **status:** `PREPARADO_PARA_CONTINUIDADE_98`
+- **versão_origem:** 96%
+- **alvo:** 98%
 - **risco:** R2
 - **decisão_milena:** NÃO INFORMADA
-- **execução_igor:** CÓDIGO E DOCUMENTAÇÃO SALVOS NA BRANCH
-- **próximo_estado_permitido:** `auth + tenancy` executáveis, sem promoção
+- **execução_igor:** CÓDIGO, RUNNER E GATES SALVOS E VALIDADOS NA BRANCH
+- **deploy:** NÃO EXECUTADO
+- **evidência_técnica:** âncora `58437ccc`, Platform CI `29677178352`
+- **próximo_estado_permitido:** proposta de endurecimento institucional, sem aplicação automática
