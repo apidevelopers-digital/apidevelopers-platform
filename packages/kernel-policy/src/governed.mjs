@@ -1,6 +1,7 @@
 import {
   assertDecisionPolicyHandoffContract,
   assertPolicyDecisionContract,
+  createPolicyRuntimeHandoff,
 } from "@apidevelopers/contracts";
 import { createPolicyEngine } from "./index.mjs";
 
@@ -33,23 +34,4 @@ export function runGovernedPolicy({
 
   const rawReport = engine.evaluate({
     tenantId: handoff.tenantContext.tenantId,
-    action,
-    decision: decisionReport,
-    plan: executionPlan,
-    dryRun,
-    approval,
-    context,
-  });
-
-  const report = Object.freeze({
-    ...rawReport,
-    cycleId: handoff.cycleId,
-    sourceHandoffId: handoff.handoffId,
-    decisionId: decisionReport.decisionId,
-    planId: executionPlan.planId,
-    approvalId: approval?.approvalId ?? null,
-  });
-
-  assertPolicyDecisionContract(report);
-  return report;
-}
+    action;
