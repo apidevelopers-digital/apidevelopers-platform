@@ -1,0 +1,38 @@
+name: Tenant Core CI
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - main
+      - "foundation/**"
+    paths:
+      - "packages/tenant-core/**"
+      - ".github/workflows/tenant-core-ci.yml"
+  pull_request:
+    branches:
+      - main
+    paths:
+      - "packages/tenant-core/**"
+      - ".github/workflows/tenant-core-ci.yml"
+
+permissions:
+  contents: read
+
+concurrency:
+  group: tenant-core-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  validate:
+    runs-on: [self-hosted, macOS, X64]
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+      - name: Check tenant-core
+        run: npm --prefix packages/tenant-core run check
+      - name: Check tenancy boundary syntax
+        run: node --check packages/tenancy/src/index.mjs
