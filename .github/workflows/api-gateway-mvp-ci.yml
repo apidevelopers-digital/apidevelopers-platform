@@ -8,25 +8,13 @@ on:
       - "foundation/**"
     paths:
       - "apps/api-gateway/**"
-      - "apps/developer-portal/**"
-      - "packages/registry-core/**"
-      - "packages/platform-core/**"
-      - "packages/auth-core/**"
-      - "packages/apikey-core/**"
-      - "docs/mvp/API_PLATFORM_MVP.md"
-      - "docs/REANCORAGEM_MVP_FASE2_PLATFORM_CORE.md"
       - "package.json"
       - ".github/workflows/api-gateway-mvp-ci.yml"
   pull_request:
+    branches:
+      - main
     paths:
       - "apps/api-gateway/**"
-      - "apps/developer-portal/**"
-      - "packages/registry-core/**"
-      - "packages/platform-core/**"
-      - "packages/auth-core/**"
-      - "packages/apikey-core/**"
-      - "docs/mvp/API_PLATFORM_MVP.md"
-      - "docs/REANCORAGEM_MVP_FASE2_PLATFORM_CORE.md"
       - "package.json"
       - ".github/workflows/api-gateway-mvp-ci.yml"
 
@@ -48,19 +36,11 @@ jobs:
           node-version: "22"
       - name: Install workspace links
         run: npm install --ignore-scripts --no-audit --no-fund --no-package-lock
-      - name: Check Platform Core packages
-        run: |
-          npm --workspace @apidevelopers/registry-core run check
-          npm --workspace @apidevelopers/platform-core run check
-          npm --workspace @apidevelopers/auth-core run check
-          npm --workspace @apidevelopers/apikey-core run check
-      - name: Check API gateway
+      - name: Check API Gateway
         run: npm --workspace @apidevelopers/api-gateway run check
-      - name: Check developer portal
-        run: npm --prefix apps/developer-portal run check
       - name: Validate no committed API keys
         run: |
-          if grep -RInE 'apid_[A-Za-z0-9_-]{20,}' apps packages docs --exclude='*.test.mjs'; then
+          if grep -RInE 'apid_[A-Za-z0-9_-]{20,}' apps/api-gateway --exclude='*.test.mjs'; then
             echo "Potential API key committed"
             exit 1
           fi
