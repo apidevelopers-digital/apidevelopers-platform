@@ -34,8 +34,8 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: "22"
-      - name: Install workspace links
-        run: npm install --ignore-scripts --no-audit --no-fund --no-package-lock
+      - name: Install Gateway workspace links
+        run: npm install --workspace @apidevelopers/api-gateway --include-workspace-root=false --ignore-scripts --no-audit --no-fund --no-package-lock
       - name: Check API Gateway
         run: npm --workspace @apidevelopers/api-gateway run check
       - name: Validate no committed API keys
