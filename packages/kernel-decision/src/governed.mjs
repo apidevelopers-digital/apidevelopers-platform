@@ -1,6 +1,7 @@
 import {
   assertCognitiveHandoffContract,
   assertDecisionReportContract,
+  createDecisionPolicyHandoff,
 } from "@apidevelopers/contracts";
 import { createDecisionEngine } from "./index.mjs";
 
@@ -36,4 +37,25 @@ export function runGovernedDecision({
 
   assertDecisionReportContract(report);
   return report;
+}
+
+export function createGovernedDecisionPolicyHandoff({
+  decisionReport,
+  executionPlan,
+  action,
+  tenantContext,
+  cycleId = decisionReport?.cycleId,
+  handoffId,
+  createdAt = new Date().toISOString(),
+} = {}) {
+  assertDecisionReportContract(decisionReport);
+  return createDecisionPolicyHandoff({
+    handoffId,
+    cycleId,
+    tenantContext,
+    decisionReport,
+    executionPlan,
+    action,
+    createdAt,
+  });
 }
