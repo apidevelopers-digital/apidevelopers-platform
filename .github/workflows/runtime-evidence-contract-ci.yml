@@ -28,5 +28,5 @@ jobs:
           node-version: "22"
       - name: Check runtime evidence contract
         run: node --check packages/contracts/src/runtime-evidence.mjs
-      - name: Test tenant fixture
-        run: node --test packages/contracts/test/runtime-evidence-diagnostic.test.mjs 
+      - name: Test cross-tenant rejection
+        run: node --test --test-name-pattern="rejects a runtime report" packages/contracts/test/runtime-evidence.test.mjs
