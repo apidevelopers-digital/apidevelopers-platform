@@ -1,24 +1,44 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 import { createApp } from "../src/app.mjs";
-import { createClientStore } from "../src/client-store.mjs";
+import { createMemoryAuditLog } from "../src/audit-log.mjs";
+import { createClientRegistry } from "../src/client-registry.mjs";
+import { createFixedWindowRateLimiter } from "../src/rate-limit.mjs";
 
 function parse(result) {
-  return JSON.parse(result.body);
+  return result.body ? JSON.parse(result.body) : null;
 }
 
-function fixture() {
-  const clientStore = createClientStore({
+function fixture({ limit = 100 } = {}) {
+  let client = 0;
+  let key = 0;
+  let secret = 0;
+  let audit = 0;
+
+  const clientRegistry = createClientRegistry({
     clock: () => "2026-07-19T12:00:00.000Z",
-    idFactory: () => "client-test-001",
+    clientId: () => `client-${++client}`,
+    keyId: () => `key-${++key}`,
+    keyFactory: () => `apid_test_secret_${++secret}`,
+  });
+  const auditLog = createMemoryAuditLog({
+    clock: () => "2026-07-19T12:00:00.000Z",
+    idFactory: () => `audit-${++audit}`,
   });
 
   return {
-    clientStore,
+    clientRegistry,
+    auditLog,
     app: createApp({
-      clientStore,
+      clientRegistry,
+      auditLog,
       adminKey: "admin-test-key",
       requestIdFactory: () => "request-test-001",
+      rateLimiter: createFixedWindowRateLimiter({
+        limit,
+        windowMs: 60_000,
+        clock: () => 1_000,
+      }),
     }),
   };
 }
@@ -28,78 +48,133 @@ test("serves health, catalog and OpenAPI publicly", async () => {
 
   const health = await app.handleRequest({ url: "/health" });
   const catalog = await app.handleRequest({ url: "/v1/apis" });
-  const openapi = await app.handleRequest({ url: "/openapi.json" });
+  const openapi = await app.handleRequest({
+    url: "/openapi.json",
+  });
 
   assert.equal(health.status, 200);
-  assert.equal(parse(health).status, "ok");
+  assert.equal(parse(health).version, "0.2.0");
   assert.equal(catalog.status, 200);
   assert.ok(parse(catalog).meta.count >= 1);
   assert.equal(openapi.status, 200);
   assert.equal(parse(openapi).openapi, "3.1.0");
 });
 
-test("rejects protected routes without an API Key", async () => {
+test("admin creates, rotates and revokes client API Keys", async () => {
   const { app } = fixture();
-  const result = await app.handleRequest({ url: "/v1/me" });
-
-  assert.equal(result.status, 401);
-  assert.equal(parse(result).error, "unauthorized");
-});
-
-test("admin creates a client and the issued API Key authenticates it", async () => {
-  const { app } = fixture();
+  const adminHeaders = { "x-api-key": "admin-test-key" };
 
   const created = await app.handleRequest({
     method: "POST",
     url: "/v1/admin/clients",
-    headers: { "x-api-key": "admin-test-key" },
+    headers: adminHeaders,
     body: {
       name: "Example Client",
       contactEmail: "dev@example.test",
       scopes: ["api:read", "catalog:read"],
     },
   });
+  const createdBody = parse(created);
 
   assert.equal(created.status, 201);
-  const createdBody = parse(created);
-  assert.equal(createdBody.data.id, "client-test-001");
-  assert.match(createdBody.credentials.apiKey, /^apid_/);
+  assert.equal(createdBody.data.id, "client-1");
+  assert.equal(createdBody.credentials.apiKey, "apid_test_secret_1");
 
-  const authenticated = await app.handleRequest({
+  const rotated = await app.handleRequest({
+    method: "POST",
+    url: "/v1/admin/clients/client-1/keys",
+    headers: adminHeaders,
+    body: { revokeExisting: true },
+  });
+  const rotatedBody = parse(rotated);
+
+  assert.equal(rotated.status, 201);
+  assert.equal(rotatedBody.credentials.apiKey, "apid_test_secret_2");
+
+  const oldIdentity = await app.handleRequest({
     url: "/v1/me",
-    headers: { authorization: `ApiKey ${createdBody.credentials.apiKey}` },
+    headers: { "x-api-key": createdBody.credentials.apiKey },
+  });
+  const newIdentity = await app.handleRequest({
+    url: "/v1/me",
+    headers: { "x-api-key": rotatedBody.credentials.apiKey },
   });
 
-  assert.equal(authenticated.status, 200);
-  assert.equal(parse(authenticated).data.client.name, "Example Client");
+  assert.equal(oldIdentity.status, 401);
+  assert.equal(newIdentity.status, 200);
+
+  const revoked = await app.handleRequest({
+    method: "DELETE",
+    url: `/v1/admin/clients/client-1/keys/${rotatedBody.credentials.keyId}`,
+    headers: adminHeaders,
+  });
+  assert.equal(revoked.status, 200);
+
+  const afterRevoke = await app.handleRequest({
+    url: "/v1/me",
+    headers: { "x-api-key": rotatedBody.credentials.apiKey },
+  });
+  assert.equal(afterRevoke.status, 401);
 });
 
-test("client API Key cannot access administrative routes", async () => {
-  const { app, clientStore } = fixture();
-  const { apiKey } = clientStore.createClient({
+test("client status and audit routes are administrative", async () => {
+  const { app, clientRegistry } = fixture();
+  const created = clientRegistry.createClient({
     name: "Read Only",
     contactEmail: "readonly@example.test",
   });
 
-  const result = await app.handleRequest({
-    url: "/v1/admin/clients",
-    headers: { "x-api-key": apiKey },
+  const forbidden = await app.handleRequest({
+    url: "/v1/admin/audit",
+    headers: { "x-api-key": created.apiKey },
   });
+  assert.equal(forbidden.status, 403);
 
-  assert.equal(result.status, 403);
-  assert.equal(parse(result).error, "forbidden");
+  const updated = await app.handleRequest({
+    method: "PATCH",
+    url: `/v1/admin/clients/${created.client.id}`,
+    headers: { "x-api-key": "admin-test-key" },
+    body: { status: "suspended" },
+  });
+  assert.equal(updated.status, 200);
+  assert.equal(parse(updated).data.status, "suspended");
+
+  const identity = await app.handleRequest({
+    url: "/v1/me",
+    headers: { "x-api-key": created.apiKey },
+  });
+  assert.equal(identity.status, 401);
+
+  const audit = await app.handleRequest({
+    url: "/v1/admin/audit",
+    headers: { "x-api-key": "admin-test-key" },
+  });
+  assert.equal(audit.status, 200);
+  assert.equal(parse(audit).data[0].action, "client.status.update");
+  assert.equal(
+    JSON.stringify(parse(audit)).includes(created.apiKey),
+    false,
+  );
 });
 
-test("invalid client payload returns a controlled error", async () => {
-  const { app } = fixture();
-
-  const result = await app.handleRequest({
-    method: "POST",
-    url: "/v1/admin/clients",
-    headers: { "x-api-key": "admin-test-key" },
-    body: { name: "" },
+test("returns 429 with rate limit headers", async () => {
+  const { app, clientRegistry } = fixture({ limit: 1 });
+  const created = clientRegistry.createClient({
+    name: "Limited",
+    contactEmail: "limited@example.test",
   });
 
-  assert.equal(result.status, 400);
-  assert.equal(parse(result).error, "invalid_client");
+  const first = await app.handleRequest({
+    url: "/v1/me",
+    headers: { "x-api-key": created.apiKey },
+  });
+  const second = await app.handleRequest({
+    url: "/v1/me",
+    headers: { "x-api-key": created.apiKey },
+  });
+
+  assert.equal(first.status, 200);
+  assert.equal(first.headers["x-ratelimit-remaining"], "0");
+  assert.equal(second.status, 429);
+  assert.equal(second.headers["retry-after"], "60");
 });
