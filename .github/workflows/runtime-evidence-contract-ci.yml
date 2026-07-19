@@ -17,24 +17,16 @@ on:
 permissions:
   contents: read
 
-concurrency:
-  group: runtime-evidence-contract-${{ github.ref }}
-  cancel-in-progress: true
-
-defaults:
-  run:
-    working-directory: packages/contracts
-
 jobs:
   validate:
     runs-on: ubuntu-latest
     timeout-minutes: 10
     steps:
-     - uses: actions/checkout@v4
-     - uses: actions/setup-node@v4
-       with:
-        node-version: "22"
-     - name: Check runtime evidence contract
-      run: node --check src/runtime-evidence.mjs
-    - name: Test runtime evidence contract
-      run: node --test test/runtime-evidence.test.mjs
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+      - name: Check runtime evidence contract
+        run: node --check packages/contracts/src/runtime-evidence.mjs
+      - name: Test runtime evidence contract
+        run: node --test packages/contracts/test/runtime-evidence.test.mjs 
