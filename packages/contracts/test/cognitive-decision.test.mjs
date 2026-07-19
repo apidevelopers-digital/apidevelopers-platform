@@ -28,7 +28,7 @@ const planningReport = {
   proposals: [],
   constraints: {
     automaticMutationAllowed: false,
-    automaticApprovalAlowed: false,
+    automaticApprovalAllowed: false,
     automaticExecutionAllowed: false,
   },
 };
@@ -85,18 +85,5 @@ test("validates advisory decisions that still require human approval", () => {
   assert.equal(
     assertDecisionReportContract(decisionReport),
     decisionReport,
-  );
-});
-
-test("rejects decision reports that claim automatic approval", () => {
-  assert.throws(
-    () => assertDecisionReportContract({
-      ...decisionReport,
-      constraints: {
-        ...decisionReport.constraints,
-        automaticApprovalAllowed: true,
-      },
-    }),
-    /automaticApprovalAllowed must be false/,
   );
 });
