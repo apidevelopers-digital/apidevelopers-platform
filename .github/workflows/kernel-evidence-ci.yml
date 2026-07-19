@@ -1,0 +1,59 @@
+name: Kernel Evidence CI
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - main
+      - "foundation/**"
+    paths:
+      - "packages/kernel-evidence/**"
+      - "packages/kernel-runtime/**"
+      - "packages/contracts/**"
+      - "tests/integration/kernel-runtime-evidence-contracts.test.mjs"
+      - "tests/integration/kernel-runtime-evidence-wrapper.mjs"
+      - "tests/integration/cleanup-cognitive-links.mjs"
+      - ".github/workflows/kernel-evidence-ci.yml"
+  pull_request:
+    paths:
+      - "packages/kernel-evidence/**"
+      - "packages/kernel-runtime/**"
+      - "packages/contracts/**"
+      - "tests/integration/kernel-runtime-evidence-contracts.test.mjs"
+      - "tests/integration/kernel-runtime-evidence-wrapper.mjs"
+      - "tests/integration/cleanup-cognitive-links.mjs"
+      - ".github/workflows/kernel-evidence-ci.yml"
+
+permissions:
+  contents: read
+
+concurrency:
+  group: kernel-evidence-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+
+      - name: Check syntax
+        run: |
+          node --check packages/kernel-evidence/src/index.mjs
+          node --check packages/kernel-evidence/src/governed.mjs
+          node --check packages/contracts/src/runtime-evidence.mjs
+          node --check tests/integration/kernel-runtime-evidence-contracts.test.mjs
+          node --check tests/integration/kernel-runtime-evidence-wrapper.mjs
+
+      - name: Test contracts
+        run: npm --prefix packages/contracts test
+
+      - name: Test kernel-evidence
+        run: npm --prefix packages/kernel-evidence test
+
+      - name: Test runtime-evidence integration
+        run: node --test tests/integration/kernel-runtime-evidence-wrapper.mjs
