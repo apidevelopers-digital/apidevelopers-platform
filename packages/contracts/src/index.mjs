@@ -1,3 +1,6 @@
 export * from "./planning-execution-plan.mjs";
 export * from "./canonical-ids.mjs";
 export * from "./event-envelope.mjs";
+export * from "./observability-envelope.mjs";
+export * from "./tenancy-context.mjs";
+export * from "./cognitive-pipeline.mjs";
