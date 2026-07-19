@@ -1,4 +1,10 @@
 import { randomUUID } from "node:crypto";
+import {
+  PlatformError,
+  createJsonResponse,
+  createRequestContext,
+  toErrorResponse,
+} from "@apidevelopers/platform-core";
 import { listPublicApis } from "./catalog.mjs";
 import { createMemoryAuditLog } from "./audit-log.mjs";
 import { createClientRegistry } from "./client-registry.mjs";
@@ -6,37 +12,22 @@ import { getOpenApiDocument } from "./openapi.mjs";
 import { createFixedWindowRateLimiter } from "./rate-limit.mjs";
 import { createAuthenticator } from "./security.mjs";
 
-const BASE_HEADERS = Object.freeze({
-  "content-type": "application/json; charset=utf-8",
-  "cache-control": "no-store",
-  "x-content-type-options": "nosniff",
-  "referrer-policy": "no-referrer",
-});
-
-function reply(status, body, requestId, headers = {}) {
-  return {
-    status,
-    headers: { ...BASE_HEADERS, "x-request-id": requestId, ...headers },
-    body: JSON.stringify({ ...body, requestId }),
-  };
-}
-
 function parseBody(body) {
   if (body == null || body === "") return {};
   if (typeof body === "object" && !Buffer.isBuffer(body)) return body;
-  return JSON.parse(Buffer.isBuffer(body) ? body.toString("utf8") : body);
+
+  try {
+    return JSON.parse(Buffer.isBuffer(body) ? body.toString("utf8") : body);
+  } catch (cause) {
+    throw new PlatformError("invalid_json", "Request body must contain valid JSON.", {
+      status: 400,
+      cause,
+    });
+  }
 }
 
-function errorReply(error, requestId) {
-  const status = Number.isInteger(error?.status) ? error.status : 400;
-  return reply(status, {
-    error: error?.code ?? (status === 400 ? "invalid_request" : "internal_error"),
-    message: status >= 500 ? "Unexpected gateway error." : error.message,
-  }, requestId);
-}
-
-function routeParts(pathname) {
-  return pathname.split("/").filter(Boolean);
+function routeParts(path) {
+  return path.split("/").filter(Boolean);
 }
 
 export function createApp({
@@ -44,28 +35,56 @@ export function createApp({
   auditLog = createMemoryAuditLog(),
   rateLimiter = createFixedWindowRateLimiter(),
   adminKey,
-  requestIdFactory = () => randomUUID(),
+  requestIdFactory = randomUUID,
+  contextFactory = createRequestContext,
 } = {}) {
-  const authenticator = createAuthenticator({ clientStore: clientRegistry, adminKey });
+  const authenticator = createAuthenticator({
+    clientStore: clientRegistry,
+    adminKey,
+  });
 
-  function authenticate(headers, requestId, adminOnly = false) {
+  const makeContext = (request) =>
+    request.context ??
+    contextFactory(request, {
+      idFactory: requestIdFactory,
+    });
+
+  const reply = (status, payload, context, headers = {}) =>
+    createJsonResponse(status, payload, context, { headers });
+
+  function authenticate(headers, context, adminOnly = false) {
     const identity = authenticator.authenticate(headers);
     if (!identity) {
-      return { error: reply(401, {
-        error: "unauthorized",
-        message: "Provide a valid API Key using x-api-key.",
-      }, requestId, { "www-authenticate": 'ApiKey realm="api-developers"' }) };
+      return {
+        error: reply(
+          401,
+          {
+            error: "unauthorized",
+            message: "Provide a valid API Key using x-api-key.",
+          },
+          context,
+          { "www-authenticate": 'ApiKey realm="api-developers"' },
+        ),
+      };
     }
+
     if (adminOnly && identity.role !== "admin") {
-      return { error: reply(403, {
-        error: "forbidden",
-        message: "Administrative API Key required.",
-      }, requestId) };
+      return {
+        error: reply(
+          403,
+          {
+            error: "forbidden",
+            message: "Administrative API Key required.",
+          },
+          context,
+        ),
+      };
     }
+
     return { identity };
   }
 
-  function limited(identity, requestId, group) {
+  function limited(identity, context, group) {
     const key = `${identity.role}:${identity.principal.id}:${group}`;
     const result = rateLimiter.consume(key);
     const headers = {
@@ -73,172 +92,280 @@ export function createApp({
       "x-ratelimit-remaining": String(result.remaining),
       "x-ratelimit-reset": String(Math.ceil(result.resetAt / 1000)),
     };
+
     if (!result.allowed) {
       return {
-        error: reply(429, {
-          error: "rate_limit_exceeded",
-          message: "Request rate limit exceeded.",
-        }, requestId, { ...headers, "retry-after": String(result.retryAfterSeconds) }),
+        error: reply(
+          429,
+          {
+            error: "rate_limit_exceeded",
+            message: "Request rate limit exceeded.",
+          },
+          context,
+          { ...headers, "retry-after": String(result.retryAfterSeconds) },
+        ),
       };
     }
+
     return { headers };
   }
 
-  function audit(identity, action, resource, requestId, metadata = {}) {
+  function audit(identity, action, resource, context, metadata = {}) {
     auditLog.append({
       actor: { type: identity.role, id: identity.principal.id },
       action,
       resource,
-      requestId,
+      requestId: context.requestId,
       metadata,
     });
   }
 
   return Object.freeze({
-    async handleRequest({
-      method = "GET",
-      url = "/",
-      headers = {},
-      body,
-      requestId = requestIdFactory(),
-    } = {}) {
-      const verb = method.toUpperCase();
-      const parsedUrl = new URL(url, "http://localhost");
-      const path = parsedUrl.pathname;
+    async handleRequest(request = {}) {
+      const context = makeContext(request);
+      const { method: verb, path, query } = context;
+      const headers = context.headers;
       const parts = routeParts(path);
 
       if ((path === "/health" || path === "/v1/health") && verb === "GET") {
-        return reply(200, {
-          status: "ok",
-          service: "api-gateway",
-          version: "0.2.0",
-          storage: clientRegistry.repositoryKind,
-        }, requestId);
-      }
-      if (path === "/v1" && verb === "GET") {
-        return reply(200, {
-          name: "API Developers.digital Platform",
-          version: "v1",
-          links: {
-            catalog: "/v1/apis",
-            openapi: "/openapi.json",
-            developer: "/v1/me",
-            clients: "/v1/admin/clients",
-            audit: "/v1/admin/audit",
-            health: "/health",
+        return reply(
+          200,
+          {
+            status: "ok",
+            service: "api-gateway",
+            version: "0.3.0",
+            storage: clientRegistry.repositoryKind,
           },
-        }, requestId);
+          context,
+        );
       }
+
+      if (path === "/v1" && verb === "GET") {
+        return reply(
+          200,
+          {
+            name: "API Developers.digital Platform",
+            version: "v1",
+            links: {
+              catalog: "/v1/apis",
+              openapi: "/openapi.json",
+              developer: "/v1/me",
+              clients: "/v1/admin/clients",
+              audit: "/v1/admin/audit",
+              health: "/health",
+            },
+          },
+          context,
+        );
+      }
+
       if (path === "/v1/apis" && verb === "GET") {
         const data = listPublicApis();
-        return reply(200, { data, meta: { count: data.length } }, requestId);
+        return reply(200, { data, meta: { count: data.length } }, context);
       }
+
       if (path === "/openapi.json" && verb === "GET") {
-        return reply(200, getOpenApiDocument(), requestId);
+        return reply(200, getOpenApiDocument(), context);
       }
 
       if (path === "/v1/me" && verb === "GET") {
-        const auth = authenticate(headers, requestId);
+        const auth = authenticate(headers, context);
         if (auth.error) return auth.error;
-        const limit = limited(auth.identity, requestId, "developer");
-        if (limit.error) return limit.error;
-        return reply(200, {
-          data: { role: auth.identity.role, client: auth.identity.principal },
-        }, requestId, limit.headers);
+        const rate = limited(auth.identity, context, "developer");
+        if (rate.error) return rate.error;
+
+        return reply(
+          200,
+          {
+            data: {
+              role: auth.identity.role,
+              client: auth.identity.principal,
+            },
+          },
+          context,
+          rate.headers,
+        );
       }
 
       if (!path.startsWith("/v1/admin/")) {
-        return reply(404, { error: "not_found", message: "Route not found." }, requestId);
+        return reply(
+          404,
+          { error: "not_found", message: "Route not found." },
+          context,
+        );
       }
 
-      const auth = authenticate(headers, requestId, true);
+      const auth = authenticate(headers, context, true);
       if (auth.error) return auth.error;
-      const limit = limited(auth.identity, requestId, "admin");
-      if (limit.error) return limit.error;
+      const rate = limited(auth.identity, context, "admin");
+      if (rate.error) return rate.error;
 
       try {
         if (path === "/v1/admin/status" && verb === "GET") {
-          return reply(200, {
-            data: {
-              storage: clientRegistry.repositoryKind,
-              clients: clientRegistry.listClients().length,
+          return reply(
+            200,
+            {
+              data: {
+                storage: clientRegistry.repositoryKind,
+                clients: clientRegistry.listClients().length,
+              },
             },
-          }, requestId, limit.headers);
+            context,
+            rate.headers,
+          );
         }
 
         if (path === "/v1/admin/audit" && verb === "GET") {
-          const entries = auditLog.list({ limit: parsedUrl.searchParams.get("limit") });
-          return reply(200, { data: entries, meta: { count: entries.length } }, requestId, limit.headers);
+          const entries = auditLog.list({ limit: query.limit });
+          return reply(
+            200,
+            { data: entries, meta: { count: entries.length } },
+            context,
+            rate.headers,
+          );
         }
 
         if (path === "/v1/admin/clients") {
           if (verb === "GET") {
             const data = clientRegistry.listClients();
-            return reply(200, { data, meta: { count: data.length } }, requestId, limit.headers);
+            return reply(
+              200,
+              { data, meta: { count: data.length } },
+              context,
+              rate.headers,
+            );
           }
+
           if (verb === "POST") {
-            const created = clientRegistry.createClient(parseBody(body));
-            audit(auth.identity, "client.create", { type: "client", id: created.client.id }, requestId);
-            return reply(201, {
-              data: created.client,
-              credentials: {
-                apiKey: created.apiKey,
-                key: created.key,
-                keyId: created.key.id,
-                warning: "Store this API Key now. It will not be returned again.",
+            const created = clientRegistry.createClient(parseBody(request.body));
+            audit(
+              auth.identity,
+              "client.create",
+              { type: "client", id: created.client.id },
+              context,
+            );
+            return reply(
+              201,
+              {
+                data: created.client,
+                credentials: {
+                  apiKey: created.apiKey,
+                  key: created.key,
+                  keyId: created.key.id,
+                  warning:
+                    "Store this API Key now. It will not be returned again.",
+                },
               },
-            }, requestId, { ...limit.headers, location: `/v1/admin/clients/${created.client.id}` });
+              context,
+              {
+                ...rate.headers,
+                location: `/v1/admin/clients/${created.client.id}`,
+              },
+            );
           }
         }
 
-        if (parts.length === 4 && parts.slice(0, 3).join("/") === "v1/admin/clients") {
+        if (
+          parts.length === 4 &&
+          parts.slice(0, 3).join("/") === "v1/admin/clients"
+        ) {
           const clientId = decodeURIComponent(parts[3]);
+
           if (verb === "GET") {
             const client = clientRegistry.getClient(clientId);
-            if (!client) return reply(404, { error: "client_not_found", message: "Client not found." }, requestId, limit.headers);
-            return reply(200, { data: client }, requestId, limit.headers);
+            if (!client) {
+              throw new PlatformError("client_not_found", "Client not found.", {
+                status: 404,
+              });
+            }
+            return reply(200, { data: client }, context, rate.headers);
           }
+
           if (verb === "PATCH") {
-            const payload = parseBody(body);
-            const client = clientRegistry.updateClientStatus(clientId, payload.status);
-            audit(auth.identity, "client.status.update", { type: "client", id: clientId }, requestId, { status: client.status });
-            return reply(200, { data: client }, requestId, limit.headers);
+            const payload = parseBody(request.body);
+            const client = clientRegistry.updateClientStatus(
+              clientId,
+              payload.status,
+            );
+            audit(
+              auth.identity,
+              "client.status.update",
+              { type: "client", id: clientId },
+              context,
+              { status: client.status },
+            );
+            return reply(200, { data: client }, context, rate.headers);
           }
         }
 
-        if (parts.length === 5 && parts.slice(0, 3).join("/") === "v1/admin/clients" && parts[4] === "keys" && verb === "POST") {
+        if (
+          parts.length === 5 &&
+          parts.slice(0, 3).join("/") === "v1/admin/clients" &&
+          parts[4] === "keys" &&
+          verb === "POST"
+        ) {
           const clientId = decodeURIComponent(parts[3]);
-          const payload = parseBody(body);
-          const rotated = clientRegistry.rotateApiKey(clientId, { revokeExisting: payload.revokeExisting === true });
-          audit(auth.identity, "api_key.rotate", { type: "client", id: clientId }, requestId, {
-            keyId: rotated.key.id,
+          const payload = parseBody(request.body);
+          const rotated = clientRegistry.rotateApiKey(clientId, {
             revokeExisting: payload.revokeExisting === true,
           });
-          return reply(201, {
-            data: rotated.client,
-            credentials: {
-              apiKey: rotated.apiKey,
-              key: rotated.key,
+          audit(
+            auth.identity,
+            "api_key.rotate",
+            { type: "client", id: clientId },
+            context,
+            {
               keyId: rotated.key.id,
-              warning: "Store this API Key now. It will not be returned again.",
+              revokeExisting: payload.revokeExisting === true,
             },
-          }, requestId, limit.headers);
+          );
+          return reply(
+            201,
+            {
+              data: rotated.client,
+              credentials: {
+                apiKey: rotated.apiKey,
+                key: rotated.key,
+                keyId: rotated.key.id,
+                warning:
+                  "Store this API Key now. It will not be returned again.",
+              },
+            },
+            context,
+            rate.headers,
+          );
         }
 
-        if (parts.length === 6 && parts.slice(0, 3).join("/") === "v1/admin/clients" && parts[4] === "keys" && verb === "DELETE") {
+        if (
+          parts.length === 6 &&
+          parts.slice(0, 3).join("/") === "v1/admin/clients" &&
+          parts[4] === "keys" &&
+          verb === "DELETE"
+        ) {
           const clientId = decodeURIComponent(parts[3]);
           const keyId = decodeURIComponent(parts[5]);
           const revoked = clientRegistry.revokeApiKey(clientId, keyId);
-          audit(auth.identity, "api_key.revoke", { type: "api_key", id: keyId }, requestId, { clientId, changed: revoked.changed });
-          return reply(200, { data: revoked }, requestId, limit.headers);
+          audit(
+            auth.identity,
+            "api_key.revoke",
+            { type: "api_key", id: keyId },
+            context,
+            { clientId, changed: revoked.changed },
+          );
+          return reply(200, { data: revoked }, context, rate.headers);
         }
 
-        return reply(405, {
-          error: "method_not_allowed",
-          message: "Method or administrative route not allowed.",
-        }, requestId, { ...limit.headers, allow: "GET, POST, PATCH, DELETE" });
+        return reply(
+          405,
+          {
+            error: "method_not_allowed",
+            message: "Method or administrative route not allowed.",
+          },
+          context,
+          { ...rate.headers, allow: "GET, POST, PATCH, DELETE" },
+        );
       } catch (error) {
-        return { ...errorReply(error, requestId), headers: { ...errorReply(error, requestId).headers, ...limit.headers } };
+        return toErrorResponse(error, context, { headers: rate.headers });
       }
     },
   });
