@@ -28,7 +28,7 @@ const planningReport = {
   proposals: [],
   constraints: {
     automaticMutationAllowed: false,
-    automaticApprovalAlowed: false,
+    automaticApprovalAllowed: false,
     automaticExecutionAllowed: false,
   },
 };
