@@ -70,7 +70,7 @@ export function assertPolicyRuntimeHandoffContract(handoff, name = "policyRuntim
     assertApprovalArtifactContract(approval, `${name}.payload.approval`);
     if (approval.approvalId !== policyDecision.approvalId) throw new Error(`${name} approvalId mismatch`);
     if (approval.tenantId !== handoff.tenantContext.tenantId) throw new Error(`${name} approval tenant mismatch`);
-    if (approval.decisionId !== decisionReport.decisionId) throw new Error `${name} approval decision mismatch`);
+    if (approval.decisionId !== decisionReport.decisionId) throw new Error(`${name} approval decision mismatch`);
     if (approval.proposalId !== executionPlan.proposalId) throw new Error(`${name} approval proposal mismatch`);
     if (approval.planHash !== policyDecision.planHash) throw new Error(`${name} approval planHash mismatch`);
   }
