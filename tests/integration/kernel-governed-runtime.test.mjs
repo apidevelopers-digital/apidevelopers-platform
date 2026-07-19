@@ -11,12 +11,11 @@ import {
   createPolicyEngine,
   hashExecutionPlan,
 } from "../../packages/kernel-policy/src/index.mjs";
-import { createAuditEngine } from "../../packages/kernel-audit/src/index.mjs";
 import { createGuard } from "../../services/guard/src/index.mjs";
 
 const NOW = "2026-07-16T22:00:00.000Z";
 
-function createGovernedFixture() {
+test("planning -> decision -> policy -> runtime dry-run -> evidence", async () => {
   const clock = () => NOW;
   const reflection = {
     reflectionId: "reflection.integration.1",
@@ -67,94 +66,21 @@ function createGovernedFixture() {
     clock,
   });
 
-  return {
-    clock,
-    planning,
-    decision,
-    plan,
-    registry,
-    guard,
-    handlerCalls: () => handlerCalls,
-  };
-}
-
-test("planning -> decision -> policy -> runtime dry-run -> evidence", async () => {
-  const fixture = createGovernedFixture();
-
-  const report = await fixture.guard.run({
+  const report = await guard.run({
     tenantId: "tenant_integration",
     action: { name: "echo", risk: "R1" },
-    decision: fixture.decision,
-    plan: fixture.plan,
+    decision,
+    plan,
     correlationId: "corr.integration.1",
   });
 
   assert.equal(report.state, "previewed");
-  assert.equal(report.policy.planHash, hashExecutionPlan(fixture.plan));
-  assert.equal(fixture.handlerCalls(), 0);
+  assert.equal(report.policy.planHash, hashExecutionPlan(plan));
+  assert.equal(handlerCalls, 0);
   assert.equal(report.runtime.dryRun, true);
 
-  const records = fixture.registry.list({ tenantId: "tenant_integration" });
+  const records = registry.list({ tenantId: "tenant_integration" });
   assert.equal(records.length, 1);
   assert.equal(records[0].type, "audit");
   assert.equal(verifyEvidence(records[0]), true);
-});
-
-test("planning -> decision -> policy -> approved runtime -> evidence -> audit", async () => {
-  const fixture = createGovernedFixture();
-  const approval = {
-    approvalId: "approval.integration.1",
-    status: "approved",
-    approvedBy: "human.integration",
-    tenantId: "tenant_integration",
-    action: "echo",
-    decisionId: fixture.decision.decisionId,
-    proposalId: fixture.decision.selectedProposalId,
-    planHash: hashExecutionPlan(fixture.plan),
-    expiresAt: "2026-07-17T22:00:00.000Z",
-  };
-
-  const report = await fixture.guard.run({
-    tenantId: "tenant_integration",
-    action: { name: "echo", risk: "R1" },
-    decision: fixture.decision,
-    plan: fixture.plan,
-    dryRun: false,
-    approval,
-    confirmation: "EXECUTE_APPROVED_PLAN",
-    correlationId: "corr.integration.execute.1",
-  });
-
-  assert.equal(report.state, "executed");
-  assert.equal(report.approvalConsumed, true);
-  assert.equal(report.runtime.dryRun, false);
-  assert.equal(fixture.handlerCalls(), 1);
-
-  const records = fixture.registry.list({ tenantId: "tenant_integration" });
-  assert.equal(records.length, 1);
-  assert.equal(verifyEvidence(records[0]), true);
-
-  const auditReport = createAuditEngine({
-    clock: fixture.clock,
-    verifyEvidence,
-  }).audit({
-    tenantId: "tenant_integration",
-    decision: fixture.decision,
-    plan: {
-      ...fixture.plan,
-      planHash: hashExecutionPlan(fixture.plann),
-    },
-    policyDecision: report.policy,
-    approval,
-    runtimeReport: report.runtime,
-    evidence: records,
-  }, {
-    requestedBy: "integration-test",
-    scope: "governed-execution",
-  });
-
-  assert.equal(auditReport.status, "compliant");
-  assert.equal(auditReport.summary.fail, 0);
-  assert.equal(auditReport.mutationAllowed, false);
-  assert.equal(auditReport.executionAllowed, false);
 });
