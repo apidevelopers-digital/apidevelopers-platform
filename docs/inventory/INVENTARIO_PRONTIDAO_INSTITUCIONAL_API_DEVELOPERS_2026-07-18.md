@@ -1,18 +1,18 @@
 # INVENTÁRIO DE PRONTIDÃO INSTITUCIONAL — API Developers.digital
 
 **Data:** 2026-07-19  
-**Branch:* `foundation/global-platform-bootstrap-20260715`  
-**Commit-âncora técnico:* `db65f464c6aea7312019090c82de358688c5d999`  
-**Status:** INVENTÁRIO_ATUALIZADO_COM_PIPELINE_ATÉ_DECISION  
+**Branch:** `foundation/global-platform-bootstrap-20260715`  
+**Commit-âncora técnico:** `cf7a3dcca8ebfb62ee8462ee7fa058ee6bc1700b`  
+**Status:** INVENTÁRIO_ATUALIZADO_COM_PIPELINE_ATÉ_POLICY  
 **Merge / deploy:** NÃO EXECUTADOS
 
 ## Resultado executivo
 
-**Prontidão institucional operacional: 84%**
+**Prontidão institucional operacional: 86%**
 
-O marco foi elevado de 82% para 84% após a formalização e validação da cadeia governada:
+O marco foi elevado de 84% para 86% após formalização e validação da fronteira governada:
 
-`memory → reasoning → reflection → planning → decision`
+`memory → reasoning → reflection → planning → decision → policy`
 
 ## Estrutura confirmada
 
@@ -20,66 +20,78 @@ O marco foi elevado de 82% para 84% após a formalização e validação da cade
 - **14 pacotes implementados**;
 - **2 módulos documentais:** `auth` e `tenancy`;
 - contrato mínimo de tenancy disponível em `@apidevelopers/contracts`;
-- `kernel-decision` possui adaptador público governado;
+- `kernel-policy` possui adaptador público `./governed`;
 - nenhum estágio cognitivo decide, aprova ou executa automaticamente.
 
 ## Evidência técnica
 
-| Item | Evidência |
-|---|---|
-| Commit validado | `db65f464c6aea7312019090c82de358688c5d999` |
-| Contracts CI | run `29670951299` — SUCESSO |
-| Registry CI | run `29670951312` — SUCESSO |
-| Platform CI | run `29670951310` — SUCESSO |
-| Kernel Planning CI | run `29670622660` — SUCESSO |
-| Kernel Decision CI | run `29670622659` — SUCESSO |
-| Teste ponta a ponta | `tests/integration/kernel-cognitive-decision-contracts.test.mjs` |
+| Gate | Run | Resultado |
+|---|---:|---|
+| Contracts CI | `29671342143` | SUCESSO |
+| Kernel Policy CI | `29671342134` | SUCESSO |
+| Registry CI | `29671342167` | SUCESSO |
+| Platform CI | `29671342150` | SUCESSO |
 
-## Contratos formalizados
+Todos os runs validam o commit:
 
-- `kernel-memory → kernel-reasoning`
-- `kernel-reasoning → kernel-reflection`
-- `kernel-reflection → kernel-planning`
-- `kernel-planning → kernel-decision`
+`cf7a3dcca8ebfb62ee8462ee7fa058ee6bc1700b`
 
-A decisão produzida permanece:
+Teste cross-package principal:
 
-- `mode: advisory`;
-- `humanApprovalRequired: true`;
-- `approved: false`;
-- `mutationAllowed: false`;
-- `executionAllowed: false`;
-- decisço, aprovação e execução automáticas bloqueadas.
+`tests/integration/kernel-decision-policy-contracts.test.mjs`
+
+## Fronteira decision → policy
+
+Foram formalizados:
+
+- contrato versionado `decision-policy`;
+- handoff `kernel-decision → kernel-policy`;
+- vínculo entre tenant, ciclo, decisão, proposta e plano;
+- Policy deny-by-default;
+- dry-run permitido apenas como prévia;
+- execução real bloqueada sem aprovação humana válida;
+- aprovação vinculada ao mesmo tenant, ação, decisão, proposta e hash do plano;
+- replay de aprovação bloqueado;
+- risco R5 bloqueado;
+- mutação e execução automáticas bloqueadas.
+
+## Correção técnica do marco
+
+A fixture de decisão declarava `selectedProposalId`, mas não registrava a candidata correspondente. A candidata foi adicionada sem alterar o motor de decisão ou enfraquecer as regras de Policy.
+
+Commit da correção:
+
+`cf7a3dcca8ebfb62ee8462ee7fa058ee6bc1700b`
 
 ## Lacunas restantes
 
-1. `auth` continua documental.
+1. `auth` continua somente documental.
 2. `tenancy` ainda não é pacote executável próprio.
-3. A cadeia após `decision` precisa ser consolidada até policy/runtime/evidence/audit usando a mesma fronteira pública.
-4. Nem todos os pacotes possuem CI dedicado.
-5. Proteção de `main` nao foi confirmada.
-6. Promoção formal, release, publicação e deploy permanecem pendentes.
-7. Observabilidade operacional consolidada ainda não foi comprovada.
+3. A fronteira pública `policy → runtime` ainda precisa ser formalizada.
+4. A cadeia completa até evidence/audit ainda precisa adotar a nova interface pública de Policy.
+5. Proteção de `main`, checks obrigatórios e estratégia de promoção permanecem pendentes.
+6. Observabilidade operacional consolidada ainda não foi comprovada.
+7. Nenhum merge, release, publicação ou deploy foi executado.
 
 ## Próximo marco
 
-**Meta seguinte: 86%**
+**Meta seguinte: 88%**
 
 Caminho mais curto:
 
-1. integrar `decision → policy`;
-2. validar decisão humana obrigatória antes do runtime;
-3. criar teste cross-package até policy;
-4. confirmar os gates no mesmo commit.
+1. formalizar `policy → runtime`;
+2. criar adaptador governado de Runtime para consumir a decisão de Policy;
+3. validar dry-run e bloqueio de execução real sem aprovação;
+4. criar teste cross-package até Runtime;
+5. confirmar os gates no mesmo commit.
 
 ## Governança
 
-- **status:** INVENTÁRIO_ATUALIZADO_COM_PIPELINE_ATÉ_DECISION
-- **versão_origem:** GitHub no commit `db65f464c6aea7312019090c82de358688c5d999`
+- **status:** INVENTÁRIO_ATUALIZADO_COM_PIPELINE_ATÉ_POLICY
+- **versão_origem:** GitHub no commit `cf7a3dcca8ebfb62ee8462ee7fa058ee6bc1700b`
 - **alvo:** API Developers.digital / foundation
 - **risco:** R2
 - **decisão_milena:** NÃO INFORMADA
 - **execução_igor:** CÓDIGO E DOCUMENTAÇÃO SALVOS NA BRANCH
 - **deploy:** NÃO EXECUTADO
-- **evidência_técnica:** cinco gates verdes e teste cross-package até decision
-- **próximo_estado_permitido:** integração governada `decision → policy`, sem merge ou deploy
+- **próximo_estado_permitido:** integração governada `policy → runtime`, sem promoção
