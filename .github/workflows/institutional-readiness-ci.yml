@@ -1,0 +1,43 @@
+name: Institutional Readiness CI
+
+on:
+  push:
+    branches:
+      - main
+      - "foundation/**"
+    paths:
+      - "docs/operations/PROPOSTA_PROTECAO_MAIN_E_CHECKS_2026-07-19.md"
+      - "docs/operations/PLANO_RELEASE_0_1_0_2026-07-19.md"
+      - "docs/operations/POLITICA_PROMOCAO_ROLLBACK_RUNNER_2026-07-19.md"
+      - "docs/operations/institutional-readiness.v1.json"
+      - "scripts/check-institutional-readiness.mjs"
+      - ".github/workflows/institutional-readiness-ci.yml"
+  pull_request:
+    paths:
+      - "docs/operations/PROPOSTA_PROTECAO_MAIN_E_CHECKS_2026-07-19.md"
+      - "docs/operations/PLANO_RELEASE_0_1_0_2026-07-19.md"
+      - "docs/operations/POLITICA_PROMOCAO_ROLLBACK_RUNNER_2026-07-19.md"
+      - "docs/operations/institutional-readiness.v1.json"
+      - "scripts/check-institutional-readiness.mjs"
+      - ".github/workflows/institutional-readiness-ci.yml"
+
+permissions:
+  contents: read
+
+concurrency:
+  group: institutional-readiness-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  validate:
+    runs-on: [self-hosted, macOS, X64]
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+      - name: Check syntax
+        run: node --check scripts/check-institutional-readiness.mjs
+      - name: Validate proposal boundary
+        run: node scripts/check-institutional-readiness.mjs
