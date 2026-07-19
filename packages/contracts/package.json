@@ -8,7 +8,7 @@
     ".": "./src/index.mjs"
   },
   "scripts": {
-    "test": "node --test test/*.test.mjs",
+    "test": "node --test --test-concurrency=1 test/*.test.mjs",
     "check": "node --check src/index.mjs && node --check src/planning-execution-plan.mjs && node --check src/canonical-ids.mjs && node --check src/event-envelope.mjs && node --check src/observability-envelope.mjs && node --check src/tenancy-context.mjs && node --check src/cognitive-pipeline.mjs && node --check src/decision-policy.mjs && node --check src/policy-runtime.mjs && node --check src/runtime-evidence.mjs && npm test"
   },
   "engines": {
