@@ -30,10 +30,10 @@ jobs:
     timeout-minutes: 10
     steps:
       - uses: actions/checkout@v4
-     - uses: actions/setup-node@v4
+      - uses: actions/setup-node@v4
         with:
           node-version: "22"
       - name: Check adapter
         run: node --check packages/kernel-governance/src/governed.mjs
       - name: Test integration
-        run: node --test tests/integration/kernel-evolution-governance-wrapper.mjs
+        run: node --test tests/integration/kernel-evolution-governance-wrapper.mjs 
