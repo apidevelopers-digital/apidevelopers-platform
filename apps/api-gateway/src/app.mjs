@@ -1,16 +1,27 @@
 import { randomUUID } from "node:crypto";
+
+import { authorize } from "@apidevelopers/auth-core";
 import {
   PlatformError,
   createJsonResponse,
   createRequestContext,
   toErrorResponse,
 } from "@apidevelopers/platform-core";
+
 import { listPublicApis } from "./catalog.mjs";
 import { createMemoryAuditLog } from "./audit-log.mjs";
 import { createClientRegistry } from "./client-registry.mjs";
 import { getOpenApiDocument } from "./openapi.mjs";
 import { createFixedWindowRateLimiter } from "./rate-limit.mjs";
 import { createAuthenticator } from "./security.mjs";
+
+const ADMIN_SCOPES = Object.freeze({
+  STATUS_READ: "admin:status:read",
+  AUDIT_READ: "admin:audit:read",
+  CLIENTS_READ: "admin:clients:read",
+  CLIENTS_WRITE: "admin:clients:write",
+  KEYS_WRITE: "admin:keys:write",
+});
 
 function parseBody(body) {
   if (body == null || body === "") return {};
@@ -19,10 +30,14 @@ function parseBody(body) {
   try {
     return JSON.parse(Buffer.isBuffer(body) ? body.toString("utf8") : body);
   } catch (cause) {
-    throw new PlatformError("invalid_json", "Request body must contain valid JSON.", {
-      status: 400,
-      cause,
-    });
+    throw new PlatformError(
+      "invalid_json",
+      "Request body must contain valid JSON.",
+      {
+        status: 400,
+        cause,
+      },
+    );
   }
 }
 
@@ -37,6 +52,7 @@ export function createApp({
   adminKey,
   requestIdFactory = randomUUID,
   contextFactory = createRequestContext,
+  authorizer = authorize,
 } = {}) {
   const authenticator = createAuthenticator({
     clientStore: clientRegistry,
@@ -82,6 +98,29 @@ export function createApp({
     }
 
     return { identity };
+  }
+
+  function requireScopes(identity, context, scopes, headers = {}) {
+    const decision = authorizer(identity, {
+      roles: ["admin"],
+      scopes,
+    });
+
+    if (decision.allowed) return null;
+
+    return reply(
+      403,
+      {
+        error: "insufficient_scope",
+        message: "The authenticated identity does not have the required scope.",
+        details: {
+          requiredScopes: scopes,
+          missingScopes: decision.missingScopes ?? scopes,
+        },
+      },
+      context,
+      headers,
+    );
   }
 
   function limited(identity, context, group) {
@@ -202,6 +241,14 @@ export function createApp({
 
       try {
         if (path === "/v1/admin/status" && verb === "GET") {
+          const forbidden = requireScopes(
+            auth.identity,
+            context,
+            [ADMIN_SCOPES.STATUS_READ],
+            rate.headers,
+          );
+          if (forbidden) return forbidden;
+
           return reply(
             200,
             {
@@ -216,6 +263,14 @@ export function createApp({
         }
 
         if (path === "/v1/admin/audit" && verb === "GET") {
+          const forbidden = requireScopes(
+            auth.identity,
+            context,
+            [ADMIN_SCOPES.AUDIT_READ],
+            rate.headers,
+          );
+          if (forbidden) return forbidden;
+
           const entries = auditLog.list({ limit: query.limit });
           return reply(
             200,
@@ -227,6 +282,14 @@ export function createApp({
 
         if (path === "/v1/admin/clients") {
           if (verb === "GET") {
+            const forbidden = requireScopes(
+              auth.identity,
+              context,
+              [ADMIN_SCOPES.CLIENTS_READ],
+              rate.headers,
+            );
+            if (forbidden) return forbidden;
+
             const data = clientRegistry.listClients();
             return reply(
               200,
@@ -237,6 +300,14 @@ export function createApp({
           }
 
           if (verb === "POST") {
+            const forbidden = requireScopes(
+              auth.identity,
+              context,
+              [ADMIN_SCOPES.CLIENTS_WRITE],
+              rate.headers,
+            );
+            if (forbidden) return forbidden;
+
             const created = clientRegistry.createClient(parseBody(request.body));
             audit(
               auth.identity,
@@ -272,16 +343,34 @@ export function createApp({
           const clientId = decodeURIComponent(parts[3]);
 
           if (verb === "GET") {
+            const forbidden = requireScopes(
+              auth.identity,
+              context,
+              [ADMIN_SCOPES.CLIENTS_READ],
+              rate.headers,
+            );
+            if (forbidden) return forbidden;
+
             const client = clientRegistry.getClient(clientId);
             if (!client) {
-              throw new PlatformError("client_not_found", "Client not found.", {
-                status: 404,
-              });
+              throw new PlatformError(
+                "client_not_found",
+                "Client not found.",
+                { status: 404 },
+              );
             }
             return reply(200, { data: client }, context, rate.headers);
           }
 
           if (verb === "PATCH") {
+            const forbidden = requireScopes(
+              auth.identity,
+              context,
+              [ADMIN_SCOPES.CLIENTS_WRITE],
+              rate.headers,
+            );
+            if (forbidden) return forbidden;
+
             const payload = parseBody(request.body);
             const client = clientRegistry.updateClientStatus(
               clientId,
@@ -304,6 +393,14 @@ export function createApp({
           parts[4] === "keys" &&
           verb === "POST"
         ) {
+          const forbidden = requireScopes(
+            auth.identity,
+            context,
+            [ADMIN_SCOPES.KEYS_WRITE],
+            rate.headers,
+          );
+          if (forbidden) return forbidden;
+
           const clientId = decodeURIComponent(parts[3]);
           const payload = parseBody(request.body);
           const rotated = clientRegistry.rotateApiKey(clientId, {
@@ -342,6 +439,14 @@ export function createApp({
           parts[4] === "keys" &&
           verb === "DELETE"
         ) {
+          const forbidden = requireScopes(
+            auth.identity,
+            context,
+            [ADMIN_SCOPES.KEYS_WRITE],
+            rate.headers,
+          );
+          if (forbidden) return forbidden;
+
           const clientId = decodeURIComponent(parts[3]);
           const keyId = decodeURIComponent(parts[5]);
           const revoked = clientRegistry.revokeApiKey(clientId, keyId);
