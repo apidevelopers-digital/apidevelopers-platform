@@ -2,15 +2,24 @@
 
 **Data:** 2026-07-18  
 **Branch avaliada:** `foundation/global-platform-bootstrap-20260715`  
-**Commit-âncora da avaliação:** `aaa5594217d96efb247501955e4a4493c7324bda`  
-**Status:** INVENTÁRIO_ATUALIZADO_COM_EVIDÊNCIA  
-**Execução real / deploy:** NÃO EXECUTADOS
+**Commit-âncora técnico:** `64f53298b4828896156aeb44097190ae3b3c1169`  
+**Status:** INVENTÁRIO_ATUALIZADO_COM_CONTRATOS_E_CI  
+**Merge / deploy:** NÃO EXECUTADOS
 
 ## Resultado executivo
 
-**Prontidão institucional estimada: 77%**
+**Prontidão institucional calculada: 79,65%**  
+**Percentual operacional arredondado: 80%**
 
-A estimativa mede a fundação institucional e técnica, não a conclusão comercial do produto. O avanço de 68% para 77% decorre da incorporação da auditoria institucional à foundation, da validação do Platform CI no commit-âncora e da comprovação da cadeia governada por testes de integração.
+O avanço desde 77% decorre de evidência técnica concreta:
+
+- contrato mínimo de tenancy no pacote compartilhado;
+- contratos formais para os handoffs cognitivos;
+- validadores dos relatórios de memory, reasoning, reflection e planning;
+- testes de isolamento entre tenants e bloqueio de saltos indevidos;
+- Contracts CI, Registry CI e Platform CI verdes no mesmo commit.
+
+A nota mede fundação institucional e técnica. Não representa conclusão comercial, produção ou disponibilidade pública.
 
 ## Matriz de prontidão
 
@@ -18,139 +27,89 @@ A estimativa mede a fundação institucional e técnica, não a conclusão comer
 |---|---:|---:|---:|
 | Arquitetura e Constituição | 15% | 90% | 13,50 |
 | Kernel cognitivo e governado | 20% | 90% | 18,00 |
-| Registry, contratos e tenancy | 15% | 72% | 10,80 |
+| Registry, contratos e tenancy | 15% | 84% | 12,60 |
 | Segurança e políticas | 10% | 85% | 8,50 |
-| Testes e CI | 15% | 82% | 12,30 |
-| Documentação e inventário | 10% | 92% | 9,20 |
+| Testes e CI | 15% | 86% | 12,90 |
+| Documentação e inventário | 10% | 94% | 9,40 |
 | Observabilidade e auditoria contínua | 8% | 55% | 4,40 |
 | Promoção, release e operação | 7% | 5% | 0,35 |
-| **Total** | **100%** |  | **77,05%** |
+| **Total** | **100%** |  | **79,65%** |
 
-Percentual operacional arredondado: **77%**.
+## Estrutura confirmada
 
-## Correção oficial da estrutura de pacotes
-
-A conferência detalhada de `packages/` confirmou:
-
-- **16 diretórios**, e não 17;
+- **16 diretórios** em `packages/`;
 - **14 pacotes implementados**;
-- **2 módulos documentais:** `auth` e `tenancy`.
+- **2 módulos documentais:** `auth` e `tenancy`;
+- o módulo `tenancy` continua sem pacote executável próprio, mas seu contrato mínimo agora existe em `@apidevelopers/contracts`.
 
-### Pacotes implementados
+## Contratos formalizados
 
-- `contracts`
-- `registry`
-- `kernel-audit`
-- `kernel-constitution`
-- `kernel-decision`
-- `kernel-evidence`
-- `kernel-evolution`
-- `kernel-governance`
-- `kernel-memory`
-- `kernel-planning`
-- `kernel-policy`
-- `kernel-reasoning`
-- `kernel-reflection`
-- `kernel-runtime`
+Arquivos adicionados ao pacote compartilhado:
 
-### Módulos ainda documentais
+- `packages/contracts/src/tenancy-context.mjs`
+- `packages/contracts/src/cognitive-pipeline.mjs`
+- `packages/contracts/test/cognitive-pipeline.test.mjs`
 
-- `auth`
-- `tenancy`
+Exports públicos:
 
-Ambos possuem somente documentação no estado conferido, sem manifesto, implementação ou testes próprios.
+- contexto mínimo de tenant com `tenantId` opaco;
+- isolamento estrito e bloqueio cross-tenant;
+- contratos e validadores de memory snapshot;
+- reasoning report;
+- reflection report;
+- planning report;
+- handoffs permitidos:
+  - `kernel-memory → kernel-reasoning`
+  - `kernel-reasoning → kernel-reflection`
+  - `kernel-reflection → kernel-planning`
 
-## Evidências adicionadas desde o inventário preliminar
+Todos os handoffs preservam:
 
-### Auditoria institucional incorporada
+- `mutationAllowed: false`;
+- `approvalAllowed: false`;
+- `executionAllowed: false`.
 
-A auditoria incremental passou a fazer parte da branch foundation e foi incluída no Platform CI.
+## Evidência de CI no mesmo commit
 
-### Platform CI validado
+| Workflow | Run | Resultado |
+|---|---:|---|
+| Registry CI | `29669349266` | SUCESSO |
+| Contracts CI | `29669349276` | SUCESSO |
+| Platform CI | `29669349307` | SUCESSO |
 
-O Platform CI foi confirmado em estado verde no commit:
+Todos os runs apontam para:
 
-`aaa5594217d96efb247501955e4a4493c7324bda`
+`64f53298b4828896156aeb44097190ae3b3c1169`
 
-### Integração governada comprovada
+## Lacunas restantes
 
-Os testes de integração cobrem:
-
-1. `kernel-planning → kernel-decision`;
-2. `kernel-planning → kernel-decision → kernel-policy → kernel-runtime → kernel-evidence`;
-3. ciclo até `kernel-audit`;
-4. `kernel-constitution → kernel-policy → kernel-audit → kernel-evolution → kernel-governance`;
-5. prevalência constitucional e bloqueio de promoção;
-6. ausência de mutação/execução automática nas etapas cognitivas e decisórias.
-
-### Matriz oficial de dependências e contratos
-
-Foi criada a referência:
-
-`docs/inventory/MATRIZ_DEPENDENCIAS_CONTRATOS_PACOTES_2026-07-18.md`
-
-Ela distingue dependência lógica, contrato de dados, integração testada e lacuna documental.
-
-## O que já pode ser considerado pronto
-
-- identidade institucional e nomenclatura;
-- arquitetura-alvo e Constituição documentadas;
-- 14 pacotes executáveis;
-- Planning e Decision implementados;
-- Policy, Runtime, Evidence e Audit integrados;
-- ciclo Constitution, Audit, Evolution e Governance comprovado;
-- auditoria institucional incorporada;
-- Platform CI verde no commit-âncora;
-- Registry e contratos implementados;
-- matriz oficial de dependências e contratos;
-- reancoragem persistida no repositório;
-- separação entre reasoning, planning, decisão, governança e execução.
-
-## O que ainda impede 80%
-
-### `auth` e `tenancy` documentais
-
-Os módulos existem como intenção arquitetural, mas ainda não como pacotes executáveis.
-
-### Contratos parcialmente implícitos
-
-Parte da cadeia troca objetos compatíveis em testes de integração, mas ainda não usa uniformemente contratos públicos versionados do pacote `contracts`.
-
-### Promoção institucional pendente
-
-- nenhum merge autorizado;
-- nenhum deploy executado;
-- proteção de `main` ainda não comprovada;
-- estratégia final de promoção ainda não aprovada.
-
-### Observabilidade incompleta
-
-A auditoria técnica existe, mas ainda faltam painel operacional, métricas de saúde e alertas institucionais consolidados.
-
-### Legado
-
-Ativos e compatibilidades antigas ainda precisam de destino formal.
+1. `auth` continua apenas documental.
+2. `tenancy` ainda não possui pacote executével próprio.
+3. Os kernels ainda precisam consumir os validadores compartilhados diretamente.
+4. Ainda faltam testes de integração cross-package usando os handoffs públicos como fronteira real.
+5. Adoção de `@apidevelopers/contracts` ainda não é uniforme em todos os pacotes.
+6. Proteção de `main`, checks obrigatórios e política de promoção permanecem pendentes.
+7. Observabilidade operacional consolidada ainda não foi comprovada.
+8. Nenhum merge, release ou deploy foi executado.
 
 ## Próximo marco
 
-**Meta institucional seguinte: 80%**
+**Próximo alvo: consolidar 82%.**
 
-Critérios mais curtos:
+Critério mais curto:
 
-1. formalizar contratos para os vínculos ainda implícitos;
-2. implementar ou aprovar plano fechado para `auth` e `tenancy`;
-3. validar proteção de branch e checks obrigatórios;
-4. registrar plano de promoção sem executar merge;
-5. ampliar evidência de observabilidade.
+1. integrar os contratos públicos nos quatro kernels cognitivos;
+2. adicionar teste de integração da cadeia completa via `@apidevelopers/contracts`;
+3. iniciar o pacote executável de tenancy a partir do contrato já validado.
 
 ## Governança
 
-- **status:** INVENTÁRIO_ATUALIZADO_COM_EVIDÊNCIA
-- **versão_origem:** GitHub no commit `aaa5594217d96efb247501955e4a4493c7324bda`
+- **status:** INVENTÁRIO_ATUALIZADO_COM_CONTRATOS_E_CI
+- **versão_origem:** GitHub no commit `64f53298b4828896156aeb44097190ae3b3c1169`
 - **alvo:** API Developers.digital
 - **risco:** R2
 - **decisão_milena:** NÃO INFORMADA
-- **execução_igor:** DOCUMENTAÇÃO TÉCNICA SALVA
+- **execução_igor:** CONTRATOS E TESTES SALVOS NA BRANCH
 - **deploy:** NÃO EXECUTADO
-- **evidência_técnica:** auditoria incorporada, Platform CI verde, quatro testes de integração, 16 diretórios conferidos e matriz oficial
-- **próximo_estado_permitido:** formalização dos contratos implícitos e definição técnica de `auth`/`tenancy`
+- **evidência_técnica:** três workflows verdes no mesmo commit
+- **próximo_estado_permitido:** adoção dos contratos pelos kernels e teste cross-package, sem merge ou deploy
