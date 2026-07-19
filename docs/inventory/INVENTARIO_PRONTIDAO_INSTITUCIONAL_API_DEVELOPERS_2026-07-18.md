@@ -2,77 +2,84 @@
 
 **Data:** 2026-07-19  
 **Branch:** `foundation/global-platform-bootstrap-20260715`  
-**Commit-âncora técnico:** `1268b49b5835191f6f08aef7a64b017bd978bdf8`  
-**Status:** INVENTÁRIO_ATUALIZADO_COM_PIPELINE_CROSS_PACKAGE  
+**Commit-âncora técnico:** `c7ee8490afe5dcf7608755933b5d518b63edd5ad`  
+**Status:** INVENTÁRIO_ATUALIZADO_COM_PIPELINE_ATÉ_DECISION  
 **Merge / deploy:** NÃO EXECUTADOS
 
 ## Resultado executivo
 
-**Prontidão institucional operacional: 82%**
+**Prontidão institucional operacional: 84%**
 
-O avanço de 80% para 82% foi confirmado por implementação e evidência técnica:
+O marco foi elevado de 82% para 84% após a formalização e validação da cadeia governada:
 
-- os quatro kernels cognitivos declaram `@apidevelopers/contracts`;
-- os quatro pacotes expõem o subpath público `./governed`;
-- os comandos `check` validam os adaptadores governados;
-- o teste cross-package percorre `memory → reasoning → reflection → planning`;
-- o contexto de tenant opaco atravessa a cadeia;
-- mutação, aprovação e execução automática permanecem bloqueadas;
-- o Platform CI concluiu com sucesso no mesmo `HEAD`.
+`memory → reasoning → reflection → planning → decision`
 
 ## Estrutura confirmada
 
 - **16 diretórios** em `packages/`;
 - **14 pacotes implementados**;
 - **2 módulos documentais:** `auth` e `tenancy`;
-- `tenancy` possui contrato mínimo compartilhado em `@apidevelopers/contracts`, mas ainda não pacote executável próprio.
+- contrato mínimo de tenancy disponível em `@apidevelopers/contracts`;
+- `kernel-decision` possui adaptador público governado;
+- nenhum estágio cognitivo decide, aprova ou executa automaticamente.
 
 ## Evidência técnica
 
 | Item | Evidência |
 |---|---|
-| Commit validado | `1268b49b5835191f6f08aef7a64b017bd978bdf8` |
-| Platform CI | run `29670027847` — SUCESSO |
-| Teste cross-package | `tests/integration/kernel-cognitive-contracts.test.mjs` |
-| Memory export | `@apidevelopers/kernel-memory/governed` |
-| Reasoning export | `@apidevelopers/kernel-reasoning/governed` |
-| Reflection export | `@apidevelopers/kernel-reflection/governed` |
-| Planning export | `@apidevelopers/kernel-planning/governed` |
+| Commit validado | `c7ee8490afe5dcf7608755933b5d518b63edd5ad` |
+| Contracts CI | run `29670768947` — SUCESSO |
+| Registry CI | run `29670768967` — SUCESSO |
+| Platform CI | run `29670768942` — SUCESSO |
+| Kernel Planning CI | run `29670622660` — SUCESSO |
+| Kernel Decision CI | run `29670622659` — SUCESSO |
+| Teste ponta a ponta | `tests/integration/kernel-cognitive-decision-contracts.test.mjs` |
 
-## Cadeia comprovada
+## Contratos formalizados
 
-`kernel-memory → kernel-reasoning → kernel-reflection → kernel-planning`
+- `kernel-memory → kernel-reasoning`
+- `kernel-reasoning → kernel-reflection`
+- `kernel-reflection → kernel-planning`
+- `kernel-planning → kernel-decision`
 
-O teste usa somente fronteiras públicas dos pacotes e o contrato compartilhado de tenancy/handoffs.
+A decisão produzida permanece:
+
+- `mode: advisory`;
+- `humanApprovalRequired: true`;
+- `approved: false`;
+- `mutationAllowed: false`;
+- `executionAllowed: false`;
+- decisão, aprovação e execução automáticas bloqueadas.
 
 ## Lacunas restantes
 
-1. `auth` continua somente documental.
+1. `auth` continua documental.
 2. `tenancy` ainda não é pacote executável próprio.
-3. A cadeia cognitiva ainda precisa avançar formalmente até `decision`.
+3. A cadeia após `decision` precisa ser consolidada até policy/runtime/evidence/audit usando a mesma fronteira pública.
 4. Nem todos os pacotes possuem CI dedicado.
-5. Proteção de `main` e checks obrigatórios ainda não foram confirmados.
-6. Observabilidade operacional consolidada ainda não foi comprovada.
-7. Nenhum merge, release, publicação ou deploy foi executado.
+5. Proteção de `main` e checks obrigatórios não foram confirmados.
+6. Promoção formal, release, publicação e deploy permanecem pendentes.
+7. Observabilidade operacional consolidada ainda não foi comprovada.
 
 ## Próximo marco
 
-**Meta seguinte: 84%**
+**Meta seguinte: 86%**
 
 Caminho mais curto:
 
-1. estender o pipeline governado de `planning` para `decision`;
-2. criar teste cross-package até a decisão formal;
-3. iniciar pacote executável de `tenancy` usando o contrato já validado.
+1. integrar `decision → policy`;
+2. validar decisão humana obrigatória antes do runtime;
+3. criar teste cross-package até policy;
+4. confirmar os gates no mesmo commit.
 
 ## Governança
 
-- **status:** INVENTÁRIO_ATUALIZADO_COM_PIPELINE_CROSS_PACKAGE
-- **versão_origem:** GitHub no commit `1268b49b5835191f6f08aef7a64b017bd978bdf8`
+- **status:** INVENTÁRIO_ATUALIZADO_COM_PIPELINE_ATÉ_DECISION
+- **versão_origem:** GitHub no commit `c7ee8490afe5dcf7608755933b5d518b63edd5ad`
 - **alvo:** API Developers.digital / foundation
 - **risco:** R2
 - **decisão_milena:** NÃO INFORMADA
-- **execução_igor:** ALTERAÇÕES TÉCNICAS SALVAS NA BRANCH
+- **execução_igor:** CÓDIGO E DOCUMENTAÇÃO SALVOS NA BRANCH
 - **deploy:** NÃO EXECUTADO
-- **evidência_técnica:** Platform CI run `29670027847` concluído com sucesso
-- **próximo_estado_permitido:** integrar `planning → decision` e validar por teste, sem merge ou deploy
+- **evidência_técnica:** cinco gates verdes e teste cross-package até decision
+- **próximo_estado_permitido:** integração governada `decision → policy`, sem merge ou deploy
