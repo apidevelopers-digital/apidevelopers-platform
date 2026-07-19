@@ -9,3 +9,4 @@ export * from "./policy-runtime.mjs";
 export * from "./runtime-evidence.mjs";
 export * from "./evidence-audit.mjs";
 export * from "./audit-evolution.mjs";
+export * from "./evolution-governance.mjs";
