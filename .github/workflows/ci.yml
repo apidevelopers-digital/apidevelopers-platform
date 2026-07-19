@@ -21,114 +21,93 @@ jobs:
     timeout-minutes: 10
     steps:
       - uses: actions/checkout@v4
-
       - uses: actions/setup-node@v4
         with:
           node-version: "22"
 
       - name: Check kernel-memory syntax
         run: node --check packages/kernel-memory/src/index.mjs
-
       - name: Test kernel-memory
         run: npm --prefix packages/kernel-memory test
 
       - name: Check kernel-reasoning syntax
         run: node --check packages/kernel-reasoning/src/index.mjs
-
       - name: Test kernel-reasoning
         run: npm --prefix packages/kernel-reasoning test
 
       - name: Check kernel-planning syntax
         run: node --check packages/kernel-planning/src/index.mjs
-
       - name: Test kernel-planning
         run: npm --prefix packages/kernel-planning test
 
       - name: Check kernel-decision syntax
         run: node --check packages/kernel-decision/src/index.mjs
-
       - name: Test kernel-decision
         run: npm --prefix packages/kernel-decision test
 
       - name: Test planning and decision integration
         run: node --test tests/integration/kernel-planning-decision.test.mjs
-
       - name: Test decision and policy integration
         run: node --test tests/integration/kernel-decision-policy-wrapper.mjs
-
       - name: Test policy and runtime integration
         run: node --test tests/integration/kernel-policy-runtime-wrapper.mjs
-
       - name: Test runtime and evidence integration
         run: node --test tests/integration/kernel-runtime-evidence-wrapper.mjs
 
       - name: Check kernel-reflection syntax
         run: node --check packages/kernel-reflection/src/index.mjs
-
       - name: Test kernel-reflection
         run: npm --prefix packages/kernel-reflection test
 
       - name: Check kernel-audit syntax
         run: node --check packages/kernel-audit/src/index.mjs
-
       - name: Test kernel-audit
         run: npm --prefix packages/kernel-audit test
 
       - name: Check kernel-evolution syntax
         run: node --check packages/kernel-evolution/src/index.mjs
-
       - name: Test kernel-evolution
         run: npm --prefix packages/kernel-evolution test
-
       - name: Test audit and evolution integration
         run: node --test tests/integration/kernel-audit-evolution-wrapper.mjs
 
       - name: Check kernel-governance syntax
         run: node --check packages/kernel-governance/src/index.mjs
-
       - name: Test kernel-governance
         run: npm --prefix packages/kernel-governance test
+      - name: Test evolution and governance integration
+        run: node --test tests/integration/kernel-evolution-governance-wrapper.mjs
 
       - name: Check contracts syntax
         run: |
           node --check packages/contracts/src/index.mjs
           node --check packages/contracts/src/planning-execution-plan.mjs
           node --check packages/contracts/test/planning-execution-plan.test.mjs
-
       - name: Test contracts
         run: npm --prefix packages/contracts test
 
       - name: Check Wave 5 syntax
         run: |
           node --check packages/kernel-policy/src/index.mjs
-
           node --check services/guard/src/index.mjs
           node --check scripts/check-json.mjs
-
       - name: Test kernel policy
         run: node --test packages/kernel-policy/test/index.test.mjs
-
       - name: Test guard
         run: node --test services/guard/test/index.test.mjs
-
       - name: Test governed runtime integration
         run: node --test tests/integration/kernel-governed-runtime.test.mjs
-
       - name: Test constitutional governance integration
         run: node --test tests/integration/kernel-constitutional-governance.test.mjs
-
       - name: Test governed audit lifecycle integration
         run: node --test tests/integration/kernel-audit-lifecycle.test.mjs
-
       - name: Run institutional audit
         run: npm run audit:institutional
-
       - name: Validate institutional audit artifacts
         run: |
           test -f .audit/snapshot.json
           test -f .audit/report.md
           node -e 'const fs=require("fs"); const s=JSON.parse(fs.readFileSync(".audit/snapshot.json","utf8")); if (!s.commit || !s.summary || s.summary.files < 1) process.exit(1);'
-
       - name: Reject transient publishing artifacts
         run: |
           test ! -d .wave5
