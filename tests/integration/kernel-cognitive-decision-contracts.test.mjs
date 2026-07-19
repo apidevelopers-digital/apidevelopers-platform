@@ -1,29 +1,54 @@
 import test from "node:test";
 import assert from "node:assert/strict";
+import { mkdirSync, symlinkSync, existsSync } from "node:fs";
+import { fileURLToPath } from "node:url";
+import path from "node:path";
 
-import {
+const repositoryRoot = fileURLToPath(new URL("../../", import.meta.url));
+const namespaceRoot = path.join(repositoryRoot, "node_modules", "@apidevelopers");
+mkdirSync(namespaceRoot, { recursive: true });
+
+for (const packageName of [
+  "contracts",
+  "kernel-memory",
+  "kernel-reasoning",
+  "kernel-reflection",
+  "kernel-planning",
+  "kernel-decision",
+]) {
+  const linkPath = path.join(namespaceRoot, packageName);
+  if (!existsSync(linkPath)) {
+    symlinkSync(
+      path.join(repositoryRoot, "packages", packageName),
+      linkPath,
+      "dir",
+    );
+  }
+}
+
+const {
   assertDecisionReportContract,
   createTenantContext,
-} from "@apidevelopers/contracts";
-import {
+} = await import("@apidevelopers/contracts");
+const {
   createMemoryReasoningHandoff,
-} from "@apidevelopers/kernel-memory/governed";
-import {
+} = await import("@apidevelopers/kernel-memory/governed");
+const {
   runGovernedReasoning,
-} from "@apidevelopers/kernel-reasoning/governed";
-import {
+} = await import("@apidevelopers/kernel-reasoning/governed");
+const {
   runGovernedReflection,
-} from "@apidevelopers/kernel-reflection/governed";
-import {
+} = await import("@apidevelopers/kernel-reflection/governed");
+const {
   createPlanningDecisionHandoff,
   runGovernedPlanning,
-} from "@apidevelopers/kernel-planning/governed";
-import {
+} = await import("@apidevelopers/kernel-planning/governed");
+const {
   createDecisionEngine,
-} from "@apidevelopers/kernel-decision";
-import {
+} = await import("@apidevelopers/kernel-decision");
+const {
   runGovernedDecision,
-} from "@apidevelopers/kernel-decision/governed";
+} = await import("@apidevelopers/kernel-decision/governed");
 
 const tenantContext = createTenantContext({
   tenantId: "tenant_demo_0001",
