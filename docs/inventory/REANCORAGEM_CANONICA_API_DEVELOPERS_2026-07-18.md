@@ -3,102 +3,61 @@
 **Data:** 2026-07-19  
 **Status:** `PREPARADO_PARA_CONTINUIDADE`  
 **Branch:** `foundation/global-platform-bootstrap-20260715`  
-**Commit-âncora técnico:** `72e9697a5141508fa35e7b758d50b51b3d3891ef`  
-**Prontidão institucional:** 88%  
-**Merge:** NÃO EXECUTADO  
-**Deploy:** NÃO EXECUTADO
+**Commit-âncora técnico:** `b2cb7bf2a7b44da9d6e29514f6d116cd8e7a4089`  
+**Prontidão:** 90%  
+**Merge / deploy:** NÃO EXECUTADOS
 
-## 1. Ponto correto de retomada
+## Ponto correto de retomada
 
-A cadeia governada está implementada e validada até Runtime:
+A cadeia governada está validada até Evidence:
 
-`memory → reasoning → reflection → planning → decision → policy → runtime`
+`memory → reasoning → reflection → planning → decision → policy → runtime → evidence`
 
-A continuidade deve partir exatamente da fronteira:
+Retomar exatamente em:
 
-`runtime → evidence`
+`evidence → audit`
 
-Não retomar por comparação com `main`, PR draft, promoção, release ou deploy.
+Não retomar por `main`, PR draft, release ou deploy.
 
-## 2. Estado técnico consolidado
+## Estado consolidado
 
-- 16 diretórios em `packages/`;
-- 14 pacotes implementados;
-- `auth` e `tenancy` permanecem documentais;
-- contrato mínimo de tenancy existe em `@apidevelopers/contracts`;
-- Policy opera deny-by-default;
-- Runtime é dry-run-first;
-- `kernel-policy` e `kernel-runtime` expõem `./governed`;
-- execução real exige aprovação humana vinculada e confirmação explícita;
-- evidência é produzida pelo Runtime;
-- segredos permanecem sujeitos a redação;
-- execução automática é proibida.
-
-## 3. Evidência técnica
-
-| Gate | Run | Resultado |
-|---|---:|---|
-| Contracts CI | `29671852254` | SUCESSO |
-| Kernel Runtime CI | `29671852261` | SUCESSO |
-| Kernel Policy CI | `29671852272` | SUCESSO |
-| Registry CI | `29671852262` | SUCESSO |
-| Platform CI | `29671852256` | SUCESSO |
-
-Commit validado:
-
-`72e9697a5141508fa35e7b758d50b51b3d3891ef`
-
-Teste principal:
-
-`tests/integration/kernel-policy-runtime-contracts.test.mjs`
-
-## 4. Invariantes preservados
-
-- tenant opaco e isolado;
-- rastreabilidade por ciclo, handoff, decisão, proposta, plano, Policy e aprovação;
-- prévia sem execução;
-- aprovação humana obrigatória;
-- aprovação vinculada e sem replay;
-- confirmação explícita separada da aprovação;
-- execução real somente após ambos os gates;
-- relatório de Runtime com evidência;
+- contrato público `runtime-evidence`;
+- handoff `kernel-runtime → kernel-evidence`;
+- Evidence append-only e isolada por tenant;
+- digest SHA-256 verificável;
+- adulteração e duplicidade rejeitadas;
+- artefato imutável e redigido;
+- wrappers governados isolados por processo no Platform CI;
 - nenhuma decisão, aprovação ou execução automática.
 
-## 5. Correção técnica concluída
+## Evidência
 
-Uma chamada `new Error` sem parênteses impedia o primeiro `Kernel Runtime CI`. O contrato integral validado foi reaplicado no commit-âncora. Os cinco gates passaram no mesmo `HEAD`.
+| Gate | Commit | Run | Estado |
+|---|---|---:|---|
+| Platform CI final | `b2cb7bf2` | `29672689326` | SUCESSO |
+| Contracts CI | `c4bccb1b` | `29672612408` | SUCESSO |
+| Kernel Evidence CI | `c4bccb1b` | `29672612383` | SUCESSO |
+| Kernel Runtime CI | `c4bccb1b` | `29672612411` | SUCESSO |
+| Registry CI | `c4bccb1b` | `29672612393` | SUCESSO |
+| Runtime Evidence Contract CI | `957431ec` | `29672583385` | SUCESSO |
 
-## 6. Próxima ação exata
+## Próxima ação exata
 
-1. formalizar o contrato público `runtime → evidence`;
-2. adaptar `kernel-evidence` para consumir o relatório governado de Runtime;
-3. garantir artefato de evidência imutável e redigido;
-4. criar teste cross-package até Evidence;
-5. confirmar Contracts CI, Evidence CI quando aplicável e Platform CI no mesmo `HEAD`;
-6. atualizar inventário somente após evidência verde.
+1. criar contrato `evidence → audit`;
+2. adaptar `kernel-audit` para consumir o artefato verificável;
+3. validar tenant, ciclo, digest e origem;
+4. rejeitar adulteração, duplicidade e cross-tenant;
+5. criar teste cross-package;
+6. confirmar Contracts CI, Audit CI e Platform CI no mesmo `HEAD`;
+7. atualizar inventário somente após evidência verde.
 
-**Meta seguinte:** 90%.
+**Meta seguinte:** 92%.
 
-## 7. Limites
+## Limites e governança
 
-Esta âncora não autoriza:
+Esta âncora não autoriza merge, promoção para `main`, release, publicação, deploy, produção ou aprovação humana automática.
 
-- merge;
-- promoção para `main`;
-- release;
-- publicação;
-- deploy;
-- operação em produção;
-- aprovação humana automática.
-
-## 8. Governança
-
-- **status:** `PREPARADO_PARA_CONTINUIDADE`
-- **versão_origem:** GitHub no commit `72e9697a5141508fa35e7b758d50b51b3d3891ef`
-- **alvo:** API Developers.digital / foundation
 - **risco:** R2
 - **decisão_milena:** NÃO INFORMADA
 - **execução_igor:** CÓDIGO E DOCUMENTAÇÃO SALVOS NA BRANCH
-- **deploy:** NÃO EXECUTADO
-- **evidência_técnica:** cinco gates verdes e pipeline público até Runtime
-- **próximo_estado_permitido:** integração governada `runtime → evidence`, sem promoção
+- **próximo_estado_permitido:** `evidence → audit`, sem promoção
