@@ -1,0 +1,28 @@
+name: Persistence Transactions Diagnostic
+
+on:
+  push:
+    branches:
+      - "foundation/diagnostic-persistence-core-20260720"
+    paths:
+      - "packages/persistence-core/**"
+      - ".github/workflows/persistence-transactions-diagnostic.yml"
+
+permissions:
+  contents: read
+
+concurrency:
+  group: persistence-transactions-diagnostic-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  validate:
+    runs-on: [self-hosted, macOS, X64]
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+      - name: Run transaction tests
+        run: node --test --test-reporter=spec --test-name-pattern="optimistic|idempotent|outbox|repository|serializes" packages/persistence-core/test/index.test.mjs
