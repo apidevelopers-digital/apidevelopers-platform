@@ -1,106 +1,85 @@
 # Dashboards do Portal
 
 **Status:** proposta modular de interface  
-**Escopo:** leitura e operação assistida sobre projeções canônicas  
-**Não altera:** governança, contratos institucionais ou fonte de verdade
+**Escopo:** leitura e operacao assistida sobre projecoes canonicas  
+**Nao altera:** governanca, contratos institucionais ou fonte de verdade
 
-## 1. Princípios
+## 1. Principios
 
-1. Todo indicador exibido deve apontar para uma projeção e sua `SourceRef`.
-2. O dashboard nunca transforma ausência de evidência em sucesso.
-3. Estados desconheicidos, divergentes ou desatualizados permanecem visíveis.
-4. Ações sensíveis aparecem separadas de ações de leitura.
-5. O Portal não executa merge, release, deploy ou publicação por consequência implícita.
+1. Todo indicador deve apontar para uma projecao e sua `SourceRef`.
+2. Ausencia de evidencia nunca pode ser exibida como sucesso.
+3. Estados desconhecidos, divergentes ou desatualizados permanecem visiveis.
+4. Acoes sensiveis aparecem separadas de acoes de leitura.
+5. O Portal nao executa merge, release, deploy ou publicacao por consequencia implicita.
 
 ## 2. Dashboard inicial
 
-A visão inicial deve responder, nesta ordem:
+A visao inicial deve responder, nesta ordem:
 
-1. **O que está saudável?**
-2. **O que exige atenção?**
-3. **O que está bloqueado?**
-4. **O que mudou recentemente?**
-5. **Qual é a próxima ação permitida?**
+1. O que esta saudavel?
+2. O que exige atencao?
+3. O que esta bloqueado?
+4. O que mudou recentemente?
+5. Qual e a proxima acao permitida?
 
-Blocos sugeridos:
-
-| Bloco | Conteúdo | Origem |
+| Bloco | Conteudo | Origem |
 |---|---|---|
-| Estado geral | contagem por estado operacional | projeção de status |
-| Gates | checks concluúdos, pendentes e falhos | workflows e evidências |
-| Mudanças recentes | commits, documentos e revisões | histórico Git |
-| Divergências | projeções fora de sincronia | reconciliação |
-| Próximas ações | ações permitidas pelo estado atual | política de interface |
+| Estado geral | contagem por estado operacional | projecao de status |
+| Gates | checks concluidos, pendentes e falhos | workflows e evidencias |
+| Mudancas recentes | commits, documentos e revisoes | historico Git |
+| Divergencias | projecoes fora de sincronia | reconciliacao |
+| Proximas acoes | acoes permitidas pelo estado atual | politica de interface |
 
 ## 3. Dashboard operacional
 
-Voltado ao `uni. Operador`, com foco em decisão rápida:
+Voltado ao `uni. Operador`, com foco em decisao rapida:
 
 - fila de itens pendentes;
 - itens bloqueados por gate;
-- operações em preparação;
-- evidências mais recentes;
-- ações que exigem aprovação explícita;
-- histórico auditável da superfície selecionada.
+- operacoes em preparacao;
+- evidencias mais recentes;
+- acoes que exigem aprovacao explicita;
+- historico auditavel da superficie selecionada.
 
-Cada cartã deve exibir:
+Cada cartao deve exibir nome, estado, ultima atualizacao, origem, nivel de confianca, proxima acao permitida e link para evidencias.
 
-- nome curto;
-- estado visual;
-- última atualizaçã;
+## 4. Dashboard de dominio
 
-- origem;
-- nível de confiança;
-- próxima ação permitida;
-- link para detalhes e evidências.
-
-## 4. Dashboard de domínio
-
-Cada domínio deve reutilizar a mesma estrutura:
+Cada dominio reutiliza a mesma estrutura:
 
 ```text
 Resumo
-Ä�stado atual
-→ Dependências
-→ Eventos recentes
-→ Evidências
-(→ Divergências
-→ Ações permitidas
+-> Estado atual
+-> Dependencias
+-> Eventos recentes
+-> Evidencias
+-> Divergencias
+-> Acoes permitidas
 ```
 
-O domínio não pode inventar estados próprios incompatíveis com as projeções compartilhadas.
+O dominio nao pode inventar estados proprios incompatíveis com as projecoes compartilhadas.
 
 ## 5. Estados visuais
 
-|`Estado`|Tratamento|
+| Estado | Tratamento |
 |---|---|
-| saudável | confirmação com evidência válida |
-| atenção | dado parcial, atrasado ou incompleto |
-| bloqueado | gate obrigatório não satisfeito |
+| saudavel | confirmacao com evidencia valida |
+| atencao | dado parcial, atrasado ou incompleto |
+| bloqueado | gate obrigatorio nao satisfeito |
 | erro | falha confirmada |
-| desconhecido | ausência de evidência suficiente |
-| divergente | fontes derivadas ão reconciliadas |
+| desconhecido | ausencia de evidencia suficiente |
+| divergente | fontes derivadas nao reconciliadas |
 
-Cores, ícones e texto devem sempre aparecer juntos. Cor isolada não é suficiente.
+Cor, icone e texto devem aparecer juntos. Cor isolada nao e suficiente.
 
-## 6. Atualização e temporalidade
+## 6. Temporalidade
 
-Toda visualização temporal deve mostrar:
+Toda visualizacao temporal mostra instante da projecao, instante da fonte, idade do dado e estado de reconciliacao. Dados antigos nao podem parecer atuais sem aviso explicito.
 
-- instante da projeção;
-- instante da fonte;
-- idade do dado;
-- estado de reconciliação;
-- opção de atualizar quando aplicável.
+## 7. Criterios de aceite
 
-Dados antigos não devem ser apresentados como atuais sem aviso explícito.
-
-## 7. Critérios de aceite
-
-O dashboard está documentalmente pronto quando:
-
-- cada bloco possui projeção de origem definida;
-- estados desconhecidos e divergentes têm tratamento próprio;
-- ações senséveis estão isoladas;
-- cada indicador permite chegar à evidência;
-- a visão inicial funciona sem depender de um domínio específico.
+- cada bloco possui projecao de origem definida;
+- estados desconhecidos e divergentes tem tratamento proprio;
+- acoes sensiveis estao isoladas;
+- cada indicador permite chegar a evidencia;
+- a visao inicial funciona sem depender de um dominio especifico.
