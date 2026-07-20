@@ -12,15 +12,15 @@ O modelo de conteúdo garante que cada tela explique:
 - de onde o dado veio;
 - quando foi atualizado;
 - qual estado operacional foi projetado;
-- qual estatuto de evidência sustenta a afirmação;
+- qual evidência sustenta a afirmação;
 - qual é a próxima ação permitida.
 
 ## 2. Entidades de conteúdo
 
 | Entidade | Responsabilidade |
 |---|---|
-| Téla | contexto, objetivo, estado e ações |
-| Såção | articular um grupo coerente de informações |
+| Tela | contexto, objetivo, estado e ações |
+| Seção | articular um grupo coerente de informações |
 | Cartão | resumir uma afirmação rastreável |
 | Linha de fila | identificar um item operacional |
 | Alerta | comunicar risco, bloqueio, divergência ou erro |
@@ -52,7 +52,7 @@ Sem `sourceRef`, o conteúdo é marcado como não verificável.
 Ordem padrão de leitura:
 
 1. estado e risco;
-2. identificaçã;
+2. identificação;
 3. resumo;
 4. origem;
 5. temporalidade;
@@ -70,14 +70,14 @@ Títulos devem:
 - identificar o objeto;
 - evitar jargão;
 - evitar verbos vagos;
-- nao presumir sucesso;
+- não presumir sucesso;
 - distinguir projeção, fonte e decisão;
 - considerar o contexto do operador.
 
 Exemplos preferidos:
 
 - `Ativação bloqueada por evidência ausente`
-- `Projeção desatualizada em 18 horas`
+- `Projeção desatualizada há 18 horas`
 - `Resultado aceito pela ferramenta, ainda não verificado`
 
 ## 6. Resumos
@@ -119,16 +119,16 @@ Toda informação que pode mudar deve mostrar:
 O modelo de conteúdo deve diferenciar:
 
 - objeto inexistente;
-- objeto nao encontrado;
-- fonte nao consultada;
-- fonte indisponivel;
-- projecao ainda nao gerada;
-- permissao insuficiente;
+- objeto não encontrado;
+- fonte não consultada;
+- fonte indisponível;
+- projeção ainda não gerada;
+- permissão insuficiente;
 - filtros sem resultados.
 
 Cada caso recebe mensagem e ação diferentes.
 
-## 10. Conteudo de ação
+## 10. Conteúdo de ação
 
 Cada ação deve declarar:
 
@@ -142,7 +142,7 @@ Cada ação deve declarar:
 - confirmação exigida;
 - próximo estado possível.
 
-Acções sensíveis nunca usam texto genérico como “continuar”.
+Ações sensíveis nunca usam texto genérico como “continuar”.
 
 ## 11. Conteúdo de erro
 
@@ -158,11 +158,51 @@ Mensagens de erro devem conter:
 
 Evitar: “algo deu errado” sem contexto.
 
-## 12. Conteudo de sucesso
+## 12. Conteúdo de sucesso
 
-Sucesso so deve ser exibido quando houver:
+Sucesso só deve ser exibido quando houver:
 
 - resultado confirmado;
-- evidência valida;
+- evidência válida;
 - escopo conhecido;
-- divergencias ava
+- divergências avaliadas;
+- próximo estado explícito.
+
+Aceitação pela ferramenta sem verificação posterior não é sucesso final.
+
+## 13. Conteúdo de bloqueio
+
+Um bloqueio deve informar:
+
+- ação pretendida;
+- gate responsável;
+- requisito ausente;
+- evidência esperada;
+- autoridade necessária;
+- impacto;
+- ação de preparação permitida.
+
+## 14. Conteúdo de divergência
+
+Uma divergência deve apresentar os dois lados:
+
+- valor projetado;
+- valor da fonte;
+- instante de cada valor;
+- campos conflitantes;
+- impacto;
+- histórico de reconciliação;
+- próxima ação permitida.
+
+A interface não escolhe automaticamente um lado como verdade canônica.
+
+## 15. Critérios de aceitação
+
+- toda afirmação operacional possui origem ou marca de não verificável;
+- sucesso exige evidência válida;
+- ausência de dados possui causa explícita;
+- ações declaram risco, autoridade e escopo;
+- temporalidade aparece em dados mutáveis;
+- erros explicam impacto e retry seguro;
+- divergências preservam os dois lados;
+- títulos não presumem execução ou aprovação.
