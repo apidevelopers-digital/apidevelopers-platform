@@ -1,0 +1,42 @@
+name: Entitlement Core CI
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - main
+      - "foundation/**"
+    paths:
+      - "packages/entitlement-core/**"
+      - ".github/workflows/entitlement-core-ci.yml"
+  pull_request:
+    branches:
+      - main
+    paths:
+      - "packages/entitlement-core/**"
+      - ".github/workflows/entitlement-core-ci.yml"
+
+permissions:
+  contents: read
+
+concurrency:
+  group: entitlement-core-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  validate:
+    runs-on: [self-hosted, macOS, X64]
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+      - name: Check entitlement-core
+        run: npm --prefix packages/entitlement-core run check
+      - name: Check domain boundaries
+        run: |
+          node --check packages/plan-core/src/index.mjs
+          node --check packages/limits-core/src/index.mjs
+          node --check packages/tenant-core/src/index.mjs
+          node --check packages/project-core/src/index.mjs
