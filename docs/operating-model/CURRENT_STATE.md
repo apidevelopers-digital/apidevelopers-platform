@@ -4,7 +4,7 @@
 **Atualizado em:** 2026-07-20  
 **Repositório:** `sitedauni/apidevelopers-platform`  
 **Branch:** `foundation/global-platform-bootstrap-20260715`  
-**HEAD conferido:** `c31b14e7982b7cd8b2601aa34b01746cbfcc1667a
+**HEAD conferido:** `89021a4d3e13ca631dcf8e18bf81752023e1c9e0`
 
 ## Estado operacional
 
@@ -31,7 +31,14 @@ Avanços mais recentes conferidos:
 
 - `plan-core`;
 - `entitlement-core`;
-- testes e CI segmentada desses domínios.
+- `persistence-core`;
+- persistência JSON atômica;
+- checksum SHA-256;
+- concorrência otimista;
+- idempotência transacional;
+- outbox;
+- testes de atomicidade, concorrência e corrupção;
+- CI segmentada de persistência criada.
 
 ## Janela de produto, arquitetura e governança
 
@@ -41,7 +48,7 @@ Responsável por:
 - continuidade;
 - índice-mestre;
 - registro de capacidades;
-- modelo de entidades;
+- registro de entidades;
 - relações institucionais;
 - modelo de dados do Portal;
 - critérios de prontidão e promoção.
@@ -52,9 +59,11 @@ Entregas canônicas já registradas:
 - `EXECUTIVE_DASHBOARD.md`;
 - `CONVERSATION_CONTINUITY_PROTOCOL.md`;
 - `DIGITAL_COMPANY_BLUEPRINT.md`;
-- `WHY_NOT_READY.md`;
+- `WHE_NOT_READY.md`;
 - `PLATFORM_CAPABILITY_REGISTRY.md`;
-- `COMPANY_WORLD_INDEX.md`.
+- `COMPANY_WORLD_INDEX.md`;
+- `AI_WORK_GUIDE.md`;
+- `ENTITY_REGISTRY_SPEC.md`.
 
 ## Método de produção
 
@@ -71,13 +80,11 @@ Entregas canônicas já registradas:
 
 ## Próximo marco
 
-1. Atualizar `NEXT_ITERATION.md`.
-2. Criar o guia universal de trabalho para IA e colaboradores.
-3. Registrar `plan-core` e `entitlement-core` no Capability Registry.
-4. Criar `ENTITY_REGISTRY_SPEC.md`.
-5. Depois seguir para `KNOWLEDGE_GRAPH_MODEL.md`.
-6. Somente então definir `PORTAL_DATA_MODEL.md`.
+1. Registrar `persistence-core` no Capability Registry.
+2. Validar entidades próprias de persistência.
+3. Criar `KNOWLEDGE_GRAPH_MODEL.md`.
+4. Somente então definir `PORTAL_DATA_MODEL.md`.
 
 ## Regra de continuidade
 
-> Conversa é sessão de trabalho. Git é menória institucional. CI valida. Portal governa. Automação executa.
+> Conversa é sessão de trabalho. Git é memória institucional. CI valida. Portal governa. Automação executa.
