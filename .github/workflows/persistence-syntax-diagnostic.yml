@@ -17,6 +17,23 @@ concurrency:
 
 jobs:
   validate:
+    name: check-${{ matrix.label }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - label: model
+            file: packages/persistence-core/src/model.mjs
+          - label: transaction-context
+            file: packages/persistence-core/src/transaction-context.mjs
+          - label: file-store
+            file: packages/persistence-core/src/file-store.mjs
+          - label: repository
+            file: packages/persistence-core/src/repository.mjs
+          - label: index
+            file: packages/persistence-core/src/index.mjs
+          - label: tests
+            file: packages/persistence-core/test/index.test.mjs
     runs-on: [self-hosted, macOS, X64]
     timeout-minutes: 10
     steps:
@@ -24,12 +41,7 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: "22"
-      - name: Check syntax
+      - name: Check ${{ matrix.label }}
         run: |
           node --version
-          node --check packages/persistence-core/src/model.mjs
-          node --check packages/persistence-core/src/transaction-context.mjs
-          node --check packages/persistence-core/src/file-store.mjs
-          node --check packages/persistence-core/src/repository.mjs
-          node --check packages/persistence-core/src/index.mjs
-          node --check packages/persistence-core/test/index.test.mjs
+          node --check "${{ matrix.file }}"
