@@ -1,0 +1,17 @@
+{
+  "name": "@apidevelopers/persistence-core",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Atomic durable JSON persistence, transactions, idempotency and outbox contracts for API Developers.digital.",
+  "type": "module",
+  "exports": {
+    ".": "./src/index.mjs"
+  },
+  "scripts": {
+    "test": "node --test test/*.test.mjs",
+    "check": "node --check src/model.mjs && node --check src/transaction-context.mjs && node --check src/file-store.mjs && node --check src/repository.mjs && node --check src/index.mjs && npm test"
+  },
+  "engines": {
+    "node": ">=22"
+  }
+}
