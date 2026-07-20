@@ -8,7 +8,8 @@
     ".": "./src/index.mjs",
     "./git-reader": "./src/git-reader.mjs",
     "./markdown-parser": "./src/markdown-parser.mjs",
-    "./document-pipeline": "./src/document-pipeline.mjs"
+    "./document-pipeline": "./src/document-pipeline.mjs",
+    "./typed-extractor": "./src/typed-extractor.mjs"
   },
   "scripts": {
     "test": "node --test"
