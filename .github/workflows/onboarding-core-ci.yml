@@ -1,0 +1,44 @@
+name: Onboarding Core CI
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - main
+      - "foundation/**"
+    paths:
+      - "packages/onboarding-core/**"
+      - ".github/workflows/onboarding-core-ci.yml"
+  pull_request:
+    branches:
+      - main
+    paths:
+      - "packages/onboarding-core/**"
+      - ".github/workflows/onboarding-core-ci.yml"
+
+permissions:
+  contents: read
+
+concurrency:
+  group: onboarding-core-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  validate:
+    runs-on: [self-hosted, macOS, X64]
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+      - name: Check onboarding-core
+        run: npm --prefix packages/onboarding-core run check
+      - name: Check domain boundaries
+        run: |
+          node --check packages/activation-core/src/index.mjs
+          node --check packages/tenant-core/src/index.mjs
+          node --check packages/project-core/src/index.mjs
+          node --check packages/apikey-core/src/index.mjs
+          node --check packages/usage-core/src/index.mjs
+          node --check packages/persistence-core/src/index.mjs
