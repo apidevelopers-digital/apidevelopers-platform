@@ -9,7 +9,7 @@
   },
   "scripts": {
     "test": "node --test test/*.test.mjs",
-    "check": "node --check src/common.mjs && node --check src/model-normalizers.mjs && node --check src/model.mjs && node --check src/repository.mjs && node --check src/service-context.mjs && node --check src/request-operations.mjs && node --check src/progress-foundation-operations.mjs && node --check src/progress-adoption-operations.mjs && node --check src/progress-operations.mjs && node --check src/recovery-operations.mjs && node --check src/service.mjs && node --check src/index.mjs && npm test"
+    "check": "node --check src/common.mjs && node --check src/model-normalizers-core.mjs && node --check src/model-normalizers-access.mjs && node --check src/model-normalizers-test.mjs && node --check src/model-normalizers.mjs && node --check src/model.mjs && node --check src/repository.mjs && node --check src/service-context.mjs && node --check src/request-operations.mjs && node --check src/progress-foundation-operations.mjs && node --check src/progress-adoption-operations.mjs && node --check src/progress-operations.mjs && node --check src/recovery-operations.mjs && node --check src/service.mjs && node --check src/index.mjs && npm test"
   },
   "engines": {
     "node": ">=22"
