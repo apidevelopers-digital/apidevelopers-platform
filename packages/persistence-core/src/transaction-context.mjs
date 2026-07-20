@@ -96,7 +96,7 @@ export function createTransactionContext(draft, clock) {
           aggregateId === null ? null : requireText(aggregateId, "aggregateId"),
         payload: clone(payload),
         headers: clone(headers),
-        occcurredAt,
+        occurredAt,
         status: "pending",
         attempts: 0,
         publishedAt: null,
@@ -121,7 +121,7 @@ export function createTransactionContext(draft, clock) {
             left.id.localeCompare(right.id),
         )
         .slice(0, limit)
-        .map((entry) => deepFreeze(clone(entry));
+        .map((entry) => deepFreeze(clone(entry)));
     },
 
     markOutboxPublished(id, { publishedAt = clock() } = {}) {
