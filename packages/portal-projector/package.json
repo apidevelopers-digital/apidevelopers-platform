@@ -6,7 +6,8 @@
   "description": "Deterministic, read-only projector for Portal-derived models.",
   "exports": {
     ".": "./src/index.mjs",
-    "./git-reader": "./src/git-reader.mjs"
+    "./git-reader": "./src/git-reader.mjs",
+    "./markdown-parser": "./src/markdown-parser.mjs"
   },
   "scripts": {
     "test": "node --test"
