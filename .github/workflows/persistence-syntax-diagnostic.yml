@@ -1,0 +1,35 @@
+name: Persistence Syntax Diagnostic
+
+on:
+  push:
+    branches:
+      - "foundation/diagnostic-persistence-core-20260720"
+    paths:
+      - "packages/persistence-core/**"
+      - ".github/workflows/persistence-syntax-diagnostic.yml"
+
+permissions:
+  contents: read
+
+concurrency:
+  group: persistence-syntax-diagnostic-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  validate:
+    runs-on: [self-hosted, macOS, X64]
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+      - name: Check syntax
+        run: |
+          node --version
+          node --check packages/persistence-core/src/model.mjs
+          node --check packages/persistence-core/src/transaction-context.mjs
+          node --check packages/persistence-core/src/file-store.mjs
+          node --check packages/persistence-core/src/repository.mjs
+          node --check packages/persistence-core/src/index.mjs
+          node --check packages/persistence-core/test/index.test.mjs
