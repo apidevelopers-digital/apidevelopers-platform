@@ -9,7 +9,7 @@
   },
   "scripts": {
     "test": "node --test test/*.test.mjs",
-    "check": "node --check src/model.mjs && node --check src/file-store.mjs && node --check src/repository.mjs && node --check src/index.mjs && npm test"
+    "check": "node --check src/model.mjs && node --check src/transaction-context.mjs && node --check src/file-store.mjs && node --check src/repository.mjs && node --check src/index.mjs && npm test"
   },
   "engines": {
     "node": ">=22"
