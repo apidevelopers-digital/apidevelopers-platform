@@ -1,0 +1,17 @@
+{
+  "name": "@apidevelopers/onboarding-core",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Idempotent activation-to-first-successful-request onboarding orchestration for API Developers.digital.",
+  "type": "module",
+  "exports": {
+    ".": "./src/index.mjs"
+  },
+  "scripts": {
+    "test": "node --test test/*.test.mjs",
+    "check": "node --check src/common.mjs && node --check src/model-normalizers.mjs && node --check src/model.mjs && node --check src/repository.mjs && node --check src/service-context.mjs && node --check src/request-operations.mjs && node --check src/progress-foundation-operations.mjs && node --check src/progress-adoption-operations.mjs && node --check src/progress-operations.mjs && node --check src/recovery-operations.mjs && node --check src/service.mjs && node --check src/index.mjs && npm test"
+  },
+  "engines": {
+    "node": ">=22"
+  }
+}
