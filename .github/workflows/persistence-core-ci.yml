@@ -50,3 +50,4 @@ jobs:
           node --check packages/project-core/src/index.mjs
           node --check packages/usage-core/src/index.mjs
           node --check packages/entitlement-core/src/index.mjs
+# validation-branch-trigger: 2026-07-20
