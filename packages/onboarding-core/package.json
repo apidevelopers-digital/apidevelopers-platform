@@ -1,0 +1,11 @@
+{
+  "name": "@apidevelopers/onboarding-core",
+  "version": "0.1.0",
+  "type": "module",
+  "private": true,
+  "scripts": {
+    "test": "node --test",
+    "check": "node --check src/*.mjs && node --test"
+  },
+  "engines": { "node": ">=20" }
+}
