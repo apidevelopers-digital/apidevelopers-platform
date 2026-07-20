@@ -4,7 +4,10 @@
   "private": true,
   "type": "module",
   "description": "Deterministic, read-only projector for Portal-derived models.",
-  "exports": "./src/index.mjs",
+  "exports": {
+    ".": "./src/index.mjs",
+    "./git-reader": "./src/git-reader.mjs"
+  },
   "scripts": {
     "test": "node --test"
   }
