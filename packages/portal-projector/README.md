@@ -49,3 +49,21 @@ It exposes only:
 Every adapter call receives the same immutable repository and commit. Mixed-commit responses, unsafe paths, entries outside the requested prefix and malformed adapter results are rejected.
 
 The package does not select storage, API transport, authentication, deployment, or release strategy.
+
+## Markdown parser
+
+Import the deterministic Portal Markdown parser through:
+
+```js
+import {
+  parsePortalMarkdown,
+  parseSimpleYaml,
+  validateInternalMarkdownLinks,
+} from "@apidevelopers/portal-projector/markdown-parser";
+```
+
+The parser requires a Markdown path, a full commit SHA and UTF-8 content. It extracts one level-1 title, stable headings and anchors, relative links, fenced code blocks and the constrained YAML subset used by the Portal architecture documents.
+
+The YAML reader is intentionally small. Unsupported or ambiguous syntax fails closed instead of being guessed. Internal link validation is performed against a caller-provided set of paths from the same pinned commit.
+
+Fixtures under `test/fixtures/` are derived from the canonical Portal documents and are not a second source of truth.
