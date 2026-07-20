@@ -298,3 +298,16 @@ Iteration
 
 Esse ciclo conecta planejamento, autorização, execução, evidência e continuidade sem retirar do Git sua autoridade institucional.
 
+
+## 11. Módulos da arquitetura do Portal
+
+A especificação detalhada foi dividida em módulos menores para preservar clareza, revisão temática e evolução por microcommits:
+
+- [Visão geral e invariantes](portal/README.md)
+- [Projeções derivadas do Git](portal/PROJECTIONS.md)
+- [Reconciliação entre fonte, projeções e superfícies](portal/RECONCILIATION.md)
+- [Modelo inicial da API de leitura](portal/API_MODEL.md)
+- [Critérios de prontidão](portal/READINESS.md)
+- [Contrato executável do projetor](portal/PROJECTOR_CONTRACT.md)
+
+Estes módulos complementam este documento. Em caso de divergência, o modelo canônico versionado no Git e suas referências explícitas prevalecem.
