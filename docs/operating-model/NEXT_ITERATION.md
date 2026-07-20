@@ -1,78 +1,103 @@
 # NEXT ITERATION — API DEVELOPERS.DIGITAL
 
-**Atualizado em:** 2026-07-19  
+**Atualizado em:** 2026-07-20  
 **Branch:** `foundation/global-platform-bootstrap-20260715`  
-**Objetivo:** venda 100% automática  
+**Objetivo:** consolidar o sistema operacional, o mapa institucional e os registros canônicos da empresa  
 **Merge:** não autorizado  
 **Deploy:** não autorizado
 
 ## Prioridade executiva
 
-Fechar o **Gate 2 — Platform Core** antes de ampliar funcionalidades secundárias.
+Fechar a base de continuidade e orientação universal antes de ampliar novas camadas do Portal.
 
-## Escopo obrigatório da próxima iteração
+## Escopo obrigatório desta iteração
 
-1. Implementar `tenant-core`.
-2. Implementar `user-core`.
-3. Implementar `project-core`.
-4. Definir interfaces de persistência para Tenant, User, Project e API Key.
-5. Adicionar adapters persistentes e migrations.
-6. Implementar auditoria persistente.
-7. Integrar os contratos do Core ao API Gateway.
-8. Criar testes unitários, de contrato e integração.
-9. Consolidar um único commit funcional por lote.
-10. Confirmar CI verde no commit consolidado.
+1. manter `COMPANY_WORLD_INDEX.md` como ponto de entrada universal;
+2. manter `CURRENT_STATE.md` como estado factual da produção;
+3. criar `AI_WORK_GUIDE.md` para orientar qualquer IA ou colaborador;
+4. atualizar `PLATFORM_CAPABILITY_REGISTRY.md` com os domínios implementados;
+5. criar `ENTITY_REGISTRY_SPEC.md`;
+6. criar `KNOWLEDGE_GRAPH_MODEL.md`;
+7. somente depois criar `PORTAL_DATA_MODEL.md`.
 
-## Critérios de conclusão do Gate 2
+## Critérios de conclusão
 
-O Gate 2 somente poderá ser marcado como concluído quando:
+Esta iteração termina quando:
 
-- Tenant, User e Project possuírem identidade, estado e regras de domínio;
-- dados críticos sobreviverem ao reinício dos processos;
-- API Keys forem persistentes, revogáveis e rotacionáveis;
-- o Gateway consumir contratos oficiais do Core;
-- auditoria registrar ações relevantes;
-- migrations puderem ser aplicadas de forma reproduzível;
-- testes cobrirem fluxos válidos e inválidos;
-- CI estiver verde;
-- documentação canônica refletir o estado real.
-
-## Fora de escopo nesta iteração
-
-- marketplace;
-- SDK mobile;
-- multi-região;
-- white-label avançado;
-- expansão visual do Portal sem dependência do Core;
-- release público;
-- merge em `main`;
-- deploy em produção.
+- uma nova janela consegue descobrir onde começar sem depender da conversa anterior;
+- toda área possui fonte canônica identificada;
+- o estado atual e o próximo passo estão explícitos;
+- o guia universal descreve método, identidade, limites e fluxo de trabalho;
+- capacidades e entidades possuem identificadores estáveis;
+- o Portal permanece camada de leitura e governança, sem fonte paralela;
+- as duas janelas trabalham sem editar o mesmo arquivo simultaneamente;
+- cada lote termina com commit pequeno, validação, evidência e atualização de estado.
 
 ## Coordenação entre janelas
 
 ### Frente de engenharia
 
-Responsável por código, testes, CI, Gateway, Core, persistência e integrações técnicas.
+Responsável por:
 
-### Frente de produto e governança
+- manifests;
+- implementação;
+- documentação técnica;
+- testes;
+- CI segmentada;
+- evidências por domínio.
 
-Responsável por catálogo, capacidades, jornada automática, critérios de venda, dashboard, riscos e continuidade documental.
+### Frente de produto, arquitetura e governança
 
-As duas frentes não devem editar o mesmo arquivo simultaneamente sem coordenação explícita.
+Responsável por:
+- índice-mestre;
+- continuidade;
+- registros canônicos;
+- crítérios de prontidão;
+- modelo de entidades;
+- relações institucionais;
+- modelo futuro do Portal.
 
-## Próximo documento após esta iteração
+Antes de escrever, cada janela deve conferir o HEAD e evitar o arquivo que a outra frente esteja modificando.
 
-`docs/operating-model/WHY_NOT_READY.md`
+## Método de produção
 
-Ele deverá listar apenas bloqueadores objetivos para a venda automática e ser reduzido conforme os gates forem concluídos.
+```text
+conferência
+→ lote pequeno
+→ validação
+→ commit temático
+→ CI
+→ evidência
+→ atualização do estado
+```
+
+Arquivos grandes devem ser alterados por patch pontual. Publicações devem validar conteúdo e codificação antes da escrita e conferir o resultado depois.
+
+## Fora de escopo nesta iteração
+
+- merge em `main`;
+- release público;
+- deploy em produção;
+- marketplace;
+- SDK mobile;
+- multi-região;
+- expansão visual do Portal antes do modelo de dados;
+- criação de fonte de verdade fora do Git.
+
+## Próximo documento
+
+`docs/company/AI_WORK_GUIDE.md`
 
 ## Regra permanente
 
-Nenhuma decisão importante deve permanecer apenas em conversa.  
+Nenhuma decisão importante deve permanecer apenas em conversa.
+
 Toda mudança relevante precisa terminar com:
 
-1. implementação ou decisão registrada;
-2. testes ou evidências;
-3. documento atualizado;
-4. commit descritivo;
+1. decisão ou implementação registrada;
+2. validação ou evidência;
+3. commit descritivo;
+4. estado atualizado;
 5. próximo passo definido.
+
+Merge, release, deploy e ações sensíveis exigem autorização explícita.
