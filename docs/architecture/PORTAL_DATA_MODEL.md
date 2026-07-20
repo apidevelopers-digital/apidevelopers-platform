@@ -175,3 +175,126 @@ O Portal deve rejeitar ou sinalizar:
 - IDs duplicados.
 
 > O modelo visual pode evoluir. A rastreabilidade entre objeto, origem e evidência é permanente.
+
+## 9. Estado, iteração e governança
+
+### 9.1 StateSnapshot
+
+`StateSnapshot` registra uma fotografia factual e reproduzível do estado institucional em um commit específico.
+
+```yaml
+id: STATE-GLOBAL-PLATFORM-001
+scope: global-platform
+status: active
+head: <sha>
+captured_at: <timestamp>
+source_ref: <SourceRef>
+validated_by:
+  - EVD-STATE-INTEGRITY-001
+```
+
+Regras:
+
+1. Todo snapshot deve apontar para um commit imutável.
+2. Um snapshot não substitui o histórico do Git.
+3. Mudança de `head` exige novo snapshot.
+4. Estado sem evidência válida deve aparecer como não validado.
+5. Snapshots divergentes devem ser preservados para auditoria.
+
+### 9.2 Iteration
+
+`Iteration` representa o próximo lote de trabalho autorizado, com escopo e limites explícitos.
+
+```yaml
+id: ITER-PORTAL-DATA-MODEL-001
+title: Consolidar o modelo de dados do Portal
+status: in_progress
+scope:
+  - docs/architecture/PORTAL_DATA_MODEL.md
+authorized_actions:
+  - update_document
+forbidden_actions:
+  - merge
+  - release
+  - deploy
+source_ref: <SourceRef>
+```
+
+Regras:
+
+1. Toda iteração deve declarar escopo, estado e ações autorizadas.
+2. Ações fora do escopo devem ser bloqueadas.
+3. Merge, release, deploy e publicação real exigem autorização explícita.
+4. A conclusão deve apontar para commit e evidência.
+5. A próxima iteração só deve ser aberta após registrar o estado resultante.
+
+### 9.3 Approval
+
+`Approval` registra autorização explícita para uma ação sensível.
+
+```yaml
+id: APR-001
+action_id: ACT-001
+status: approved
+approved_by: <actor-id>
+approved_at: <timestamp>
+scope:
+  - production-deploy
+expires_at: <timestamp-or-null>
+source_ref: <SourceRef>
+```
+
+Regras:
+
+1. Aprovação deve identificar ação, aprovador, escopo e momento.
+2. Aprovação não pode ser reutilizada fora do escopo.
+3. Aprovação expirada ou revogada bloqueia a execução.
+4. Ausência de aprovação deve resultar em dry-run ou bloqueio.
+5. Aprovação nunca substitui validações técnicas.
+
+### 9.4 AuditEvent
+
+`AuditEvent` registra uma ação executada ou bloqueada e seu resultado observável.
+
+```yaml
+id: AUD-001
+action_id: ACT-001
+actor_id: <actor-id>
+result: success
+executed_at: <timestamp>
+source_ref: <SourceRef>
+approval_id: APR-001
+evidence_id: EVD-DEPLOY-001
+```
+
+Resultados mínimos:
+
+- `success`
+- `failed`
+- `blocked`
+- `cancelled`
+- `dry_run`
+
+Regras:
+
+1. Toda ação sensível deve produzir evento de auditoria.
+2. Eventos de auditoria não devem ser alterados retroativamente.
+3. Falhas e bloqueios devem ser registrados com a mesma disciplina dos sucessos.
+4. O evento deve ligar ação, aprovação e evidência quando aplicável.
+5. O Portal deve permitir navegar do evento até sua origem no Git.
+
+## 10. Ciclo operacional mínimo
+
+```text
+Iteration
+→ Action
+→ Approval, quando exigida
+→ Execution ou Block
+→ AuditEvent
+→ Evidence
+→ StateSnapshot
+→ próxima Iteration
+```
+
+Esse ciclo conecta planejamento, autorização, execução, evidência e continuidade sem retirar do Git sua autoridade institucional.
+
