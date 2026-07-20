@@ -55,3 +55,123 @@ Sequência prevista:
 ## 6. Regra permanente
 
 > O Portal pode organizar, projetar, acelerar e operar. A verdade institucional continua versionada no Git.
+
+## 7. Objetos fundamentais
+
+O núcleo do Portal é composto por quatro objetos. Eles devem permanecer pequenos, rastreáveis e independentes da tecnologia de armazenamento.
+
+### 7.1 SourceRef
+
+`SourceRef` identifica a origem canônica de qualquer dado exibido pelo Portal.
+
+```yaml
+repository: sitedauni/apidevelopers-platform
+branch: foundation/global-platform-bootstrap-20260715
+commit: <sha>
+path: docs/architecture/KNOWLEDGE_GRAPH_MODEL.md
+anchor: tipos-de-nos
+checksum: <sha256>
+observed_at: <timestamp>
+```
+
+Regras:
+
+1. `commit`, `path` e `checksum` são obrigatórios para conteúdo canônico.
+2. `branch` informa o contexto de leitura, mas não substitui o commit.
+3. `anchor` é opcional e aponta para uma seção específica.
+4. A ausência de `SourceRef` torna o dado não canônico.
+5. Alterações na origem devem gerar nova referência e nova evidência.
+
+### 7.2 Node
+
+`Node` representa uma unidade institucional do grafo.
+
+```yaml
+id: CAP-PERSISTENCE-DURABLE-STORE-001
+type: capability
+name: Durable Store
+status: validated
+maturity: M3
+owner: platform-engineering
+source_ref: <SourceRef>
+evidence_ids:
+  - EVD-PERSISTENCE-CI-001
+blocker_ids: []
+updated_at: <timestamp>
+```
+
+Campos mínimos:
+
+- `id`
+- `type`
+- `name`
+- `status`
+- `owner`
+- `source_ref`
+- `updated_at`
+
+Os tipos e IDs devem seguir `KNOWLEDGE_GRAPH_MODEL.md`.
+
+### 7.3 Relation
+
+`Relation` conecta dois nós por uma relação tipada.
+
+```yaml
+id: REL-0001
+type: IMPLEMENTS
+from: CMP-PERSISTENCE-PERSISTENCE-CORE-001
+to: CAP-PERSISTENCE-DURABLE-STORE-001
+source_ref: <SourceRef>
+confidence: canonical
+```
+
+Regras:
+
+1. `from` e `to` devem apontar para nós existentes.
+2. `type` deve pertencer à taxonomia canônica.
+3. Relações derivadas devem informar sua origem.
+4. Relações inválidas devem ser rejeitadas, nunca ocultadas.
+5. A direção da relação é semanticamente relevante.
+
+### 7.4 Evidence
+
+`Evidence` registra a prova observável que sustenta um estado, relação ou capacidade.
+
+```yaml
+id: EVD-PERSISTENCE-CI-001
+type: ci_run
+status: passed
+subject_id: CMP-PERSISTENCE-PERSISTENCE-CORE-001
+workflow: persistence-validation
+commit: <sha>
+provider_reference: <external-reference>
+observed_at: <timestamp>
+source_ref: <SourceRef>
+```
+
+Estados mínimos:
+
+- `declared`
+- `observed`
+- `passed`
+- `failed`
+- `expired`
+- `divergent`
+- `missing`
+
+Uma declaração sem evidência deve aparecer como não validada.
+
+## 8. Integridade do núcleo
+
+O Portal deve rejeitar ou sinalizar:
+
+- objeto sem `SourceRef`;
+- nó sem owner;
+- relação com origem ou destino inexistente;
+- evidência sem sujeito;
+- estado validado sem evidência válida;
+- checksum divergente;
+- referência para commit inexistente;
+- IDs duplicados.
+
+> O modelo visual pode evoluir. A rastreabilidade entre objeto, origem e evidência é permanente.
