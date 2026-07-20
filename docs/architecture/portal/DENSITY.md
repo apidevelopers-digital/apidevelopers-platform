@@ -106,7 +106,7 @@ A hierarquia mínima é:
 4. próxima ação;
 5. origem e temporalidade;
 6. evidências;
-w. metadados complementares.
+7. metadados complementares.
 
 A compactação remove primeiro detalhes complementares, nunca estado ou gate.
 
