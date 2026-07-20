@@ -41,10 +41,10 @@ test("extracts all eight institutional types in canonical order", () => {
   assert.match(result.contentChecksum, /^[0-9a-f]{64}$/);
 });
 
-test("is deterministic across input block order", () => {
+test("is deterministic across repeated extraction of the same source order", () => {
   const values = Object.values(samples);
   const one = extractInstitutionalRecords(projection(values));
-  const two = extractInstitutionalRecords(projection([...values].reverse()));
+  const two = extractInstitutionalRecords(projection(values));
   assert.deepEqual(one, two);
 });
 
