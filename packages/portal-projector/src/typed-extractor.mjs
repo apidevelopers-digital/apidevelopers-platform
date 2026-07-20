@@ -122,7 +122,7 @@ function validateByType(type, value, sourceCommit) {
 
   assertString(value.id, "id", type);
   for (const field of SIGNATURES[type].required.filter((field) =>
-    ["type", "name", "status", "owner", "from", "to", "subject_id", "scope", "head", "captured_at",
+    ["type", "name", "status", "owner", "from", "to", "subject_id", "head", "captured_at",
      "title", "action_id", "approved_by", "approved_at", "actor_id", "result", "executed_at"].includes(field))) {
     assertString(value[field], field, type);
   }
@@ -212,7 +212,7 @@ export function extractInstitutionalRecords(documentProjection, {
     a.institutionalId.localeCompare(b.institutionalId));
 
   const counts = Object.fromEntries(PORTAL_INSTITUTIONAL_TYPES.map((type) => [type, 0]));
-  for (const record of records) counts[record.institutionalType] += 1;
+  for (const record of records) counts[record.institutionalType) += 1;
 
   if (requireAllTypes) {
     const missing = PORTAL_INSTITUTIONAL_TYPES.filter((type) => counts[type] === 0);
