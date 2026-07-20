@@ -1,0 +1,43 @@
+name: Provisioning Core CI
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - main
+      - "foundation/**"
+    paths:
+      - "packages/provisioning-core/**"
+      - ".github/workflows/provisioning-core-ci.yml"
+  pull_request:
+    branches:
+      - main
+    paths:
+      - "packages/provisioning-core/**"
+      - ".github/workflows/provisioning-core-ci.yml"
+
+permissions:
+  contents: read
+
+concurrency:
+  group: provisioning-core-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  validate:
+    runs-on: [self-hosted, macOS, X64]
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+      - name: Check provisioning-core
+        run: npm --prefix packages/provisioning-core run check
+      - name: Check domain boundaries
+        run: |
+          node --check packages/subscription-core/src/index.mjs
+          node --check packages/tenant-core/src/index.mjs
+          node --check packages/project-core/src/index.mjs
+          node --check packages/apikey-core/src/index.mjs
+          node --check packages/persistence-core/src/index.mjs
