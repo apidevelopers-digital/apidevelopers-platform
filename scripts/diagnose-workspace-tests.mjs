@@ -4,13 +4,21 @@ import path from "node:path";
 import process from "node:process";
 import { spawnSync } from "node:child_process";
 
+const REPORT_LIMIT = 8000;
 const root = process.cwd();
 const reportArg = process.argv.find((arg) => arg.startsWith("--report="));
 const reportPath = reportArg ? path.resolve(root, reportArg.slice("--report=".length)) : null;
+const filterArg = process.argv.find((arg) => arg.startsWith("--workspace="));
+const workspaceFilter = filterArg ? filterArg.slice("--workspace=".length) : null;
 const rootManifest = JSON.parse(await readFile(path.join(root, "package.json"), "utf8"));
 const patterns = Array.isArray(rootManifest.workspaces)
   ? rootManifest.workspaces
-  : rootManifest.workspaces?.packages ?? [];
+  : rootManifest.workspaces/.packages ?? [];
+
+function tail(text, limit = REPORT_LIMIT) {
+  const value = String(text ?? "");
+  return value.length > limit ? value.slice(-limit) : value;
+}
 
 const workspaces = [];
 for (const pattern of patterns) {
@@ -28,7 +36,9 @@ for (const pattern of patterns) {
     try {
       const manifest = JSON.parse(await readFile(manifestPath, "utf8"));
       if (typeof manifest.name === "string" && typeof manifest.scripts?.test === "string") {
-        workspaces.push({ name: manifest.name, path: path.relative(root, manifestPath) });
+        if (!workspaceFilter || manifest.name === workspaceFilter) {
+          workspaces.push({ name: manifest.name, path: path.relative(root, manifestPath) });
+        }
       }
     } catch {
       // Manifest preflight owns JSON validation.
@@ -58,6 +68,8 @@ for (const workspace of workspaces) {
     status: failed ? "failed" : "passed",
     exitCode: result.status,
     signal: result.signal ?? null,
+    stdoutTail: failed ? tail(result.stdout) : undefined,
+    stderrTail: failed ? tail(result.stderr) : undefined,
   });
 
   if (failed) {
@@ -71,7 +83,7 @@ const report = {
   workspaceCount: workspaces.length,
   passedCount: results.length - failures.length,
   failedCount: failures.length,
-  failures: failures.map((item) => ({ name: item.name, path: item.path, exitCode: item.exitCode, signal: item.signal })),
+  failures,
   results,
 };
 
