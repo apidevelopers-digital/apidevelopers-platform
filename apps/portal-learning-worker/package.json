@@ -5,8 +5,9 @@
   "type": "module",
   "scripts": {
     "start": "node src/worker.mjs",
+    "integrated": "node src/integrated-cycle.mjs",
     "preflight": "node scripts/contract-preflight.mjs",
-    "check": "npm run preflight && node --check src/publisher.mjs && node --check src/worker.mjs && node --test"
+    "check": "npm run preflight && node --check src/publisher.mjs && node --check src/worker.mjs && node --check src/integrated-cycle.mjs && node --test"
   },
   "dependencies": {
     "@apidevelopers/kernel-memory": "0.1.0",
