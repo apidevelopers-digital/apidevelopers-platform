@@ -10,7 +10,8 @@
     "./markdown-parser": "./src/markdown-parser.mjs",
     "./document-pipeline": "./src/document-pipeline.mjs",
     "./typed-extractor": "./src/typed-extractor.mjs",
-    "./typed-integrity": "./src/typed-integrity.mjs"
+    "./typed-integrity": "./src/typed-integrity.mjs",
+    "./institutional-facade": "./src/institutional-facade.mjs"
   },
   "scripts": {
     "test": "node --test"
