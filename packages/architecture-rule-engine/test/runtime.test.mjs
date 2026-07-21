@@ -323,6 +323,118 @@ test("pattern adapters preserve locations without exposing matched text", async 
   assert.equal(required.length, 1);
 });
 
+
+test("export-contract accepts root and conditional exports with existing targets", async () => {
+  const repository = createMemoryRepository({
+    "packages/string/package.json": JSON.stringify({
+      exports: "./src/index.mjs",
+    }),
+    "packages/string/src/index.mjs": "export {};",
+    "packages/conditional/package.json": JSON.stringify({
+      exports: {
+        ".": {
+          import: "./src/index.mjs",
+          types: "./src/index.d.ts",
+        },
+      },
+    }),
+    "packages/conditional/src/index.mjs": "export {};",
+    "packages/conditional/src/index.d.ts": "export {};",
+  });
+  const adapters = createBuiltinAdapters(repository);
+
+  const findings = await adapters["export-contract"]({
+    rule: rule({
+      type: "export-contract",
+      appliesTo: {
+        include: ["packages/*/package.json"],
+        exclude: [],
+      },
+      parameters: {
+        requiredKeys: ["."],
+        requireExistingTargets: true,
+      },
+    }),
+    targets: await repository.listFiles(),
+  });
+
+  assert.deepEqual(findings, []);
+});
+
+test("export-contract reports missing keys, invalid targets and missing files deterministically", async () => {
+  const repository = createMemoryRepository({
+    "packages/missing-key/package.json": JSON.stringify({
+      exports: {
+        "./internal": "./src/internal.mjs",
+      },
+    }),
+    "packages/invalid-target/package.json": JSON.stringify({
+      exports: "../outside.mjs",
+    }),
+    "packages/missing-file/package.json": JSON.stringify({
+      exports: {
+        ".": {
+          import: "./src/index.mjs",
+          types: "./src/index.d.ts",
+        },
+      },
+    }),
+    "packages/missing-file/src/index.mjs": "export {};",
+  });
+  const adapters = createBuiltinAdapters(repository);
+
+  const findings = await adapters["export-contract"]({
+    rule: rule({
+      type: "export-contract",
+      appliesTo: {
+        include: ["packages/*/package.json"],
+        exclude: [],
+      },
+      parameters: {
+        requiredKeys: ["."],
+        requireExistingTargets: true,
+      },
+    }),
+    targets: await repository.listFiles(),
+  });
+
+  assert.deepEqual(
+    findings.map((finding) => ({
+      path: finding.path,
+      observed: finding.observed,
+    })),
+    [
+      {
+        path: "packages/invalid-target/package.json",
+        observed: {
+          exportKey: ".",
+          target: "../outside.mjs",
+          conditionPath: [],
+          valid: false,
+          reason: "TARGET_MUST_BE_PACKAGE_RELATIVE",
+        },
+      },
+      {
+        path: "packages/missing-file/src/index.d.ts",
+        observed: {
+          exportKey: ".",
+          target: "./src/index.d.ts",
+          conditionPath: ["types"],
+          exists: false,
+          manifestPath: "packages/missing-file/package.json",
+        },
+      },
+      {
+        path: "packages/missing-key/package.json",
+        observed: {
+          found: false,
+          exportKey: ".",
+        },
+      },
+    ],
+  );
+});
+
 test("allowed-value enforces canonical manifest values", async () => {
   const repository = createMemoryRepository({
     "packages/example/package.json": JSON.stringify({
