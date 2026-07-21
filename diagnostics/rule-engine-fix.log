@@ -1,0 +1,132 @@
+
+> @apidevelopers/architecture-rule-engine@0.3.0 test
+> node --test test/*.test.mjs
+
+TAP version 13
+# Subtest: filesystem repository lists only safe regular files deterministically
+ok 1 - filesystem repository lists only safe regular files deterministically
+  ---
+  duration_ms: 21.255584
+  type: 'test'
+  ...
+# Subtest: filesystem repository reads text and checks exact files
+ok 2 - filesystem repository reads text and checks exact files
+  ---
+  duration_ms: 6.421051
+  type: 'test'
+  ...
+# Subtest: filesystem repository blocks traversal and symbolic links
+ok 3 - filesystem repository blocks traversal and symbolic links
+  ---
+  duration_ms: 4.201943
+  type: 'test'
+  ...
+# Subtest: validates the canonical input contract
+ok 4 - validates the canonical input contract
+  ---
+  duration_ms: 2.256378
+  type: 'test'
+  ...
+# Subtest: blocks secret-like fields and unsafe output traversal
+ok 5 - blocks secret-like fields and unsafe output traversal
+  ---
+  duration_ms: 0.339056
+  type: 'test'
+  ...
+# Subtest: calculates all canonical result states
+ok 6 - calculates all canonical result states
+  ---
+  duration_ms: 0.255689
+  type: 'test'
+  ...
+# Subtest: maps canonical exit codes
+ok 7 - maps canonical exit codes
+  ---
+  duration_ms: 0.169698
+  type: 'test'
+  ...
+# Subtest: matches only active, exact and non-expired exceptions
+ok 8 - matches only active, exact and non-expired exceptions
+  ---
+  duration_ms: 1.057792
+  type: 'test'
+  ...
+# Subtest: runs a compliant deterministic pipeline and verifies report integrity
+ok 9 - runs a compliant deterministic pipeline and verifies report integrity
+  ---
+  duration_ms: 4.594588
+  type: 'test'
+  ...
+# Subtest: returns NON_COMPLIANT for an uncovered blocking finding
+ok 10 - returns NON_COMPLIANT for an uncovered blocking finding
+  ---
+  duration_ms: 1.252407
+  type: 'test'
+  ...
+# Subtest: returns CONDITIONAL when every blocking finding is excepted
+ok 11 - returns CONDITIONAL when every blocking finding is excepted
+  ---
+  duration_ms: 0.774311
+  type: 'test'
+  ...
+# Subtest: returns INVALID for unsupported required rule semantics
+ok 12 - returns INVALID for unsupported required rule semantics
+  ---
+  duration_ms: 1.009041
+  type: 'test'
+  ...
+# Subtest: returns INCOMPLETE when a deterministic adapter crashes
+ok 13 - returns INCOMPLETE when a deterministic adapter crashes
+  ---
+  duration_ms: 1.205839
+  type: 'test'
+  ...
+# Subtest: orders findings deterministically by severity then identity
+ok 14 - orders findings deterministically by severity then identity
+  ---
+  duration_ms: 8.519102
+  type: 'test'
+  ...
+# file:///home/runner/work/apidevelopers-platform/apidevelopers-platform/packages/architecture-rule-engine/src/adapters.mjs:231
+#       const patterns = (rule?.paramets?.patterns ?? []).clone?map(parseRegex);
+#                                                                              ^
+# SyntaxError: Unexpected token ';'
+#     at compileSourceTextModule (node:internal/modules/esm/utils:346:16)
+#     at ModuleLoader.moduleStrategy (node:internal/modules/esm/translators:110:18)
+#     at \#translate (node:internal/modules/esm/loader:559:20)
+#     at afterLoad (node:internal/modules/esm/loader:612:29)
+#     at ModuleLoader.loadAndTranslate (node:internal/modules/esm/loader:617:12)
+#     at \#createModuleJob (node:internal/modules/esm/loader:640:36)
+#     at \#getJobFromResolveResult (node:internal/modules/esm/loader:353:34)
+#     at ModuleLoader.getModuleJobForImport (node:internal/modules/esm/loader:321:41)
+# Node.js v22.23.1
+# Subtest: test/runtime.test.mjs
+not ok 3 - test/runtime.test.mjs
+  ---
+  duration_ms: 59.581937
+  type: 'test'
+  location: '/home/runner/work/apidevelopers-platform/apidevelopers-platform/packages/architecture-rule-engine/test/runtime.test.mjs:1:1'
+  failureType: 'testCodeFailure'
+  exitCode: 1
+  signal: ~
+  error: 'test failed'
+  code: 'ERR_TEST_FAILURE'
+  ...
+1..15
+# tests 15
+# suites 0
+# pass 14
+# fail 1
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 105.226136
+npm error Lifecycle script `test` failed with error:
+npm error code 1
+npm error path /home/runner/work/apidevelopers-platform/apidevelopers-platform/packages/architecture-rule-engine
+npm error workspace @apidevelopers/architecture-rule-engine@0.3.0
+npm error location /home/runner/work/apidevelopers-platform/apidevelopers-platform/packages/architecture-rule-engine
+npm error command failed
+npm error command sh -c node --test test/*.test.mjs
+
+exit_code=1
