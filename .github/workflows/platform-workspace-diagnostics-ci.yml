@@ -24,24 +24,34 @@ jobs:
           node-version: 22
 
       - name: Install workspaces
-        run: npm install
-
-      - name: Diagnose workspaces
-        id: diagnose
+        id: install
         continue-on-error: true
         run: |
           mkdir -p diagnostics
+          set +e
+          npm install > diagnostics/npm-install-r4.log 2>&1
+          status=$?
+          set -e
+          printf "\nexit_code=%s\n" "$status" >> diagnostics/npm-install-r4.log
+          exit "$status"
+
+      - name: Diagnose workspaces
+        id: diagnose
+        if: steps.install.outcome == 'success'
+        continue-on-error: true
+        run: |
           node scripts/diagnose-workspace-tests.mjs --report=diagnostics/workspace-tests-r4.json
 
-      - name: Persist report
+      - name: Persist reports
         if: always() && github.ref_type == 'branch'
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add -f diagnostics/workspace-tests-r4.json
-          git commit -m "chor(diagnostics): record workspace failures [skip ci]"
+          git add -f diagnostics/npm-install-r4.log
+          if [ -f diagnostics/workspace-tests-r4.json ]; then git add -f diagnostics/workspace-tests-r4.json; fi
+          git commit -m "chor(diagnostics): record install and test results [skip ci]"
           git push origin "HEAD:${GITHUB_REF#refs/heads/}"
 
       - name: Fail after report
-        if: steps.diagnose.outcome == 'failure'
+        if: steps.install.outcome == 'failure' || steps.diagnose.outcome == 'failure'
         run: exit 1
