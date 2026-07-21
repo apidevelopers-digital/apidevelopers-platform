@@ -7,12 +7,18 @@ on:
     paths:
       - "apps/portal-learning-worker/src/integrated-cycle.mjs"
       - "capabilities/**"
+      - "packages/kernel-memory/**"
+      - "packages/kernel-reflection/**"
+      - "packages/kernel-evolution/**"
       - "scripts/lib/institutional-knowledge-graph.mjs"
       - ".github/workflows/portal-learning-graph-model-ci.yml"
   pull_request:
     paths:
       - "apps/portal-learning-worker/src/integrated-cycle.mjs"
       - "capabilities/**"
+      - "packages/kernel-memory/**"
+      - "packages/kernel-reflection/**"
+      - "packages/kernel-evolution/**"
       - "scripts/lib/institutional-knowledge-graph.mjs"
       - ".github/workflows/portal-learning-graph-model-ci.yml"
 
@@ -28,6 +34,19 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: "22"
+      - name: Link learning kernel workspaces
+        shell: bash
+        run: |
+          set -euo pipefail
+          scope_dir="$GITHUB_WORKSPACE/node_modules/@apidevelopers"
+          mkdir -p "$scope_dir"
+          for package in kernel-memory kernel-reflection kernel-evolution; do
+            source_dir="$GITHUB_WORKSPACE/packages/$package"
+            target="$scope_dir/$package"
+            test -f "$source_dir/package.json"
+            rm -rf "$target"
+            ln -s "$source_dir" "$target"
+          done
       - name: Validate real capability graph projection
         run: |
           node --input-type=module <<'NODE'
