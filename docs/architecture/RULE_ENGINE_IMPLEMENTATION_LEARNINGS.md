@@ -64,3 +64,27 @@ A failed check is converted into one of three durable controls:
 - a deterministic automated test;
 - a pre-publication validation step;
 - a documented invariant when automation is not yet available.
+
+## 2026-07-21 — Invalid Base64 transport payload
+
+### Failure
+
+The first attempt to publish `tests/tooling/architecture-report-check.test.mjs` was rejected by the GitHub Contents API with HTTP 422 because the transmitted `content` field was not valid Base64.
+
+### Cause
+
+The encoded payload was copied through an intermediate text step and acquired an invalid character sequence. The source file itself had already passed local syntax and behavioral tests.
+
+### Correction
+
+The Base64 value was regenerated directly from the validated file bytes and resent without manual editing. GitHub then created the file successfully.
+
+### Prevention
+
+For connector publication:
+
+1. generate Base64 directly from the final file bytes;
+2. never edit or wrap the encoded value manually;
+3. treat HTTP 422 as a transport failure until source equivalence is rechecked;
+4. confirm the returned Git blob SHA after creation.
+
