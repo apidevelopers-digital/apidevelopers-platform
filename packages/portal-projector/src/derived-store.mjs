@@ -1,3 +1,5 @@
+import { sha256 } from "./index.mjs";
+
 export class PortalDerivedStoreError extends Error {
   constructor(code, message, details = {}) {
     super(message);
@@ -8,6 +10,7 @@ export class PortalDerivedStoreError extends Error {
 }
 
 const FULL_SHA = /^[0-9a-f]{40}$/i;
+const CHECKSUM = /^[0-9a-f]{64}$/i;
 
 function fail(code, message, details = {}) {
   throw new PortalDerivedStoreError(code, message, details);
@@ -15,6 +18,11 @@ function fail(code, message, details = {}) {
 
 function isObject(value) {
   return Boolean(value) && typeof value === "object" && !Array.isArray(value);
+}
+
+function checksumPayload(projection) {
+  const { contentChecksum, ...logical } = projection;
+  return logical;
 }
 
 function assertProjection(projection) {
@@ -29,17 +37,37 @@ function assertProjection(projection) {
   }
   if (
     typeof projection.contentChecksum !== "string" ||
-    !/^[0-9a-f]{64}$/i.test(projection.contentChecksum)
+     !CHECKSUM.test(projection.contentChecksum)
   ) {
     fail(
       "PORTAL_DERIVED_STORE_CHECKSUM_INVALID",
       "projection must expose a SHA-256 contentChecksum",
     );
   }
+
+  const observedChecksum = sha256(checksumPayload(projection));
+  if (observedChecksum !== projection.contentChecksum) {
+    fail(
+      "PORTAL_DERIVED_STORE_CHECKSUM_MISMATCH",
+      "projection content checksum does not match its logical payload",
+      {
+        expected: projection.contentChecksum,
+        observed: observedChecksum,
+        sourceCommit: projection.sourceCommit,
+      },
+    );
+  }
+}
+
+function deepFreeze(value, seen = new WeakSet()) {
+  if (!value || typeof value !== "object" || seen.has(value)) return value;
+  seen.add(value);
+  for (const child of Object.values(value)) deepFreeze(child, seen);
+  return Object.freeze(value);
 }
 
 function cloneFrozen(value) {
-  return Object.freeze(structuredClone(value));
+  return deepFreeze(structuredClone(value));
 }
 
 export function createPortalDerivedStore() {
@@ -84,6 +112,8 @@ export function createPortalDerivedStore() {
       sourceCommit: snapshot.sourceCommit,
       contentChecksum: snapshot.contentChecksum,
       published: !existing,
+      mutationScope: "derived_only",
+      canonicalMutationAllowed: false,
     });
   }
 
@@ -119,15 +149,21 @@ export function createPortalDerivedStore() {
     readByCommit,
     listVersions,
     mutationAllowed: false,
+    mutationScope: "none",
+    canonicalMutationAllowed: false,
   });
 
   const publisher = Object.freeze({
     publish,
     mutationAllowed: true,
+    mutationScope: "derived_only",
+    canonicalMutationAllowed: false,
   });
 
   return Object.freeze({
     reader,
     publisher,
+    mutationScope: "derived_only",
+    canonicalMutationAllowed: false,
   });
 }
