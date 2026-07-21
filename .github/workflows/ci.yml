@@ -25,6 +25,8 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: "22"
+      - name: Preflight workspace manifests
+        run: node scripts/check-workspace-manifests.mjs
       - name: Install workspace links
         run: npm install --ignore-scripts --no-audit --no-fund --no-package-lock
       - name: Run complete platform test suite
@@ -35,7 +37,7 @@ jobs:
         run: |
           test -f .audit/snapshot.json
           test -f .audit/report.md
-          node -e 'const fs=require("fs"); const s=JSON.parse(fs.readFileSync(".audit/snapshot.json","utf8")); if (!s.commit || !s.summary || typeof s.summary.files !== "number" || summary.files < 1) process.exit(1);'
+          node -e 'const fs=require("fs"); const s=JSON.parse(fs.readFileSync(".audit/snapshot.json","utf8")); if (!s.commit || !s.summary || typeof s.summary.files !== "number" || s.summary.files < 1) process.exit(1);'
       - name: Reject transient publishing artifacts
         run: |
           test ! -d .wave5
