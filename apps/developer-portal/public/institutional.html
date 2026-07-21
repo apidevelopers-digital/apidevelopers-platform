@@ -1,56 +1,11 @@
+
 <!doctype html>
 <html lang="pt-BR">
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>API Developers.digital — Portal Institucional</title>
-  <style>
-    :root {
-      color-scheme: dark;
-      --bg:#081019; --panel:#101a27; --panel-2:#0c1520; --line:#263548;
-      --text:#eef4ff; --muted:#9aacbf; --accent:#7dd3fc; --ok:#86efac;
-      --warn:#fde68a; --danger:#fca5a5;
-    }
-    * { box-sizing:border-box; }
-    body { margin:0; font:15px/1.5 Inter, ui-sans-serif, system-ui, sans-serif; background:radial-gradient(circle at 20% 0%, #142438, var(--bg) 42%); color:var(--text); }
-    header, main { width:min(1180px, calc(100% - 32px)); margin:auto; }
-    header { padding:38px 0 20px; display:flex; justify-content:space-between; gap:24px; align-items:flex-start; }
-    h1 { margin:0; font-size:clamp(30px, 5vw, 54px); letter-spacing:-.045em; }
-    h2 { margin:0 0 14px; font-size:20px; }
-    h3 { margin:0 0 8px; font-size:16px; }
-    p { color:var(--muted); }
-    code { color:#d8efff; }
-    .eyebrow { margin:0 0 8px; color:var(--accent); }
-    .badges { display:flex; gap:8px; flex-wrap:wrap; justify-content:flex-end; }
-    .badge { border:1px solid var(--line); border-radius:999px; padding:8px 12px; color:var(--ok); white-space:nowrap; }
-    .badge.warn { color:var(--warn); }
-    nav { display:flex; gap:8px; flex-wrap:wrap; margin:0 0 20px; }
-    nav button, .button { border:1px solid var(--line); color:var(--text); background:#142033; padding:10px 14px; border-radius:10px; cursor:pointer; font:inherit; }
-    nav button[aria-current="page"] { background:var(--accent); color:#061019; border-color:transparent; }
-    .toolbar { display:grid; grid-template-columns:2fr 1fr auto; gap:12px; padding:16px; background:var(--panel); border:1px solid var(--line); border-radius:16px; margin-bottom:18px; }
-    label { display:block; color:var(--muted); font-size:13px; margin-bottom:5px; }
-    input { width:100%; padding:11px 12px; border:1px solid var(--line); background:#09111b; color:var(--text); border-radius:10px; font:inherit; }
-    .grid { display:grid; grid-template-columns:repeat(12,1fr); gap:16px; padding-bottom:44px; }
-    .card { grid-column:span 4; background:color-mix(in srgb, var(--panel) 95%, transparent); border:1px solid var(--line); border-radius:18px; padding:20px; }
-    .wide { grid-column:1 / -1; }
-    .half { grid-column:span 6; }
-    .metric { font-size:30px; font-weight:700; margin:4px 0; }
-    .list { display:grid; gap:10px; }
-    .item { padding:12px; border:1px solid var(--line); border-radius:12px; background:var(--panel-2); }
-    .state { border-left:4px solid var(--accent); }
-    .state.warn { border-left-color:var(--warn); }
-    .state.error { border-left-color:var(--danger); }
-    .muted { color:var(--muted); }
-    .hidden { display:none !important; }
-    .skeleton { min-height:86px; background:linear-gradient(90deg,#101925,#172337,#101925); background-size:200% 100%; animation:pulse 1.4s infinite; border-radius:12px; }
-    @keyframes pulse { to { background-position:-200% 0; } }
-    footer { border-top:1px solid var(--line); padding:18px 0 36px; color:var(--muted); }
-    @media (max-width:860px) {
-      header { flex-direction:column; } .badges { justify-content:flex-start; }
-      .toolbar { grid-template-columns:1fr; }
-      .card,.half { grid-column:1 / -1; }
-    }
-  </style>
+  <link rel="stylesheet" href="./institutional.css">
 </head>
 <body>
   <header>
@@ -84,7 +39,7 @@
         <input id="apiKey" type="password" autocomplete="off" placeholder="mantida apenas em memória">
       </div>
       <div style="align-self:end">
-        <button class="button" id="loadButton">Carregar projeções</button>
+        <button id="loadButton">Carregar projeções</button>
       </div>
     </section>
 
@@ -101,15 +56,8 @@
       <article class="card"><h3>Registros</h3><div class="metric" id="recordsCount">—</div><p>Registros derivados disponíveis.</p></article>
       <article class="card"><h3>Módulos</h3><div class="metric" id="modulesCount">—</div><p>Projeções institucionais.</p></article>
       <article class="card"><h3>Versões</h3><div class="metric" id="versionsCount">—</div><p>Versões rastreáveis.</p></article>
-
-      <article class="card half">
-        <h2>Integridade e origem</h2>
-        <div id="integrityPanel" class="list"><div class="item muted">Origem ainda não carregada.</div></div>
-      </article>
-      <article class="card half">
-        <h2>Aprendizado recente</h2>
-        <div id="learningPreview" class="list"><div class="item muted">Aprendizado ainda não carregado.</div></div>
-      </article>
+      <article class="card half"><h2>Integridade e origem</h2><div id="integrityPanel" class="list"><div class="item muted">Origem ainda não carregada.</div></div></article>
+      <article class="card half"><h2>Aprendizado recente</h2><div id="learningPreview" class="list"><div class="item muted">Aprendizado ainda não carregado.</div></div></article>
     </section>
 
     <section class="grid hidden" id="recordsView"><article class="card wide"><h2>Registros</h2><div id="recordsList" class="list"></div></article></section>
@@ -123,125 +71,6 @@
 
     <footer>Portal especializado de leitura · ações, aprovações e execução indisponíveis na v1.</footer>
   </main>
-
-  <script>
-    const $ = (selector) => document.querySelector(selector);
-    const byId = (id) => document.getElementById(id);
-    const safeArray = (value) => Array.isArray(value) ? value : [];
-    const escapeText = (value) => value == null ? "—" : String(value);
-    const base = () => byId("baseUrl").value.replace(/\/+$/, "");
-
-    function setState(kind, title, message) {
-      const state = byId("globalState");
-      state.className = `card wide state ${kind === "error" ? "error" : kind === "warn" ? "warn" : ""}`;
-      state.innerHTML = `<h2>${title}</h2><p>${message}</p>`;
-    }
-
-    function item(title, body, badge) {
-      const safeBadge = badge ? `<strong>${badge}</strong> · ` : "";
-      return `<div class="item">${safeBadge}<strong>${escapeText(title)}</strong><div class="muted">${escapeText(body)}</div></div>`;
-    }
-
-    async function read(path) {
-      const headers = { accept: "application/json" };
-      const key = byId("apiKey").value;
-      if (key) headers["x-api-key"] = key;
-      const response = await fetch(`${base()}${path}`, { method: "GET", headers, credentials: "omit", cache: "no-store" });
-      let payload;
-      try { payload = await response.json(); } catch { payload = null; }
-      if (!response.ok) {
-        const code = payload?.error?.code || payload?.code || `HTTP_${response.status}`;
-        const error = new Error(code);
-        error.status = response.status;
-        error.payload = payload;
-        throw error;
-      }
-      return payload;
-    }
-
-    function normalizeInstitutional(payload) {
-      return payload?.data || payload?.snapshot || payload || {};
-    }
-
-    function normalizeLearning(payload) {
-      return payload?.data || payload?.learning || payload || {};
-    }
-
-    function renderInstitutional(payload) {
-      const data = normalizeInstitutional(payload);
-      const records = safeArray(data.records);
-      const modules = safeArray(data.modules);
-      const versions = safeArray(data.versions);
-      byId("summaryTitle").textContent = data.summary?.title || "Resumo institucional";
-      byId("summaryText").textContent = data.summary?.description || data.summary?.status || "Projeção institucional carregada.";
-      byId("recordsCount").textContent = records.length;
-      byId("modulesCount").textContent = modules.length;
-      byId("versionsCount").textContent = versions.length;
-      byId("recordsList").innerHTML = records.length ? records.map((entry) => item(entry.title || entry.label || entry.id, entry.summary || entry.status || "Registro derivado")).join("") : item("Nenhum registro projetado", "Estado vazio legítimo.");
-      byId("modulesList").innerHTML = modules.length ? modules.map((entry) => item(entry.title || entry.label || entry.id, entry.summary || entry.status || "Módulo derivado")).join("") : item("Nenhum módulo projetado", "Estado vazio legítimo.");
-
-      const integrity = data.integrity || {};
-      const sources = safeArray(integrity.sources);
-      byId("integrityPanel").innerHTML = [
-        item("Integridade", integrity.status || "unknown"),
-        ...sources.map((source) => item(source.label || source.id, source.version || "fonte canônica"))
-      ].join("");
-
-      const meta = payload?.meta || data.meta || {};
-      byId("projectionBadge").textContent = meta.stale ? "Potencialmente desatualizado" : `Projeção ${meta.projectionVersion || "carregada"}`;
-      byId("traceabilityPanel").innerHTML = [
-        item("Versão da projeção", meta.projectionVersion),
-        item("Contrato", meta.contractVersion),
-        item("Projetor", meta.projector),
-        item("Gerado em", meta.generatedAt),
-        item("Correlação", meta.correlationId)
-      ].join("");
-    }
-
-    function renderLearning(payload) {
-      const data = normalizeLearning(payload);
-      const memories = safeArray(data.memories);
-      const findings = safeArray(data.findings);
-      const proposals = safeArray(data.proposals);
-      const evidence = safeArray(data.evidence);
-      const recent = [...memories.slice(0, 2), ...findings.slice(0, 3)];
-      byId("learningPreview").innerHTML = recent.length ? recent.map((entry) => item(entry.title || entry.label || entry.id, entry.summary || entry.description || "Leitura derivada")).join("") : item("Sem aprendizado recente", "Estado vazio legítimo.");
-      byId("findingsList").innerHTML = [...memories, ...findings].length ? [...memories, ...findings].map((entry) => item(entry.title || entry.label || entry.id, entry.summary || entry.description || "Leitura derivada")).join("") : item("Sem memórias ou achados", "Estado vazio legítimo.");
-      byId("proposalsList").innerHTML = proposals.length ? proposals.map((entry) => item(entry.title || entry.id, entry.summary || "Proposta derivada", entry.status === "approved" ? "Aprovada externamente" : "Não aprovada")).join("") : item("Sem propostas", "Nenhuma proposta derivada disponível.");
-      byId("evidenceList").innerHTML = evidence.length ? evidence.map((entry) => item(entry.title || entry.id, entry.summary || entry.uri || "Evidência rastreável")).join("") : item("Sem evidências", "Nenhuma evidência derivada disponível.");
-    }
-
-    async function loadAll() {
-      const button = byId("loadButton");
-      button.disabled = true;
-      setState("", "Carregando projeções", "Consultando APIs de leitura pelo gateway.");
-      document.querySelectorAll(".metric").forEach((node) => node.textContent = "…");
-      try {
-        const [institutional, learning] = await Promise.all([
-          read("/v1/portal/snapshot"),
-          read("/v1/admin/learning")
-        ]);
-        renderInstitutional(institutional);
-        renderLearning(learning);
-        setState("", "Leitura disponível", "Projeções carregadas sem mutação. Aprovação humana continua obrigatória.");
-      } catch (error) {
-        const policy = [401, 403].includes(error.status);
-        setState(policy ? "warn" : "error", policy ? "Sem permissão ou bloqueado por política" : "Erro de carregamento", policy ? "O Portal não revelará objetos fora do escopo autorizado." : `Falha ${error.message}. Tente novamente quando o gateway estiver disponível.`);
-        byId("projectionBadge").textContent = policy ? "Acesso restrito" : "Projeção indisponível";
-      } finally {
-        button.disabled = false;
-      }
-    }
-
-    document.querySelectorAll("nav button").forEach((button) => {
-      button.addEventListener("click", () => {
-        document.querySelectorAll("nav button").forEach((node) => node.removeAttribute("aria-current"));
-        document.querySelectorAll("main > section.grid").forEach((node) => node.classList.add("hidden"));
-        button.setAttribute("aria-current", "page");
-        byId(`${button.dataset.view}View`).classList.remove("hidden");
-      });
-    });
-    byId("loadButton").addEventListener("click", loadAll);
-  </script>
+  <script type="module" src="./portal.js"></script>
 </body>
 </html>
