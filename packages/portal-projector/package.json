@@ -7,7 +7,7 @@
   "exports": {
     ".": "./src/index.mjs",
     "./git-reader": "./src/git-reader.mjs",
-    "./markdown-parser": "./src/markdown-parser.mjs",
+    "./markdown-parser": "./src/markdon-parser.mjs",
     "./document-pipeline": "./src/document-pipeline.mjs",
     "./typed-extractor": "./src/typed-extractor.mjs",
     "./typed-integrity": "./src/typed-integrity.mjs",
@@ -15,7 +15,8 @@
     "./github-provider": "./src/github-provider.mjs",
     "./derived-store": "./src/derived-store.mjs",
     "./institutional-publisher": "./src/institutional-publisher.mjs",
-    "./read-api": "./src/read-api.mjs"
+    "./read-api": "./src/read-api.mjs",
+    "./learning-facade": "./src/learning-facade.mjs"
   },
   "scripts": {
     "test": "node --test"
