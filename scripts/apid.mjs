@@ -27,6 +27,10 @@ const COMMANDS = Object.freeze({
     nodeArgs: ["--test", "tests/tooling/publish-pipeline.test.mjs"],
     description: "Executa os testes essenciais do pipeline.",
   },
+  learning: {
+    script: "apps/portal-learning-worker/src/integrated-cycle.mjs",
+    description: "Gera fontes reais, publica o snapshot e verifica o endpoint somente leitura.",
+  },
 });
 
 function help() {
