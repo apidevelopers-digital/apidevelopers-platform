@@ -1,0 +1,29 @@
+{
+  "schemaVersion": 1,
+  "id": "ap.memory",
+  "displayName": "AP Memory",
+  "category": "intelligence",
+  "owner": "Platform Intelligence",
+  "maturity": "L0",
+  "status": "candidate",
+  "productIndependent": true,
+  "multiTenant": true,
+  "auditRequired": true,
+  "dependsOn": [
+    "ap.events",
+    "ap.tenancy",
+    "ap.radar"
+  ],
+  "publishes": [
+    "memory.recorded.v1",
+    "memory.promoted.v1"
+  ],
+  "consumes": [
+    "radar.signal.observed.v1",
+    "radar.pattern.detected.v1"
+  ],
+  "factoryTemplate": "service",
+  "paths": {
+    "readme": "services/memory/README.md"
+  }
+}
