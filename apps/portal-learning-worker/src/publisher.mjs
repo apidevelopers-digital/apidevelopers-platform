@@ -1,4 +1,5 @@
-import { mkdir, readFile, rename, writeFile } from "node:fs/promises";
+import { randomUUID } from "node:crypto";
+import { mkdir, readFile, rename, unlink, writeFile } from "node:fs/promises";
 import path from "node:path";
 import { createInstitutionalMemory } from "@apidevelopers/kernel-memory";
 import { createReflectionEngine } from "@apidevelopers/kernel-reflection";
@@ -17,7 +18,11 @@ function normalizeMemorySource(source) {
 
 function normalizeGraphSource(source) {
   const nodes = source?.nodes ?? source?.graph?.nodes;
-  const relations = source?.relations ?? source?.edges ?? source?.graph?.relations ?? source?.graph?.edges;
+  const relations =
+    source?.relations ??
+    source?.edges ??
+    source?.graph?.relations ??
+    source?.graph?.edges;
   if (!Array.isArray(nodes) || !Array.isArray(relations)) {
     throw new TypeError("graph source must expose nodes and relations/edges arrays");
   }
@@ -32,6 +37,23 @@ function normalizeAuditSource(source) {
   return report;
 }
 
+async function writeJsonAtomically(filePath, value) {
+  await mkdir(path.dirname(filePath), { recursive: true });
+  const temporaryPath = `${filePath}.${process.pid}.${randomUUID()}.tmp`;
+
+  try {
+    await writeFile(
+      temporaryPath,
+      `${JSON.stringify(value, null, 2)}\n`,
+      "utf8",
+    );
+    await rename(temporaryPath, filePath);
+  } catch (error) {
+    await unlink(temporaryPath).catch(() => {});
+    throw error;
+  }
+}
+
 export async function buildLearningSnapshot({
   memoryEntries,
   graphSnapshot,
@@ -43,8 +65,14 @@ export async function buildLearningSnapshot({
   const memory = createInstitutionalMemory({ clock });
   for (const entry of memoryEntries) memory.append(entry);
 
-  const reflection = createReflectionEngine({ clock }).analyze(graphSnapshot, { requestedBy, scope });
-  const evolution = createEvolutionEngine({ clock }).propose(auditReport, { requestedBy, scope });
+  const reflection = createReflectionEngine({ clock }).analyze(graphSnapshot, {
+    requestedBy,
+    scope,
+  });
+  const evolution = createEvolutionEngine({ clock }).propose(auditReport, {
+    requestedBy,
+    scope,
+  });
   const proposals = evolution.proposals.map((proposal) => ({
     ...proposal,
     approvalStatus: "pending_human_review",
@@ -85,7 +113,9 @@ export async function publishLearningSnapshot({
   clock,
 } = {}) {
   if (!memoryPath || !graphPath || !auditPath || !outputPath) {
-    throw new TypeError("memoryPath, graphPath, auditPath and outputPath are required");
+    throw new TypeError(
+      "memoryPath, graphPath, auditPath and outputPath are required",
+    );
   }
 
   const [memorySource, graphSource, auditSource] = await Promise.all([
@@ -103,9 +133,6 @@ export async function publishLearningSnapshot({
     clock,
   });
 
-  await mkdir(path.dirname(outputPath), { recursive: true });
-  const temporaryPath = `${outputPath}.${process.pid}.tmp`;
-  await writeFile(temporaryPath, `${JSON.stringify(snapshot, null, 2)}\n`, "utf8");
-  await rename(temporaryPath, outputPath);
+  await writeJsonAtomically(outputPath, snapshot);
   return structuredClone(snapshot);
 }
