@@ -1,54 +1,60 @@
-
 <!doctype html>
 <html lang="pt-BR">
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="referrer" content="no-referrer">
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; connect-src 'self' http://127.0.0.1:3000 https:; img-src 'self'; style-src 'self'; script-src 'self'; object-src 'none'; base-uri 'none'; form-action 'none'">
   <title>API Developers.digital — Portal Institucional</title>
   <link rel="stylesheet" href="./institutional.css">
 </head>
 <body>
+  <a class="skip-link" href="#mainContent">Ir para o conteúdo principal</a>
+
   <header>
     <div>
       <p class="eyebrow">Visão Institucional</p>
       <h1>Portal Institucional</h1>
       <p>Projeções derivadas, aprendizado integrado e rastreabilidade. Nenhuma mutação é permitida nesta interface.</p>
     </div>
-    <div class="badges">
+    <div class="badges" aria-label="Estado do portal">
       <span class="badge">Somente leitura</span>
       <span class="badge warn" id="projectionBadge">Projeção não carregada</span>
     </div>
   </header>
 
-  <main>
+  <main id="mainContent" tabindex="-1" aria-busy="false">
     <nav aria-label="Navegação principal">
-      <button aria-current="page" data-view="overview">Visão Geral</button>
-      <button data-view="records">Registros</button>
-      <button data-view="modules">Módulos</button>
-      <button data-view="learning">Aprendizado</button>
-      <button data-view="traceability">Rastreabilidade</button>
+      <div class="tabs" role="tablist" aria-label="Seções do Portal Institucional">
+        <button type="button" id="overviewTab" role="tab" aria-selected="true" aria-controls="overviewView" tabindex="0" data-view="overview">Visão Geral</button>
+        <button type="button" id="recordsTab" role="tab" aria-selected="false" aria-controls="recordsView" tabindex="-1" data-view="records">Registros</button>
+        <button type="button" id="modulesTab" role="tab" aria-selected="false" aria-controls="modulesView" tabindex="-1" data-view="modules">Módulos</button>
+        <button type="button" id="learningTab" role="tab" aria-selected="false" aria-controls="learningView" tabindex="-1" data-view="learning">Aprendizado</button>
+        <button type="button" id="traceabilityTab" role="tab" aria-selected="false" aria-controls="traceabilityView" tabindex="-1" data-view="traceability">Rastreabilidade</button>
+      </div>
     </nav>
 
     <section class="toolbar" aria-label="Conexão de leitura">
       <div>
         <label for="baseUrl">API Gateway</label>
-        <input id="baseUrl" value="http://127.0.0.1:3000" autocomplete="url">
+        <input id="baseUrl" value="http://127.0.0.1:3000" autocomplete="url" inputmode="url" spellcheck="false">
       </div>
       <div>
         <label for="apiKey">Chave de leitura</label>
-        <input id="apiKey" type="password" autocomplete="off" placeholder="mantida apenas em memória">
+        <input id="apiKey" type="password" autocomplete="off" aria-describedby="apiKeyHelp" placeholder="mantida apenas em memória">
+        <p id="apiKeyHelp" class="field-help">A chave não é persistida pelo Portal.</p>
       </div>
-      <div style="align-self:end">
-        <button id="loadButton">Carregar projeções</button>
+      <div class="toolbar-action">
+        <button type="button" id="loadButton">Carregar projeções</button>
       </div>
     </section>
 
-    <section id="globalState" class="card wide state">
+    <section id="globalState" class="card wide state" role="status" aria-live="polite" aria-atomic="true">
       <h2>Pronto para leitura</h2>
       <p>Informe o gateway e uma chave autorizada. O Portal executa apenas requisições GET.</p>
     </section>
 
-    <section class="grid" id="overviewView">
+    <section class="grid" id="overviewView" role="tabpanel" aria-labelledby="overviewTab" tabindex="0">
       <article class="card wide">
         <h2 id="summaryTitle">Resumo institucional</h2>
         <p id="summaryText">Nenhuma projeção carregada.</p>
@@ -60,14 +66,20 @@
       <article class="card half"><h2>Aprendizado recente</h2><div id="learningPreview" class="list"><div class="item muted">Aprendizado ainda não carregado.</div></div></article>
     </section>
 
-    <section class="grid hidden" id="recordsView"><article class="card wide"><h2>Registros</h2><div id="recordsList" class="list"></div></article></section>
-    <section class="grid hidden" id="modulesView"><article class="card wide"><h2>Módulos</h2><div id="modulesList" class="list"></div></article></section>
-    <section class="grid hidden" id="learningView">
+    <section class="grid hidden" id="recordsView" role="tabpanel" aria-labelledby="recordsTab" tabindex="0" hidden>
+      <article class="card wide"><h2>Registros</h2><div id="recordsList" class="list"></div></article>
+    </section>
+    <section class="grid hidden" id="modulesView" role="tabpanel" aria-labelledby="modulesTab" tabindex="0" hidden>
+      <article class="card wide"><h2>Módulos</h2><div id="modulesList" class="list"></div></article>
+    </section>
+    <section class="grid hidden" id="learningView" role="tabpanel" aria-labelledby="learningTab" tabindex="0" hidden>
       <article class="card half"><h2>Memórias e achados</h2><div id="findingsList" class="list"></div></article>
       <article class="card half"><h2>Propostas</h2><div id="proposalsList" class="list"></div></article>
       <article class="card wide"><h2>Evidências</h2><div id="evidenceList" class="list"></div></article>
     </section>
-    <section class="grid hidden" id="traceabilityView"><article class="card wide"><h2>Rastreabilidade</h2><div id="traceabilityPanel" class="list"></div></article></section>
+    <section class="grid hidden" id="traceabilityView" role="tabpanel" aria-labelledby="traceabilityTab" tabindex="0" hidden>
+      <article class="card wide"><h2>Rastreabilidade</h2><div id="traceabilityPanel" class="list"></div></article>
+    </section>
 
     <footer>Portal especializado de leitura · ações, aprovações e execução indisponíveis na v1.</footer>
   </main>
