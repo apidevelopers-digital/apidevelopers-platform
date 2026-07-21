@@ -29,9 +29,9 @@ function pushDiagnostic(diagnostics, options) {
 }
 
 function validateNode(value, schema, pointer, diagnostics, capability) {
-  if (!schem || typeof schema !== "object") return;
+  if (!schema || typeof schema !== "object") return;
 
-  if ("const" in schem && value !== schema.const) {
+  if ("const" in schema && value !== schema.const) {
     pushDiagnostic(diagnostics, {
       capability,
       code: "CONTRACT_CONST_MISMATCH",
@@ -45,7 +45,11 @@ function validateNode(value, schema, pointer, diagnostics, capability) {
       capability,
       code: "CONTRACT_TYPE_MISMATCH",
       message: `${pointer} has an invalid type`,
-      evidence: { pointer, expected: schema.type, actual: value === null ? "null" : typeof value },
+      evidence: {
+        pointer,
+        expected: schema.type,
+        actual: value === null ? "null" : typeof value,
+      },
     });
     return;
   }
@@ -54,30 +58,46 @@ function validateNode(value, schema, pointer, diagnostics, capability) {
     pushDiagnostic(diagnostics, {
       capability,
       code: "CONTRACT_ENUM_MISMATCH",
-     message: `${pointer} must match an allowed value`,
+      message: `${pointer} must match an allowed value`,
       evidence: { pointer, allowed: schema.enum, actual: value },
     });
   }
 
-  if (schema.pattern && typeof value === "string" && !new RegExp(schema.pattern).test(value)) {
+  if (
+    schema.pattern &&
+    typeof value === "string" &&
+    !new RegExp(schema.pattern).test(value)
+  ) {
     pushDiagnostic(diagnostics, {
       capability,
       code: "CONTRACT_PATTERN_MISMATCH",
-     message: `${pointer} does not match the required pattern`,
+      message: `${pointer} does not match the required pattern`,
       evidence: { pointer, pattern: schema.pattern, actual: value },
     });
   }
 
-  if (schema.minLength && typeof value === "string" && value.length < schema.minLength) {
+  if (
+    schema.minLength &&
+    typeof value === "string" &&
+    value.length < schema.minLength
+  ) {
     pushDiagnostic(diagnostics, {
       capability,
       code: "CONTRACT_MIN_LENGTH",
       message: `${pointer} is shorter than the required minimum`,
-      evidence: { pointer, minLength: schema.minLength, actualLength: value.length },
+      evidence: {
+        pointer,
+        minLength: schema.minLength,
+        actualLength: value.length,
+      },
     });
   }
 
-  if (schema.minimum !== undefined && typeof value === "number" && value < schema.minimum) {
+  if (
+    schema.minimum !== undefined &&
+    typeof value === "number" &&
+    value < schema.minimum
+  ) {
     pushDiagnostic(diagnostics, {
       capability,
       code: "CONTRACT_MINIMUM",
@@ -98,9 +118,16 @@ function validateNode(value, schema, pointer, diagnostics, capability) {
         });
       }
     }
+
     if (schema.items) {
       value.forEach((item, index) => {
-        validateNode(item, schema.items,`${pointer}/${index}`,diagnostics,capability);
+        validateNode(
+          item,
+          schema.items,
+          `${pointer}/${index}`,
+          diagnostics,
+          capability,
+        );
       });
     }
     return;
@@ -131,21 +158,38 @@ function validateNode(value, schema, pointer, diagnostics, capability) {
       }
     }
 
-    for (const [key, childSchema] of Object.entries(schema.properties ?? {})) {
+    for (const [key, childSchema] of Object.entries(
+      schema.properties ?? {},
+    )) {
       if (key in value) {
-        validateNode(value[key],childSchema,`${pointer}/${key}`,diagnostics,capability);
+        validateNode(
+          value[key],
+          childSchema,
+          `${pointer}/${key}`,
+          diagnostics,
+          capability,
+        );
       }
     }
   }
 }
 
-export async function loadContract(contractPath, rootDir = process.cwd()) {
+export async function loadContract(
+  contractPath,
+  rootDir = process.cwd(),
+) {
   const absolutePath = path.resolve(rootDir, contractPath);
   return JSON.parse(await readFile(absolutePath, "utf8"));
 }
 
 export function validateAgainstContract(value, schema, options = {}) {
   const diagnostics = [];
-  validateNode(value, schema, "#", diagnostics, options.capability ?? value?.id ?? null);
+  validateNode(
+    value,
+    schema,
+    "#",
+    diagnostics,
+    options.capability ?? value?.id ?? null,
+  );
   return diagnostics;
 }
