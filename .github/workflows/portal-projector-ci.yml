@@ -16,7 +16,7 @@ permissions:
   contents: read
 
 concurrency:
-  group: portal-projector-ci-{{ github.workflow }}-${{ github.ref }}
+  group: portal-projector-ci-${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: true
 
 jobs:
@@ -30,7 +30,7 @@ jobs:
         uses: actions/checkout@v4
 
       - name: Setup Node
-        uses: actions/setup-node@Œ4
+        uses: actions/setup-node@v4
         with:
           node-version: 22
 
