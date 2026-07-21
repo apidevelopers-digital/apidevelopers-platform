@@ -1,0 +1,27 @@
+{
+  "schemaVersion": 1,
+  "id": "ap.radar",
+  "displayName": "AP Radar",
+  "category": "intelligence",
+  "owner": "Platform Intelligence",
+  "maturity": "L1",
+  "status": "active",
+  "productIndependent": true,
+  "multiTenant": true,
+  "auditRequired": true,
+  "dependsOn": [
+    "ap.events",
+    "ap.tenancy"
+  ],
+  "publishes": [
+    "radar.signal.observed.v1",
+    "radar.pattern.detected.v1"
+  ],
+  "consumes": [
+    "events.published.v1"
+  ],
+  "factoryTemplate": "service",
+  "paths": {
+    "readme": "services/radar/README.md"
+  }
+}
