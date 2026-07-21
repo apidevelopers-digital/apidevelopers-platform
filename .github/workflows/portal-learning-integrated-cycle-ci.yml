@@ -8,12 +8,14 @@ on:
       - "apps/portal-learning-worker/**"
       - "apps/api-gateway/src/learning-snapshot-repository.mjs"
       - "apps/developer-portal/public/learning.html"
+      - "scripts/apid.mjs"
       - ".github/workflows/portal-learning-integrated-cycle-ci.yml"
   pull_request:
     paths:
       - "apps/portal-learning-worker/**"
       - "apps/api-gateway/src/learning-snapshot-repository.mjs"
       - "apps/developer-portal/public/learning.html"
+      - "scripts/apid.mjs"
       - ".github/workflows/portal-learning-integrated-cycle-ci.yml"
 
 permissions:
