@@ -1,5 +1,5 @@
 import path from "node:path";
-import {GlobToRegExp, matchesPatterns,normalizeRepositoryPath} from "./repository.mjs";
+import { globToRegExp, matchesPatterns, normalizeRepositoryPath } from "./repository.mjs";
 
 function clone(value){ return structuredClone(value); }
 function selectTargets(rule,targets){
