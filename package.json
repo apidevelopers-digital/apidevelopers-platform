@@ -22,6 +22,7 @@
     "doctor": "node scripts/apid.mjs doctor",
     "validate:publish": "node scripts/apid.mjs validate",
     "publish:file": "node scripts/apid.mjs publish",
+    "architecture:validate": "node scripts/apid.mjs architecture validate",
     "test:publish": "node --test tests/tooling/publish-pipeline.test.mjs",
     "check": "npm run check:structure && npm run registry:check && npm run test:publish",
     "check:structure": "node scripts/check-structure.mjs",
