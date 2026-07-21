@@ -74,11 +74,18 @@ async function createFixture({ includeKernelReadme = true } = {}) {
       version: "0.1.0",
       private: true,
       type: "module",
+      exports: {
+        ".": "./src/index.mjs",
+      },
       engines: { node: ">=22" },
     }, null, 2)}\n`,
     "utf8",
   );
-  await writeFile(path.join(kernelRoot, "src/index.mjs"), "export const ok = true;\n", "utf8");
+  await writeFile(
+    path.join(kernelRoot, "src/index.mjs"),
+    "export const ok = true;\n",
+    "utf8",
+  );
   await writeFile(
     path.join(kernelRoot, "test/index.test.mjs"),
     [
@@ -92,14 +99,27 @@ async function createFixture({ includeKernelReadme = true } = {}) {
   );
 
   if (includeKernelReadme) {
-    await writeFile(path.join(kernelRoot, "README.md"), "# Kernel Example\n", "utf8");
+    await writeFile(
+      path.join(kernelRoot, "README.md"),
+      "# Kernel Example\n",
+      "utf8",
+    );
   }
 
   requireSuccess(execute("git", ["init", "-b", "fixture"], root), "git init");
-  requireSuccess(execute("git", ["config", "user.name", "Architecture Fixture"], root), "git config name");
-  requireSuccess(execute("git", ["config", "user.email", "fixture@example.invalid"], root), "git config email");
+  requireSuccess(
+    execute("git", ["config", "user.name", "Architecture Fixture"], root),
+    "git config name",
+  );
+  requireSuccess(
+    execute("git", ["config", "user.email", "fixture@example.invalid"], root),
+    "git config email",
+  );
   requireSuccess(execute("git", ["add", "."], root), "git add");
-  requireSuccess(execute("git", ["commit", "-m", "fixture"], root), "git commit");
+  requireSuccess(
+    execute("git", ["commit", "-m", "fixture"], root),
+    "git commit",
+  );
 
   const revision = execute("git", ["rev-parse", "HEAD"], root);
   requireSuccess(revision, "git rev-parse");
@@ -140,7 +160,9 @@ test("apid architecture validate writes a verified compliant report for a comple
   requireSuccess(result, "architecture validation");
 
   const summary = JSON.parse(result.stdout);
-  const report = JSON.parse(await readFile(path.join(fixture.root, output), "utf8"));
+  const report = JSON.parse(
+    await readFile(path.join(fixture.root, output), "utf8"),
+  );
 
   assert.equal(summary.result, "COMPLIANT");
   assert.equal(summary.findingCount, 0);
@@ -151,6 +173,7 @@ test("apid architecture validate writes a verified compliant report for a comple
   assert.equal(report.revision.commitSha, fixture.commitSha);
   assert.equal(report.revision.branch, fixture.branch);
   assert.equal(report.ruleset.rulesetId, "architecture-core");
+  assert.equal(report.ruleset.version, "1.1.0");
   assert.equal(report.scope.mode, "repository");
   assert.ok(report.scope.resolvedFileCount > 0);
   assert.equal(verifyValidationReport(report), true);
@@ -175,7 +198,10 @@ test("apid architecture validate returns a verified blocking finding for an inco
   assert.equal(report.summary.findingCount, 1);
   assert.equal(report.summary.blockingFindingCount, 1);
   assert.equal(report.findings[0].ruleId, "ARC-KRN-001");
-  assert.equal(report.findings[0].path, "packages/kernel-example/README.md");
+  assert.equal(
+    report.findings[0].path,
+    "packages/kernel-example/README.md",
+  );
   assert.equal(report.findings[0].severity, "ERROR");
   assert.equal(verifyValidationReport(report), true);
 });
