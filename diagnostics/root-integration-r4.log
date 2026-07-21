@@ -1,0 +1,23 @@
+✔ authenticates without tenant authority and authorizes only an explicit same-tenant membership (3.653896ms)
+✔ turns a governed audit report into advisory evolution proposals (3.403452ms)
+✔ planning -> decision -> policy -> runtime -> evidence -> audit (8.042591ms)
+✔ runs the governed cognitive pipeline across package boundaries (1.909918ms)
+✔ runs memory -> reasoning -> reflection -> planning -> decision through public governed boundaries (3.438704ms)
+✔ constitution -> policy -> audit -> evolution -> governance authorizes a coherent lifecycle without executing (10.101848ms)
+✔ constitutional deny prevails and governance blocks promotion (9.568594ms)
+✔ runs decision -> policy through public governed boundaries (7.047744ms)
+✔ audits a verified evidence artifact through public governed boundaries (9.372261ms)
+✔ turns a technically authorized governance engine result into a human-only review (4.852709ms)
+✔ planning -> decision -> policy -> runtime dry-run -> evidence (5.168372ms)
+✔ runs memory -> reasoning -> reflection -> planning -> decision through public governed boundaries (3.134849ms)
+✔ PlanningReport flows into DecisionRecord without mutation, approval, or execution (2.542513ms)
+✔ runs policy -> runtime through public governed boundaries (7.010368ms)
+✔ records runtime output as immutable verified evidence (3.812663ms)
+ℹ tests 15
+ℹ suites 0
+ℹ pass 15
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 408.492971
