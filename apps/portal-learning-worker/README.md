@@ -88,3 +88,17 @@ Operação contínua:
 ```bash
 npm --workspace @apidevelopers/portal-learning-worker start
 ```
+
+## Operação
+
+O modo padrão é execução sob demanda:
+
+```bash
+node scripts/apid.mjs learning
+```
+
+A política de retenção, recuperação, concorrência e diagnóstico está em:
+
+- `docs/operations/PORTAL_LEARNING_RUNBOOK_2026-07-21.md`
+
+Execução contínua e retenção histórica permanecem desabilitadas até decisão operacional explícita.
