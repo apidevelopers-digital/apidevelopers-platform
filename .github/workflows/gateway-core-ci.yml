@@ -1,0 +1,42 @@
+name: Gateway Core CI
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - main
+      - "foundation/**"
+    paths:
+      - "packages/gateway-core/**"
+      - ".github/workflows/gateway-core-ci.yml"
+  pull_request:
+    branches:
+      - main
+    paths:
+      - "packages/gateway-core/**"
+      - ".github/workflows/gateway-core-ci.yml"
+
+permissions:
+  contents: read
+
+concurrency:
+  group: gateway-core-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  validate:
+    runs-on: [self-hosted, macOS, X64]
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+      - name: Check gateway-core
+        run: npm --prefix packages/gateway-core run check
+      - name: Check domain boundaries
+        run: |
+          node --check packages/apikey-core/src/index.mjs
+          node --check packages/entitlement-core/src/index.mjs
+          node --check packages/usage-core/src/index.mjs
+          node --check packages/limits-core/src/index.mjs
