@@ -1,0 +1,60 @@
+name: Commercial Journey Memory Runtime CI
+
+on:
+  push:
+    paths:
+      - "packages/commercial-journey-memory-runtime/**"
+      - "packages/commercial-journey-core/**"
+      - "packages/user-core/**"
+      - "packages/plan-core/**"
+      - "packages/checkout-core/**"
+      - "packages/subscription-core/**"
+      - "packages/tenant-core/**"
+      - "packages/project-core/**"
+      - "packages/provisioning-core/**"
+      - "packages/apikey-core/**"
+      - "packages/gateway-core/**"
+      - "package.json"
+      - ".github/workflows/commercial-journey-memory-runtime-ci.yml"
+  pull_request:
+    paths:
+      - "packages/commercial-journey-memory-runtime/**"
+      - "packages/commercial-journey-core/**"
+      - "packages/user-core/**"
+      - "packages/plan-core/**"
+      - "packages/checkout-core/**"
+      - "packages/subscription-core/**"
+      - "packages/tenant-core/**"
+      - "packages/project-core/**"
+      - "packages/provisioning-core/**"
+      - "packages/apikey-core/**"
+      - "packages/gateway-core/**"
+      - "package.json"
+      - ".github/workflows/commercial-journey-memory-runtime-ci.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: commercial-journey-memory-runtime-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - name: Checkout exact SHA
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: Install workspaces
+        run: npm install --ignore-scripts --no-audit --no-fund --no-package-lock
+
+      - name: Check commercial journey memory runtime
+        run: npm run check --workspace=@apidevelopers/commercial-journey-memory-runtime
