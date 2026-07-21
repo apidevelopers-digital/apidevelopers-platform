@@ -36,4 +36,13 @@ jobs:
 
       - name: Run portal-projector tests
         working-directory: packages/portal-projector
-        run: node --test
+        shell: bash
+        run: |
+          set -o pipefail
+          node --test --test-reporter=tap 2>&1 | tee /tmp/portal-projector-tests.tap
+          status=${PIPESTATUS[0]}
+          if [ "$status" -ne 0 ]; then
+            summary=$(tail -n 40 /tmp/portal-projector-tests.tap | tr '\n' ' ' | sed 's/%/%25/g; s/\r/%0D/g; s/\n/%0A/g')
+            echo "::error title=Portal Projector tests failed::$summary"
+            exit "$status"
+          fi
