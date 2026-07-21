@@ -1,6 +1,9 @@
 name: Rule Engine Fix Diagnostic
 
 on:
+  push:
+    paths:
+      - ".github/workflows/rule-engine-fix-diagnostic.yml"
   workflow_dispatch:
 
 permissions:
