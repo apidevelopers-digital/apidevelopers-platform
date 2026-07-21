@@ -211,7 +211,7 @@ export function createBuiltinAdapters(io) {
 
     async "required-pattern"({ rule, targets }) {
       const findings = [];
-      const patterns = (rule?.paramets?.patterns ?? []).map(parseRegex);
+      const patterns = (rule?.parameters?.patterns ?? []).map(parseRegex);
 
       for (const target of selectTargets(rule, targets)) {
         const text = await io.readText(target);
