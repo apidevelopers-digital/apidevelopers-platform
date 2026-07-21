@@ -1,62 +1,66 @@
 # @apidevelopers/architecture-rule-engine
 
-Deterministic, read-only core for evaluating canonical architecture rulesets and generating the authoritative JSON validation report.
+Deterministic, read-only runtime for evaluating canonical architecture rulesets and generating authoritative JSON validation reports.
 
-## Initial delivery
+## Implemented surface
 
-This package implements the first executable unit described by:
+The package provides:
 
-- `docs/architecture/ARCHITECTURE_ASSURANCE_MODEL.md`
-- `docs/architecture/CANONICAL_RULESET_SPEC.md`
-- `docs/architecture/ARCHITECTURE_EXCEPTION_MODEL.md`
-- `docs/architecture/ARCHITECTURE_EVIDENCE_MODEL.md`
-- `docs/architecture/VALIDATION_REPORT_SCHEMA.md`
-- `docs/architecture/RULE_ENGINE_SPEC.md`
+- canonical input validation and stable result semantics;
+- deterministic rule planning, finding normalization and SHA-256 report integrity;
+- explicit exception matching;
+- in-memory and filesystem repository adapters;
+- versioned ruleset and exception loaders;
+- the validation service used by `apid architecture validate`;
+- built-in read-only adapters for:
+  - `required-path`
+  - `required-field`
+  - `allowed-value`
+  - `required-pattern`
+  - `forbidden-pattern`
+  - `export-contract`
 
-The versioned schemas live in:
+## Export contract
 
-```text
-architecture/schemas/v1/
-  rule-engine-input.schema.json
-  validation-report.schema.json
+`export-contract` validates package manifests selected by `appliesTo`.
+
+Supported parameters:
+
+```json
+{
+  "requiredKeys": ["."],
+  "requireExistingTargets": true,
+  "allowNullTargets": false
+}
 ```
+
+The adapter accepts root string exports and conditional export objects. Export targets must be package-relative (`./...`), remain inside the package directory and, by default, resolve to existing files. Wildcard targets are intentionally unsupported in this first deterministic version.
 
 ## Guarantees
 
-- validates canonical input before execution;
-- blocks unsafe relative paths and secret-like fields;
-- plans enabled rules in stable identity order;
-- executes only explicitly supplied in-memory adapters;
-- normalizes and sorts findings deterministically;
-- preserves blocking findings covered by valid exceptions as `EXCEPTED`;
-- calculates `COMPLIANT`, `CONDITIONAL`, `NON_COMPLIANT`, `INVALID` and `INCOMPLETE`;
-- emits stable exit semantics;
-- generates a canonical report with SHA-256 integrity;
-- never writes to the validated source tree;
-- performs no network, Git, CI or Portal mutation.
+- read-only evaluation of validated source files;
+- normalized repository-relative paths;
+- deterministic target and finding order;
+- no hidden network access;
+- no secret content emitted in findings;
+- stable exit codes for `COMPLIANT`, `CONDITIONAL`, `NON_COMPLIANT`, `INVALID` and `INCOMPLETE`;
+- canonical report integrity verification.
 
-## API
+## Commands
 
-```js
-import {
-  runRuleEngine,
-  validateEngineInput,
-  calculateResult,
-  verifyValidationReport,
-} from "@apidevelopers/architecture-rule-engine";
+From the package directory:
+
+```bash
+npm run check
+npm test
 ```
 
-`runRuleEngine(input, runtime)` receives a canonical input plus an in-memory ruleset, exact exception snapshot, deterministically resolved files and explicit rule adapters.
+From the repository root:
+
+```bash
+node scripts/apid.mjs architecture validate
+```
 
 ## Current boundary
 
-This delivery intentionally does not:
-
-- discover files from Git;
-- load rulesets from disk;
-- publish artifacts;
-- expose `apid architecture validate`;
-- add or modify CI workflows;
-- integrate with the Portal.
-
-Those capabilities belong to subsequent, independently testable units.
+The runtime does not approve exceptions, mutate validated source files, merge branches, deploy environments or grant CI authorization. CI and Portal layers may consume the canonical report but must not recalculate its result.
