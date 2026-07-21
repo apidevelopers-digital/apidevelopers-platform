@@ -1,0 +1,30 @@
+{
+  "schemaVersion": 1,
+  "id": "ap.knowledge",
+  "displayName": "AP Knowledge",
+  "category": "intelligence",
+  "owner": "Platform Intelligence",
+  "maturity": "L0",
+  "status": "candidate",
+  "productIndependent": true,
+  "multiTenant": true,
+  "auditRequired": true,
+  "dependsOn": [
+    "ap.events",
+    "ap.tenancy",
+    "ap.memory"
+  ],
+  "publishes": [
+    "knowledge.entity.recorded.v1",
+    "knowledge.relationship.recorded.v1",
+    "knowledge.context.resolved.v1"
+  ],
+  "consumes": [
+    "memory.recorded.v1",
+    "memory.promoted.v1"
+  ],
+  "factoryTemplate": "service",
+  "paths": {
+    "readme": "services/knowledge/README.md"
+  }
+}
