@@ -13,7 +13,8 @@
     "./typed-integrity": "./src/typed-integrity.mjs",
     "./institutional-facade": "./src/institutional-facade.mjs",
     "./github-provider": "./src/github-provider.mjs",
-    "./learning-facade": "./src/learning-facade.mjs"
+    "./learning-facade": "./src/learning-facade.mjs",
+    "./learning-kernel-adapter": "./src/learning-kernel-adapter.mjs"
   },
   "scripts": {
     "test": "node --test"
