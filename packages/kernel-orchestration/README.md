@@ -16,6 +16,14 @@ Este pacote ainda não executa modelos, ferramentas ou ações externas. Ele é 
 
 ## Execução de testes
 
+Na raiz do repositório:
+
 ```bash
-node --test packages/kernel-orchestration/test
+node --test packages/kernel-orchestration/test/index.test.mjs
+```
+
+Ou dentro do pacote:
+
+```bash
+npm test
 ```
