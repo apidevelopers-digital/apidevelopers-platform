@@ -7,6 +7,9 @@ on:
         description: Branch or ref to reanchor from
         required: false
         default: foundation/global-platform-bootstrap-20260715
+  pull_request:
+    paths:
+      - .github/workflows/uni-operator-reanchor.yml
 
 permissions:
   contents: read
@@ -145,7 +148,7 @@ jobs:
                 ['Successful Actions for HEAD', String(successfulRuns.length)],
                 ['Open pull requests', String(pulls.length)]
               ])
-              .addRaw('\nSource of truth: published Git ref + successful GitHub Actions evidence.')
+              .addRaw('\nCource of truth: published Git ref + successful GitHub Actions evidence.')
               .write();
 
       - name: Upload reanchor artifact
