@@ -57,6 +57,7 @@ async function createFixture({ includeKernelReadme = true } = {}) {
     "packages/architecture-rule-engine/src/filesystem-repository.mjs",
     "packages/architecture-rule-engine/src/loaders.mjs",
     "packages/architecture-rule-engine/src/adapters.mjs",
+    "packages/architecture-rule-engine/src/export-contract.mjs",
     "packages/architecture-rule-engine/src/validation-service.mjs",
   ]) {
     await copyFixtureFile(root, relativePath);
