@@ -1,0 +1,34 @@
+name: Portal Projector HTTP CI
+
+on:
+  push:
+    paths:
+      - "packages/portal-projector-http/**"
+      - ".github/workflows/portal-projector-http-ci.yml"
+  pull_request:
+    paths:
+      - "packages/portal-projector-http/**"
+      - ".github/workflows/portal-projector-http-ci.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: portal-projector-http-ci-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+      - name: Validate syntax
+        run: node --check packages/portal-projector-http/src/index.mjs
+      - name: Run tests
+        working-directory: packages/portal-projector-http
+        run: node --test test/*.test.mjs
