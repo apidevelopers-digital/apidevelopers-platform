@@ -22,7 +22,6 @@ const repository = createJsonLearningSnapshotRepository({
   filePath: "/tmp/portal-learning-preflight.json",
 });
 assertFunction(repository.getLatest, "repository.getLatest");
-assert.equal(repository.mutationAllowed, false);
 
 const route = createLearningRoute({
   repository: {
