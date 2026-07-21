@@ -40,7 +40,7 @@ test("records usage only after successful completion", () => {
   const completed = f.service.complete({
     requestId: "request-1",
     idempotencyKey: "usage-for-request-1",
-    occurredAt = T0,
+    occurredAt: T0,
     metadata: { upstreamStatus: 200 },
   });
   assert.equal(completed.snapshot.status, "completed");
