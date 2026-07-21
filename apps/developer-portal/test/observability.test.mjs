@@ -73,7 +73,7 @@ assert.deepEqual(result.observability, {
   count: 2,
   successes: 1,
   failures: 1,
-  durationMs: result.metrics[0].durationMs + result.metrics[1].durationMs,
+  durationMs: Math.round((result.metrics[0].durationMs + result.metrics[1].durationMs) * 100) / 100,
 });
 
 console.log("developer-portal local observability contracts: ok");
