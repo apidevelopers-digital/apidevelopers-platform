@@ -1,48 +1,80 @@
 import assert from "node:assert/strict";
-import { mkdtemp, readFile, writeFile } from "node:fs/promises";
+import { mkdtemp, readFile, readdir, rm, writeFile } from "node:fs/promises";
 import os from "node:os";
 import path from "node:path";
 import test from "node:test";
 import { publishLearningSnapshot } from "../src/publisher.mjs";
 import { createJsonLearningSnapshotRepository } from "../../api-gateway/src/learning-snapshot-repository.mjs";
 
-const clock = () => "2026-07-21T12:00:00.000Z";
+async function writeJson(filePath, value) {
+  await writeFile(filePath, `${JSON.stringify(value, null, 2)}\n`, "utf8");
+}
 
-test("publishes deterministic read-only snapshot and gateway reads it", async () => {
-  const dir = await mkdtemp(path.join(os.tmpdir(), "portal-learning-"));
-  const memoryPath = path.join(dir, "memory.json");
-  const graphPath = path.join(dir, "graph.json");
-  const auditPath = path.join(dir, "audit.json");
-  const outputPath = path.join(dir, "portal-learning.json");
+function createSources() {
+  return {
+    memory: {
+      entries: [{
+        id: "memory.audit",
+        type: "evidence",
+        subject: "repository.audit",
+        cycleId: "cycle.audit",
+        status: "observed",
+        refs: [".audit/snapshot.json"],
+        data: { summary: { changed: 1 } },
+        recordedBy: "test",
+        recordedAt: "2026-07-21T12:00:00.000Z",
+      }],
+    },
+    graph: {
+      nodes: [
+        { id: "solution.portal", kind: "solution", status: "active" },
+        { id: "capability.learning", kind: "capability", status: "active" },
+      ],
+      relations: [
+        { type: "implements", from: "solution.portal", to: "capability.learning" },
+      ],
+    },
+    audit: {
+      auditId: "audit.portal-learning",
+      status: "compliant",
+      checks: [{
+        ruleId: "RULE_1",
+        state: "pass",
+        subject: "portal-learning",
+        statement: "Portal learning contract is valid.",
+        recommendation: null,
+        evidence: ["test"],
+      }],
+    },
+  };
+}
 
-  await writeFile(memoryPath, JSON.stringify({ entries: [] }));
-  await writeFile(graphPath, JSON.stringify({ nodes: [], relations: [] }));
-  await writeFile(auditPath, JSON.stringify({
-    auditId: "audit-1",
-    status: "compliant",
-    checks: [],
-  }));
+test("publishes a deterministic read-only snapshot and exposes it through the gateway repository", async (t) => {
+  const directory = await mkdtemp(path.join(os.tmpdir(), "portal-learning-publisher-"));
+  t.after(() => rm(directory, { recursive: true, force: true }));
 
-  const first = await publishLearningSnapshot({
-    memoryPath,
-    graphPath,
-    auditPath,
-    outputPath,
-    clock,
-  });
-  const serializedFirst = await readFile(outputPath, "utf8");
+  const memoryPath = path.join(directory, "memory.json");
+  const graphPath = path.join(directory, "graph.json");
+  const auditPath = path.join(directory, "audit.json");
+  const outputPath = path.join(directory, "snapshot.json");
+  const sources = createSources();
 
-  const second = await publishLearningSnapshot({
-    memoryPath,
-    graphPath,
-    auditPath,
-    outputPath,
-    clock,
-  });
-  const serializedSecond = await readFile(outputPath, "utf8");
+  await Promise.all([
+    writeJson(memoryPath, sources.memory),
+    writeJson(graphPath, sources.graph),
+    writeJson(auditPath, sources.audit),
+  ]);
+
+  const clock = () => "2026-07-21T12:00:00.000Z";
+  const input = { memoryPath, graphPath, auditPath, outputPath, clock };
+
+  const first = await publishLearningSnapshot(input);
+  const firstBytes = await readFile(outputPath, "utf8");
+  const second = await publishLearningSnapshot(input);
+  const secondBytes = await readFile(outputPath, "utf8");
 
   assert.deepEqual(second, first);
-  assert.equal(serializedSecond, serializedFirst);
+  assert.equal(secondBytes, firstBytes);
   assert.equal(first.readOnly, true);
   assert.deepEqual(first.gates, {
     humanApprovalRequired: true,
@@ -52,21 +84,49 @@ test("publishes deterministic read-only snapshot and gateway reads it", async ()
   });
 
   const repository = createJsonLearningSnapshotRepository({ filePath: outputPath });
-  const loaded = await repository.getLatest();
-  assert.deepEqual(loaded, first);
-});
-
-test("fails closed when a real source is absent", async () => {
-  const dir = await mkdtemp(path.join(os.tmpdir(), "portal-learning-missing-"));
+  assert.deepEqual(await repository.getLatest(), first);
 
   await assert.rejects(
     publishLearningSnapshot({
-      memoryPath: path.join(dir, "missing-memory.json"),
-      graphPath: path.join(dir, "missing-graph.json"),
-      auditPath: path.join(dir, "missing-audit.json"),
-      outputPath: path.join(dir, "snapshot.json"),
-      clock,
+      ...input,
+      memoryPath: path.join(directory, "missing-memory.json"),
     }),
-    /ENOENT/,
+    { code: "ENOENT" },
   );
+});
+
+test("concurrent atomic publications leave one valid snapshot and no temporary files", async (t) => {
+  const directory = await mkdtemp(path.join(os.tmpdir(), "portal-learning-concurrency-"));
+  t.after(() => rm(directory, { recursive: true, force: true }));
+
+  const memoryPath = path.join(directory, "memory.json");
+  const graphPath = path.join(directory, "graph.json");
+  const auditPath = path.join(directory, "audit.json");
+  const outputPath = path.join(directory, "snapshot.json");
+  const sources = createSources();
+
+  await Promise.all([
+    writeJson(memoryPath, sources.memory),
+    writeJson(graphPath, sources.graph),
+    writeJson(auditPath, sources.audit),
+  ]);
+
+  const input = {
+    memoryPath,
+    graphPath,
+    auditPath,
+    outputPath,
+    clock: () => "2026-07-21T12:00:00.000Z",
+  };
+
+  const [left, right] = await Promise.all([
+    publishLearningSnapshot(input),
+    publishLearningSnapshot(input),
+  ]);
+
+  assert.deepEqual(left, right);
+  assert.deepEqual(JSON.parse(await readFile(outputPath, "utf8")), left);
+
+  const leftovers = (await readdir(directory)).filter((name) => name.endsWith(".tmp"));
+  assert.deepEqual(leftovers, []);
 });
