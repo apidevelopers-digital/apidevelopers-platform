@@ -7,7 +7,7 @@
   "exports": {
     ".": "./src/index.mjs",
     "./git-reader": "./src/git-reader.mjs",
-    "./markdown-parser": "./src/markdon-parser.mjs",
+    "./markdown-parser": "./src/markdown-parser.mjs",
     "./document-pipeline": "./src/document-pipeline.mjs",
     "./typed-extractor": "./src/typed-extractor.mjs",
     "./typed-integrity": "./src/typed-integrity.mjs",
