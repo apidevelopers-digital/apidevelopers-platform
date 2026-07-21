@@ -65,10 +65,8 @@ test("runs document, typed and integrity stages in order", async () => {
 });
 
 test("is deterministic for the same stage outputs", async () => {
-  const one = fixture();
-  const two = fixture();
-  const first = await projectPortalInstitutionalState(one);
-  const second = await projectPortalInstitutionalState(two);
+  const first = await projectPortalInstitutionalState(fixture());
+  const second = await projectPortalInstitutionalState(fixture());
   assert.deepEqual(first, second);
 });
 
@@ -77,8 +75,8 @@ test("rejects readers that are not explicitly read-only", async () => {
   f.reader.mutationAllowed = true;
   await assert.rejects(
     projectPortalInstitutionalState(f),
-    (error) => error.code === "PORTAL_INSTIUTIONAL_FACADE_READER_INVALID",
-   );
+    (error) => error.code === "PORTAL_INSTITUTIONAL_FACADE_READER_INVALID",
+  );
 });
 
 test("rejects commit drift between document and typed stages", async () => {
@@ -128,9 +126,8 @@ test("fails closed when typed integrity is not in sync", async () => {
   });
   await assert.rejects(
     projectPortalInstitutionalState(f),
-    (error) =>
-      error.code === "PORTAL_INSTITUTIONAL_FACADE_INTEGRITY_INVALID",
-   );
+    (error) => error.code === "PORTAL_INSTITUTIONAL_FACADE_INTEGRITY_INVALID",
+  );
 });
 
 test("facade exposes only projection and read-only intent", async () => {
