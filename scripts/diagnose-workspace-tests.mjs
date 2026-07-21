@@ -4,23 +4,13 @@ import path from "node:path";
 import process from "node:process";
 import { spawnSync } from "node:child_process";
 
-const REPORT_LIMIT = 8000;
 const root = process.cwd();
 const reportArg = process.argv.find((arg) => arg.startsWith("--report="));
 const reportPath = reportArg ? path.resolve(root, reportArg.slice("--report=".length)) : null;
-const filterArg = process.argv.find((arg) => arg.startsWith("--workspace="));
-const workspaceFilter = filterArg ? filterArg.slice("--workspace=".length) : null;
 const rootManifest = JSON.parse(await readFile(path.join(root, "package.json"), "utf8"));
-const patterns = Array.isArray(rootManifest.workspaces)
-  ? rootManifest.workspaces
-  : rootManifest.workspaces/.packages ?? [];
-
-function tail(text, limit = REPORT_LIMIT) {
-  const value = String(text ?? "");
-  return value.length > limit ? value.slice(-limit) : value;
-}
-
+const patterns = Array.isArray(rootManifest.workspaces) ? rootManifest.workspaces : [];
 const workspaces = [];
+
 for (const pattern of patterns) {
   if (typeof pattern !== "string" || !pattern.endsWith("/*")) continue;
   const base = path.join(root, pattern.slice(0, -2));
@@ -36,13 +26,9 @@ for (const pattern of patterns) {
     try {
       const manifest = JSON.parse(await readFile(manifestPath, "utf8"));
       if (typeof manifest.name === "string" && typeof manifest.scripts?.test === "string") {
-        if (!workspaceFilter || manifest.name === workspaceFilter) {
-          workspaces.push({ name: manifest.name, path: path.relative(root, manifestPath) });
-        }
+        workspaces.push({ name: manifest.name, path: path.relative(root, manifestPath) });
       }
-    } catch {
-      // Manifest preflight owns JSON validation.
-    }
+    } catch {}
   }
 }
 
@@ -50,17 +36,12 @@ workspaces.sort((a, b) => a.name.localeCompare(b.name));
 const results = [];
 
 for (const workspace of workspaces) {
-  console.log(`\n==> ${workspace.name} (${workspace.path})`);
   const result = spawnSync("npm", ["test", "--workspace", workspace.name, "--if-present"], {
     cwd: root,
     encoding: "utf8",
     env: process.env,
-    maxBuffer: 1024 * 1024 * 20,
+    maxBuffer: 20 * 1024 * 1024,
   });
-
-  if (result.stdout) process.stdout.write(result.stdout);
-  if (result.stderr) process.stderr.write(result.stderr);
-
   const failed = result.status !== 0;
   results.push({
     name: workspace.name,
@@ -68,13 +49,10 @@ for (const workspace of workspaces) {
     status: failed ? "failed" : "passed",
     exitCode: result.status,
     signal: result.signal ?? null,
-    stdoutTail: failed ? tail(result.stdout) : undefined,
-    stderrTail: failed ? tail(result.stderr) : undefined,
+    stdoutTail: failed ? String(result.stdout ?? "").slice(-8000) : undefined,
+    stderrTail: failed ? String(result.stderr ?? "").slice(-8000) : undefined,
   });
-
-  if (failed) {
-    console.error(`::error file=${workspace.path},title=Workspace test failed: ${workspace.name}::Exit code ${result.status ?? "unknown"}`);
-  }
+  console.log(`${failed ? "FAIL" : "PASS"} ${workspace.name}`);
 }
 
 const failures = results.filter((item) => item.status === "failed");
@@ -91,7 +69,6 @@ if (reportPath) {
   await writeFile(reportPath, `${JSON.stringify(report, null, 2)}\n`, "utf8");
 }
 
-console.log(`\nTested ${workspaces.length} workspace(s).`);
 if (failures.length > 0) {
   console.error(`Failed workspaces: ${failures.map((item) => item.name).join(", ")}`);
   process.exitCode = 1;
