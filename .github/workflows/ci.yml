@@ -29,8 +29,12 @@ jobs:
         run: node scripts/check-workspace-manifests.mjs
       - name: Install workspace links
         run: npm install --ignore-scripts --no-audit --no-fund --no-package-lock
-      - name: Run complete platform test suite
-        run: npm test
+      - name: Test root tooling
+        run: node --test --test-reporter=spec tests/tooling/*.test.mjs
+      - name: Test root integration
+        run: node --test --test-reporter=spec tests/integration/*.test.mjs
+      - name: Test workspace packages
+        run: npm test --workspaces --if-present
       - name: Run institutional audit
         run: npm run audit:institutional
       - name: Validate institutional audit artifacts
