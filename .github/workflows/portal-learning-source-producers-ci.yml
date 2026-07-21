@@ -1,4 +1,4 @@
-name: Portal Learning Capability Validation Producer CI
+name: Portal Learning Capability Validation Diagnostic CI
 
 on:
   push:
@@ -6,25 +6,55 @@ on:
       - "work/portal-learning-integrated-cycle-*"
     paths:
       - "scripts/check-capability-registry.mjs"
+      - "scripts/lib/capability-validation.mjs"
+      - "scripts/lib/contract-validation.mjs"
+      - "scripts/lib/policy-runner.mjs"
+      - "contracts/manifest/capability-manifest.schema.json"
+      - "config/validation-policies.json"
       - ".github/workflows/portal-learning-source-producers-ci.yml"
   pull_request:
     paths:
       - "scripts/check-capability-registry.mjs"
+      - "scripts/lib/capability-validation.mjs"
+      - "scripts/lib/contract-validation.mjs"
+      - "scripts/lib/policy-runner.mjs"
+      - "contracts/manifest/capability-manifest.schema.json"
+      - "config/validation-policies.json"
       - ".github/workflows/portal-learning-source-producers-ci.yml"
 
 permissions:
   contents: read
 
 jobs:
-  validate-capabilities:
+  diagnose:
     runs-on: [self-hosted, macOS, X64]
     timeout-minutes: 10
     steps:
       - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
+     - uses: actions/setup-node@v4
         with:
           node-version: "22"
-      - name: Generate capability validation
-        run: node scripts/check-capability-registry.mjs || test -s generated/capabilities.validation.json
-      - name: Verify capability validation artifact
+      - name: Check registry entrypoint syntax
+        run: node --check scripts/check-capability-registry.mjs
+      - name: Check capability validation syntax
+        run: node --check scripts/lib/capability-validation.mjs
+      - name: Check contract validation syntax
+        run: node --check scripts/lib/contract-validation.mjs
+      - name: Check policy runner syntax
+        run: node --check scripts/lib/policy-runner.mjs
+      - name: Import capability validation module
+        run: node --input-type=module -e "await import('./scripts/lib/capability-validation.mjs')"
+      - name: Import contract validation module
+        run: node --input-type=module -e "await import('./scripts/lib/contract-validation.mjs')"
+      - name: Import policy runner module
+        run: node --input-type=module -e "await import('./scripts/lib/policy-runner.mjs')"
+      - name: Verify registry inputs
+        run: |
+          test -s contracts/manifest/capability-manifest.schema.json
+          test -s config/validation-policies.json
+          test -n "$(find capabilities -type f -name '*.json' -print -quit)"
+      - name: Generate capability validation report
+        continue-on-error: true
+        run: node scripts/check-capability-registry.mjs
+      - name: Verify capability validation report
         run: test -s generated/capabilities.validation.json
