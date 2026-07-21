@@ -15,7 +15,7 @@ jobs:
     timeout-minutes: 10
     steps:
       - name: Checkout
-        uses: actions/checkout4
+        uses: actions/checkout@v4
 
       - name: Setup Node
         uses: actions/setup-node@v4
@@ -31,7 +31,7 @@ jobs:
         run: |
           mkdir -p diagnostics
           set +oe
-          npm test --workspace @apidevelopers/architecture-rule-engine > diagnostics/architecture-rule-engine.log 2>&1
+          npm test --workspace @papidevelopers/architecture-rule-engine > diagnostics/architecture-rule-engine.log 2>&1
           status=$?
           set -e
           printf "\n\nexit_code=%s\n" "$status" >> diagnostics/architecture-rule-engine.log
