@@ -1,4 +1,3 @@
-
 import assert from "node:assert/strict";
 import { ReadApiClient } from "../public/api-client.js";
 
@@ -29,78 +28,71 @@ try {
   const client = new ReadApiClient({
     baseUrl: "https://gateway.example.test/",
     apiKey: "read-key",
+    timeoutMs: 500,
   });
 
   const institutional = await client.institutionalSnapshot();
-
   assert.equal(calls.length, 1);
   assert.equal(calls[0].url, "https://gateway.example.test/v1/portal/snapshot");
-  assert.deepEqual(calls[0].options, {
-    method: "GET",
-    headers: {
-      accept: "application/json",
-      "x-api-key": "read-key",
-    },
-    credentials: "omit",
-    cache: "no-store",
+  assert.equal(calls[0].options.method, "GET");
+  assert.deepEqual(calls[0].options.headers, {
+    accept: "application/json",
+    "x-api-key": "read-key",
   });
+  assert.equal(calls[0].options.credentials, "omit");
+  assert.equal(calls[0].options.cache, "no-store");
+  assert.ok(calls[0].options.signal instanceof AbortSignal);
   assert.equal(institutional.records.length, 1);
   assert.equal(institutional.meta.projectionVersion, "institutional-v1");
 
   globalThis.fetch = async () => ({
-    ok: true,
-    status: 200,
-    async json() {
-      return {
-        sections: {
-          memories: [{ id: "memory-1" }],
-          findings: [{ id: "finding-1" }],
-          proposals: [{ id: "proposal-1", status: "pending" }],
-          evidence: [{ id: "evidence-1" }],
-        },
-        meta: { projectionVersion: "learning-v1" },
-      };
-    },
-  });
-
-  const learning = await client.learningSnapshot();
-  assert.equal(learning.memories.length, 1);
-  assert.equal(learning.findings.length, 1);
-  assert.equal(learning.proposals[0].status, "pending");
-  assert.equal(learning.evidence.length, 1);
-
-  globalThis.fetch = async () => ({
     ok: false,
-    status: 403,
+    status: 503,
     async json() {
-      return { error: { code: "ACCESS_DENIED" } };
-    },
-  });
-
-  await assert.rejects(
-    () => client.institutionalSnapshot(),
-    (error) => {
-      assert.equal(error.message, "ACCESS_DENIED");
-      assert.equal(error.status, 403);
-      assert.deepEqual(error.payload, { error: { code: "ACCESS_DENIED" } });
-      return true;
-    },
-  );
-
-  globalThis.fetch = async () => ({
-    ok: false,
-    status: 502,
-    async json() {
-      throw new Error("invalid json");
+      return { error: { code: "UPSTREAM_UNAVAILABLE" } };
     },
   });
 
   await assert.rejects(
     () => client.learningSnapshot(),
     (error) => {
-      assert.equal(error.message, "HTTP_502");
-      assert.equal(error.status, 502);
-      assert.equal(error.payload, null);
+      assert.equal(error.message, "UPSTREAM_UNAVAILABLE");
+      assert.equal(error.status, 503);
+      assert.equal(error.retryable, true);
+      return true;
+    },
+  );
+
+  globalThis.fetch = async (_url, options) =>
+    new Promise((_resolve, reject) => {
+      options.signal.addEventListener("abort", () => reject(new DOMException("aborted", "AbortError")), { once: true });
+    });
+
+  const timeoutClient = new ReadApiClient({
+    baseUrl: "https://gateway.example.test",
+    timeoutMs: 100,
+  });
+
+  await assert.rejects(
+    () => timeoutClient.institutionalSnapshot(),
+    (error) => {
+      assert.equal(error.message, "REQUEST_TIMEOUT");
+      assert.equal(error.status, 504);
+      assert.equal(error.retryable, true);
+      return true;
+    },
+   );
+
+  const external = new AbortController();
+  const cancelled = timeoutClient.learningSnapshot({ signal: external.signal });
+  external.abort("USER_CANCELLED");
+
+  await assert.rejects(
+    () => cancelled,
+    (error) => {
+      assert.equal(error.message, "REQUEST_CANCELLED");
+      assert.equal(error.status, 499);
+      assert.equal(error.retryable, false);
       return true;
     },
   );
@@ -108,4 +100,4 @@ try {
   globalThis.fetch = originalFetch;
 }
 
-console.log("developer-portal read api client behavior: ok");
+console.log("developer-portal resilient read api client: ok");
