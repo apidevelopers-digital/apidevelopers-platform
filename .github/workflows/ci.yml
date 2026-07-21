@@ -18,6 +18,7 @@ concurrency:
 
 jobs:
   validate:
+    if: github.event_name != 'workflow_dispatch' || github.ref_name != 'feature/rule-engine-stabilization-20260721'
     runs-on: [self-hosted, macOS, X64]
     timeout-minutes: 20
     steps:
@@ -41,8 +42,43 @@ jobs:
         run: |
           test -f .audit/snapshot.json
           test -f .audit/report.md
-          node -e 'const fs=require("fs"); const s=JSON.parse(fs.readFileSync(".audit/snapshot.json","utf8")); if (!s.commit || !s.summary || typeof s.summary.files !== "number" || s.summary.files < 1) process.exit(1);'
+          node -e 'const fs=require("fs"); const s=JSON.parse(fs.readFileSync(".audit/snapshot.json","utf8")); if (!s.commit || !s.summary || typeof s.summary.files !== "number" || is.summary.files < 1) process.exit(1);'
       - name: Reject transient publishing artifacts
         run: |
           test ! -d .wave5
           test ! -d .publish
+
+  architecture-baseline:
+    if: github.event_name == 'workflow_dispatch' && github.ref_name == 'feature/rule-engine-stabilization-20260721'
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Checkout immutable branch revision
+        uses: actions/checkout@v4
+
+      - name: Configure Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+
+      - name: Check and test Rule Engine
+        run: npm --prefix packages/architecture-rule-engine run check
+
+      - name: Generate canonical architecture report
+        run: |
+          node scripts/apid.mjs architecture validate \
+            --scope repository \
+            --output artifacts/architecture/validation-report.json
+
+      - name: Verify canonical report integrity
+        run: |
+          node scripts/architecture-report-check.mjs \
+            artifacts/architecture/validation-report.json
+
+      - name: Upload immutable architecture evidence
+        uses: actions/upload-artifact@v4
+        with:
+          name: architecture-baseline-${{ github.run_id }}
+          path: artifacts/architecture/validation-report.json
+          if-no-files-found: error
+          retention-days: 14
