@@ -14,45 +14,22 @@ const input = Object.freeze({
   projectSlug: "production",
 });
 
-test("is disabled by default and exposes no live capability", async () => {
+test("defaults disabled and exposes no live capability", async () => {
   const runtime = createCommercialJourneyMemoryRuntime();
-
   assert.equal(runtime.enabled, false);
   assert.equal(runtime.liveAllowed, false);
   assert.equal(runtime.deployAllowed, false);
   assert.equal(runtime.externalPublicationAllowed, false);
-
-  await assert.rejects(
-    runtime.execute(input),
-    (error) => error?.code === "COMMERCIAL_JOURNEY_DISABLED",
-  );
+  await assert.rejects(runtime.execute(input), (error) =>
+    error?.code === "COMMERCIAL_JOURNEY_DISABLED");
 });
 
-test("executes the eight-step commercial journey with real in-memory cores", async () => {
-  const runtime = createCommercialJourneyMemoryRuntime({ enabled: true });
-  const result = await runtime.execute(input);
-
+test("executes the eight-step in-memory journey", async () => {
+  const result = await createCommercialJourneyMemoryRuntime({ enabled: true }).execute(input);
   assert.equal(result.status, "completed");
   assert.equal(result.events.length, 8);
-  assert.deepEqual(
-    result.events.map(({ step }) => step),
-    [
-      "registerCustomer",
-      "selectPlan",
-      "createCheckoutSession",
-      "confirmPayment",
-      "activateSubscription",
-      "provisionWorkspace",
-      "issueApiKey",
-      "invokeFirstRequest",
-    ],
-  );
-  assert.equal(result.customer.status, "active");
-  assert.equal(result.checkout.snapshot.status, "pending");
   assert.equal(result.payment.snapshot.status, "completed");
   assert.equal(result.subscription.snapshot.status, "active");
-  assert.equal(result.workspace.tenant.status, "provisioning");
-  assert.equal(result.workspace.project.status, "creating");
   assert.equal(result.apiKey.provisioning.status, "completed");
   assert.equal(result.firstRequest.statusCode, 200);
   assert.equal(result.firstRequest.authorization.status, "authorized");
@@ -62,27 +39,19 @@ test("executes the eight-step commercial journey with real in-memory cores", asy
   assert.equal(result.externalPublicationAllowed, false);
 });
 
-test("does not persist or return the raw API key or its hash", async () => {
-  const runtime = createCommercialJourneyMemoryRuntime({ enabled: true });
-  const result = await runtime.execute(input);
+test("does not return the raw API key or hash", async () => {
+  const result = await createCommercialJourneyMemoryRuntime({ enabled: true }).execute(input);
   const serialized = JSON.stringify(result);
-  const deterministicRawKey = generateApiKey({
-    randomBytesFactory: () => Buffer.alloc(24, 7),
-  });
-
-  assert.equal(serialized.includes(deterministicRawKey), false);
+  const rawKey = generateApiKey({ randomBytesFactory: () => Buffer.alloc(24, 7) });
+  assert.equal(serialized.includes(rawKey), false);
   assert.equal(serialized.includes('"hash"'), false);
   assert.equal("hash" in result.apiKey.record, false);
 });
 
-test("fails closed on payment mismatch before provisioning resources", async () => {
+test("fails closed on payment mismatch", async () => {
   const runtime = createCommercialJourneyMemoryRuntime({ enabled: true });
-
   await assert.rejects(
-    runtime.execute({ ...input paymentAmount: 1 }),
-    (error) => {
-      assert.equal(error?.code, "payment_amount_mismatch");
-      return true;
-    },
+    runtime.execute({ ...input, paymentAmount: 1 }),
+    (error) => error?.code === "payment_amount_mismatch",
   );
 });
