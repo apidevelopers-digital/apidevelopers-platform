@@ -13,7 +13,7 @@
     "check": "node --check src/index.mjs && node --check src/governed.mjs && npm test"
   },
   "dependencies": {
-    "@apidevelopers/contracts": "workspace:*"
+    "@apidevelopers/contracts": "0.1.0"
   },
   "engines": {
     "node": ">=22"
