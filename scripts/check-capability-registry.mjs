@@ -95,6 +95,9 @@ async function main() {
 }
 
 main().catch((error) => {
-  console.error(error instanceof Error ? error.message : String(error));
+  const detail = error instanceof Error
+    ? String(error.stack ?? error.message).replaceAll("\n", " :: ")
+    : String(error);
+  console.error(detail);
   process.exitCode = 1;
 });
