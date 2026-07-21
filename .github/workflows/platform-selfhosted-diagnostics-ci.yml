@@ -1,0 +1,66 @@
+name: Platform Selfhosted Diagnostics
+
+on:
+  push:
+    paths:
+      - ".github/workflows/platform-selfhosted-diagnostics-ci.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  diagnose:
+    runs-on: [self-hosted, macOS, X64]
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+
+      - name: Run self-hosted gates separately
+        id: gates
+        continue-on-error: true
+        run: |
+          mkdir -p diagnostics
+          set +e
+          : > diagnostics/platform-selfhosted-gates.txt
+
+          run_gate() {
+            name="$1"
+            shift
+            "$@" > "diagnostics/selfhosted-${name}.log" 2>&1
+            status=$?
+            printf "%s=%s\n" "$name" "$status" >> diagnostics/platform-selfhosted-gates.txt
+          }
+
+          run_gate preflight node scripts/check-workspace-manifests.mjs
+          run_gate install npm install --ignore-scripts --no-audit --no-fund --no-package-lock
+          run_gate root-tooling node --test --test-reporter=spec tests/tooling/*.test.mjs
+          run_gate root-integration node --test --test-reporter=spec tests/integration/*.test.mjs
+          run_gate workspaces npm test --workspaces --if-present
+          run_gate institutional-audit npm run audit:institutional
+          test -f .audit/snapshot.json
+          printf "audit-snapshot=%s\n" "$?" >> diagnostics/platform-selfhosted-gates.txt
+          test -f .audit/report.md
+          printf "audit-report=%s\n" "$?" >> diagnostics/platform-selfhosted-gates.txt
+          test ! -d .wave5
+          printf "reject-wave5=%s\n" "$?" >> diagnostics/platform-selfhosted-gates.txt
+          test ! -d .publish
+          printf "reject-publish=%s\n" "$?" >> diagnostics/platform-selfhosted-gates.txt
+
+          if grep -qv '=0$' diagnostics/platform-selfhosted-gates.txt; then exit 1; fi
+
+      - name: Persist diagnostics
+        if: always()
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -f diagnostics/selfhosted-*.log diagnostics/platform-selfhosted-gates.txt
+          git commit -m "chore(diagnostics): record self-hosted gates [skip ci]"
+          git push origin "HEAD:${GITHUB_REF#refs/heads/}"
+
+      - name: Fail after persistence
+        if: steps.gates.outcome == 'failure'
+        run: exit 1
