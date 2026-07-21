@@ -1,0 +1,15 @@
+{
+  "name": "@apidevelopers/portal-learning-worker",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "start": "node src/worker.mjs",
+    "check": "node --check src/publisher.mjs && node --check src/worker.mjs && node --test"
+  },
+  "dependencies": {
+    "@apidevelopers/kernel-memory": "0.1.0",
+    "@apidevelopers/kernel-reflection": "0.1.0",
+    "@apidevelopers/kernel-evolution": "0.1.0"
+  }
+}
