@@ -1,13 +1,29 @@
 import { normalizeInstitutional, normalizeLearning } from "./contracts.js";
+import { PORTAL_CONFIG, validateGatewayUrl } from "./gateway-config.js";
 
 export class ReadApiClient {
-  constructor({ baseUrl, apiKey = "", timeoutMs = 8000 }) {
-    this.baseUrl = String(baseUrl || "").replace(/\/+$/, "");
+  constructor({
+    baseUrl,
+    apiKey = "",
+    timeoutMs = 8000,
+    gatewayPolicy = PORTAL_CONFIG,
+  }) {
+    const validation = validateGatewayUrl(baseUrl, gatewayPolicy);
+    this.baseUrl = validation.ok ? validation.url : "";
+    this.configurationError = validation.ok ? null : validation.code;
     this.apiKey = apiKey;
     this.timeoutMs = Number.isFinite(timeoutMs) ? Math.max(100, timeoutMs) : 8000;
   }
 
   async get(path, { signal = null } = {}) {
+    if (this.configurationError) {
+      const error = new Error(this.configurationError);
+      error.status = 400;
+      error.payload = null;
+      error.retryable = false;
+      throw error;
+    }
+
     const headers = { accept: "application/json" };
     if (this.apiKey) headers["x-api-key"] = this.apiKey;
 
