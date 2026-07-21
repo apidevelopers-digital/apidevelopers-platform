@@ -1,18 +1,21 @@
 {
   "name": "@apidevelopers/architecture-rule-engine",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "private": true,
   "description": "Deterministic core for canonical architecture ruleset evaluation and validation reports.",
   "type": "module",
   "exports": {
-    ".": "./src/index.mjs"
+    ".": "./src/index.mjs",
+    "./repository": "./src/repository.mjs",
+    "./loaders": "./src/loaders.mjs",
+    "./adapters": "./src/adapters.mjs"
   },
   "files": [
     "src"
   ],
   "scripts": {
     "test": "node --test test/*.test.mjs",
-    "check": "node --check src/index.mjs && npm test"
+    "check": "node --check src/index.mjs && node --check src/repository.mjs && node --check src/loaders.mjs && node --check src/adapters.mjs && npm test"
   },
   "engines": {
     "node": ">=22"
