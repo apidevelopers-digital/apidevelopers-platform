@@ -2,7 +2,7 @@
   "schemaVersion": "1.0.0",
   "rulesetId": "architecture-core",
   "name": "API Developers Platform Architecture Core",
-  "version": "1.0.0",
+  "version": "1.1.0",
   "status": "active",
   "scope": "sitedauni/apidevelopers-platform",
   "sourceRefs": [
@@ -15,7 +15,7 @@
   "defaultSeverity": "ERROR",
   "metadata": {
     "enginePackage": "@apidevelopers/architecture-rule-engine",
-    "engineMinimumVersion": "0.2.0",
+    "engineMinimumVersion": "0.4.1",
     "deterministic": true
   },
   "rules": [
@@ -130,7 +130,7 @@
       "remediation": "Add README.md, src/index.mjs and test/index.test.mjs to the kernel package.",
       "sourceRefs": [
         "docs/architecture/ARCHITECTURE_ASSURANCE_MODEL.md",
-        "docs/architecture/CANNICAL_RULESET_SPEC.md",
+        "docs/architecture/CANONICAL_RULESET_SPEC.md",
         "docs/architecture/RULE_ENGINE_SPEC.md"
       ]
     },
@@ -157,7 +157,37 @@
       "remediation": "Set engines.node to >=22.",
       "sourceRefs": [
         "docs/architecture/ARCHITECTURE_ASSURANCE_MODEL.md",
-        "docs/architecture/CANNICAL_RULESET_SPEC.md",
+        "docs/architecture/CANONICAL_RULESET_SPEC.md",
+        "docs/architecture/RULE_ENGINE_SPEC.md"
+      ]
+    },
+    {
+      "ruleId": "ARC-PKG-003",
+      "ruleVersion": "1.0.0",
+      "title": "Packages expose a valid root export contract",
+      "description": "Workspace packages should declare a root export whose targets remain inside the package and resolve to existing files.",
+      "category": "package-contract",
+      "type": "export-contract",
+      "severity": "WARN",
+      "status": "active",
+      "appliesTo": {
+        "include": [
+          "packages/*/package.json"
+        ],
+        "exclude": []
+      },
+      "parameters": {
+        "requiredKeys": [
+          "."
+        ],
+        "requireExistingTargets": true,
+        "allowNullTargets": false
+      },
+      "message": "A package manifest does not expose a valid root export contract.",
+      "remediation": "Declare package.json exports with a root key and package-relative targets that exist.",
+      "sourceRefs": [
+        "docs/architecture/ARCHITECTURE_ASSURANCE_MODEL.md",
+        "docs/architecture/CANONICAL_RULESET_SPEC.md",
         "docs/architecture/RULE_ENGINE_SPEC.md"
       ]
     }
