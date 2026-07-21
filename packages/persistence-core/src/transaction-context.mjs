@@ -266,7 +266,7 @@ export function createTransactionContext(draft, clock) {
     },
 
     markOutboxPublished(id, { publishedAt = clock() } = {}) {
-      const enty = findOutboxEntry(draft, id);
+      const entry = findOutboxEntry(draft, id);
       entry.status = "published";
       entry.publishedAt = requireIso(publishedAt, "publishedAt");
       entry.attempts += 1;
