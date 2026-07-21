@@ -1,0 +1,86 @@
+name: Architecture Rule Engine PR CI
+
+on:
+  push:
+    branches:
+      - "consolidate/platform-rule-engine-*"
+      - "work/fix-architecture-rule-engine-*"
+    paths:
+      - "packages/architecture-rule-engine/**"
+      - "scripts/apid.mjs"
+      - "scripts/architecture-*.mjs"
+      - "tests/tooling/apid-architecture.test.mjs"
+      - "tests/tooling/architecture-report-check.test.mjs"
+      - ".github/workflows/architecture-rule-engine-pr-ci.yml"
+  pull_request:
+    paths:
+      - "packages/architecture-rule-engine/**"
+      - "scripts/apid.mjs"
+      - "scripts/architecture-*.mjs"
+      - "tests/tooling/apid-architecture.test.mjs"
+      - "tests/tooling/architecture-report-check.test.mjs"
+      - ".github/workflows/architecture-rule-engine-pr-ci.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: architecture-rule-engine-pr-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  validate:
+    name: Validate architecture
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Configure Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+
+      - name: Check engine syntax and unit tests
+        run: npm --prefix packages/architecture-rule-engine run check
+
+      - name: Test CLI and report contracts
+        run: |
+          node --test tests/tooling/apid-architecture.test.mjs
+          node --test tests/tooling/architecture-report-check.test.mjs
+
+      - name: Run canonical architecture validation
+        id: architecture
+        continue-on-error: true
+        run: |
+          node scripts/apid.mjs architecture validate \
+            --scope repository \
+            --output artifacts/architecture/validation-report.json
+
+      - name: Verify canonical report
+        id: report
+        if: always() && hashFiles('artifacts/architecture/validation-report.json') != ''
+        run: |
+          node scripts/architecture-report-check.mjs \
+            artifacts/architecture/validation-report.json
+
+      - name: Upload architecture evidence
+        if: always() && hashFiles('artifacts/architecture/validation-report.json') != ''
+        uses: actions/upload-artifact@v4
+        with:
+          name: architecture-validation-${{ github.run_id }}
+          path: artifacts/architecture/validation-report.json
+          if-no-files-found: error
+          retention-days: 14
+
+      - name: Enforce validation result
+        if: always()
+        env:
+          VALIDATION_OUTCOME: ${{ steps.architecture.outcome }}
+          REPORT_OUTCOME: ${{ steps.report.outcome }}
+        run: |
+          test "$REPORT_OUTCOME" = "success"
+          test "$VALIDATION_OUTCOME" = "success"
