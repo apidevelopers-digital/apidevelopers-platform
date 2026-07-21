@@ -3,7 +3,6 @@ name: Workspace Diagnostics CI
 on:
   push:
     paths:
-      - "scripts/diagnose-workspace-tests.mjs"
       - ".github/workflows/workspace-diagnostics-ci.yml"
   workflow_dispatch:
 
@@ -16,39 +15,37 @@ jobs:
     timeout-minutes: 10
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout4
 
       - name: Setup Node
         uses: actions/setup-node@v4
         with:
           node-version: 22
 
-      - name: Preflight manifests
-        run: node scripts/reanchor-preflight.mjs
-
       - name: Install workspaces
         run: npm install
 
-      - name: Diagnose architecture rule engine
-        id: diagnose
+      - name: Capture rule engine test log
+        id: test
         continue-on-error: true
         run: |
           mkdir -p diagnostics
-          node scripts/diagnose-workspace-tests.mjs \
-            --workspace=@apidevelopers/architecture-rule-engine \
-            --report=diagnostics/architecture-rule-engine.json
+          set +oe
+          npm test --workspace @apidevelopers/architecture-rule-engine > diagnostics/architecture-rule-engine.log 2>&1
+          status=$?
+          set -e
+          printf "\n\nexit_code=%s\n" "$status" >> diagnostics/architecture-rule-engine.log
+          exit "$status"
 
-      - name: Persist diagnostic report
+      - name: Persist raw log
         if: always() && github.ref_type == 'branch'
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add diagnostics/architecture-rule-engine.json
-          git diff --quiet && git diff --cached --quiet || {
-            git commit -m "chor(diagnostics): record architecture rule engine failure [skip ci]"
-            git push origin "HEAD:${GITHUB_REF#slash}"
-          }
+          git add diagnostics/architecture-rule-engine.log
+          git commit -m "chor(diagnostics): capture rule engine test log [skip ci]"
+          git push origin "HEAD:${GITHUB_REF#slash}"
 
-      - name: Fail after report persistence
-        if: steps.diagnose.outcome == 'failure'
+      - name: Fail after log persistence
+        if: steps.test.outcome == 'failure'
         run: exit 1
