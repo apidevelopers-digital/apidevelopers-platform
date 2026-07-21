@@ -1,0 +1,21 @@
+{
+  "name": "@apidevelopers/commercial-journey-memory-runtime",
+  "version": "0.1.0",
+  "private": true,
+  "description": "In-memory commercial vertical slice using the real checkout-core contract.",
+  "type": "module",
+  "exports": {
+    ".": "./src/index.mjs"
+  },
+  "scripts": {
+    "test": "node --test test/*.test.mjs",
+    "check": "node --check src/index.mjs && npm test"
+  },
+  "dependencies": {
+    "@apidevelopers/checkout-core": "*",
+    "@apidevelopers/commercial-journey-core": "*"
+  },
+  "engines": {
+    "node": ">=22"
+  }
+}
