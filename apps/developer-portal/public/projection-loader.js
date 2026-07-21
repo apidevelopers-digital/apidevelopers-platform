@@ -1,38 +1,85 @@
+import { createMetric, now, summarizeMetrics } from "./observability.js";
+
 export async function loadProjections(client, { signal } = {}) {
+  const started = {
+    institutional: now(),
+    learning: now(),
+  };
+
   const [institutional, learning] = await Promise.allSettled([
     client.institutionalSnapshot({ signal }),
     client.learningSnapshot({ signal }),
   ]);
 
   const result = {
-    institutional: toProjectionResult("institutional", institutional),
-    learning: toProjectionResult("learning", learning),
+    institutional: toProjectionResult("institutional", institutional, started.institutional),
+    learning: toProjectionResult("learning", learning, started.learning),
   };
 
   result.summary = summarize(result);
+  result.metrics = [
+    result.institutional.metric,
+    result.learning.metric,
+  ];
+  result.observability = summarizeMetrics(result.metrics);
   return result;
 }
 
-function toProjectionResult(name, settled) {
+function toProjectionResult(name, settled, startedAt) {
+  const endedAt = now();
+
   if (settled.status === "fulfilled") {
-    return { name, ok: true, data: settled.value, error: null };
+    const data = settled.value;
+    const correlationId = data?.meta?.correlationId ?? null;
+    return {
+      name,
+      ok: true,
+      data,
+      error: null,
+      metric: createMetric({
+        name,
+        startedAt,
+        endedAt,
+        ok: true,
+        status: 200,
+        correlationId,
+      }),
+    };
   }
+
+  const error = toSafeError(settled.reason);
   return {
     name,
     ok: false,
     data: null,
-    error: toSafeError(settled.reason),
+    error,
+    metric: createMetric({
+      name,
+      startedAt,
+      endedAt,
+      ok: false,
+      status: error.status,
+      code: error.code,
+      retryable: error.retryable,
+      correlationId: error.correlationId,
+    }),
   };
 }
 
 function toSafeError(error) {
   const status = Number.isFinite(error?.status) ? error.status : 500;
   const policy = status === 401 || status === 403;
+  const correlationId =
+    error?.payload?.meta?.correlationId ??
+    error?.payload?.correlationId ??
+    null;
+
   return {
-    code: String(error?.message || "PROJECTION_UNAVAILABLE"),
+    code: String(error?.message || "PROJECTION_UNAVAILABLE").slice(0, 64),
     status,
     retryable: policy ? false : error?.retryable !== false,
     policy,
+    correlationId,
   };
 }
 
