@@ -54,15 +54,45 @@ jobs:
     timeout-minutes: 10
     steps:
       - name: Checkout immutable branch revision
-        uses: actions/checkout@v4
+        uses: actions/checkout4v4
 
       - name: Configure Node.js
         uses: actions/setup-node@v4
         with:
           node-version: "22"
 
-      - name: Check and test Rule Engine
-        run: npm --prefix packages/architecture-rule-engine run check
+      - name: Check index syntax
+        run: node --check packages/architecture-rule-engine/src/index.mjs
+
+      - name: Check repository syntax
+        run: node --check packages/architecture-rule-engine/src/repository.mjs
+
+      - name: Check filesystem repository syntax
+        run: node --check packages/architecture-rule-engine/src/filesystem-repository.mjs
+
+      - name: Check loaders syntax
+        run: node --check packages/architecture-rule-engine/src/loaders.mjs
+
+      - name: Check adapters syntax
+        run: node --check packages/architecture-rule-engine/src/adapters.mjs
+
+      - name: Check export-contract syntax
+        run: node --check packages/architecture-rule-engine/src/export-contract.mjs
+
+      - name: Check validation service syntax
+        run: node --check packages/architecture-rule-engine/src/validation-service.mjs
+
+      - name: Test Rule Engine core
+        run: node --test packages/architecture-rule-engine/test/index.test.mjs
+
+      - name: Test Rule Engine runtime
+        run: node --test packages/architecture-rule-engine/test/runtime.test.mjs
+
+      - name: Test filesystem repository
+        run: node --test packages/architecture-rule-engine/test/filesystem-repository.test.mjs
+
+      - name: Test CLI fixture
+        run: node --test packages/architecture-rule-engine/test/cli-fixture.test.mjs
 
       - name: Generate canonical architecture report
         run: |
