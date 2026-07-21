@@ -1,0 +1,21 @@
+✔ apid routes architecture validate help without executing validation (95.465377ms)
+✔ apid rejects unsupported architecture subcommands (37.972307ms)
+✔ report check exposes help without reading a file (56.175782ms)
+✔ report check accepts a canonical report and writes GitHub metadata (65.711313ms)
+✔ report check rejects malformed JSON (53.413597ms)
+✔ report check rejects a report with invalid integrity (51.509685ms)
+✔ validator accepts valid JSON and confirms Base64 round-trip (54.062613ms)
+✔ validator rejects empty files (50.217277ms)
+✔ validator rejects invalid JSON (51.076953ms)
+✔ publisher enforces explicit confirmation and post-publish verification (2.186095ms)
+✔ accepts explicit local dependency versions (58.013654ms)
+✔ rejects npm-incompatible workspace protocol (38.774532ms)
+✔ rejects duplicate package names (41.053132ms)
+ℹ tests 13
+ℹ suites 0
+ℹ pass 13
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 419.143634

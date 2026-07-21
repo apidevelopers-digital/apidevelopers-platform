@@ -1,0 +1,227 @@
+{
+  "ok": true,
+  "command": "workspace-manifests-check",
+  "workspaceCount": 44,
+  "workspaces": [
+    {
+      "name": "@apidevelopers/activation-core",
+      "version": "0.1.0",
+      "path": "packages/activation-core/package.json"
+    },
+    {
+      "name": "@apidevelopers/api-gateway",
+      "version": "0.3.0",
+      "path": "apps/api-gateway/package.json"
+    },
+    {
+      "name": "@apidevelopers/apikey-core",
+      "version": "0.1.0",
+      "path": "packages/apikey-core/package.json"
+    },
+    {
+      "name": "@apidevelopers/architecture-rule-engine",
+      "version": "0.3.0",
+      "path": "packages/architecture-rule-engine/package.json"
+    },
+    {
+      "name": "@apidevelopers/auth",
+      "version": "0.1.0",
+      "path": "packages/auth/package.json"
+    },
+    {
+      "name": "@apidevelopers/auth-core",
+      "version": "0.1.0",
+      "path": "packages/auth-core/package.json"
+    },
+    {
+      "name": "@apidevelopers/billing-core",
+      "version": "0.1.0",
+      "path": "packages/billing-core/package.json"
+    },
+    {
+      "name": "@apidevelopers/checkout-core",
+      "version": "0.1.0",
+      "path": "packages/checkout-core/package.json"
+    },
+    {
+      "name": "@apidevelopers/commercial-journey-core",
+      "version": "0.1.0",
+      "path": "packages/commercial-journey-core/package.json"
+    },
+    {
+      "name": "@apidevelopers/contracts",
+      "version": "0.1.0",
+      "path": "packages/contracts/package.json"
+    },
+    {
+      "name": "@apidevelopers/conversation",
+      "version": "0.1.0",
+      "path": "engines/conversation/package.json"
+    },
+    {
+      "name": "@apidevelopers/developer-portal",
+      "version": "0.1.0",
+      "path": "apps/developer-portal/package.json"
+    },
+    {
+      "name": "@apidevelopers/entitlement-core",
+      "version": "0.1.0",
+      "path": "packages/entitlement-core/package.json"
+    },
+    {
+      "name": "@apidevelopers/gateway-core",
+      "version": "0.1.0",
+      "path": "packages/gateway-core/package.json"
+    },
+    {
+      "name": "@apidevelopers/guard",
+      "version": "0.1.0",
+      "path": "services/guard/package.json"
+    },
+    {
+      "name": "@apidevelopers/kernel-audit",
+      "version": "0.1.0",
+      "path": "packages/kernel-audit/package.json"
+    },
+    {
+      "name": "@apidevelopers/kernel-constitution",
+      "version": "0.1.0",
+      "path": "packages/kernel-constitution/package.json"
+    },
+    {
+      "name": "@apidevelopers/kernel-decision",
+      "version": "0.1.0",
+      "path": "packages/kernel-decision/package.json"
+    },
+    {
+      "name": "@apidevelopers/kernel-evidence",
+      "version": "0.1.0",
+      "path": "packages/kernel-evidence/package.json"
+    },
+    {
+      "name": "@apidevelopers/kernel-evolution",
+      "version": "0.1.0",
+      "path": "packages/kernel-evolution/package.json"
+    },
+    {
+      "name": "@apidevelopers/kernel-governance",
+      "version": "0.1.0",
+      "path": "packages/kernel-governance/package.json"
+    },
+    {
+      "name": "@apidevelopers/kernel-memory",
+      "version": "0.1.0",
+      "path": "packages/kernel-memory/package.json"
+    },
+    {
+      "name": "@apidevelopers/kernel-planning",
+      "version": "0.1.0",
+      "path": "packages/kernel-planning/package.json"
+    },
+    {
+      "name": "@apidevelopers/kernel-policy",
+      "version": "0.1.0",
+      "path": "packages/kernel-policy/package.json"
+    },
+    {
+      "name": "@apidevelopers/kernel-reasoning",
+      "version": "0.1.0",
+      "path": "packages/kernel-reasoning/package.json"
+    },
+    {
+      "name": "@apidevelopers/kernel-reflection",
+      "version": "0.1.0",
+      "path": "packages/kernel-reflection/package.json"
+    },
+    {
+      "name": "@apidevelopers/kernel-runtime",
+      "version": "0.1.0",
+      "path": "packages/kernel-runtime/package.json"
+    },
+    {
+      "name": "@apidevelopers/limits-core",
+      "version": "0.1.0",
+      "path": "packages/limits-core/package.json"
+    },
+    {
+      "name": "@apidevelopers/onboarding-core",
+      "version": "0.1.0",
+      "path": "packages/onboarding-core/package.json"
+    },
+    {
+      "name": "@apidevelopers/outbox-core",
+      "version": "0.1.0",
+      "path": "packages/outbox-core/package.json"
+    },
+    {
+      "name": "@apidevelopers/persistence-core",
+      "version": "0.3.0",
+      "path": "packages/persistence-core/package.json"
+    },
+    {
+      "name": "@apidevelopers/plan-core",
+      "version": "0.1.0",
+      "path": "packages/plan-core/package.json"
+    },
+    {
+      "name": "@apidevelopers/platform-core",
+      "version": "0.1.0",
+      "path": "packages/platform-core/package.json"
+    },
+    {
+      "name": "@apidevelopers/portal-projector",
+      "version": "0.1.0",
+      "path": "packages/portal-projector/package.json"
+    },
+    {
+      "name": "@apidevelopers/portal-projector-http",
+      "version": "0.1.0",
+      "path": "packages/portal-projector-http/package.json"
+    },
+    {
+      "name": "@apidevelopers/project-core",
+      "version": "0.1.0",
+      "path": "packages/project-core/package.json"
+    },
+    {
+      "name": "@apidevelopers/provisioning-core",
+      "version": "0.1.0",
+      "path": "packages/provisioning-core/package.json"
+    },
+    {
+      "name": "@apidevelopers/registry",
+      "version": "0.1.0",
+      "path": "packages/registry/package.json"
+    },
+    {
+      "name": "@apidevelopers/registry-core",
+      "version": "0.1.0",
+      "path": "packages/registry-core/package.json"
+    },
+    {
+      "name": "@apidevelopers/subscription-core",
+      "version": "0.1.0",
+      "path": "packages/subscription-core/package.json"
+    },
+    {
+      "name": "@apidevelopers/tenancy",
+      "version": "0.1.0",
+      "path": "packages/tenancy/package.json"
+    },
+    {
+      "name": "@apidevelopers/tenant-core",
+      "version": "0.1.0",
+      "path": "packages/tenant-core/package.json"
+    },
+    {
+      "name": "@apidevelopers/usage-core",
+      "version": "0.1.0",
+      "path": "packages/usage-core/package.json"
+    },
+    {
+      "name": "@apidevelopers/user-core",
+      "version": "0.1.0",
+      "path": "packages/user-core/package.json"
+    }
+  ]
+}
