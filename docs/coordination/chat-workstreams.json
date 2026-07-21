@@ -1,0 +1,54 @@
+{
+  "schemaVersion": "coordination.chat-workstreams/v1",
+  "updatedAt": "2026-07-21",
+  "owner": "consolidation-quality",
+  "foundationBranch": "foundation/global-platform-bootstrap-20260715",
+  "foundationHeadAtCreation": "3c9fee3a829ba8cc8026f535aa5dfb49ad382d98",
+  "globalProgramPercent": 42,
+  "workstreams": [
+    {
+      "id": "chat-master",
+      "name": "Chat Mestre",
+      "status": "aguardando-handoff",
+      "handoffPath": "docs/coordination/handoffs/chat-master.md"
+    },
+    {
+      "id": "platform-engineering",
+      "name": "Engenharia da Plataforma",
+      "status": "aguardando-handoff",
+      "handoffPath": "docs/coordination/handoffs/platform-engineering.md"
+    },
+    {
+      "id": "portal-unified",
+      "name": "Portal unificado",
+      "status": "aguardando-handoff",
+      "handoffPath": "docs/coordination/handoffs/portal-unified.md"
+    },
+    {
+      "id": "ops-integrations",
+      "name": "Operações e integrações",
+      "status": "aguardando-handoff",
+      "handoffPath": "docs/coordination/handoffs/ops-integrations.md"
+    },
+    {
+      "id": "learning-systems",
+      "name": "Aprendizado supervisionado",
+      "status": "aguardando-handoff",
+      "handoffPath": "docs/coordination/handoffs/learning-systems.md"
+    },
+    {
+      "id": "consolidation-quality",
+      "name": "Consolidação e qualidade",
+      "status": "em-execucao",
+      "handoffPath": "docs/coordination/handoffs/consolidation-quality.md",
+      "branch": "docs/chat-workstream-registry-20260721"
+    }
+  ],
+  "rules": {
+    "centralRegistryEditor": "consolidation-quality",
+    "maxConcurrentTechnicalWorkstreams": 2,
+    "isolatedGreenCiMeansConsolidated": false,
+    "specializedChatMayChangeGlobalPercent": false,
+    "mergeRequiresExplicitApproval": true
+  }
+}
