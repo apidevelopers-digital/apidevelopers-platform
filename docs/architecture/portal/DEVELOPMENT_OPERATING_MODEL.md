@@ -1,29 +1,29 @@
 # Modelo de Desenvolvimento Assistido
 
 **Status:** proposta modular de operação  
-**Escopo:** relação entre ChatGPT, Git, GitHub, serviços e portais  
+**Escopo:** relação entre ChatGPT, Git, GitHub, serviços e Portal unificado  
 **Não altera:** governança, autoridade, gates ou políticas institucionais
 
 ## 1. Princípio
 
-ChatGPT e Chats são o ambiente conversacional de desenvolvimento, coordenação e operação assistida.
+ChatGPT e Chats são o ambiente conversacional de desenvolvimento, coordenação, atendimento e operação assistida.
 
 Git e GitHub são a fonte versionada de código, documentação, histórico, branches, revisões e automações.
 
-Portais são superfícies permanentes de uso e habilitação de produtos, clientes, credenciais e operações.
+O Portal unificado é a superfície permanente para administrar clientes, produtos, usuários, credenciais, operações, aprovações, evidências e auditoria.
 
 ## 2. Fluxo principal
 
 ```text
-ChatGPT/Chats
+ChatGPT / Chats
 → planejar
 → desenvolver
 → revisar
 → preparar alteração
-→ Git/GitHub
+→ Git / GitHub
 → build e testes
 → serviços e APIs
-→ portais publicados
+→ Portal unificado
 → evidência e auditoria
 ```
 
@@ -31,35 +31,39 @@ ChatGPT/Chats
 
 | Camada | Responsabilidade |
 |---|---|
-| ChatGPT | especificar mudánças, gerar código e documentação, revisar e coordenar |
+| ChatGPT | especificar mudanças, gerar código e documentação, revisar e coordenar |
 | Git | versionar conteúdo e preservar histórico |
 | GitHub | hospedar repositórios, PRs, checks, builds e automações |
 | Serviços | executar regras, contratos e ações reais |
-| Portais | administrar produtos, clientes, acessos, credenciais e operações |
+| Portal unificado | administrar produtos, clientes, acessos, credenciais e operações por perfil |
 | Cofre de segredos | armazenar credenciais e segredos fora de chats e repositórios |
 
 ## 4. Regras de desenvolvimento
 
-- cada mudánça ocorre em branch própria;
-- commits são purposivos e pequenos;
-- SHA de commit é confirmado após cada alteração;
+- cada mudança ocorre em branch própria;
+- commits são pequenos e propositivos;
+- o SHA é confirmado após cada alteração;
 - testes e checks antecedem promoção;
 - merge, release e deploy exigem autorização aplicável;
-- segredos não são esvritos em chats, commits ou arquivos versionados;
-- documentação canônica é consultada antes de mudánças materiais.
+- segredos não são escritos em chats, commits ou arquivos versionados;
+- documentos canônicos são consultados antes de mudanças materiais;
+- decisões já estabelecidas não são redescritas como arquitetura nova.
 
-## 5. Desenvolvimento para novos clientes
+## 5. Novos clientes
 
 Para cada novo cliente:
 
 1. definir escopo e dados isolados;
-2. criar projeto ou tenant;
-3. configurar permissões;
+2. criar organização ou tenant;
+3. configurar usuários, papéis e permissões;
 4. conectar serviços autorizados;
-5. gerar superfícies especializadas;
-6. executar testes de isolamento;
-7. publicar somente após aprovação;
-8. monitorar evidências e auditoria.
+5. habilitar módulos e visões no Portal unificado;
+6. desenvolver extensões quando realmente necessárias;
+7. executar testes de isolamento;
+8. publicar somente após aprovação;
+9. monitorar evidências e auditoria.
+
+Um novo cliente não exige automaticamente outro portal administrativo.
 
 ## 6. Limites
 
@@ -70,13 +74,14 @@ O ChatGPT não substitui:
 - cofre de segredos;
 - banco de dados operacional;
 - políticas de autoridade;
-- portal de usuário final.
+- Portal unificado como registro operacional persistente.
 
 ## 7. Critérios de aceitação
 
-- o fluxo ChatGPT → Git → Portal está documentado;
+- o fluxo ChatGPT → Git → serviços → Portal está documentado;
 - nenhum segredo é versionado;
 - cada mudança possui branch, commit e SHA;
-- portais consomem serviços, não regras inventadas na interface;
+- o Portal unificado usa visões e permissões, não portais administrativos duplicados;
 - merge e publicação permanecem governados;
-- novos clientes possuem isolamento explícito.
+- novos clientes possuem isolamento explícito;
+- decisões canônicas são aplicadas antes de criar nova documentação.
