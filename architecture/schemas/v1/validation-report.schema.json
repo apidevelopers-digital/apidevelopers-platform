@@ -1,0 +1,379 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://developers.digital/schemas/architecture/validation-report.v1.schema.json",
+  "title": "Architecture Validation Report v1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schemaVersion",
+    "reportId",
+    "generatedAt",
+    "repository",
+    "revision",
+    "execution",
+    "ruleset",
+    "scope",
+    "summary",
+    "findings",
+    "exceptions",
+    "artifacts",
+    "pipeline",
+    "integrity"
+  ],
+  "$defs": {
+    "severity": {
+      "enum": [
+        "INFO",
+        "WARN",
+        "ERROR",
+        "CRITICAL"
+      ]
+    },
+    "result": {
+      "enum": [
+        "COMPLIANT",
+        "CONDITIONAL",
+        "NON_COMPLIANT",
+        "INVALID",
+        "INCOMPLETE"
+      ]
+    },
+    "finding": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "findingId",
+        "fingerprint",
+        "ruleId",
+        "ruleVersion",
+        "severity",
+        "status",
+        "message",
+        "path",
+        "location",
+        "observed",
+        "expected",
+        "remediation",
+        "sourceRefs",
+        "exception",
+        "metadata"
+      ],
+      "properties": {
+        "findingId": {
+          "type": "string",
+          "minLength": 1
+        },
+        "fingerprint": {
+          "type": "string",
+          "pattern": "^sha256:[0-9a-f]{64}$"
+        },
+        "ruleId": {
+          "type": "string",
+          "minLength": 1
+        },
+        "ruleVersion": {
+          "type": "string",
+          "pattern": "^[0-9]+\\.[0-9]+\\.[0-9]+$"
+        },
+        "severity": {
+          "$ref": "#/$defs/severity"
+        },
+        "status": {
+          "enum": [
+            "OPEN",
+            "EXCEPTED",
+            "RESOLVED",
+            "SUPPRESSED",
+            "INVALID"
+          ]
+        },
+        "message": {
+          "type": "string"
+        },
+        "path": {
+          "type": "string"
+        },
+        "location": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "line",
+            "column"
+          ],
+          "properties": {
+            "line": {
+              "type": [
+                "integer",
+                "null"
+              ],
+              "minimum": 1
+            },
+            "column": {
+              "type": [
+                "integer",
+                "null"
+              ],
+              "minimum": 1
+            }
+          }
+        },
+        "observed": true,
+        "expected": true,
+        "remediation": {
+          "type": "string"
+        },
+        "sourceRefs": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "exception": {
+          "type": [
+            "object",
+            "null"
+          ]
+        },
+        "metadata": {
+          "type": "object"
+        }
+      }
+    }
+  },
+  "properties": {
+    "schemaVersion": {
+      "type": "string",
+      "pattern": "^1\\.[0-9]+\\.[0-9]+$"
+    },
+    "reportId": {
+      "type": "string",
+      "minLength": 1
+    },
+    "generatedAt": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "repository": {
+      "type": "object",
+      "required": [
+        "provider",
+        "owner",
+        "name",
+        "fullName"
+      ],
+      "properties": {
+        "provider": {
+          "type": "string"
+        },
+        "owner": {
+          "type": "string"
+        },
+        "name": {
+          "type": "string"
+        },
+        "fullName": {
+          "type": "string"
+        }
+      }
+    },
+    "revision": {
+      "type": "object",
+      "required": [
+        "branch",
+        "commitSha",
+        "baseSha",
+        "headSha",
+        "dirty"
+      ],
+      "properties": {
+        "branch": {
+          "type": "string"
+        },
+        "commitSha": {
+          "type": "string"
+        },
+        "baseSha": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "headSha": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "dirty": {
+          "type": "boolean"
+        }
+      }
+    },
+    "execution": {
+      "type": "object",
+      "required": [
+        "validatorName",
+        "validatorVersion",
+        "mode",
+        "startedAt",
+        "finishedAt",
+        "durationMs",
+        "exitCode",
+        "status"
+      ],
+      "properties": {
+        "validatorName": {
+          "type": "string"
+        },
+        "validatorVersion": {
+          "type": "string"
+        },
+        "mode": {
+          "type": "string"
+        },
+        "startedAt": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "finishedAt": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "durationMs": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "exitCode": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "status": {
+          "enum": [
+            "COMPLETED",
+            "FAILED",
+            "INCOMPLETE",
+            "CANCELLED"
+          ]
+        }
+      }
+    },
+    "ruleset": {
+      "type": "object"
+    },
+    "scope": {
+      "type": "object"
+    },
+    "summary": {
+      "type": "object",
+      "required": [
+        "result",
+        "findingCount",
+        "openFindingCount",
+        "exceptedFindingCount",
+        "suppressedFindingCount",
+        "countsBySeverity",
+        "countsByStatus",
+        "countsByRule",
+        "blockingThreshold",
+        "blockingFindingCount"
+      ],
+      "properties": {
+        "result": {
+          "$ref": "#/$defs/result"
+        },
+        "findingCount": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "openFindingCount": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "exceptedFindingCount": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "suppressedFindingCount": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "countsBySeverity": {
+          "type": "object"
+        },
+        "countsByStatus": {
+          "type": "object"
+        },
+        "countsByRule": {
+          "type": "object"
+        },
+        "blockingThreshold": {
+          "$ref": "#/$defs/severity"
+        },
+        "blockingFindingCount": {
+          "type": "integer",
+          "minimum": 0
+        }
+      }
+    },
+    "findings": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/finding"
+      }
+    },
+    "exceptions": {
+      "type": "array",
+      "items": {
+        "type": "object"
+      }
+    },
+    "artifacts": {
+      "type": "array",
+      "items": {
+        "type": "object"
+      }
+    },
+    "pipeline": {
+      "type": "array",
+      "items": {
+        "type": "object"
+      }
+    },
+    "integrity": {
+      "type": "object",
+      "required": [
+        "algorithm",
+        "input",
+        "ruleset",
+        "exceptions",
+        "findings",
+        "report"
+      ],
+      "properties": {
+        "algorithm": {
+          "const": "sha256"
+        },
+        "input": {
+          "type": "string",
+          "pattern": "^sha256:[0-9a-f]{64}$"
+        },
+        "ruleset": {
+          "type": "string",
+          "pattern": "^sha256:[0-9a-f]{64}$"
+        },
+        "exceptions": {
+          "type": "string",
+          "pattern": "^sha256:[0-9a-f]{64}$"
+        },
+        "findings": {
+          "type": "string",
+          "pattern": "^sha256:[0-9a-f]{64}$"
+        },
+        "report": {
+          "type": "string",
+          "pattern": "^sha256:[0-9a-f]{64}$"
+        }
+      }
+    }
+  }
+}
