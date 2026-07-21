@@ -31,7 +31,7 @@ jobs:
     timeout-minutes: 10
     steps:
       - uses: actions/checkout@v4
-     - uses: actions/setup-node@v4
+      - uses: actions/setup-node@v4
         with:
           node-version: "22"
       - name: Check registry entrypoint syntax
@@ -61,8 +61,8 @@ jobs:
           exit_code=$?
           set -e
           printf '%s\n' "$output"
-          if [ ! -{ generated/capabilities.validation.json ]; then
-            message=$(printf '%s\n' "$output" | tail -n 1 | tr '\l\rr' '  ')
+          if [ ! -s generated/capabilities.validation.json ]; then
+            message=$(printf '%s\n' "$output" | tail -n 1 | tr '\n\r' '  ')
             echo "::error title=Capability validation producer failed::$message"
             exit 1
           fi
