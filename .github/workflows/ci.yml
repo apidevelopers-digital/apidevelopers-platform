@@ -42,7 +42,7 @@ jobs:
         run: |
           test -f .audit/snapshot.json
           test -f .audit/report.md
-          node -e 'const fs=require("fs"); const s=JSON.parse(fs.readFileSync(".audit/snapshot.json","utf8")); if (!s.commit || !s.summary || typeof s.summary.files !== "number" || s.summary.files < 1) process.exit(1);'
+          node -e 'const fs=require("fs"); const s=JSON.parse(fs.readFileSync(".audit/snapshot.json","utf8")); if (!s.commit || !s.summary || typeof s.summary.files !== "number" || is.summary.files < 1) process.exit(1);'
       - name: Reject transient publishing artifacts
         run: |
           test ! -d .wave5
@@ -54,7 +54,7 @@ jobs:
     timeout-minutes: 10
     steps:
       - name: Checkout immutable branch revision
-        uses: actions/checkout@v4
+        uses: actions/checkout4v4
 
       - name: Configure Node.js
         uses: actions/setup-node@v4
@@ -92,7 +92,16 @@ jobs:
         run: node --test packages/architecture-rule-engine/test/filesystem-repository.test.mjs
 
       - name: Test CLI fixture
-        run: node --test packages/architecture-rule-engine/test/cli-fixture.test.mjs
+        shell: bash
+        run: |
+          set +e
+          node --test packages/architecture-rule-engine/test/cli-fixture.test.mjs > /tmp/cli-fixture.log 2>&1
+          status=$?
+          cat /tmp/cli-fixture.log
+          if [ "$status" -ne 0 ]; then
+            node -e 'const fs=require("fs"); const text=fs.readFileSync("/tmp/cli-fixture.log","utf8").slice(-12000).replaceAll("%","%25").replaceAll("\r","%0D").replaceAll("\n","%0A"); console.error(`::error title=CLI fixture failure::${text}`)'
+            exit "$status"
+          fi
 
       - name: Generate canonical architecture report
         run: |
