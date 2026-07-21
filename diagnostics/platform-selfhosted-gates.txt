@@ -1,0 +1,10 @@
+preflight=0
+install=0
+root-tooling=0
+root-integration=0
+workspaces=1
+institutional-audit=0
+audit-snapshot=0
+audit-report=0
+reject-wave5=0
+reject-publish=0

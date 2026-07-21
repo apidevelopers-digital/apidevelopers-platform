@@ -1,0 +1,4080 @@
+
+> @apidevelopers/api-gateway@0.3.0 test
+> node --test test/*.test.mjs
+
+TAP version 13
+# Subtest: serves health, catalog and OpenAPI publicly
+ok 1 - serves health, catalog and OpenAPI publicly
+  ---
+  duration_ms: 3.146152
+  type: 'test'
+  ...
+# Subtest: admin creates, rotates and revokes client API Keys
+ok 2 - admin creates, rotates and revokes client API Keys
+  ---
+  duration_ms: 3.633173
+  type: 'test'
+  ...
+# Subtest: client status and audit routes are administrative
+ok 3 - client status and audit routes are administrative
+  ---
+  duration_ms: 1.157595
+  type: 'test'
+  ...
+# Subtest: returns 429 with rate limit headers
+ok 4 - returns 429 with rate limit headers
+  ---
+  duration_ms: 0.707815
+  type: 'test'
+  ...
+# Subtest: audit log redacts sensitive fields
+ok 5 - audit log redacts sensitive fields
+  ---
+  duration_ms: 1.751231
+  type: 'test'
+  ...
+# Subtest: JSONL audit log persists append-only entries
+ok 6 - JSONL audit log persists append-only entries
+  ---
+  duration_ms: 2.936462
+  type: 'test'
+  ...
+# Subtest: fixed-window rate limiter resets after the window
+ok 7 - fixed-window rate limiter resets after the window
+  ---
+  duration_ms: 0.389724
+  type: 'test'
+  ...
+# Subtest: enforces explicit scopes on administrative routes
+ok 8 - enforces explicit scopes on administrative routes
+  ---
+  duration_ms: 4.414506
+  type: 'test'
+  ...
+# Subtest: creates, rotates and revokes API Keys without exposing hashes
+ok 9 - creates, rotates and revokes API Keys without exposing hashes
+  ---
+  duration_ms: 4.4455
+  type: 'test'
+  ...
+# Subtest: revoking a client revokes all active keys
+ok 10 - revoking a client revokes all active keys
+  ---
+  duration_ms: 0.744508
+  type: 'test'
+  ...
+# Subtest: persists versioned state and authenticates after restart
+ok 11 - persists versioned state and authenticates after restart
+  ---
+  duration_ms: 11.190886
+  type: 'test'
+  ...
+# Subtest: migrates a legacy single-hash client into schema version 2
+ok 12 - migrates a legacy single-hash client into schema version 2
+  ---
+  duration_ms: 0.553433
+  type: 'test'
+  ...
+# Subtest: runtime returns 503 when no learning snapshot has been published
+ok 13 - runtime returns 503 when no learning snapshot has been published
+  ---
+  duration_ms: 7.883851
+  type: 'test'
+  ...
+# Subtest: runtime serves the persisted learning snapshot as read-only data
+ok 14 - runtime serves the persisted learning snapshot as read-only data
+  ---
+  duration_ms: 10.908053
+  type: 'test'
+  ...
+# Subtest: runtime delegates unrelated routes to the existing gateway
+ok 15 - runtime delegates unrelated routes to the existing gateway
+  ---
+  duration_ms: 3.234958
+  type: 'test'
+  ...
+# Subtest: documents version 0.3.0 and explicit administrative scopes
+ok 16 - documents version 0.3.0 and explicit administrative scopes
+  ---
+  duration_ms: 45.018572
+  type: 'test'
+  ...
+# Subtest: returns an isolated OpenAPI document clone
+ok 17 - returns an isolated OpenAPI document clone
+  ---
+  duration_ms: 0.592709
+  type: 'test'
+  ...
+# Subtest: returns null outside portal base path
+ok 18 - returns null outside portal base path
+  ---
+  duration_ms: 4.567724
+  type: 'test'
+  ...
+# Subtest: authenticates API keys through auth-core
+ok 19 - authenticates API keys through auth-core
+  ---
+  duration_ms: 2.020365
+  type: 'test'
+  ...
+# Subtest: returns 401 for missing credentials
+ok 20 - returns 401 for missing credentials
+  ---
+  duration_ms: 0.363558
+  type: 'test'
+  ...
+# Subtest: enforces portal scopes
+ok 21 - enforces portal scopes
+  ---
+  duration_ms: 0.422866
+  type: 'test'
+  ...
+# Subtest: applies rate limiting before authentication
+ok 22 - applies rate limiting before authentication
+  ---
+  duration_ms: 0.248422
+  type: 'test'
+  ...
+# Subtest: serializes adapter bodies for gateway server
+ok 23 - serializes adapter bodies for gateway server
+  ---
+  duration_ms: 0.561761
+  type: 'test'
+  ...
+# Subtest: wrapper falls back to base app
+ok 24 - wrapper falls back to base app
+  ---
+  duration_ms: 0.452191
+  type: 'test'
+  ...
+# Subtest: does not expose mutation
+ok 25 - does not expose mutation
+  ---
+  duration_ms: 0.215123
+  type: 'test'
+  ...
+# Subtest: serves institutional projection from API key through the gateway
+ok 26 - serves institutional projection from API key through the gateway
+  ---
+  duration_ms: 4.065164
+  type: 'test'
+  ...
+# Subtest: HTTP server exposes the application contract
+ok 27 - HTTP server exposes the application contract
+  ---
+  duration_ms: 46.12411
+  type: 'test'
+  ...
+1..27
+# tests 27
+# suites 0
+# pass 27
+# fail 0
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 863.46078
+
+> @apidevelopers/conversation@0.1.0 test
+> node --test
+
+TAP version 13
+# Subtest: creates a conversation session
+ok 1 - creates a conversation session
+  ---
+  duration_ms: 2.077776
+  type: 'test'
+  ...
+# Subtest: creates a conversation turn
+ok 2 - creates a conversation turn
+  ---
+  duration_ms: 0.2567
+  type: 'test'
+  ...
+# Subtest: rejects missing session context
+ok 3 - rejects missing session context
+  ---
+  duration_ms: 0.625888
+  type: 'test'
+  ...
+# Subtest: rejects invalid role
+ok 4 - rejects invalid role
+  ---
+  duration_ms: 2.37089
+  type: 'test'
+  ...
+# Subtest: rejects empty content
+ok 5 - rejects empty content
+  ---
+  duration_ms: 0.295103
+  type: 'test'
+  ...
+1..5
+# tests 5
+# suites 0
+# pass 5
+# fail 0
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 135.591723
+
+> @apidevelopers/guard@0.1.0 test
+> node --test test/*.test.mjs
+
+TAP version 13
+# Subtest: allows dry-run and calls runtime once
+ok 1 - allows dry-run and calls runtime once
+  ---
+  duration_ms: 3.920781
+  type: 'test'
+  ...
+# Subtest: blocks R5 before runtime
+ok 2 - blocks R5 before runtime
+  ---
+  duration_ms: 0.593414
+  type: 'test'
+  ...
+# Subtest: returns review-required without approval
+ok 3 - returns review-required without approval
+  ---
+  duration_ms: 0.506005
+  type: 'test'
+  ...
+# Subtest: executes a valid approved plan
+ok 4 - executes a valid approved plan
+  ---
+  duration_ms: 0.492241
+  type: 'test'
+  ...
+# Subtest: blocks approval replay before runtime
+ok 5 - blocks approval replay before runtime
+  ---
+  duration_ms: 0.656126
+  type: 'test'
+  ...
+# Subtest: blocks cross-tenant approval
+ok 6 - blocks cross-tenant approval
+  ---
+  duration_ms: 2.572678
+  type: 'test'
+  ...
+# Subtest: blocks changed plan with stale approval
+ok 7 - blocks changed plan with stale approval
+  ---
+  duration_ms: 0.598242
+  type: 'test'
+  ...
+# Subtest: blocks expired approval
+ok 8 - blocks expired approval
+  ---
+  duration_ms: 0.696505
+  type: 'test'
+  ...
+# Subtest: captures runtime failure as auditable result
+ok 9 - captures runtime failure as auditable result
+  ---
+  duration_ms: 0.835526
+  type: 'test'
+  ...
+# Subtest: records an audit entry without approval payload
+ok 10 - records an audit entry without approval payload
+  ---
+  duration_ms: 0.754376
+  type: 'test'
+  ...
+# Subtest: blocks secret-like policy input before runtime
+ok 11 - blocks secret-like policy input before runtime
+  ---
+  duration_ms: 0.712033
+  type: 'test'
+  ...
+# Subtest: returns immutable reports
+ok 12 - returns immutable reports
+  ---
+  duration_ms: 0.260777
+  type: 'test'
+  ...
+1..12
+# tests 12
+# suites 0
+# pass 12
+# fail 0
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 167.241013
+
+> @apidevelopers/activation-core@0.1.0 test
+> node --test test/*.test.mjs
+
+TAP version 13
+# Subtest: creates immutable snapshots and rejects sensitive metadata
+ok 1 - creates immutable snapshots and rejects sensitive metadata
+  ---
+  duration_ms: 4.021198
+  type: 'test'
+  ...
+# Subtest: requires checkout.session.completed with confirmed payment
+ok 2 - requires checkout.session.completed with confirmed payment
+  ---
+  duration_ms: 0.336446
+  type: 'test'
+  ...
+# Subtest: repository is append-only, sequential and source-event idempotent
+ok 3 - repository is append-only, sequential and source-event idempotent
+  ---
+  duration_ms: 0.850203
+  type: 'test'
+  ...
+# Subtest: creates one idempotent activation per checkout
+ok 4 - creates one idempotent activation per checkout
+  ---
+  duration_ms: 0.375118
+  type: 'test'
+  ...
+# Subtest: starts activation and records active subscription
+ok 5 - starts activation and records active subscription
+  ---
+  duration_ms: 4.263607
+  type: 'test'
+  ...
+# Subtest: requests and completes matching provisioning
+ok 6 - requests and completes matching provisioning
+  ---
+  duration_ms: 1.517371
+  type: 'test'
+  ...
+# Subtest: completes only after subscription and provisioning
+ok 7 - completes only after subscription and provisioning
+  ---
+  duration_ms: 3.285238
+  type: 'test'
+  ...
+# Subtest: deduplicates repeated external events
+ok 8 - deduplicates repeated external events
+  ---
+  duration_ms: 0.875197
+  type: 'test'
+  ...
+# Subtest: fails with reverse compensation and requires completion before retry
+ok 9 - fails with reverse compensation and requires completion before retry
+  ---
+  duration_ms: 2.168554
+  type: 'test'
+  ...
+# Subtest: cancels non-terminal activation and blocks later transitions
+ok 10 - cancels non-terminal activation and blocks later transitions
+  ---
+  duration_ms: 0.636407
+  type: 'test'
+  ...
+1..10
+# tests 10
+# suites 0
+# pass 10
+# fail 0
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 128.689258
+
+> @apidevelopers/apikey-core@0.1.0 test
+> node --test test/*.test.mjs
+
+TAP version 13
+# Subtest: generates and verifies namespaced API keys
+ok 1 - generates and verifies namespaced API keys
+  ---
+  duration_ms: 1.860574
+  type: 'test'
+  ...
+# Subtest: creates and revokes immutable key records
+ok 2 - creates and revokes immutable key records
+  ---
+  duration_ms: 0.391506
+  type: 'test'
+  ...
+# Subtest: rejects weak inputs and invalid namespaces
+ok 3 - rejects weak inputs and invalid namespaces
+  ---
+  duration_ms: 0.505667
+  type: 'test'
+  ...
+1..3
+# tests 3
+# suites 0
+# pass 3
+# fail 0
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 115.7047
+
+> @apidevelopers/architecture-rule-engine@0.3.0 test
+> node --test test/*.test.mjs
+
+TAP version 13
+# Subtest: filesystem repository lists only safe regular files deterministically
+ok 1 - filesystem repository lists only safe regular files deterministically
+  ---
+  duration_ms: 42.494517
+  type: 'test'
+  ...
+# Subtest: filesystem repository reads text and checks exact files
+ok 2 - filesystem repository reads text and checks exact files
+  ---
+  duration_ms: 42.682079
+  type: 'test'
+  ...
+# Subtest: filesystem repository blocks traversal and symbolic links
+ok 3 - filesystem repository blocks traversal and symbolic links
+  ---
+  duration_ms: 6.165636
+  type: 'test'
+  ...
+# Subtest: validates the canonical input contract
+ok 4 - validates the canonical input contract
+  ---
+  duration_ms: 1.940859
+  type: 'test'
+  ...
+# Subtest: blocks secret-like fields and unsafe output traversal
+ok 5 - blocks secret-like fields and unsafe output traversal
+  ---
+  duration_ms: 0.321658
+  type: 'test'
+  ...
+# Subtest: calculates all canonical result states
+ok 6 - calculates all canonical result states
+  ---
+  duration_ms: 0.236667
+  type: 'test'
+  ...
+# Subtest: maps canonical exit codes
+ok 7 - maps canonical exit codes
+  ---
+  duration_ms: 0.144142
+  type: 'test'
+  ...
+# Subtest: matches only active, exact and non-expired exceptions
+ok 8 - matches only active, exact and non-expired exceptions
+  ---
+  duration_ms: 1.077987
+  type: 'test'
+  ...
+# Subtest: runs a compliant deterministic pipeline and verifies report integrity
+ok 9 - runs a compliant deterministic pipeline and verifies report integrity
+  ---
+  duration_ms: 6.943558
+  type: 'test'
+  ...
+# Subtest: returns NON_COMPLIANT for an uncovered blocking finding
+ok 10 - returns NON_COMPLIANT for an uncovered blocking finding
+  ---
+  duration_ms: 1.267807
+  type: 'test'
+  ...
+# Subtest: returns CONDITIONAL when every blocking finding is excepted
+ok 11 - returns CONDITIONAL when every blocking finding is excepted
+  ---
+  duration_ms: 0.714814
+  type: 'test'
+  ...
+# Subtest: returns INVALID for unsupported required rule semantics
+ok 12 - returns INVALID for unsupported required rule semantics
+  ---
+  duration_ms: 0.70624
+  type: 'test'
+  ...
+# Subtest: returns INCOMPLETE when a deterministic adapter crashes
+ok 13 - returns INCOMPLETE when a deterministic adapter crashes
+  ---
+  duration_ms: 1.058116
+  type: 'test'
+  ...
+# Subtest: orders findings deterministically by severity then identity
+ok 14 - orders findings deterministically by severity then identity
+  ---
+  duration_ms: 213.009113
+  type: 'test'
+  ...
+# Subtest: normalizes paths and rejects traversal
+ok 15 - normalizes paths and rejects traversal
+  ---
+  duration_ms: 1.946566
+  type: 'test'
+  ...
+# Subtest: memory repository rejects duplicate normalized paths
+ok 16 - memory repository rejects duplicate normalized paths
+  ---
+  duration_ms: 0.383909
+  type: 'test'
+  ...
+# Subtest: changed-files scope is normalized, filtered and sorted
+ok 17 - changed-files scope is normalized, filtered and sorted
+  ---
+  duration_ms: 1.67996
+  type: 'test'
+  ...
+# Subtest: loader validates identity and maps lifecycle to enabled
+ok 18 - loader validates identity and maps lifecycle to enabled
+  ---
+  duration_ms: 18.238416
+  type: 'test'
+  ...
+# Subtest: loader rejects mismatched ruleset identity
+ok 19 - loader rejects mismatched ruleset identity
+  ---
+  duration_ms: 0.761969
+  type: 'test'
+  ...
+# Subtest: optional exception snapshot absence is explicit and non-fatal
+ok 20 - optional exception snapshot absence is explicit and non-fatal
+  ---
+  duration_ms: 0.448608
+  type: 'test'
+  ...
+# Subtest: runtime loads rules, optional exceptions and deterministic scope
+ok 21 - runtime loads rules, optional exceptions and deterministic scope
+  ---
+  duration_ms: 1.030037
+  type: 'test'
+  ...
+# Subtest: required-path reports exact and companion files deterministically
+ok 22 - required-path reports exact and companion files deterministically
+  ---
+  duration_ms: 1.706953
+  type: 'test'
+  ...
+# Subtest: required-field validates JSON pointer and package namespace
+ok 23 - required-field validates JSON pointer and package namespace
+  ---
+  duration_ms: 1.294046
+  type: 'test'
+  ...
+# Subtest: pattern adapters preserve locations without exposing matched text
+ok 24 - pattern adapters preserve locations without exposing matched text
+  ---
+  duration_ms: 4.497003
+  type: 'test'
+  ...
+# Subtest: allowed-value enforces canonical manifest values
+ok 25 - allowed-value enforces canonical manifest values
+  ---
+  duration_ms: 0.998921
+  type: 'test'
+  ...
+1..25
+# tests 25
+# suites 0
+# pass 25
+# fail 0
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 514.631891
+
+> @apidevelopers/auth@0.1.0 test
+> node --test test/*.test.mjs
+
+TAP version 13
+# node:internal/modules/package_json_reader:314
+#   throw new ERR_MODULE_NOT_FOUND(packageName, fileURLToPath(base), null);
+#         ^
+# Error [ERR_MODULE_NOT_FOUND]: Cannot find package '@apidevelopers/contracts' imported from /Users/milenapeterlesavioabreu/actions-runner/_work/apidevelopers-platform/apidevelopers-platform/packages/auth/src/index.mjs
+#     at Object.getPackageJSONURL (node:internal/modules/package_json_reader:314:9)
+#     at packageResolve (node:internal/modules/esm/resolve:768:81)
+#     at moduleResolve (node:internal/modules/esm/resolve:855:18)
+#     at defaultResolve (node:internal/modules/esm/resolve:985:11)
+#     at \#cachedDefaultResolve (node:internal/modules/esm/loader:747:20)
+#     at ModuleLoader.resolve (node:internal/modules/esm/loader:724:38)
+#     at ModuleLoader.getModuleJobForImport (node:internal/modules/esm/loader:320:38)
+#     at ModuleJob._link (node:internal/modules/esm/module_job:182:49) {
+#   code: 'ERR_MODULE_NOT_FOUND'
+# }
+# Node.js v22.23.1
+# Subtest: test/index.test.mjs
+not ok 1 - test/index.test.mjs
+  ---
+  duration_ms: 101.439116
+  type: 'test'
+  location: '/Users/milenapeterlesavioabreu/actions-runner/_work/apidevelopers-platform/apidevelopers-platform/packages/auth/test/index.test.mjs:1:1'
+  failureType: 'testCodeFailure'
+  exitCode: 1
+  signal: ~
+  error: 'test failed'
+  code: 'ERR_TEST_FAILURE'
+  ...
+1..1
+# tests 1
+# suites 0
+# pass 0
+# fail 1
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 110.631296
+npm error Lifecycle script `test` failed with error:
+npm error code 1
+npm error path /Users/milenapeterlesavioabreu/actions-runner/_work/apidevelopers-platform/apidevelopers-platform/packages/auth
+npm error workspace @apidevelopers/auth@0.1.0
+npm error location /Users/milenapeterlesavioabreu/actions-runner/_work/apidevelopers-platform/apidevelopers-platform/packages/auth
+npm error command failed
+npm error command sh -c node --test test/*.test.mjs
+
+
+> @apidevelopers/auth-core@0.1.0 test
+> node --test test/*.test.mjs
+
+TAP version 13
+# Subtest: extracts API keys from supported headers
+ok 1 - extracts API keys from supported headers
+  ---
+  duration_ms: 1.1597
+  type: 'test'
+  ...
+# Subtest: authenticator resolves admin and client identities
+ok 2 - authenticator resolves admin and client identities
+  ---
+  duration_ms: 0.811123
+  type: 'test'
+  ...
+# Subtest: authorization evaluates roles and scopes without side effects
+ok 3 - authorization evaluates roles and scopes without side effects
+  ---
+  duration_ms: 0.829397
+  type: 'test'
+  ...
+1..3
+# tests 3
+# suites 0
+# pass 3
+# fail 0
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 139.64991
+
+> @apidevelopers/billing-core@0.1.0 test
+> node --test test/*.test.mjs
+
+TAP version 13
+# Subtest: creates immutable monetary line items
+ok 1 - creates immutable monetary line items
+  ---
+  duration_ms: 1.735374
+  type: 'test'
+  ...
+# Subtest: calculates recurring, overage, credit and adjustment lines
+ok 2 - calculates recurring, overage, credit and adjustment lines
+  ---
+  duration_ms: 1.242935
+  type: 'test'
+  ...
+# Subtest: validates invoice arithmetic and snapshots
+ok 3 - validates invoice arithmetic and snapshots
+  ---
+  duration_ms: 0.569886
+  type: 'test'
+  ...
+# Subtest: repository is append-only, sequential and idempotent
+ok 4 - repository is append-only, sequential and idempotent
+  ---
+  duration_ms: 12.777531
+  type: 'test'
+  ...
+# Subtest: creates and finalizes deterministic invoices
+ok 5 - creates and finalizes deterministic invoices
+  ---
+  duration_ms: 1.198712
+  type: 'test'
+  ...
+# Subtest: records partial and full payments idempotently
+ok 6 - records partial and full payments idempotently
+  ---
+  duration_ms: 3.946562
+  type: 'test'
+  ...
+# Subtest: marks overdue only after due date and emits subscription signal
+ok 7 - marks overdue only after due date and emits subscription signal
+  ---
+  duration_ms: 1.099067
+  type: 'test'
+  ...
+# Subtest: voids unpaid invoices and blocks terminal payments
+ok 8 - voids unpaid invoices and blocks terminal payments
+  ---
+  duration_ms: 0.815325
+  type: 'test'
+  ...
+# Subtest: marks past-due invoice uncollectible and rejects plan mismatch
+ok 9 - marks past-due invoice uncollectible and rejects plan mismatch
+  ---
+  duration_ms: 1.505282
+  type: 'test'
+  ...
+1..9
+# tests 9
+# suites 0
+# pass 9
+# fail 0
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 166.174865
+
+> @apidevelopers/checkout-core@0.1.0 test
+> node --test test/*.test.mjs
+
+TAP version 13
+# Subtest: creates immutable snapshots and rejects sensitive metadata
+ok 1 - creates immutable snapshots and rejects sensitive metadata
+  ---
+  duration_ms: 3.780583
+  type: 'test'
+  ...
+# Subtest: validates sellable catalog and operational account
+ok 2 - validates sellable catalog and operational account
+  ---
+  duration_ms: 0.498191
+  type: 'test'
+  ...
+# Subtest: creates a frozen pending intent and emits canonical event
+ok 3 - creates a frozen pending intent and emits canonical event
+  ---
+  duration_ms: 0.574465
+  type: 'test'
+  ...
+# Subtest: deduplicates creation and rejects idempotency key conflicts
+ok 4 - deduplicates creation and rejects idempotency key conflicts
+  ---
+  duration_ms: 0.493111
+  type: 'test'
+  ...
+# Subtest: repository is append-only, sequential and source-event idempotent
+ok 5 - repository is append-only, sequential and source-event idempotent
+  ---
+  duration_ms: 0.679443
+  type: 'test'
+  ...
+# Subtest: completes only confirmed matching payments
+ok 6 - completes only confirmed matching payments
+  ---
+  duration_ms: 0.843225
+  type: 'test'
+  ...
+# Subtest: deduplicates repeated provider webhooks
+ok 7 - deduplicates repeated provider webhooks
+  ---
+  duration_ms: 1.130413
+  type: 'test'
+  ...
+# Subtest: expires only after deadline and blocks terminal transitions
+ok 8 - expires only after deadline and blocks terminal transitions
+  ---
+  duration_ms: 3.08475
+  type: 'test'
+  ...
+# Subtest: cancels pending sessions and lists current account state
+ok 9 - cancels pending sessions and lists current account state
+  ---
+  duration_ms: 0.86481
+  type: 'test'
+  ...
+1..9
+# tests 9
+# suites 0
+# pass 9
+# fail 0
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 122.942623
+
+> @apidevelopers/commercial-journey-core@0.1.0 test
+> node --test test/*.test.mjs
+
+TAP version 13
+# Subtest: is disabled by default
+ok 1 - is disabled by default
+  ---
+  duration_ms: 1.572472
+  type: 'test'
+  ...
+# Subtest: orchestrates registration through first API request in order
+ok 2 - orchestrates registration through first API request in order
+  ---
+  duration_ms: 3.121771
+  type: 'test'
+  ...
+# Subtest: fails closed and never executes later steps
+ok 3 - fails closed and never executes later steps
+  ---
+  duration_ms: 0.6186
+  type: 'test'
+  ...
+1..3
+# tests 3
+# suites 0
+# pass 3
+# fail 0
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 142.60496
+
+> @apidevelopers/contracts@0.1.0 test
+> node --test --test-concurrency=1 test/*.test.mjs
+
+TAP version 13
+# Subtest: creates an immutable audit -> evolution handoff
+ok 1 - creates an immutable audit -> evolution handoff
+  ---
+  duration_ms: 2.198123
+  type: 'test'
+  ...
+# Subtest: rejects cross-tenant audit handoffs
+ok 2 - rejects cross-tenant audit handoffs
+  ---
+  duration_ms: 1.69415
+  type: 'test'
+  ...
+# Subtest: validates a governed evolution report
+ok 3 - validates a governed evolution report
+  ---
+  duration_ms: 0.421548
+  type: 'test'
+  ...
+# Subtest: creates an immutable secret-free auth context
+ok 4 - creates an immutable secret-free auth context
+  ---
+  duration_ms: 1.815005
+  type: 'test'
+  ...
+# Subtest: rejects identities, secrets or implicit authorization in the context
+ok 5 - rejects identities, secrets or implicit authorization in the context
+  ---
+  duration_ms: 0.743465
+  type: 'test'
+  ...
+# Subtest: exports a frozen versioned family registry
+ok 6 - exports a frozen versioned family registry
+  ---
+  duration_ms: 2.353377
+  type: 'test'
+  ...
+# Subtest: accepts canonical examples from the architecture freeze
+ok 7 - accepts canonical examples from the architecture freeze
+  ---
+  duration_ms: 0.56362
+  type: 'test'
+  ...
+# Subtest: parses lifecycle identifiers without treating their segments as aliases
+ok 8 - parses lifecycle identifiers without treating their segments as aliases
+  ---
+  duration_ms: 0.818811
+  type: 'test'
+  ...
+# Subtest: parses contract identifiers and extracts the major version
+ok 9 - parses contract identifiers and extracts the major version
+  ---
+  duration_ms: 0.214602
+  type: 'test'
+  ...
+# Subtest: rejects missing identifiers
+ok 10 - rejects missing identifiers
+  ---
+  duration_ms: 0.269168
+  type: 'test'
+  ...
+# Subtest: rejects surrounding whitespace rather than normalizing silently
+ok 11 - rejects surrounding whitespace rather than normalizing silently
+  ---
+  duration_ms: 0.134116
+  type: 'test'
+  ...
+# Subtest: rejects uppercase identifiers rather than lowercasing silently
+ok 12 - rejects uppercase identifiers rather than lowercasing silently
+  ---
+  duration_ms: 0.200737
+  type: 'test'
+  ...
+# Subtest: rejects empty dotted segments
+ok 13 - rejects empty dotted segments
+  ---
+  duration_ms: 0.184278
+  type: 'test'
+  ...
+# Subtest: rejects unknown families
+ok 14 - rejects unknown families
+  ---
+  duration_ms: 0.331177
+  type: 'test'
+  ...
+# Subtest: rejects underscores, spaces and other non-canonical segment characters
+ok 15 - rejects underscores, spaces and other non-canonical segment characters
+  ---
+  duration_ms: 0.418367
+  type: 'test'
+  ...
+# Subtest: enforces family-specific segment counts
+ok 16 - enforces family-specific segment counts
+  ---
+  duration_ms: 0.212835
+  type: 'test'
+  ...
+# Subtest: enforces positive major versions for contract identifiers
+ok 17 - enforces positive major versions for contract identifiers
+  ---
+  duration_ms: 0.134972
+  type: 'test'
+  ...
+# Subtest: enforces the expected family when requested
+ok 18 - enforces the expected family when requested
+  ---
+  duration_ms: 0.109953
+  type: 'test'
+  ...
+# Subtest: assertCanonicalId throws typed errors with stable codes
+ok 19 - assertCanonicalId throws typed errors with stable codes
+  ---
+  duration_ms: 0.433128
+  type: 'test'
+  ...
+# Subtest: creates canonical non-versioned identifiers from explicit segments
+ok 20 - creates canonical non-versioned identifiers from explicit segments
+  ---
+  duration_ms: 0.205833
+  type: 'test'
+  ...
+# Subtest: creates versioned contract identifiers only with explicit major versions
+ok 21 - creates versioned contract identifiers only with explicit major versions
+  ---
+  duration_ms: 0.197205
+  type: 'test'
+  ...
+# Subtest: does not allow contract versions on other id families
+ok 22 - does not allow contract versions on other id families
+  ---
+  duration_ms: 0.121999
+  type: 'test'
+  ...
+# Subtest: does not normalize invalid segments during creation
+ok 23 - does not normalize invalid segments during creation
+  ---
+  duration_ms: 0.123934
+  type: 'test'
+  ...
+# Subtest: accepts planning -> decision handoffs
+ok 24 - accepts planning -> decision handoffs
+  ---
+  duration_ms: 1.468507
+  type: 'test'
+  ...
+# Subtest: validates advisory decisions that still require human approval
+ok 25 - validates advisory decisions that still require human approval
+  ---
+  duration_ms: 1.470173
+  type: 'test'
+  ...
+# Subtest: rejects decision reports that claim automatic approval
+ok 26 - rejects decision reports that claim automatic approval
+  ---
+  duration_ms: 0.542176
+  type: 'test'
+  ...
+# Subtest: validates the minimum strict tenant context
+ok 27 - validates the minimum strict tenant context
+  ---
+  duration_ms: 1.101324
+  type: 'test'
+  ...
+# Subtest: blocks cross-tenant operations
+ok 28 - blocks cross-tenant operations
+  ---
+  duration_ms: 2.343342
+  type: 'test'
+  ...
+# Subtest: validates the four cognitive stage reports
+ok 29 - validates the four cognitive stage reports
+  ---
+  duration_ms: 0.50617
+  type: 'test'
+  ...
+# Subtest: formalizes the three cognitive handoffs without mutation or execution
+ok 30 - formalizes the three cognitive handoffs without mutation or execution
+  ---
+  duration_ms: 1.069817
+  type: 'test'
+  ...
+# Subtest: blocks unsupported stage jumps
+ok 31 - blocks unsupported stage jumps
+  ---
+  duration_ms: 1.244292
+  type: 'test'
+  ...
+# Subtest: creates the governed decision -> policy handoff
+ok 32 - creates the governed decision -> policy handoff
+  ---
+  duration_ms: 2.73937
+  type: 'test'
+  ...
+# Subtest: rejects a plan that is not bound to the decision
+ok 33 - rejects a plan that is not bound to the decision
+  ---
+  duration_ms: 1.698816
+  type: 'test'
+  ...
+# Subtest: validates dry-run policy output without enabling execution
+ok 34 - validates dry-run policy output without enabling execution
+  ---
+  duration_ms: 0.315721
+  type: 'test'
+  ...
+# Subtest: rejects real execution without a bound approval identifier
+ok 35 - rejects real execution without a bound approval identifier
+  ---
+  duration_ms: 0.232523
+  type: 'test'
+  ...
+# Subtest: exports a versioned envelope contract and five institutional event contracts
+ok 36 - exports a versioned envelope contract and five institutional event contracts
+  ---
+  duration_ms: 1.792493
+  type: 'test'
+  ...
+# Subtest: creates an immutable canonical event envelope
+ok 37 - creates an immutable canonical event envelope
+  ---
+  duration_ms: 1.737777
+  type: 'test'
+  ...
+# Subtest: clones data and does not mutate the source envelope
+ok 38 - clones data and does not mutate the source envelope
+  ---
+  duration_ms: 0.3122
+  type: 'test'
+  ...
+# Subtest: requires the exact canonical field set
+ok 39 - requires the exact canonical field set
+  ---
+  duration_ms: 0.56213
+  type: 'test'
+  ...
+# Subtest: requires eventId and eventType to use the event family
+ok 40 - requires eventId and eventType to use the event family
+  ---
+  duration_ms: 0.431438
+  type: 'test'
+  ...
+# Subtest: requires semantic event versions
+ok 41 - requires semantic event versions
+  ---
+  duration_ms: 0.502887
+  type: 'test'
+  ...
+# Subtest: requires tenant, request and correlation identifiers as explicit strings
+ok 42 - requires tenant, request and correlation identifiers as explicit strings
+  ---
+  duration_ms: 0.46012
+  type: 'test'
+  ...
+# Subtest: accepts null causation for root events
+ok 43 - accepts null causation for root events
+  ---
+  duration_ms: 0.288357
+  type: 'test'
+  ...
+# Subtest: requires non-null causation to reference an event id
+ok 44 - requires non-null causation to reference an event id
+  ---
+  duration_ms: 0.485718
+  type: 'test'
+  ...
+# Subtest: requires normalized UTC ISO-8601 instants
+ok 45 - requires normalized UTC ISO-8601 instants
+  ---
+  duration_ms: 0.570718
+  type: 'test'
+  ...
+# Subtest: accepts canonical component and capability producers
+ok 46 - accepts canonical component and capability producers
+  ---
+  duration_ms: 0.35442
+  type: 'test'
+  ...
+# Subtest: rejects producers outside component and capability families
+ok 47 - rejects producers outside component and capability families
+  ---
+  duration_ms: 0.252938
+  type: 'test'
+  ...
+# Subtest: requires data to be an object
+ok 48 - requires data to be an object
+  ---
+  duration_ms: 0.285016
+  type: 'test'
+  ...
+# Subtest: isEventEnvelope reports validity without throwing
+ok 49 - isEventEnvelope reports validity without throwing
+  ---
+  duration_ms: 0.185882
+  type: 'test'
+  ...
+# Subtest: adapts the historical snake_case envelope explicitly
+ok 50 - adapts the historical snake_case envelope explicitly
+  ---
+  duration_ms: 0.323484
+  type: 'test'
+  ...
+# Subtest: legacy adapter rejects mixed or incomplete field shapes
+ok 51 - legacy adapter rejects mixed or incomplete field shapes
+  ---
+  duration_ms: 0.232354
+  type: 'test'
+  ...
+# Subtest: exports canonical envelopes back to the historical field shape
+ok 52 - exports canonical envelopes back to the historical field shape
+  ---
+  duration_ms: 0.389917
+  type: 'test'
+  ...
+# Subtest: round-trips the legacy envelope without silent aliases
+ok 53 - round-trips the legacy envelope without silent aliases
+  ---
+  duration_ms: 0.215067
+  type: 'test'
+  ...
+# Subtest: does not expose publication or execution methods
+ok 54 - does not expose publication or execution methods
+  ---
+  duration_ms: 0.125837
+  type: 'test'
+  ...
+# Subtest: rejects legacy values that are not canonical after field adaptation
+ok 55 - rejects legacy values that are not canonical after field adaptation
+  ---
+  duration_ms: 0.258772
+  type: 'test'
+  ...
+# Subtest: creates an immutable evidence -> audit handoff
+ok 56 - creates an immutable evidence -> audit handoff
+  ---
+  duration_ms: 2.75527
+  type: 'test'
+  ...
+# Subtest: rejects cross-tenant evidence
+ok 57 - rejects cross-tenant evidence
+  ---
+  duration_ms: 1.789753
+  type: 'test'
+  ...
+# Subtest: rejects approval carried by preview evidence
+ok 58 - rejects approval carried by preview evidence
+  ---
+  duration_ms: 0.543789
+  type: 'test'
+  ...
+# Subtest: validates a governed audit report
+ok 59 - validates a governed audit report
+  ---
+  duration_ms: 0.353011
+  type: 'test'
+  ...
+# Subtest: creates an immutable evolution -> governance handoff
+ok 60 - creates an immutable evolution -> governance handoff
+  ---
+  duration_ms: 3.067355
+  type: 'test'
+  ...
+# Subtest: rejects cross-tenant evolution handoffs
+ok 61 - rejects cross-tenant evolution handoffs
+  ---
+  duration_ms: 1.991251
+  type: 'test'
+  ...
+# Subtest: rejects replayed approvals before governance review
+ok 62 - rejects replayed approvals before governance review
+  ---
+  duration_ms: 0.608573
+  type: 'test'
+  ...
+# Subtest: validates a governed governance review report
+ok 63 - validates a governed governance review report
+  ---
+  duration_ms: 0.373988
+  type: 'test'
+  ...
+# Subtest: exports versioned shared contracts
+ok 64 - exports versioned shared contracts
+  ---
+  duration_ms: 2.559192
+  type: 'test'
+  ...
+# Subtest: factory creates a PlanningExecutionPlanAdapter
+ok 65 - factory creates a PlanningExecutionPlanAdapter
+  ---
+  duration_ms: 0.295488
+  type: 'test'
+  ...
+# Subtest: requires an explicit buildSteps function
+ok 66 - requires an explicit buildSteps function
+  ---
+  duration_ms: 0.429639
+  type: 'test'
+  ...
+# Subtest: requires tenant, planning report and decision
+ok 67 - requires tenant, planning report and decision
+  ---
+  duration_ms: 0.361153
+  type: 'test'
+  ...
+# Subtest: rejects decisions from another planning report
+ok 68 - rejects decisions from another planning report
+  ---
+  duration_ms: 0.250886
+  type: 'test'
+  ...
+# Subtest: rejects decisions that are not ready for human decision
+ok 69 - rejects decisions that are not ready for human decision
+  ---
+  duration_ms: 0.174062
+  type: 'test'
+  ...
+# Subtest: rejects unknown and blocked proposals
+ok 70 - rejects unknown and blocked proposals
+  ---
+  duration_ms: 0.222328
+  type: 'test'
+  ...
+# Subtest: rejects invalid or duplicate execution steps
+ok 71 - rejects invalid or duplicate execution steps
+  ---
+  duration_ms: 0.600769
+  type: 'test'
+  ...
+# Subtest: creates a distinct ExecutionPlan id and preserves planning traceability
+ok 72 - creates a distinct ExecutionPlan id and preserves planning traceability
+  ---
+  duration_ms: 0.742789
+  type: 'test'
+  ...
+# Subtest: maps executable steps only through the explicit factory
+ok 73 - maps executable steps only through the explicit factory
+  ---
+  duration_ms: 0.614845
+  type: 'test'
+  ...
+# Subtest: keeps the plan non-executable until downstream governance
+ok 74 - keeps the plan non-executable until downstream governance
+  ---
+  duration_ms: 0.283111
+  type: 'test'
+  ...
+# Subtest: does not mutate planning, decision, proposal or factory context
+ok 75 - does not mutate planning, decision, proposal or factory context
+  ---
+  duration_ms: 0.305943
+  type: 'test'
+  ...
+# Subtest: produces a frozen deterministic plan for stable input and clock
+ok 76 - produces a frozen deterministic plan for stable input and clock
+  ---
+  duration_ms: 0.278045
+  type: 'test'
+  ...
+# Subtest: creates a preview-only policy -> runtime handoff
+ok 77 - creates a preview-only policy -> runtime handoff
+  ---
+  duration_ms: 2.250698
+  type: 'test'
+  ...
+# Subtest: rejects execution policy without a bound approval
+ok 78 - rejects execution policy without a bound approval
+  ---
+  duration_ms: 1.93714
+  type: 'test'
+  ...
+# Subtest: validates a preview runtime report without observed execution
+ok 79 - validates a preview runtime report without observed execution
+  ---
+  duration_ms: 0.363797
+  type: 'test'
+  ...
+# Subtest: runtime evidence handoff construction
+ok 80 - runtime evidence handoff construction
+  ---
+  duration_ms: 1.474766
+  type: 'test'
+  ...
+# Subtest: creates an immutable runtime -> evidence handoff
+ok 81 - creates an immutable runtime -> evidence handoff
+  ---
+  duration_ms: 2.163266
+  type: 'test'
+  ...
+# Subtest: rejects a runtime report from another tenant
+ok 82 - rejects a runtime report from another tenant
+  ---
+  duration_ms: 0.696875
+  type: 'test'
+  ...
+# Subtest: validates an immutable runtime evidence record
+ok 83 - validates an immutable runtime evidence record
+  ---
+  duration_ms: 0.484839
+  type: 'test'
+  ...
+1..83
+# tests 83
+# suites 0
+# pass 83
+# fail 0
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 1524.188375
+
+> @apidevelopers/entitlement-core@0.1.0 test
+> node --test test/*.test.mjs
+
+TAP version 13
+# Subtest: creates deeply immutable entitlement snapshots
+ok 1 - creates deeply immutable entitlement snapshots
+  ---
+  duration_ms: 2.048082
+  type: 'test'
+  ...
+# Subtest: repository enforces sequential append-only revisions and idempotency
+ok 2 - repository enforces sequential append-only revisions and idempotency
+  ---
+  duration_ms: 1.039675
+  type: 'test'
+  ...
+# Subtest: materializes catalog rights and emits one auditable event
+ok 3 - materializes catalog rights and emits one auditable event
+  ---
+  duration_ms: 1.790167
+  type: 'test'
+  ...
+# Subtest: access decisions enforce APIs and numeric capabilities
+ok 4 - access decisions enforce APIs and numeric capabilities
+  ---
+  duration_ms: 0.957185
+  type: 'test'
+  ...
+# Subtest: suspension revokes rights and reactivation rematerializes catalog
+ok 5 - suspension revokes rights and reactivation rematerializes catalog
+  ---
+  duration_ms: 1.114749
+  type: 'test'
+  ...
+# Subtest: plan changes create a new revision and preserve history
+ok 6 - plan changes create a new revision and preserve history
+  ---
+  duration_ms: 1.746152
+  type: 'test'
+  ...
+# Subtest: cancellation creates a terminal revision with all rights revoked
+ok 7 - cancellation creates a terminal revision with all rights revoked
+  ---
+  duration_ms: 0.631188
+  type: 'test'
+  ...
+# Subtest: effective windows are semi-open and support scheduled revisions
+ok 8 - effective windows are semi-open and support scheduled revisions
+  ---
+  duration_ms: 0.561489
+  type: 'test'
+  ...
+# Subtest: catalog mismatches fail closed
+ok 9 - catalog mismatches fail closed
+  ---
+  duration_ms: 0.450124
+  type: 'test'
+  ...
+1..9
+# tests 9
+# suites 0
+# pass 9
+# fail 0
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 107.239172
+
+> @apidevelopers/gateway-core@0.1.0 test
+> node --test test/*.test.mjs
+
+TAP version 13
+# Subtest: creates immutable requests and blocks sensitive metadata
+ok 1 - creates immutable requests and blocks sensitive metadata
+  ---
+  duration_ms: 2.003362
+  type: 'test'
+  ...
+# Subtest: requires active public API key identity
+ok 2 - requires active public API key identity
+  ---
+  duration_ms: 0.247102
+  type: 'test'
+  ...
+# Subtest: repository is append-only, sequential and idempotent
+ok 3 - repository is append-only, sequential and idempotent
+  ---
+  duration_ms: 0.773951
+  type: 'test'
+  ...
+# Subtest: authorizes through entitlement then limits
+ok 4 - authorizes through entitlement then limits
+  ---
+  duration_ms: 3.240402
+  type: 'test'
+  ...
+# Subtest: blocks when entitlement denies and never evaluates limits
+ok 5 - blocks when entitlement denies and never evaluates limits
+  ---
+  duration_ms: 0.631565
+  type: 'test'
+  ...
+# Subtest: blocks hard limits and never records usage
+ok 6 - blocks hard limits and never records usage
+  ---
+  duration_ms: 0.594101
+  type: 'test'
+  ...
+# Subtest: records usage only after successful completion
+ok 7 - records usage only after successful completion
+  ---
+  duration_ms: 0.883964
+  type: 'test'
+  ...
+# Subtest: failed upstream requests do not record usage
+ok 8 - failed upstream requests do not record usage
+  ---
+  duration_ms: 0.707387
+  type: 'test'
+  ...
+# Subtest: authorization is idempotent by request key
+ok 9 - authorization is idempotent by request key
+  ---
+  duration_ms: 0.490673
+  type: 'test'
+  ...
+# Subtest: terminal completion is idempotent and cannot double-count usage
+ok 10 - terminal completion is idempotent and cannot double-count usage
+  ---
+  duration_ms: 0.712644
+  type: 'test'
+  ...
+# Subtest: history preserves requested, authorized and completed revisions
+ok 11 - history preserves requested, authorized and completed revisions
+  ---
+  duration_ms: 1.259908
+  type: 'test'
+  ...
+1..11
+# tests 11
+# suites 0
+# pass 11
+# fail 0
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 118.127616
+
+> @apidevelopers/kernel-audit@0.1.0 test
+> node --test test/*.test.mjs
+
+TAP version 13
+# Subtest: exports canonical rules and statuses
+ok 1 - exports canonical rules and statuses
+  ---
+  duration_ms: 1.583256
+  type: 'test'
+  ...
+# Subtest: factory creates an AuditEngine
+ok 2 - factory creates an AuditEngine
+  ---
+  duration_ms: 0.313173
+  type: 'test'
+  ...
+# Subtest: rejects invalid constructor options
+ok 3 - rejects invalid constructor options
+  ---
+  duration_ms: 0.472562
+  type: 'test'
+  ...
+# Subtest: requires tenant, decision and plan
+ok 4 - requires tenant, decision and plan
+  ---
+  duration_ms: 0.416202
+  type: 'test'
+  ...
+# Subtest: returns a compliant immutable advisory audit for a governed execution
+ok 5 - returns a compliant immutable advisory audit for a governed execution
+  ---
+  duration_ms: 1.384156
+  type: 'test'
+  ...
+# Subtest: reports insufficient evidence when approval, runtime and evidence are absent
+ok 6 - reports insufficient evidence when approval, runtime and evidence are absent
+  ---
+  duration_ms: 0.36899
+  type: 'test'
+  ...
+# Subtest: fails traceability mismatches
+ok 7 - fails traceability mismatches
+  ---
+  duration_ms: 0.448561
+  type: 'test'
+  ...
+# Subtest: fails unsafe decision invariants
+ok 8 - fails unsafe decision invariants
+  ---
+  duration_ms: 0.392628
+  type: 'test'
+  ...
+# Subtest: fails replayed approval
+ok 9 - fails replayed approval
+  ---
+  duration_ms: 0.554216
+  type: 'test'
+  ...
+# Subtest: accepts a coherent dry-run preview without execution approval
+ok 10 - accepts a coherent dry-run preview without execution approval
+  ---
+  duration_ms: 1.425992
+  type: 'test'
+  ...
+# Subtest: fails invalid evidence integrity
+ok 11 - fails invalid evidence integrity
+  ---
+  duration_ms: 0.373174
+  type: 'test'
+  ...
+1..11
+# tests 11
+# suites 0
+# pass 11
+# fail 0
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 104.105376
+
+> @apidevelopers/kernel-constitution@0.1.0 test
+> node --test test/*.test.mjs
+
+TAP version 13
+# Subtest: exports canonical effects and risk levels
+ok 1 - exports canonical effects and risk levels
+  ---
+  duration_ms: 6.150825
+  type: 'test'
+  ...
+# Subtest: factory creates a ConstitutionEngine
+ok 2 - factory creates a ConstitutionEngine
+  ---
+  duration_ms: 0.332544
+  type: 'test'
+  ...
+# Subtest: rejects invalid constructor options
+ok 3 - rejects invalid constructor options
+  ---
+  duration_ms: 0.44639
+  type: 'test'
+  ...
+# Subtest: requires governed identifiers and a constitution document
+ok 4 - requires governed identifiers and a constitution document
+  ---
+  duration_ms: 0.674774
+  type: 'test'
+  ...
+# Subtest: allows an action when an active scoped requirement rule is satisfied
+ok 5 - allows an action when an active scoped requirement rule is satisfied
+  ---
+  duration_ms: 0.947645
+  type: 'test'
+  ...
+# Subtest: denies inactive constitution versions
+ok 6 - denies inactive constitution versions
+  ---
+  duration_ms: 0.39084
+  type: 'test'
+  ...
+# Subtest: denies tenants outside the constitution scope
+ok 7 - denies tenants outside the constitution scope
+  ---
+  duration_ms: 0.285091
+  type: 'test'
+  ...
+# Subtest: explicit deny rules override allow rules
+ok 8 - explicit deny rules override allow rules
+  ---
+  duration_ms: 11.13942
+  type: 'test'
+  ...
+# Subtest: review rules require human review without allowing execution
+ok 9 - review rules require human review without allowing execution
+  ---
+  duration_ms: 0.543074
+  type: 'test'
+  ...
+# Subtest: missing rule requirements produce review with explicit failures
+ok 10 - missing rule requirements produce review with explicit failures
+  ---
+  duration_ms: 0.666427
+  type: 'test'
+  ...
+# Subtest: uses the constitutional default effect when no rule matches
+ok 11 - uses the constitutional default effect when no rule matches
+  ---
+  duration_ms: 0.43479
+  type: 'test'
+  ...
+# Subtest: supports generic domain, tag, and risk matching without embedded business rules
+ok 12 - supports generic domain, tag, and risk matching without embedded business rules
+  ---
+  duration_ms: 0.422667
+  type: 'test'
+  ...
+# Subtest: does not mutate inputs and orders matched rules deterministically
+ok 13 - does not mutate inputs and orders matched rules deterministically
+  ---
+  duration_ms: 1.853086
+  type: 'test'
+  ...
+1..13
+# tests 13
+# suites 0
+# pass 13
+# fail 0
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 144.478096
+
+> @apidevelopers/kernel-decision@0.1.0 test
+> node --test test/*.test.mjs
+
+TAP version 13
+# Subtest: rejects invalid planning reports
+ok 1 - rejects invalid planning reports
+  ---
+  duration_ms: 4.130703
+  type: 'test'
+  ...
+# Subtest: preserves planning and reflection traceability
+ok 2 - preserves planning and reflection traceability
+  ---
+  duration_ms: 1.351962
+  type: 'test'
+  ...
+# Subtest: blocks constitutional conflicts
+ok 3 - blocks constitutional conflicts
+  ---
+  duration_ms: 0.263085
+  type: 'test'
+  ...
+# Subtest: marks missing evidence
+ok 4 - marks missing evidence
+  ---
+  duration_ms: 0.33509
+  type: 'test'
+  ...
+# Subtest: marks missing reviews after evidence is satisfied
+ok 5 - marks missing reviews after evidence is satisfied
+  ---
+  duration_ms: 0.276467
+  type: 'test'
+  ...
+# Subtest: emits readiness without approving or executing
+ok 6 - emits readiness without approving or executing
+  ---
+  duration_ms: 0.314803
+  type: 'test'
+  ...
+# Subtest: honors explicit proposal selection
+ok 7 - honors explicit proposal selection
+  ---
+  duration_ms: 11.108232
+  type: 'test'
+  ...
+# Subtest: selects the highest-priority ready candidate deterministically
+ok 8 - selects the highest-priority ready candidate deterministically
+  ---
+  duration_ms: 0.284016
+  type: 'test'
+  ...
+# Subtest: keeps a higher-priority candidate selected even when it still needs review
+ok 9 - keeps a higher-priority candidate selected even when it still needs review
+  ---
+  duration_ms: 0.445055
+  type: 'test'
+  ...
+# Subtest: does not mutate the planning report
+ok 10 - does not mutate the planning report
+  ---
+  duration_ms: 0.652683
+  type: 'test'
+  ...
+# Subtest: produces stable output for stable input
+ok 11 - produces stable output for stable input
+  ---
+  duration_ms: 0.352137
+  type: 'test'
+  ...
+# Subtest: returns no-candidate for an empty governed plan
+ok 12 - returns no-candidate for an empty governed plan
+  ---
+  duration_ms: 0.153716
+  type: 'test'
+  ...
+1..12
+# tests 12
+# suites 0
+# pass 12
+# fail 0
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 126.779435
+
+> @apidevelopers/kernel-evidence@0.1.0 test
+> node --test test/*.test.mjs
+
+TAP version 13
+# Subtest: creates verifiable evidence
+ok 1 - creates verifiable evidence
+  ---
+  duration_ms: 2.582681
+  type: 'test'
+  ...
+# Subtest: is deterministic across key order
+ok 2 - is deterministic across key order
+  ---
+  duration_ms: 0.396023
+  type: 'test'
+  ...
+# Subtest: detects tampering
+ok 3 - detects tampering
+  ---
+  duration_ms: 0.248029
+  type: 'test'
+  ...
+# Subtest: blocks secrets recursively
+ok 4 - blocks secrets recursively
+  ---
+  duration_ms: 0.553959
+  type: 'test'
+  ...
+# Subtest: rejects duplicate ids
+ok 5 - rejects duplicate ids
+  ---
+  duration_ms: 0.383399
+  type: 'test'
+  ...
+# Subtest: enforces tenant scoped reads
+ok 6 - enforces tenant scoped reads
+  ---
+  duration_ms: 0.310929
+  type: 'test'
+  ...
+# Subtest: lists deterministically
+ok 7 - lists deterministically
+  ---
+  duration_ms: 11.563617
+  type: 'test'
+  ...
+# Subtest: revokes without deleting
+ok 8 - revokes without deleting
+  ---
+  duration_ms: 0.468029
+  type: 'test'
+  ...
+# Subtest: returns defensive clones
+ok 9 - returns defensive clones
+  ---
+  duration_ms: 0.508079
+  type: 'test'
+  ...
+# Subtest: exports canonical vocabularies
+ok 10 - exports canonical vocabularies
+  ---
+  duration_ms: 0.428256
+  type: 'test'
+  ...
+1..10
+# tests 10
+# suites 0
+# pass 10
+# fail 0
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 133.127185
+
+> @apidevelopers/kernel-evolution@0.1.0 test
+> node --test test/*.test.mjs
+
+TAP version 13
+# Subtest: exports canonical statuses and actions
+ok 1 - exports canonical statuses and actions
+  ---
+  duration_ms: 1.646455
+  type: 'test'
+  ...
+# Subtest: factory creates an EvolutionEngine
+ok 2 - factory creates an EvolutionEngine
+  ---
+  duration_ms: 6.900925
+  type: 'test'
+  ...
+# Subtest: rejects invalid constructor options
+ok 3 - rejects invalid constructor options
+  ---
+  duration_ms: 0.505887
+  type: 'test'
+  ...
+# Subtest: requires a governed audit report
+ok 4 - requires a governed audit report
+  ---
+  duration_ms: 0.441972
+  type: 'test'
+  ...
+# Subtest: returns a stable advisory result for a compliant audit
+ok 5 - returns a stable advisory result for a compliant audit
+  ---
+  duration_ms: 0.469125
+  type: 'test'
+  ...
+# Subtest: turns failed audit checks into high-priority remediation proposals
+ok 6 - turns failed audit checks into high-priority remediation proposals
+  ---
+  duration_ms: 0.614045
+  type: 'test'
+  ...
+# Subtest: blocks promotion when audit evidence is unknown
+ok 7 - blocks promotion when audit evidence is unknown
+  ---
+  duration_ms: 0.295106
+  type: 'test'
+  ...
+# Subtest: turns warnings into low-priority review proposals
+ok 8 - turns warnings into low-priority review proposals
+  ---
+  duration_ms: 0.19766
+  type: 'test'
+  ...
+# Subtest: orders proposals deterministically
+ok 9 - orders proposals deterministically
+  ---
+  duration_ms: 11.38817
+  type: 'test'
+  ...
+# Subtest: does not mutate the audit report
+ok 10 - does not mutate the audit report
+  ---
+  duration_ms: 0.530183
+  type: 'test'
+  ...
+# Subtest: rejects invalid audit check states
+ok 11 - rejects invalid audit check states
+  ---
+  duration_ms: 0.268886
+  type: 'test'
+  ...
+1..11
+# tests 11
+# suites 0
+# pass 11
+# fail 0
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 134.525967
+
+> @apidevelopers/kernel-governance@0.1.0 test
+> node --test test/*.test.mjs
+
+TAP version 13
+# Subtest: exports canonical rules and statuses
+ok 1 - exports canonical rules and statuses
+  ---
+  duration_ms: 2.807
+  type: 'test'
+  ...
+# Subtest: factory creates a GovernanceEngine
+ok 2 - factory creates a GovernanceEngine
+  ---
+  duration_ms: 0.332785
+  type: 'test'
+  ...
+# Subtest: rejects invalid constructor options
+ok 3 - rejects invalid constructor options
+  ---
+  duration_ms: 0.500034
+  type: 'test'
+  ...
+# Subtest: requires tenant, decision and proposal identifiers
+ok 4 - requires tenant, decision and proposal identifiers
+  ---
+  duration_ms: 0.613328
+  type: 'test'
+  ...
+# Subtest: authorizes a fully governed bundle without executing
+ok 5 - authorizes a fully governed bundle without executing
+  ---
+  duration_ms: 0.954426
+  type: 'test'
+  ...
+# Subtest: blocks a constitutional denial
+ok 6 - blocks a constitutional denial
+  ---
+  duration_ms: 0.423649
+  type: 'test'
+  ...
+# Subtest: blocks a policy denial
+ok 7 - blocks a policy denial
+  ---
+  duration_ms: 0.377843
+  type: 'test'
+  ...
+# Subtest: requires fresh explicit human approval
+ok 8 - requires fresh explicit human approval
+  ---
+  duration_ms: 0.459057
+  type: 'test'
+  ...
+# Subtest: maps audit evidence states
+ok 9 - maps audit evidence states
+  ---
+  duration_ms: 0.646158
+  type: 'test'
+  ...
+# Subtest: requires stable evolution before authorization
+ok 10 - requires stable evolution before authorization
+  ---
+  duration_ms: 0.722623
+  type: 'test'
+  ...
+# Subtest: blocks lifecycle identifier mismatches
+ok 11 - blocks lifecycle identifier mismatches
+  ---
+  duration_ms: 0.450341
+  type: 'test'
+  ...
+# Subtest: does not mutate the governed bundle
+ok 12 - does not mutate the governed bundle
+  ---
+  duration_ms: 0.333767
+  type: 'test'
+  ...
+1..12
+# tests 12
+# suites 0
+# pass 12
+# fail 0
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 104.974762
+
+> @apidevelopers/kernel-memory@0.1.0 test
+> node --test test/*.test.mjs
+
+TAP version 13
+# Subtest: append records immutable institutional events
+ok 1 - append records immutable institutional events
+  ---
+  duration_ms: 1.23542
+  type: 'test'
+  ...
+# Subtest: duplicate identifiers are rejected and history remains append-only
+ok 2 - duplicate identifiers are rejected and history remains append-only
+  ---
+  duration_ms: 0.706846
+  type: 'test'
+  ...
+# Subtest: list filters by cycle, subject, type and status
+ok 3 - list filters by cycle, subject, type and status
+  ---
+  duration_ms: 1.37883
+  type: 'test'
+  ...
+# Subtest: cycle and lessons provide stable read models
+ok 4 - cycle and lessons provide stable read models
+  ---
+  duration_ms: 1.024096
+  type: 'test'
+  ...
+# Subtest: returned values are cloned and cannot mutate internal memory
+ok 5 - returned values are cloned and cannot mutate internal memory
+  ---
+  duration_ms: 0.417821
+  type: 'test'
+  ...
+# Subtest: unsupported types and missing required fields are rejected
+ok 6 - unsupported types and missing required fields are rejected
+  ---
+  duration_ms: 0.340466
+  type: 'test'
+  ...
+1..6
+# tests 6
+# suites 0
+# pass 6
+# fail 0
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 101.073369
+
+> @apidevelopers/kernel-planning@0.1.0 test
+> node --test test/*.test.mjs
+
+TAP version 13
+# Subtest: rejects invalid reflection input
+ok 1 - rejects invalid reflection input
+  ---
+  duration_ms: 1.557586
+  type: 'test'
+  ...
+# Subtest: groups findings by subject and category
+ok 2 - groups findings by subject and category
+  ---
+  duration_ms: 2.833456
+  type: 'test'
+  ...
+# Subtest: preserves source reflection references and sorts by priority
+ok 3 - preserves source reflection references and sorts by priority
+  ---
+  duration_ms: 11.980799
+  type: 'test'
+  ...
+# Subtest: requires human approval and never permits mutation or execution
+ok 4 - requires human approval and never permits mutation or execution
+  ---
+  duration_ms: 0.3005
+  type: 'test'
+  ...
+# Subtest: marks missing evidence explicitly
+ok 5 - marks missing evidence explicitly
+  ---
+  duration_ms: 0.339535
+  type: 'test'
+  ...
+# Subtest: blocks constitutional conflicts
+ok 6 - blocks constitutional conflicts
+  ---
+  duration_ms: 0.281816
+  type: 'test'
+  ...
+# Subtest: does not mutate reflection input
+ok 7 - does not mutate reflection input
+  ---
+  duration_ms: 0.92503
+  type: 'test'
+  ...
+# Subtest: produces stable output for stable input
+ok 8 - produces stable output for stable input
+  ---
+  duration_ms: 0.570477
+  type: 'test'
+  ...
+# Subtest: enforces maximum proposal count
+ok 9 - enforces maximum proposal count
+  ---
+  duration_ms: 0.546984
+  type: 'test'
+  ...
+# Subtest: exposes deliberate as a governed alias
+ok 10 - exposes deliberate as a governed alias
+  ---
+  duration_ms: 0.633828
+  type: 'test'
+  ...
+# Subtest: legacy planning import reexports the canonical package API
+ok 11 - legacy planning import reexports the canonical package API
+  ---
+  duration_ms: 1.359227
+  type: 'test'
+  ...
+1..11
+# tests 11
+# suites 0
+# pass 11
+# fail 0
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 126.819774
+
+> @apidevelopers/kernel-policy@0.1.0 test
+> node --test test/*.test.mjs
+
+TAP version 13
+# Subtest: exports the canonical R0-R5 scale
+ok 1 - exports the canonical R0-R5 scale
+  ---
+  duration_ms: 1.664411
+  type: 'test'
+  ...
+# Subtest: allows a safe dry-run without approval
+ok 2 - allows a safe dry-run without approval
+  ---
+  duration_ms: 1.827283
+  type: 'test'
+  ...
+# Subtest: blocks R5 by default
+ok 3 - blocks R5 by default
+  ---
+  duration_ms: 0.368141
+  type: 'test'
+  ...
+# Subtest: raises legal and health contexts to R4
+ok 4 - raises legal and health contexts to R4
+  ---
+  duration_ms: 0.604825
+  type: 'test'
+  ...
+# Subtest: requires approval for real execution
+ok 5 - requires approval for real execution
+  ---
+  duration_ms: 0.489606
+  type: 'test'
+  ...
+# Subtest: accepts a valid approval bound to the plan
+ok 6 - accepts a valid approval bound to the plan
+  ---
+  duration_ms: 0.43246
+  type: 'test'
+  ...
+# Subtest: rejects cross-tenant approval
+ok 7 - rejects cross-tenant approval
+  ---
+  duration_ms: 0.338787
+  type: 'test'
+  ...
+# Subtest: invalidates approval when the plan changes
+ok 8 - invalidates approval when the plan changes
+  ---
+  duration_ms: 0.41101
+  type: 'test'
+  ...
+# Subtest: rejects expired and replayed approvals
+ok 9 - rejects expired and replayed approvals
+  ---
+  duration_ms: 1.683032
+  type: 'test'
+  ...
+# Subtest: blocks secret-like material
+ok 10 - blocks secret-like material
+  ---
+  duration_ms: 0.563045
+  type: 'test'
+  ...
+# Subtest: blocks constitutional conflict and non-ready decisions
+ok 11 - blocks constitutional conflict and non-ready decisions
+  ---
+  duration_ms: 0.293292
+  type: 'test'
+  ...
+# Subtest: hash is deterministic across object key order
+ok 12 - hash is deterministic across object key order
+  ---
+  duration_ms: 0.14955
+  type: 'test'
+  ...
+1..12
+# tests 12
+# suites 0
+# pass 12
+# fail 0
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 127.899475
+
+> @apidevelopers/kernel-reasoning@0.1.0 test
+> node --test test/*.test.mjs
+
+TAP version 13
+# Subtest: detects active capability without provider
+ok 1 - detects active capability without provider
+  ---
+  duration_ms: 11.490362
+  type: 'test'
+  ...
+# Subtest: detects active component without contract
+ok 2 - detects active component without contract
+  ---
+  duration_ms: 0.334566
+  type: 'test'
+  ...
+# Subtest: detects circular dependencies
+ok 3 - detects circular dependencies
+  ---
+  duration_ms: 3.161293
+  type: 'test'
+  ...
+# Subtest: detects active policy without target
+ok 4 - detects active policy without target
+  ---
+  duration_ms: 0.534551
+  type: 'test'
+  ...
+# Subtest: detects unresolved placeholder
+ok 5 - detects unresolved placeholder
+  ---
+  duration_ms: 0.340997
+  type: 'test'
+  ...
+# Subtest: remains read-only and does not mutate input
+ok 6 - remains read-only and does not mutate input
+  ---
+  duration_ms: 0.305313
+  type: 'test'
+  ...
+# Subtest: produces deterministic conclusions for equivalent input
+ok 7 - produces deterministic conclusions for equivalent input
+  ---
+  duration_ms: 0.439155
+  type: 'test'
+  ...
+# Subtest: legacy reasoning import reexports the canonical package API
+ok 8 - legacy reasoning import reexports the canonical package API
+  ---
+  duration_ms: 1.281768
+  type: 'test'
+  ...
+1..8
+# tests 8
+# suites 0
+# pass 8
+# fail 0
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 149.582679
+
+> @apidevelopers/kernel-reflection@0.1.0 test
+> node --test test/*.test.mjs
+
+TAP version 13
+# Subtest: exports the canonical reflection rules
+ok 1 - exports the canonical reflection rules
+  ---
+  duration_ms: 1.671949
+  type: 'test'
+  ...
+# Subtest: factory creates a ReflectionEngine
+ok 2 - factory creates a ReflectionEngine
+  ---
+  duration_ms: 7.007419
+  type: 'test'
+  ...
+# Subtest: rejects invalid snapshots
+ok 3 - rejects invalid snapshots
+  ---
+  duration_ms: 0.723136
+  type: 'test'
+  ...
+# Subtest: returns a deterministic advisory report without mutation permission
+ok 4 - returns a deterministic advisory report without mutation permission
+  ---
+  duration_ms: 0.358515
+  type: 'test'
+  ...
+# Subtest: detects orphan nodes
+ok 5 - detects orphan nodes
+  ---
+  duration_ms: 0.838838
+  type: 'test'
+  ...
+# Subtest: detects active capabilities without assets as high severity
+ok 6 - detects active capabilities without assets as high severity
+  ---
+  duration_ms: 0.241873
+  type: 'test'
+  ...
+# Subtest: detects assets without evidence
+ok 7 - detects assets without evidence
+  ---
+  duration_ms: 0.273455
+  type: 'test'
+  ...
+# Subtest: detects active organizations without solutions
+ok 8 - detects active organizations without solutions
+  ---
+  duration_ms: 0.203252
+  type: 'test'
+  ...
+# Subtest: does not mutate the input snapshot
+ok 9 - does not mutate the input snapshot
+  ---
+  duration_ms: 0.552745
+  type: 'test'
+  ...
+# Subtest: does not flag a governed connected graph
+ok 10 - does not flag a governed connected graph
+  ---
+  duration_ms: 0.646427
+  type: 'test'
+  ...
+# Subtest: legacy reflection import reexports the canonical package API
+ok 11 - legacy reflection import reexports the canonical package API
+  ---
+  duration_ms: 1.408819
+  type: 'test'
+  ...
+1..11
+# tests 11
+# suites 0
+# pass 11
+# fail 0
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 126.740378
+
+> @apidevelopers/kernel-runtime@0.1.0 test
+> node --test test/*.test.mjs
+
+TAP version 13
+# Subtest: dry-run is default and skips handler
+ok 1 - dry-run is default and skips handler
+  ---
+  duration_ms: 4.330648
+  type: 'test'
+  ...
+# Subtest: blocks unknown actions
+ok 2 - blocks unknown actions
+  ---
+  duration_ms: 0.611421
+  type: 'test'
+  ...
+# Subtest: requires approval for execution
+ok 3 - requires approval for execution
+  ---
+  duration_ms: 0.367016
+  type: 'test'
+  ...
+# Subtest: requires explicit confirmation
+ok 4 - requires explicit confirmation
+  ---
+  duration_ms: 0.26579
+  type: 'test'
+  ...
+# Subtest: matches approval to decision and proposal
+ok 5 - matches approval to decision and proposal
+  ---
+  duration_ms: 0.293333
+  type: 'test'
+  ...
+# Subtest: rejects expired approval
+ok 6 - rejects expired approval
+  ---
+  duration_ms: 0.234903
+  type: 'test'
+  ...
+# Subtest: executes controlled adapter
+ok 7 - executes controlled adapter
+  ---
+  duration_ms: 0.302492
+  type: 'test'
+  ...
+# Subtest: stops after failure by default
+ok 8 - stops after failure by default
+  ---
+  duration_ms: 0.393464
+  type: 'test'
+  ...
+# Subtest: redacts secret-like fields
+ok 9 - redacts secret-like fields
+  ---
+  duration_ms: 0.589861
+  type: 'test'
+  ...
+# Subtest: blocks unready or conflicted decisions
+ok 10 - blocks unready or conflicted decisions
+  ---
+  duration_ms: 0.624116
+  type: 'test'
+  ...
+# Subtest: describes action metadata without handlers
+ok 11 - describes action metadata without handlers
+  ---
+  duration_ms: 0.866487
+  type: 'test'
+  ...
+1..11
+# tests 11
+# suites 0
+# pass 11
+# fail 0
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 127.355858
+
+> @apidevelopers/limits-core@0.1.0 test
+> node --test test/*.test.mjs
+
+TAP version 13
+# Subtest: creates deeply immutable executable rules
+ok 1 - creates deeply immutable executable rules
+  ---
+  duration_ms: 1.691047
+  type: 'test'
+  ...
+# Subtest: creates UTC hour day and month windows
+ok 2 - creates UTC hour day and month windows
+  ---
+  duration_ms: 3.209308
+  type: 'test'
+  ...
+# Subtest: resolves the most specific effective rule
+ok 3 - resolves the most specific effective rule
+  ---
+  duration_ms: 0.729457
+  type: 'test'
+  ...
+# Subtest: hard limits block projected usage over allowance
+ok 4 - hard limits block projected usage over allowance
+  ---
+  duration_ms: 0.308129
+  type: 'test'
+  ...
+# Subtest: soft and monitor modes allow overage with explicit actions
+ok 5 - soft and monitor modes allow overage with explicit actions
+  ---
+  duration_ms: 0.247372
+  type: 'test'
+  ...
+# Subtest: repository prioritizes project assignment over tenant assignment
+ok 6 - repository prioritizes project assignment over tenant assignment
+  ---
+  duration_ms: 0.517979
+  type: 'test'
+  ...
+# Subtest: service combines assignment rule window and usage into a decision
+ok 7 - service combines assignment rule window and usage into a decision
+  ---
+  duration_ms: 11.092234
+  type: 'test'
+  ...
+# Subtest: service fails closed when assignment or rule is absent
+ok 8 - service fails closed when assignment or rule is absent
+  ---
+  duration_ms: 0.253512
+  type: 'test'
+  ...
+1..8
+# tests 8
+# suites 0
+# pass 8
+# fail 0
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 112.510782
+
+> @apidevelopers/onboarding-core@0.1.0 test
+> node --test test/*.test.mjs
+
+TAP version 13
+# Subtest: creates immutable snapshots and rejects sensitive metadata
+ok 1 - creates immutable snapshots and rejects sensitive metadata
+  ---
+  duration_ms: 3.553735
+  type: 'test'
+  ...
+# Subtest: requires activation.completed
+ok 2 - requires activation.completed
+  ---
+  duration_ms: 0.245188
+  type: 'test'
+  ...
+# Subtest: creates one idempotent onboarding per activation
+ok 3 - creates one idempotent onboarding per activation
+  ---
+  duration_ms: 0.633108
+  type: 'test'
+  ...
+# Subtest: repository is append-only, sequential and source-event idempotent
+ok 4 - repository is append-only, sequential and source-event idempotent
+  ---
+  duration_ms: 1.343644
+  type: 'test'
+  ...
+# Subtest: enforces the canonical step order
+ok 5 - enforces the canonical step order
+  ---
+  duration_ms: 4.156644
+  type: 'test'
+  ...
+# Subtest: stores only API key id and public prefix
+ok 6 - stores only API key id and public prefix
+  ---
+  duration_ms: 2.469383
+  type: 'test'
+  ...
+# Subtest: requires opened documentation before first test
+ok 7 - requires opened documentation before first test
+  ---
+  duration_ms: 1.293574
+  type: 'test'
+  ...
+# Subtest: completes only after a successful first test
+ok 8 - completes only after a successful first test
+  ---
+  duration_ms: 1.568085
+  type: 'test'
+  ...
+# Subtest: keeps unsuccessful first test in progress and deduplicates events
+ok 9 - keeps unsuccessful first test in progress and deduplicates events
+  ---
+  duration_ms: 1.320142
+  type: 'test'
+  ...
+# Subtest: fails and retries from the failed step
+ok 10 - fails and retries from the failed step
+  ---
+  duration_ms: 0.741075
+  type: 'test'
+  ...
+# Subtest: cancels non-terminal onboarding and blocks later transitions
+ok 11 - cancels non-terminal onboarding and blocks later transitions
+  ---
+  duration_ms: 1.001165
+  type: 'test'
+  ...
+1..11
+# tests 11
+# suites 0
+# pass 11
+# fail 0
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 128.515592
+
+> @apidevelopers/outbox-core@0.1.0 test
+> node --test test/*.test.mjs
+
+TAP version 13
+# Subtest: publishes claimed events and confirms them transactionally
+ok 1 - publishes claimed events and confirms them transactionally
+  ---
+  duration_ms: 3.802427
+  type: 'test'
+  ...
+# Subtest: does not double-publish an already completed entry
+ok 2 - does not double-publish an already completed entry
+  ---
+  duration_ms: 0.669669
+  type: 'test'
+  ...
+# Subtest: schedules retry after a transport failure
+ok 3 - schedules retry after a transport failure
+  ---
+  duration_ms: 0.871003
+  type: 'test'
+  ...
+# Subtest: moves an event to dead-letter after the configured attempts
+ok 4 - moves an event to dead-letter after the configured attempts
+  ---
+  duration_ms: 0.914898
+  type: 'test'
+  ...
+# Subtest: respects an active lease owned by another worker
+ok 5 - respects an active lease owned by another worker
+  ---
+  duration_ms: 0.479874
+  type: 'test'
+  ...
+# Subtest: reclaims an expired lease and publishes exactly once
+ok 6 - reclaims an expired lease and publishes exactly once
+  ---
+  duration_ms: 0.478654
+  type: 'test'
+  ...
+1..6
+# tests 6
+# suites 0
+# pass 6
+# fail 0
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 103.849377
+
+> @apidevelopers/persistence-core@0.3.0 test
+> node --test test/*.test.mjs
+
+TAP version 13
+# Subtest: persists atomically and survives reopening
+ok 1 - persists atomically and survives reopening
+  ---
+  duration_ms: 42.866397
+  type: 'test'
+  ...
+# Subtest: rolls back the complete transaction when work fails
+ok 2 - rolls back the complete transaction when work fails
+  ---
+  duration_ms: 6.513157
+  type: 'test'
+  ...
+# Subtest: enforces optimistic concurrency by durable revision
+ok 3 - enforces optimistic concurrency by durable revision
+  ---
+  duration_ms: 29.576337
+  type: 'test'
+  ...
+# Subtest: executes idempotent transactional work only once
+ok 4 - executes idempotent transactional work only once
+  ---
+  duration_ms: 54.239965
+  type: 'test'
+  ...
+# Subtest: commits records and outbox entries in the same transaction
+ok 5 - commits records and outbox entries in the same transaction
+  ---
+  duration_ms: 57.445665
+  type: 'test'
+  ...
+# Subtest: detects checksum corruption and fails closed
+ok 6 - detects checksum corruption and fails closed
+  ---
+  duration_ms: 26.491611
+  type: 'test'
+  ...
+# Subtest: durable repository isolates collections and supports filters
+ok 7 - durable repository isolates collections and supports filters
+  ---
+  duration_ms: 118.201802
+  type: 'test'
+  ...
+# Subtest: serializes concurrent transactions without lost updates
+ok 8 - serializes concurrent transactions without lost updates
+  ---
+  duration_ms: 319.724277
+  type: 'test'
+  ...
+# Subtest: rejects non-JSON values before replacing the durable state
+ok 9 - rejects non-JSON values before replacing the durable state
+  ---
+  duration_ms: 2.239447
+  type: 'test'
+  ...
+# Subtest: claims pending entries with an exclusive lease
+ok 10 - claims pending entries with an exclusive lease
+  ---
+  duration_ms: 12.884274
+  type: 'test'
+  ...
+# Subtest: reclaims an expired publishing lease
+ok 11 - reclaims an expired publishing lease
+  ---
+  duration_ms: 0.39842
+  type: 'test'
+  ...
+# Subtest: completes only the owning claim
+ok 12 - completes only the owning claim
+  ---
+  duration_ms: 0.784617
+  type: 'test'
+  ...
+# Subtest: schedules retry and later dead-letters a failed claim
+ok 13 - schedules retry and later dead-letters a failed claim
+  ---
+  duration_ms: 0.582187
+  type: 'test'
+  ...
+# Subtest: builds a safely quoted PostgreSQL schema
+ok 14 - builds a safely quoted PostgreSQL schema
+  ---
+  duration_ms: 1.563138
+  type: 'test'
+  ...
+# Subtest: reads an empty state before the first transaction
+ok 15 - reads an empty state before the first transaction
+  ---
+  duration_ms: 1.426987
+  type: 'test'
+  ...
+# Subtest: persists and reopens state through the shared pool
+ok 16 - persists and reopens state through the shared pool
+  ---
+  duration_ms: 2.035984
+  type: 'test'
+  ...
+# Subtest: rolls back all state when transaction work fails
+ok 17 - rolls back all state when transaction work fails
+  ---
+  duration_ms: 1.478381
+  type: 'test'
+  ...
+# Subtest: enforces expected durable revision
+ok 18 - enforces expected durable revision
+  ---
+  duration_ms: 1.002991
+  type: 'test'
+  ...
+# Subtest: executes idempotent work only once in the same durable transaction
+ok 19 - executes idempotent work only once in the same durable transaction
+  ---
+  duration_ms: 1.243968
+  type: 'test'
+  ...
+# Subtest: fails closed when the persisted checksum is corrupted
+ok 20 - fails closed when the persisted checksum is corrupted
+  ---
+  duration_ms: 0.661621
+  type: 'test'
+  ...
+# Subtest: maps serialization and deadlock errors to retryable conflicts
+ok 21 - maps serialization and deadlock errors to retryable conflicts
+  ---
+  duration_ms: 0.386213
+  type: 'test'
+  ...
+# Subtest: uses serializable isolation, advisory lock and row lock in order
+ok 22 - uses serializable isolation, advisory lock and row lock in order
+  ---
+  duration_ms: 0.844185
+  type: 'test'
+  ...
+# Subtest: rejects a pool without the PostgreSQL connect contract
+ok 23 - rejects a pool without the PostgreSQL connect contract
+  ---
+  duration_ms: 0.434675
+  type: 'test'
+  ...
+1..23
+# tests 23
+# suites 0
+# pass 23
+# fail 0
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 750.347019
+
+> @apidevelopers/plan-core@0.1.0 test
+> node --test test/*.test.mjs
+
+TAP version 13
+# Subtest: creates deeply immutable product and plan versions
+ok 1 - creates deeply immutable product and plan versions
+  ---
+  duration_ms: 4.602857
+  type: 'test'
+  ...
+# Subtest: preserves PRICE_TBD without allowing inconsistent approved amounts
+ok 2 - preserves PRICE_TBD without allowing inconsistent approved amounts
+  ---
+  duration_ms: 0.533928
+  type: 'test'
+  ...
+# Subtest: validates unique entitlements, meters and plan transitions
+ok 3 - validates unique entitlements, meters and plan transitions
+  ---
+  duration_ms: 0.391648
+  type: 'test'
+  ...
+# Subtest: resolves effective versions using semi-open windows
+ok 4 - resolves effective versions using semi-open windows
+  ---
+  duration_ms: 1.001169
+  type: 'test'
+  ...
+# Subtest: protects immutable version keys from conflicting rewrites
+ok 5 - protects immutable version keys from conflicting rewrites
+  ---
+  duration_ms: 1.059533
+  type: 'test'
+  ...
+# Subtest: evaluates explicit upgrade and downgrade policies
+ok 6 - evaluates explicit upgrade and downgrade policies
+  ---
+  duration_ms: 1.272926
+  type: 'test'
+  ...
+# Subtest: requires product and plan to be jointly sellable
+ok 7 - requires product and plan to be jointly sellable
+  ---
+  duration_ms: 1.00985
+  type: 'test'
+  ...
+# Subtest: rejects active plan not declared by effective product
+ok 8 - rejects active plan not declared by effective product
+  ---
+  duration_ms: 1.424156
+  type: 'test'
+  ...
+# Subtest: lists catalog versions deterministically
+ok 9 - lists catalog versions deterministically
+  ---
+  duration_ms: 11.550959
+  type: 'test'
+  ...
+1..9
+# tests 9
+# suites 0
+# pass 9
+# fail 0
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 133.290309
+
+> @apidevelopers/platform-core@0.1.0 test
+> node --test test/*.test.mjs
+
+TAP version 13
+# Subtest: request context normalizes method, URL, headers and request id
+ok 1 - request context normalizes method, URL, headers and request id
+  ---
+  duration_ms: 1.79988
+  type: 'test'
+  ...
+# Subtest: invalid incoming request ids are replaced
+ok 2 - invalid incoming request ids are replaced
+  ---
+  duration_ms: 1.243754
+  type: 'test'
+  ...
+# Subtest: JSON and error responses share the same envelope
+ok 3 - JSON and error responses share the same envelope
+  ---
+  duration_ms: 0.552683
+  type: 'test'
+  ...
+# Subtest: internal errors do not expose their message
+ok 4 - internal errors do not expose their message
+  ---
+  duration_ms: 0.205054
+  type: 'test'
+  ...
+1..4
+# tests 4
+# suites 0
+# pass 4
+# fail 0
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 118.241127
+
+> @apidevelopers/portal-projector@0.1.0 test
+> node --test
+
+TAP version 13
+# Subtest: publishes atomically and exposes a read-only view
+ok 1 - publishes atomically and exposes a read-only view
+  ---
+  duration_ms: 1.887466
+  type: 'test'
+  ...
+# Subtest: preserves immutable historical versions by commit
+ok 2 - preserves immutable historical versions by commit
+  ---
+  duration_ms: 10.7213
+  type: 'test'
+  ...
+# Subtest: publishing identical content for the same commit is idempotent
+ok 3 - publishing identical content for the same commit is idempotent
+  ---
+  duration_ms: 0.258679
+  type: 'test'
+  ...
+# Subtest: rejects different content for the same source commit
+ok 4 - rejects different content for the same source commit
+  ---
+  duration_ms: 0.575511
+  type: 'test'
+  ...
+# Subtest: detects optimistic publication conflicts
+ok 5 - detects optimistic publication conflicts
+  ---
+  duration_ms: 0.315981
+  type: 'test'
+  ...
+# Subtest: stores a clone instead of a mutable caller reference
+ok 6 - stores a clone instead of a mutable caller reference
+  ---
+  duration_ms: 0.172186
+  type: 'test'
+  ...
+# Subtest: rejects invalid commits and checksums
+ok 7 - rejects invalid commits and checksums
+  ---
+  duration_ms: 0.289166
+  type: 'test'
+  ...
+# Subtest: returns null before publication and for unknown commits
+ok 8 - returns null before publication and for unknown commits
+  ---
+  duration_ms: 0.124134
+  type: 'test'
+  ...
+# Subtest: projects all Portal Markdown documents from one fixed commit
+ok 9 - projects all Portal Markdown documents from one fixed commit
+  ---
+  duration_ms: 13.233474
+  type: 'test'
+  ...
+# Subtest: is deterministic across repeated executions
+ok 10 - is deterministic across repeated executions
+  ---
+  duration_ms: 0.706511
+  type: 'test'
+  ...
+# Subtest: rejects readers that are not explicitly read-only
+ok 11 - rejects readers that are not explicitly read-only
+  ---
+  duration_ms: 0.630976
+  type: 'test'
+  ...
+# Subtest: rejects mixed-commit reads
+ok 12 - rejects mixed-commit reads
+  ---
+  duration_ms: 0.37958
+  type: 'test'
+  ...
+# Subtest: fails closed when internal links are invalid
+ok 13 - fails closed when internal links are invalid
+  ---
+  duration_ms: 1.772365
+  type: 'test'
+  ...
+# Subtest: rejects empty document sets
+ok 14 - rejects empty document sets
+  ---
+  duration_ms: 1.295359
+  type: 'test'
+  ...
+# Subtest: pipeline facade remains read-only
+ok 15 - pipeline facade remains read-only
+  ---
+  duration_ms: 1.081099
+  type: 'test'
+  ...
+# Subtest: projects institutional state end to end from GitHub transport
+ok 16 - projects institutional state end to end from GitHub transport
+  ---
+  duration_ms: 24.684508
+  type: 'test'
+  ...
+# Subtest: is deterministic across repeated end-to-end projections
+ok 17 - is deterministic across repeated end-to-end projections
+  ---
+  duration_ms: 4.841109
+  type: 'test'
+  ...
+# Subtest: fails closed when GitHub returns a truncated tree
+ok 18 - fails closed when GitHub returns a truncated tree
+  ---
+  duration_ms: 0.666031
+  type: 'test'
+  ...
+# Subtest: requires a full immutable commit SHA
+ok 19 - requires a full immutable commit SHA
+  ---
+  duration_ms: 1.406474
+  type: 'test'
+  ...
+# Subtest: forwards the fixed repository and commit to every adapter call
+ok 20 - forwards the fixed repository and commit to every adapter call
+  ---
+  duration_ms: 11.619114
+  type: 'test'
+  ...
+# Subtest: reads UTF-8 text and returns deterministic SHA-256 evidence
+ok 21 - reads UTF-8 text and returns deterministic SHA-256 evidence
+  ---
+  duration_ms: 0.222459
+  type: 'test'
+  ...
+# Subtest: rejects mixed-commit blob responses
+ok 22 - rejects mixed-commit blob responses
+  ---
+  duration_ms: 0.356931
+  type: 'test'
+  ...
+# Subtest: normalizes tree output with stable order and deduplication
+ok 23 - normalizes tree output with stable order and deduplication
+  ---
+  duration_ms: 0.926512
+  type: 'test'
+  ...
+# Subtest: rejects tree entries outside the requested prefix
+ok 24 - rejects tree entries outside the requested prefix
+  ---
+  duration_ms: 0.284168
+  type: 'test'
+  ...
+# Subtest: rejects absolute, traversal and backslash paths before adapter access
+ok 25 - rejects absolute, traversal and backslash paths before adapter access
+  ---
+  duration_ms: 0.42553
+  type: 'test'
+  ...
+# Subtest: readMany deduplicates and reads in stable lexical order
+ok 26 - readMany deduplicates and reads in stable lexical order
+  ---
+  duration_ms: 73.309753
+  type: 'test'
+  ...
+# Subtest: reader is explicitly read-only
+ok 27 - reader is explicitly read-only
+  ---
+  duration_ms: 0.338447
+  type: 'test'
+  ...
+# Subtest: creates a commit-pinned reader over injected GitHub transport
+ok 28 - creates a commit-pinned reader over injected GitHub transport
+  ---
+  duration_ms: 2.944596
+  type: 'test'
+  ...
+# Subtest: uses full commit SHA in both GitHub requests
+ok 29 - uses full commit SHA in both GitHub requests
+  ---
+  duration_ms: 0.572954
+  type: 'test'
+  ...
+# Subtest: rejects mutable refs before network access
+ok 30 - rejects mutable refs before network access
+  ---
+  duration_ms: 0.533848
+  type: 'test'
+  ...
+# Subtest: rejects invalid repository coordinates
+ok 31 - rejects invalid repository coordinates
+  ---
+  duration_ms: 0.202356
+  type: 'test'
+  ...
+# Subtest: fails closed on truncated recursive trees
+ok 32 - fails closed on truncated recursive trees
+  ---
+  duration_ms: 75.244955
+  type: 'test'
+  ...
+# Subtest: fails closed on non-base64 file responses
+ok 33 - fails closed on non-base64 file responses
+  ---
+  duration_ms: 0.340531
+  type: 'test'
+  ...
+# Subtest: surfaces HTTP failures without leaking response bodies
+ok 34 - surfaces HTTP failures without leaking response bodies
+  ---
+  duration_ms: 0.364065
+  type: 'test'
+  ...
+# Subtest: provider facade exposes no write operation
+ok 35 - provider facade exposes no write operation
+  ---
+  duration_ms: 0.186595
+  type: 'test'
+  ...
+# Subtest: canonical serialization is stable across object key order
+ok 36 - canonical serialization is stable across object key order
+  ---
+  duration_ms: 1.138347
+  type: 'test'
+  ...
+# Subtest: same fixed commit and content produce the same projection checksum
+ok 37 - same fixed commit and content produce the same projection checksum
+  ---
+  duration_ms: 33.892972
+  type: 'test'
+  ...
+# Subtest: semantic content change changes the checksum
+ok 38 - semantic content change changes the checksum
+  ---
+  duration_ms: 0.662299
+  type: 'test'
+  ...
+# Subtest: invalid source checksum and duplicate ids are rejected
+ok 39 - invalid source checksum and duplicate ids are rejected
+  ---
+  duration_ms: 0.918173
+  type: 'test'
+  ...
+# Subtest: mixed commit references are rejected
+ok 40 - mixed commit references are rejected
+  ---
+  duration_ms: 1.535779
+  type: 'test'
+  ...
+# Subtest: reconciliation identifies stale and divergent projections
+ok 41 - reconciliation identifies stale and divergent projections
+  ---
+  duration_ms: 0.363509
+  type: 'test'
+  ...
+# Subtest: atomic publication validates before activation
+ok 42 - atomic publication validates before activation
+  ---
+  duration_ms: 0.527162
+  type: 'test'
+  ...
+# Subtest: failed staging validation never activates
+ok 43 - failed staging validation never activates
+  ---
+  duration_ms: 0.430314
+  type: 'test'
+  ...
+# Subtest: projector advertises read-only canonical behavior
+ok 44 - projector advertises read-only canonical behavior
+  ---
+  duration_ms: 0.415582
+  type: 'test'
+  ...
+# Subtest: runs document, typed and integrity stages in order
+ok 45 - runs document, typed and integrity stages in order
+  ---
+  duration_ms: 2.648867
+  type: 'test'
+  ...
+# Subtest: is deterministic for the same stage outputs
+ok 46 - is deterministic for the same stage outputs
+  ---
+  duration_ms: 10.72716
+  type: 'test'
+  ...
+# Subtest: rejects readers that are not explicitly read-only
+ok 47 - rejects readers that are not explicitly read-only
+  ---
+  duration_ms: 0.659532
+  type: 'test'
+  ...
+# Subtest: rejects commit drift between document and typed stages
+ok 48 - rejects commit drift between document and typed stages
+  ---
+  duration_ms: 0.294307
+  type: 'test'
+  ...
+# Subtest: rejects commit drift in integrity result
+ok 49 - rejects commit drift in integrity result
+  ---
+  duration_ms: 0.354463
+  type: 'test'
+  ...
+# Subtest: fails closed when typed integrity is not in sync
+ok 50 - fails closed when typed integrity is not in sync
+  ---
+  duration_ms: 1.786266
+  type: 'test'
+  ...
+# Subtest: facade exposes only projection and read-only intent
+ok 51 - facade exposes only projection and read-only intent
+  ---
+  duration_ms: 0.407823
+  type: 'test'
+  ...
+# Subtest: projects and publishes through the explicit internal port
+ok 52 - projects and publishes through the explicit internal port
+  ---
+  duration_ms: 14.408861
+  type: 'test'
+  ...
+# Subtest: call projection options override service defaults
+ok 53 - call projection options override service defaults
+  ---
+  duration_ms: 0.411972
+  type: 'test'
+  ...
+# Subtest: is idempotent when the derived store already has the same projection
+ok 54 - is idempotent when the derived store already has the same projection
+  ---
+  duration_ms: 0.356231
+  type: 'test'
+  ...
+# Subtest: forwards optimistic concurrency to the derived publisher
+ok 55 - forwards optimistic concurrency to the derived publisher
+  ---
+  duration_ms: 0.696513
+  type: 'test'
+  ...
+# Subtest: does not publish when projection fails
+ok 56 - does not publish when projection fails
+  ---
+  duration_ms: 0.398174
+  type: 'test'
+  ...
+# Subtest: fails closed when the publication receipt commit diverges
+ok 57 - fails closed when the publication receipt commit diverges
+  ---
+  duration_ms: 0.441351
+  type: 'test'
+  ...
+# Subtest: fails closed when the publication receipt checksum diverges
+ok 58 - fails closed when the publication receipt checksum diverges
+  ---
+  duration_ms: 0.342964
+  type: 'test'
+  ...
+# Subtest: rejects publishers that are not explicit internal mutation ports
+ok 59 - rejects publishers that are not explicit internal mutation ports
+  ---
+  duration_ms: 0.218442
+  type: 'test'
+  ...
+# Subtest: exposes no read facade or canonical write capability
+ok 60 - exposes no read facade or canonical write capability
+  ---
+  duration_ms: 0.374408
+  type: 'test'
+  ...
+# Subtest: creates a deterministic read-only learning screen
+ok 61 - creates a deterministic read-only learning screen
+  ---
+  duration_ms: 18.834649
+  type: 'test'
+  ...
+# Subtest: does not expose internal input state
+ok 62 - does not expose internal input state
+  ---
+  duration_ms: 0.310493
+  type: 'test'
+  ...
+# Subtest: parses real Portal fixture deterministically
+ok 63 - parses real Portal fixture deterministically
+  ---
+  duration_ms: 10.351353
+  type: 'test'
+  ...
+# Subtest: extracts stable headings and relative links
+ok 64 - extracts stable headings and relative links
+  ---
+  duration_ms: 1.224036
+  type: 'test'
+  ...
+# Subtest: rejects missing or multiple level-1 titles
+ok 65 - rejects missing or multiple level-1 titles
+  ---
+  duration_ms: 0.714511
+  type: 'test'
+  ...
+# Subtest: rejects unclosed fences
+ok 66 - rejects unclosed fences
+  ---
+  duration_ms: 0.210264
+  type: 'test'
+  ...
+# Subtest: simple yaml parser rejects duplicate keys and tabs
+ok 67 - simple yaml parser rejects duplicate keys and tabs
+  ---
+  duration_ms: 0.36164
+  type: 'test'
+  ...
+# Subtest: validates internal markdown links against available paths
+ok 68 - validates internal markdown links against available paths
+  ---
+  duration_ms: 3.731381
+  type: 'test'
+  ...
+# Subtest: ignores external and anchor-only links
+ok 69 - ignores external and anchor-only links
+  ---
+  duration_ms: 0.253183
+  type: 'test'
+  ...
+# Subtest: exposes only read operations
+ok 70 - exposes only read operations
+  ---
+  duration_ms: 22.666785
+  type: 'test'
+  ...
+# Subtest: returns current and historical snapshots as defensive clones
+ok 71 - returns current and historical snapshots as defensive clones
+  ---
+  duration_ms: 0.464046
+  type: 'test'
+  ...
+# Subtest: returns compact deterministic summaries
+ok 72 - returns compact deterministic summaries
+  ---
+  duration_ms: 1.114385
+  type: 'test'
+  ...
+# Subtest: lists records in deterministic order with filtering and pagination
+ok 73 - lists records in deterministic order with filtering and pagination
+  ---
+  duration_ms: 11.933613
+  type: 'test'
+  ...
+# Subtest: gets one institutional record by type and id
+ok 74 - gets one institutional record by type and id
+  ---
+  duration_ms: 0.331175
+  type: 'test'
+  ...
+# Subtest: lists versions deterministically with stable pagination
+ok 75 - lists versions deterministically with stable pagination
+  ---
+  duration_ms: 0.289836
+  type: 'test'
+  ...
+# Subtest: returns empty results when no projection was published
+ok 76 - returns empty results when no projection was published
+  ---
+  duration_ms: 0.32333
+  type: 'test'
+  ...
+# Subtest: rejects mutable readers and invalid query parameters
+ok 77 - rejects mutable readers and invalid query parameters
+  ---
+  duration_ms: 0.726207
+  type: 'test'
+  ...
+# Subtest: extracts all eight institutional types in canonical order
+ok 78 - extracts all eight institutional types in canonical order
+  ---
+  duration_ms: 3.729048
+  type: 'test'
+  ...
+# Subtest: is deterministic across repeated extraction of the same source order
+ok 79 - is deterministic across repeated extraction of the same source order
+  ---
+  duration_ms: 87.344238
+  type: 'test'
+  ...
+# Subtest: preserves SourceRef and extraction evidence
+ok 80 - preserves SourceRef and extraction evidence
+  ---
+  duration_ms: 0.329073
+  type: 'test'
+  ...
+# Subtest: rejects duplicate identifiers
+ok 81 - rejects duplicate identifiers
+  ---
+  duration_ms: 0.60184
+  type: 'test'
+  ...
+# Subtest: rejects mixed commit source references
+ok 82 - rejects mixed commit source references
+  ---
+  duration_ms: 0.280249
+  type: 'test'
+  ...
+# Subtest: can require all eight institutional types
+ok 83 - can require all eight institutional types
+  ---
+  duration_ms: 0.269222
+  type: 'test'
+  ...
+# Subtest: ignores unrelated yaml blocks without inventing types
+ok 84 - ignores unrelated yaml blocks without inventing types
+  ---
+  duration_ms: 0.264404
+  type: 'test'
+  ...
+# Subtest: facade remains explicitly read-only
+ok 85 - facade remains explicitly read-only
+  ---
+  duration_ms: 0.161409
+  type: 'test'
+  ...
+# Subtest: accepts a coherent typed projection
+ok 86 - accepts a coherent typed projection
+  ---
+  duration_ms: 4.068525
+  type: 'test'
+  ...
+# Subtest: reports missing relation endpoints
+ok 87 - reports missing relation endpoints
+  ---
+  duration_ms: 7.598894
+  type: 'test'
+  ...
+# Subtest: reports evidence with an unknown subject
+ok 88 - reports evidence with an unknown subject
+  ---
+  duration_ms: 0.403609
+  type: 'test'
+  ...
+# Subtest: reports snapshot heads from another commit
+ok 89 - reports snapshot heads from another commit
+  ---
+  duration_ms: 0.243796
+  type: 'test'
+  ...
+# Subtest: reports iteration action conflicts
+ok 90 - reports iteration action conflicts
+  ---
+  duration_ms: 0.463966
+  type: 'test'
+  ...
+# Subtest: reports missing approvals, evidence and action mismatches
+ok 91 - reports missing approvals, evidence and action mismatches
+  ---
+  duration_ms: 23.523229
+  type: 'test'
+  ...
+# Subtest: fails closed by default
+ok 92 - fails closed by default
+  ---
+  duration_ms: 0.869758
+  type: 'test'
+  ...
+# Subtest: rejects records from another commit
+ok 93 - rejects records from another commit
+  ---
+  duration_ms: 0.330184
+  type: 'test'
+  ...
+# Subtest: facade remains explicitly read-only
+ok 94 - facade remains explicitly read-only
+  ---
+  duration_ms: 0.387324
+  type: 'test'
+  ...
+1..94
+# tests 94
+# suites 0
+# pass 94
+# fail 0
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 863.359658
+
+> @apidevelopers/portal-projector-http@0.1.0 test
+> node --test test/*.test.mjs
+
+TAP version 13
+# Subtest: read only
+ok 1 - read only
+  ---
+  duration_ms: 1.484773
+  type: 'test'
+  ...
+# Subtest: requires auth adapters
+ok 2 - requires auth adapters
+  ---
+  duration_ms: 3.773259
+  type: 'test'
+  ...
+# Subtest: 401
+ok 3 - 401
+  ---
+  duration_ms: 0.53313
+  type: 'test'
+  ...
+# Subtest: 403
+ok 4 - 403
+  ---
+  duration_ms: 0.294136
+  type: 'test'
+  ...
+# Subtest: summary metadata
+ok 5 - summary metadata
+  ---
+  duration_ms: 1.24564
+  type: 'test'
+  ...
+# Subtest: records pagination
+ok 6 - records pagination
+  ---
+  duration_ms: 0.537386
+  type: 'test'
+  ...
+# Subtest: record and 404
+ok 7 - record and 404
+  ---
+  duration_ms: 0.547693
+  type: 'test'
+  ...
+# Subtest: 405 before auth
+ok 8 - 405 before auth
+  ---
+  duration_ms: 0.219501
+  type: 'test'
+  ...
+# Subtest: invalid query
+ok 9 - invalid query
+  ---
+  duration_ms: 0.552545
+  type: 'test'
+  ...
+# Subtest: hides secrets
+ok 10 - hides secrets
+  ---
+  duration_ms: 0.650821
+  type: 'test'
+  ...
+# Subtest: outside path 404
+ok 11 - outside path 404
+  ---
+  duration_ms: 0.26568
+  type: 'test'
+  ...
+1..11
+# tests 11
+# suites 0
+# pass 11
+# fail 0
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 119.909754
+
+> @apidevelopers/project-core@0.1.0 test
+> node --test test/*.test.mjs
+
+TAP version 13
+# Subtest: normalizes slugs and returns deeply immutable records
+ok 1 - normalizes slugs and returns deeply immutable records
+  ---
+  duration_ms: 1.78377
+  type: 'test'
+  ...
+# Subtest: repository scopes slug uniqueness by tenant
+ok 2 - repository scopes slug uniqueness by tenant
+  ---
+  duration_ms: 0.837323
+  type: 'test'
+  ...
+# Subtest: service validates tenant and emits lifecycle events
+ok 3 - service validates tenant and emits lifecycle events
+  ---
+  duration_ms: 3.100202
+  type: 'test'
+  ...
+# Subtest: rejects invalid transitions without mutation
+ok 4 - rejects invalid transitions without mutation
+  ---
+  duration_ms: 0.356744
+  type: 'test'
+  ...
+# Subtest: lists projects by tenant and status deterministically
+ok 5 - lists projects by tenant and status deterministically
+  ---
+  duration_ms: 11.033057
+  type: 'test'
+  ...
+1..5
+# tests 5
+# suites 0
+# pass 5
+# fail 0
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 134.234443
+
+> @apidevelopers/provisioning-core@0.1.0 test
+> node --test test/*.test.mjs
+
+TAP version 13
+# Subtest: creates immutable snapshots and rejects sensitive metadata
+ok 1 - creates immutable snapshots and rejects sensitive metadata
+  ---
+  duration_ms: 3.387732
+  type: 'test'
+  ...
+# Subtest: requires an active subscription
+ok 2 - requires an active subscription
+  ---
+  duration_ms: 0.313036
+  type: 'test'
+  ...
+# Subtest: creates one idempotent provisioning intent per subscription
+ok 3 - creates one idempotent provisioning intent per subscription
+  ---
+  duration_ms: 0.776773
+  type: 'test'
+  ...
+# Subtest: repository is append-only, sequential and source-event idempotent
+ok 4 - repository is append-only, sequential and source-event idempotent
+  ---
+  duration_ms: 3.768768
+  type: 'test'
+  ...
+# Subtest: provisions tenant, project and public API key in strict order
+ok 5 - provisions tenant, project and public API key in strict order
+  ---
+  duration_ms: 1.804985
+  type: 'test'
+  ...
+# Subtest: rejects out-of-order resource completion
+ok 6 - rejects out-of-order resource completion
+  ---
+  duration_ms: 1.354236
+  type: 'test'
+  ...
+# Subtest: creates reverse compensation plan and blocks retry until complete
+ok 7 - creates reverse compensation plan and blocks retry until complete
+  ---
+  duration_ms: 2.0252
+  type: 'test'
+  ...
+# Subtest: records compensation and retries with a clean resource state
+ok 8 - records compensation and retries with a clean resource state
+  ---
+  duration_ms: 1.842828
+  type: 'test'
+  ...
+# Subtest: deduplicates repeated external events
+ok 9 - deduplicates repeated external events
+  ---
+  duration_ms: 0.569549
+  type: 'test'
+  ...
+# Subtest: cancels requested provisioning and blocks terminal transitions
+ok 10 - cancels requested provisioning and blocks terminal transitions
+  ---
+  duration_ms: 0.634197
+  type: 'test'
+  ...
+1..10
+# tests 10
+# suites 0
+# pass 10
+# fail 0
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 147.711862
+
+> @apidevelopers/registry@0.1.0 test
+> node --test test/*.test.mjs
+
+TAP version 13
+# Subtest: exports frozen registry contract constants
+ok 1 - exports frozen registry contract constants
+  ---
+  duration_ms: 1.671574
+  type: 'test'
+  ...
+# Subtest: validates and freezes canonical registry records
+ok 2 - validates and freezes canonical registry records
+  ---
+  duration_ms: 0.607313
+  type: 'test'
+  ...
+# Subtest: rejects kind and canonical family mismatches
+ok 3 - rejects kind and canonical family mismatches
+  ---
+  duration_ms: 0.550162
+  type: 'test'
+  ...
+# Subtest: rejects invalid semantic versions and statuses
+ok 4 - rejects invalid semantic versions and statuses
+  ---
+  duration_ms: 0.202852
+  type: 'test'
+  ...
+# Subtest: rejects duplicate dependency values and self dependencies
+ok 5 - rejects duplicate dependency values and self dependencies
+  ---
+  duration_ms: 0.367683
+  type: 'test'
+  ...
+# Subtest: creates a deterministic read-only registry snapshot
+ok 6 - creates a deterministic read-only registry snapshot
+  ---
+  duration_ms: 22.026982
+  type: 'test'
+  ...
+# Subtest: rejects duplicate registry ids
+ok 7 - rejects duplicate registry ids
+  ---
+  duration_ms: 0.428539
+  type: 'test'
+  ...
+# Subtest: rejects missing registry dependencies
+ok 8 - rejects missing registry dependencies
+  ---
+  duration_ms: 0.227738
+  type: 'test'
+  ...
+# Subtest: rejects dependency cycles
+ok 9 - rejects dependency cycles
+  ---
+  duration_ms: 0.522497
+  type: 'test'
+  ...
+# Subtest: supports canonical lookup and filtered listing
+ok 10 - supports canonical lookup and filtered listing
+  ---
+  duration_ms: 0.779202
+  type: 'test'
+  ...
+# Subtest: does not accept legacy ids as silent lookup aliases
+ok 11 - does not accept legacy ids as silent lookup aliases
+  ---
+  duration_ms: 0.553863
+  type: 'test'
+  ...
+# Subtest: returns deterministic dependencies and dependents
+ok 12 - returns deterministic dependencies and dependents
+  ---
+  duration_ms: 0.364135
+  type: 'test'
+  ...
+# Subtest: does not mutate source records
+ok 13 - does not mutate source records
+  ---
+  duration_ms: 0.315439
+  type: 'test'
+  ...
+# Subtest: adapts a legacy ap capability explicitly to a canonical capability record
+ok 14 - adapts a legacy ap capability explicitly to a canonical capability record
+  ---
+  duration_ms: 0.589246
+  type: 'test'
+  ...
+# Subtest: rejects malformed legacy capability manifests
+ok 15 - rejects malformed legacy capability manifests
+  ---
+  duration_ms: 0.237257
+  type: 'test'
+  ...
+# Subtest: builds a canonical registry from legacy capability manifests
+ok 16 - builds a canonical registry from legacy capability manifests
+  ---
+  duration_ms: 0.441265
+  type: 'test'
+  ...
+# Subtest: preserves the legacy generated index shape through an explicit compatibility export
+ok 17 - preserves the legacy generated index shape through an explicit compatibility export
+  ---
+  duration_ms: 1.247995
+  type: 'test'
+  ...
+# Subtest: does not mutate legacy manifests while adapting or generating compatibility output
+ok 18 - does not mutate legacy manifests while adapting or generating compatibility output
+  ---
+  duration_ms: 0.650994
+  type: 'test'
+  ...
+# Subtest: preserves cyclic legacy manifests without treating them as canonical registry records
+ok 19 - preserves cyclic legacy manifests without treating them as canonical registry records
+  ---
+  duration_ms: 12.898581
+  type: 'test'
+  ...
+# Subtest: rejects duplicate, missing and self legacy dependencies
+ok 20 - rejects duplicate, missing and self legacy dependencies
+  ---
+  duration_ms: 0.9675
+  type: 'test'
+  ...
+# Subtest: rejects malformed legacy identifiers and does not normalize silently
+ok 21 - rejects malformed legacy identifiers and does not normalize silently
+  ---
+  duration_ms: 9.312332
+  type: 'test'
+  ...
+1..21
+# tests 21
+# suites 0
+# pass 21
+# fail 0
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 162.544096
+
+> @apidevelopers/registry-core@0.1.0 test
+> node --test test/*.test.mjs
+
+TAP version 13
+# Subtest: registry sorts, filters and clones entries
+ok 1 - registry sorts, filters and clones entries
+  ---
+  duration_ms: 12.864804
+  type: 'test'
+  ...
+# Subtest: registry rejects duplicates unless replacement is explicit
+ok 2 - registry rejects duplicates unless replacement is explicit
+  ---
+  duration_ms: 0.775382
+  type: 'test'
+  ...
+# Subtest: registry snapshots are deterministic
+ok 3 - registry snapshots are deterministic
+  ---
+  duration_ms: 0.277975
+  type: 'test'
+  ...
+1..3
+# tests 3
+# suites 0
+# pass 3
+# fail 0
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 132.101758
+
+> @apidevelopers/subscription-core@0.1.0 test
+> node --test test/*.test.mjs
+
+TAP version 13
+# Subtest: creates immutable pending snapshots and validates catalog
+ok 1 - creates immutable pending snapshots and validates catalog
+  ---
+  duration_ms: 2.29002
+  type: 'test'
+  ...
+# Subtest: repository is append-only and idempotent
+ok 2 - repository is append-only and idempotent
+  ---
+  duration_ms: 0.676351
+  type: 'test'
+  ...
+# Subtest: creates and activates subscriptions
+ok 3 - creates and activates subscriptions
+  ---
+  duration_ms: 2.466923
+  type: 'test'
+  ...
+# Subtest: deduplicates repeated events
+ok 4 - deduplicates repeated events
+  ---
+  duration_ms: 0.719421
+  type: 'test'
+  ...
+# Subtest: handles past_due suspension and recovery
+ok 5 - handles past_due suspension and recovery
+  ---
+  duration_ms: 1.060268
+  type: 'test'
+  ...
+# Subtest: schedules and applies plan changes when due
+ok 6 - schedules and applies plan changes when due
+  ---
+  duration_ms: 1.908679
+  type: 'test'
+  ...
+# Subtest: renews periods and applies due changes atomically
+ok 7 - renews periods and applies due changes atomically
+  ---
+  duration_ms: 0.813319
+  type: 'test'
+  ...
+# Subtest: supports immediate and period-end cancellation
+ok 8 - supports immediate and period-end cancellation
+  ---
+  duration_ms: 1.179481
+  type: 'test'
+  ...
+# Subtest: expires and blocks terminal mutations
+ok 9 - expires and blocks terminal mutations
+  ---
+  duration_ms: 0.936921
+  type: 'test'
+  ...
+1..9
+# tests 9
+# suites 0
+# pass 9
+# fail 0
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 140.859645
+
+> @apidevelopers/tenancy@0.1.0 test
+> node --test test/*.test.mjs
+
+TAP version 13
+# node:internal/modules/package_json_reader:314
+#   throw new ERR_MODULE_NOT_FOUND(packageName, fileURLToPath(base), null);
+#         ^
+# Error [ERR_MODULE_NOT_FOUND]: Cannot find package '@apidevelopers/contracts' imported from /Users/milenapeterlesavioabreu/actions-runner/_work/apidevelopers-platform/apidevelopers-platform/packages/tenancy/test/index.test.mjs
+#     at Object.getPackageJSONURL (node:internal/modules/package_json_reader:314:9)
+#     at packageResolve (node:internal/modules/esm/resolve:768:81)
+#     at moduleResolve (node:internal/modules/esm/resolve:855:18)
+#     at defaultResolve (node:internal/modules/esm/resolve:985:11)
+#     at \#cachedDefaultResolve (node:internal/modules/esm/loader:747:20)
+#     at ModuleLoader.resolve (node:internal/modules/esm/loader:724:38)
+#     at ModuleLoader.getModuleJobForImport (node:internal/modules/esm/loader:320:38)
+#     at ModuleJob._link (node:internal/modules/esm/module_job:182:49) {
+#   code: 'ERR_MODULE_NOT_FOUND'
+# }
+# Node.js v22.23.1
+# Subtest: test/index.test.mjs
+not ok 1 - test/index.test.mjs
+  ---
+  duration_ms: 96.667611
+  type: 'test'
+  location: '/Users/milenapeterlesavioabreu/actions-runner/_work/apidevelopers-platform/apidevelopers-platform/packages/tenancy/test/index.test.mjs:1:1'
+  failureType: 'testCodeFailure'
+  exitCode: 1
+  signal: ~
+  error: 'test failed'
+  code: 'ERR_TEST_FAILURE'
+  ...
+1..1
+# tests 1
+# suites 0
+# pass 0
+# fail 1
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 105.266902
+npm error Lifecycle script `test` failed with error:
+npm error code 1
+npm error path /Users/milenapeterlesavioabreu/actions-runner/_work/apidevelopers-platform/apidevelopers-platform/packages/tenancy
+npm error workspace @apidevelopers/tenancy@0.1.0
+npm error location /Users/milenapeterlesavioabreu/actions-runner/_work/apidevelopers-platform/apidevelopers-platform/packages/tenancy
+npm error command failed
+npm error command sh -c node --test test/*.test.mjs
+
+
+> @apidevelopers/tenant-core@0.1.0 test
+> node --test test/*.test.mjs
+
+TAP version 13
+# Subtest: normalizes slugs and returns immutable records
+ok 1 - normalizes slugs and returns immutable records
+  ---
+  duration_ms: 1.782366
+  type: 'test'
+  ...
+# Subtest: repository protects id and slug uniqueness
+ok 2 - repository protects id and slug uniqueness
+  ---
+  duration_ms: 2.076382
+  type: 'test'
+  ...
+# Subtest: service advances lifecycle and emits events
+ok 3 - service advances lifecycle and emits events
+  ---
+  duration_ms: 2.360681
+  type: 'test'
+  ...
+# Subtest: rejects invalid transitions without mutation
+ok 4 - rejects invalid transitions without mutation
+  ---
+  duration_ms: 0.445702
+  type: 'test'
+  ...
+# Subtest: filters tenants deterministically
+ok 5 - filters tenants deterministically
+  ---
+  duration_ms: 11.356299
+  type: 'test'
+  ...
+1..5
+# tests 5
+# suites 0
+# pass 5
+# fail 0
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 147.71612
+
+> @apidevelopers/usage-core@0.1.0 test
+> node --test test/*.test.mjs
+
+TAP version 13
+# Subtest: creates deeply immutable usage events
+ok 1 - creates deeply immutable usage events
+  ---
+  duration_ms: 1.469243
+  type: 'test'
+  ...
+# Subtest: rejects invalid quantity and windows
+ok 2 - rejects invalid quantity and windows
+  ---
+  duration_ms: 0.454875
+  type: 'test'
+  ...
+# Subtest: repository appends idempotently
+ok 3 - repository appends idempotently
+  ---
+  duration_ms: 4.981171
+  type: 'test'
+  ...
+# Subtest: repository rejects duplicate ids with different idempotency keys
+ok 4 - repository rejects duplicate ids with different idempotency keys
+  ---
+  duration_ms: 0.389403
+  type: 'test'
+  ...
+# Subtest: aggregates usage by selected dimensions
+ok 5 - aggregates usage by selected dimensions
+  ---
+  duration_ms: 11.84455
+  type: 'test'
+  ...
+# Subtest: service validates ownership guards and emits only once
+ok 6 - service validates ownership guards and emits only once
+  ---
+  duration_ms: 0.722554
+  type: 'test'
+  ...
+# Subtest: service summarizes half-open time windows
+ok 7 - service summarizes half-open time windows
+  ---
+  duration_ms: 0.64671
+  type: 'test'
+  ...
+1..7
+# tests 7
+# suites 0
+# pass 7
+# fail 0
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 164.828824
+
+> @apidevelopers/user-core@0.1.0 test
+> node --test test/*.test.mjs
+
+TAP version 13
+# Subtest: normalizes emails and returns immutable records
+ok 1 - normalizes emails and returns immutable records
+  ---
+  duration_ms: 1.570305
+  type: 'test'
+  ...
+# Subtest: repository protects unique id and email
+ok 2 - repository protects unique id and email
+  ---
+  duration_ms: 0.672913
+  type: 'test'
+  ...
+# Subtest: service registers and verifies a user with domain events
+ok 3 - service registers and verifies a user with domain events
+  ---
+  duration_ms: 4.577226
+  type: 'test'
+  ...
+# Subtest: service controls lifecycle transitions without mutation
+ok 4 - service controls lifecycle transitions without mutation
+  ---
+  duration_ms: 0.619484
+  type: 'test'
+  ...
+# Subtest: profile updates are audited and deleted users remain immutable
+ok 5 - profile updates are audited and deleted users remain immutable
+  ---
+  duration_ms: 0.587434
+  type: 'test'
+  ...
+1..5
+# tests 5
+# suites 0
+# pass 5
+# fail 0
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 148.920667
