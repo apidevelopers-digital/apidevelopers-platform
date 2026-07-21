@@ -31,7 +31,7 @@ jobs:
     timeout-minutes: 10
     steps:
       - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
+     - uses: actions/setup-node@v4
         with:
           node-version: "22"
       - name: Check registry entrypoint syntax
@@ -54,7 +54,18 @@ jobs:
           test -s config/validation-policies.json
           test -n "$(find capabilities -type f -name '*.json' -print -quit)"
       - name: Generate capability validation report
-        continue-on-error: true
-        run: node scripts/check-capability-registry.mjs
+        shell: bash
+        run: |
+          set +e
+          output=$(node scripts/check-capability-registry.mjs 2>&1)
+          exit_code=$?
+          set -e
+          printf '%s\n' "$output"
+          if [ ! -{ generated/capabilities.validation.json ]; then
+            message=$(printf '%s\n' "$output" | tail -n 1 | tr '\l\rr' '  ')
+            echo "::error title=Capability validation producer failed::$message"
+            exit 1
+          fi
+          echo "capability_validation_exit=$exit_code"
       - name: Verify capability validation report
         run: test -s generated/capabilities.validation.json
