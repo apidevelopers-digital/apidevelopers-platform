@@ -36,6 +36,7 @@ jobs:
           - github-provider.test.mjs
           - index.test.mjs
           - institutional-facade.test.mjs
+          - institutional-publisher.test.mjs
           - markdown-parser.test.mjs
           - typed-extractor.test.mjs
           - typed-integrity.test.mjs
