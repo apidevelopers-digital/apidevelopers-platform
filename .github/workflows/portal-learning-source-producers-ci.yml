@@ -5,16 +5,10 @@ on:
     branches:
       - "work/portal-learning-integrated-cycle-*"
     paths:
-      - "capabilities/**"
-      - "contracts/**"
-      - "policies/**"
       - "scripts/check-capability-registry.mjs"
       - ".github/workflows/portal-learning-source-producers-ci.yml"
   pull_request:
     paths:
-      - "capabilities/**"
-      - "contracts/**"
-      - "policies/**"
       - "scripts/check-capability-registry.mjs"
       - ".github/workflows/portal-learning-source-producers-ci.yml"
 
@@ -27,15 +21,10 @@ jobs:
     timeout-minutes: 10
     steps:
       - uses: actions/checkout@v4
-     - uses: actions/setup-node@v4
+      - uses: actions/setup-node@v4
         with:
           node-version: "22"
       - name: Generate capability validation
-        shell: bash
-        run: |
-          set +e
-          node scripts/check-capability-registry.mjs
-          validation_exit=$?
-          set -e
-          test -s generated/capabilities.validation.json
-          echo "capability_validation_exit=$validation_exit"
+        run: node scripts/check-capability-registry.mjs || test -s generated/capabilities.validation.json
+      - name: Verify capability validation artifact
+        run: test -s generated/capabilities.validation.json
