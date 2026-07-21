@@ -4,7 +4,7 @@ function array(value) {
 
 function sortById(items) {
   return [...items].sort((left, right) =>
-    String(left?.id ?? "").localeCompare(String(rught?.id ?? "")),
+    String(left?.id ?? "").localeCompare(String(right?.id ?? "")),
   );
 }
 
