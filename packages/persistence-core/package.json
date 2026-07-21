@@ -1,8 +1,8 @@
 {
   "name": "@apidevelopers/persistence-core",
-  "version": "0.2.0",
+  "version": "0.3.0",
   "private": true,
-  "description": "Atomic durable JSON and PostgreSQL persistence, transactions, idempotency and outbox contracts for API Developers.digital.",
+  "description": "Atomic durable JSON and PostgreSQL persistence, transactions, idempotency, outbox claim and dead-letter contracts for API Developers.digital.",
   "type": "module",
   "exports": {
     ".": "./src/index.mjs"
