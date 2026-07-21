@@ -9,6 +9,8 @@ import { createApp } from "./app.mjs";
 import { createJsonlAuditLog } from "./audit-log.mjs";
 import { createClientRegistry } from "./client-registry.mjs";
 import { createJsonFileClientRepository } from "./client-repository.mjs";
+import { withLearningRoute } from "./learning-route.mjs";
+import { createJsonLearningSnapshotRepository } from "./learning-snapshot-repository.mjs";
 import { createFixedWindowRateLimiter } from "./rate-limit.mjs";
 
 const MAX_BODY_BYTES = 1024 * 1024;
@@ -57,11 +59,19 @@ export function createRuntimeApp(env = process.env) {
     limit: Number(env.API_GATEWAY_RATE_LIMIT ?? 120),
     windowMs: Number(env.API_GATEWAY_RATE_WINDOW_MS ?? 60_000),
   });
-
-  return createApp({
+  const app = createApp({
     clientRegistry,
     auditLog,
     rateLimiter,
+    adminKey: env.API_GATEWAY_ADMIN_KEY,
+  });
+  const learningRepository = createJsonLearningSnapshotRepository({
+    filePath: env.PORTAL_LEARNING_SNAPSHOT_PATH ?? "./var/portal-learning.json",
+  });
+
+  return withLearningRoute({
+    app,
+    repository: learningRepository,
     adminKey: env.API_GATEWAY_ADMIN_KEY,
   });
 }
