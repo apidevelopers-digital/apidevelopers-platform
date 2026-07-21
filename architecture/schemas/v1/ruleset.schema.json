@@ -1,0 +1,275 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://developers.digital/schemas/architecture/ruleset.v1.schema.json",
+  "title": "Canonical Architecture Ruleset v1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schemaVersion",
+    "rulesetId",
+    "name",
+    "version",
+    "status",
+    "scope",
+    "sourceRefs",
+    "effectiveFrom",
+    "owner",
+    "defaultSeverity",
+    "rules"
+  ],
+  "properties": {
+    "schemaVersion": {
+      "const": "1.0.0"
+    },
+    "rulesetId": {
+      "type": "string",
+      "pattern": "^[a-z][a-z0-9-]{2,63}$"
+    },
+    "name": {
+      "type": "string",
+      "minLength": 1
+    },
+    "version": {
+      "type": "string",
+      "pattern": "^[0-9]+\\.[0-9]+\\.[0-9]+$"
+    },
+    "status": {
+      "enum": [
+        "draft",
+        "active",
+        "deprecated",
+        "retired",
+        "suspended"
+      ]
+    },
+    "scope": {
+      "type": "string",
+      "minLength": 1
+    },
+    "sourceRefs": {
+      "type": "array",
+      "minItems": 1,
+      "uniqueItems": true,
+      "items": {
+        "type": "string",
+        "minLength": 1
+      }
+    },
+    "effectiveFrom": {
+      "type": "string",
+      "format": "date"
+    },
+    "owner": {
+      "type": "string",
+      "minLength": 1
+    },
+    "defaultSeverity": {
+      "enum": [
+        "INFO",
+        "WARN",
+        "ERROR",
+        "CRITICAL"
+      ]
+    },
+    "metadata": {
+      "type": "object",
+      "additionalProperties": true
+    },
+    "rules": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/rule"
+      }
+    }
+  },
+  "$defs": {
+    "appliesTo": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "include",
+        "exclude"
+      ],
+      "properties": {
+        "include": {
+          "type": "array",
+          "minItems": 1,
+          "uniqueItems": true,
+          "items": {
+            "type": "string",
+            "minLength": 1
+          }
+        },
+        "exclude": {
+          "type": "array",
+          "uniqueItems": true,
+          "items": {
+            "type": "string",
+            "minLength": 1
+          }
+        }
+      }
+    },
+    "regexSpec": {
+      "oneOf": [
+        {
+          "type": "string",
+          "minLength": 1
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "source"
+          ],
+          "properties": {
+            "source": {
+              "type": "string",
+              "minLength": 1
+            },
+            "flags": {
+              "type": "string",
+              "pattern": "^[dgimsuvy]*$"
+            }
+          }
+        }
+      ]
+    },
+    "rule": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "ruleId",
+        "ruleVersion",
+        "title",
+        "description",
+        "category",
+        "type",
+        "severity",
+        "status",
+        "appliesTo",
+        "parameters",
+        "message",
+        "remediation",
+        "sourceRefs"
+      ],
+      "properties": {
+        "ruleId": {
+          "type": "string",
+          "pattern": "^ARC-[A-Z0-9]+-[0-9]{3}$"
+        },
+        "ruleVersion": {
+          "type": "string",
+          "pattern": "^[0-9]+\\.[0-9]+\\.[0-9]+$"
+        },
+        "title": {
+          "type": "string",
+          "minLength": 1
+        },
+        "description": {
+          "type": "string",
+          "minLength": 1
+        },
+        "category": {
+          "type": "string",
+          "minLength": 1
+        },
+        "type": {
+          "enum": [
+            "required-path",
+            "required-field",
+            "allowed-value",
+            "required-pattern",
+            "forbidden-pattern"
+          ]
+        },
+        "severity": {
+          "enum": [
+            "INFO",
+            "WARN",
+            "ERROR",
+            "CRITICAL"
+          ]
+        },
+        "status": {
+          "enum": [
+            "draft",
+            "active",
+            "deprecated",
+            "retired",
+            "suspended"
+          ]
+        },
+        "enabled": {
+          "type": "boolean"
+        },
+        "appliesTo": {
+          "$ref": "#/$defs/appliesTo"
+        },
+        "parameters": {
+          "type": "object",
+          "additionalProperties": true,
+          "properties": {
+            "paths": {
+              "type": "array",
+              "uniqueItems": true,
+              "items": {
+                "type": "string",
+                "minLength": 1
+              }
+            },
+            "forEach": {
+              "type": "string",
+              "minLength": 1
+            },
+            "relativePaths": {
+              "type": "array",
+              "uniqueItems": true,
+              "items": {
+                "type": "string",
+                "minLength": 1
+              }
+            },
+            "pointer": {
+              "type": "string"
+            },
+            "equals": true,
+            "values": {
+              "type": "array"
+            },
+            "pattern": {
+              "$ref": "#/$defs/regexSpec"
+            },
+            "patterns": {
+              "type": "array",
+              "items": {
+                "$ref": "#/$defs/regexSpec"
+              }
+            }
+          }
+        },
+        "message": {
+          "type": "string",
+          "minLength": 1
+        },
+        "remediation": {
+          "type": "string",
+          "minLength": 1
+        },
+        "sourceRefs": {
+          "type": "array",
+          "minItems": 1,
+          "uniqueItems": true,
+          "items": {
+            "type": "string",
+            "minLength": 1
+          }
+        },
+        "metadata": {
+          "type": "object",
+          "additionalProperties": true
+        }
+      }
+    }
+  }
+}
