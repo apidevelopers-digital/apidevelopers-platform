@@ -1,0 +1,41 @@
+name: Portal Learning Publisher CI
+
+on:
+  push:
+    branches:
+      - "work/portal-learning-publisher-*"
+    paths:
+      - "apps/portal-learning-worker/**"
+      - ".github/workflows/portal-learning-publisher-ci.yml"
+  pull_request:
+    paths:
+      - "apps/portal-learning-worker/**"
+      - ".github/workflows/portal-learning-publisher-ci.yml"
+
+permissions:
+  contents: read
+
+jobs:
+  validate:
+    runs-on: [self-hosted, macOS, X64]
+    timeout-minutes: 10
+    steps:
+      - uses: "actions/checkout\u0040v4"
+      - uses: "actions/setup-node\u0040v4"
+        with:
+          node-version: "22"
+      - name: Link learning kernel workspaces
+        shell: bash
+        run: |
+          set -euo pipefail
+          scope_dir="$GITHUB_WORKSPACE/node_modules/@apidevelopers"
+          mkdir -p "$scope_dir"
+          for package in kernel-memory kernel-reflection kernel-evolution; do
+            source_dir="$GITHUB_WORKSPACE/packages/$package"
+            target="$scope_dir/$package"
+            test -f "$source_dir/package.json"
+            rm -rf "$target"
+            ln -s "$source_dir" "$target"
+          done
+      - name: Check learning publisher
+        run: npm --workspace @apidevelopers/portal-learning-worker run check
