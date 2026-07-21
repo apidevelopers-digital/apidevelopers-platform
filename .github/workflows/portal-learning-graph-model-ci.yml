@@ -1,0 +1,73 @@
+name: Portal Learning Graph Model CI
+
+on:
+  push:
+    branches:
+      - "work/portal-learning-integrated-cycle-*"
+    paths:
+      - "apps/portal-learning-worker/src/integrated-cycle.mjs"
+      - "capabilities/**"
+      - "packages/kernel-memory/**"
+      - "packages/kernel-reflection/**"
+      - "packages/kernel-evolution/**"
+      - "scripts/lib/institutional-knowledge-graph.mjs"
+      - ".github/workflows/portal-learning-graph-model-ci.yml"
+  pull_request:
+    paths:
+      - "apps/portal-learning-worker/src/integrated-cycle.mjs"
+      - "capabilities/**"
+      - "packages/kernel-memory/**"
+      - "packages/kernel-reflection/**"
+      - "packages/kernel-evolution/**"
+      - "scripts/lib/institutional-knowledge-graph.mjs"
+      - ".github/workflows/portal-learning-graph-model-ci.yml"
+
+permissions:
+  contents: read
+
+jobs:
+  validate-graph-model:
+    runs-on: [self-hosted, macOS, X64]
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+      - name: Link learning kernel workspaces
+        shell: bash
+        run: |
+          set -euo pipefail
+          scope_dir="$GITHUB_WORKSPACE/node_modules/@apidevelopers"
+          mkdir -p "$scope_dir"
+          for package in kernel-memory kernel-reflection kernel-evolution; do
+            source_dir="$GITHUB_WORKSPACE/packages/$package"
+            target="$scope_dir/$package"
+            test -f "$source_dir/package.json"
+            rm -rf "$target"
+            ln -s "$source_dir" "$target"
+          done
+      - name: Validate real capability graph projection
+        run: |
+          node --input-type=module <<'NODE'
+          import assert from "node:assert/strict";
+          import { readdir, readFile } from "node:fs/promises";
+          import path from "node:path";
+          import { buildGraph } from "./apps/portal-learning-worker/src/integrated-cycle.mjs";
+
+          const names = (await readdir("capabilities"))
+            .filter((name) => name.endsWith(".json"))
+            .sort();
+          const manifests = [];
+          for (const name of names) {
+            manifests.push(JSON.parse(await readFile(path.join("capabilities", name), "utf8")));
+          }
+
+          const graph = buildGraph(manifests);
+          assert.equal(graph.nodes.length, manifests.length * 2);
+          assert.equal(graph.relations.length, manifests.length);
+          assert.ok(graph.nodes.every((node) =>
+            node.id.startsWith("solution.") || node.id.startsWith("capability.")
+          ));
+          assert.ok(graph.relations.every((relation) => relation.type === "implements"));
+          NODE
