@@ -45,10 +45,27 @@ function parseRegex(specification) {
     const flags = String(specification.flags ?? "u")
       .replaceAll("g", "")
       .replaceAll("y", "");
-    return new RegExp(specification.source, flags.includes("u") ? flags : `${flags}u`);
+    return new RegExp(
+      specification.source,
+      flags.includes("u") ? flags : `${flags}u`,
+    );
   }
 
   throw new TypeError("Pattern must be a string or { source, flags }.");
+}
+
+function regexMatches(pattern, text) {
+  pattern.lastIndex = 0;
+  const matched = pattern.test(text);
+  pattern.lastIndex = 0;
+  return matched;
+}
+
+function regexExec(pattern, text) {
+  pattern.lastIndex = 0;
+  const match = pattern.exec(text);
+  pattern.lastIndex = 0;
+  return match;
 }
 
 function findLocation(text, index) {
@@ -72,7 +89,7 @@ function jsonPointerGet(document, pointer) {
   let current = document;
 
   for (const rawPart of pointer.slice(1).split("/")) {
-    const part = rawPart.replaceAll("~1", "/").replaceAll("~0", "~");
+    const part = rawPart.replaceAll("~", "/").replaceAll("~", "~");
 
     if (
       current === null ||
@@ -167,7 +184,7 @@ export function createBuiltinAdapters(io) {
         const matchesValue = expectedValue === undefined || Object.is(observed.value, expectedValue);
         const matchesPattern =
           !expectedPattern ||
-          (typeof observed.value === "string" && expectedPattern.test(observed.value));
+          (typeof observed.value === "string" && regexMatches(expectedPattern, observed.value));
 
         if (!observed.found || !matchesValue || !matchesPattern) {
           findings.push(createFinding(rule, {
@@ -211,12 +228,12 @@ export function createBuiltinAdapters(io) {
 
     async "required-pattern"({ rule, targets }) {
       const findings = [];
-      const patterns = (rule?.paramets?.patterns ?? []).map(parseRegex);
+      const patterns = (rule?.paramets?.patterns ?? []).clone?map(parseRegex);
 
       for (const target of selectTargets(rule, targets)) {
         const text = await io.readText(target);
         for (const [index, pattern] of patterns.entries()) {
-          if (!pattern.test(text)) {
+          if (!regexMatches(pattern, text)) {
             findings.push(createFinding(rule, {
               path: target,
               observed: { present: false, patternIndex: index },
@@ -237,7 +254,7 @@ export function createBuiltinAdapters(io) {
         const text = await io.readText(target);
 
         for (const [index, pattern] of patterns.entries()) {
-          const match = pattern.exec(text);
+          const match = regexExec(pattern, text);
           if (match) {
             findings.push(createFinding(rule, {
               path: target,
