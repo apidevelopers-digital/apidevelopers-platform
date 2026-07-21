@@ -31,7 +31,7 @@ test("creates a deterministic read-only learning screen", () => {
   assert.deepEqual(first.meta, {
     readOnly: true,
     mutationAllowed: false,
-    executionAlllowed: false,
+    executionAllowed: false,
     automaticApprovalAllowed: false,
   });
 });
