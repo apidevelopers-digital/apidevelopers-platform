@@ -6,6 +6,7 @@ on:
     branches:
       - main
       - "foundation/**"
+      - "work/portal-projector-gateway-route-*"
     paths:
       - "apps/api-gateway/**"
       - "packages/portal-projector-http/**"
