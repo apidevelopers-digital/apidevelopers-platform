@@ -1,0 +1,37 @@
+# CI segmentada, sem release ou deploy.
+name: Commercial Journey Core CI
+
+on:
+  push:
+    paths:
+      - "packages/commercial-journey-core/**"
+      - ".github/workflows/commercial-journey-core-ci.yml"
+  pull_request:
+    paths:
+      - "packages/commercial-journey-core/**"
+      - ".github/workflows/commercial-journey-core-ci.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: commercial-journey-core-ci-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: Syntax and tests
+        working-directory: packages/commercial-journey-core
+        run: npm run check
