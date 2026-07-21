@@ -2,161 +2,215 @@
 
 ## Documento de pesquisa doutrinária
 
-**Objeto:** descobrir as leis gerais pelas quais uma instituição converte poder disperso em ação comum legítima.  
-**Limite:** este texto não formula artigos constitucionais, não distribui cargos concretos e não fixa procedimentos contingentes.
+**Objeto:** descobrir as leis pelas quais uma instituição transforma poder disperso em ação comum legítima.  
+**Limite:** este texto não formula Constituição, não distribui cargos concretos e não fixa procedimentos contingentes.
 
 ---
 
 ## 1. O problema da ordem
 
-Toda instituição precisa produzir unidade de ação a partir de uma pluralidade de pessoas, conhecimentos, interesses, responsabilidades e capacidades.
+Toda instituição precisa produzir unidade de ação a partir de uma pluralidade de pessoas, conhecimentos, interesses e capacidades.
 
-Duas formas de desordem ameaçam essa tarefa.
+Duas formas de desordem ameaçam essa tarefa:
 
-A **fragmentação** surge quando cada parte age segundo sua própria racionalidade e deixa de reconhecer finalidades, compromissos e limites comuns.
+- **fragmentação:** cada parte age segundo sua própria racionalidade e deixa de reconhecer finalidades comuns;
+- **totalização:** um centro absorve interpretação, decisão, execução, avaliação e memória.
 
-A **totalização** surge quando um centro absorve a capacidade de interpretar, decidir, executar, avaliar e recordar, eliminando a pluralidade cognitiva da qual a instituição depende.
-
-A ordem não é simples meio-termo entre esses extremos. É a arquitetura que preserva simultaneamente:
-
-- unidade suficiente para decidir;
-- pluralidade suficiente para conhecer;
-- autoridade suficiente para coordenar;
-- autonomia suficiente para responder ao real;
-- responsabilidade suficiente para atribuir consequências;
-- revisão suficiente para corrigir o poder;
-- continuidade suficiente para sobreviver aos ocupantes.
+A ordem não é simples meio-termo. É a arquitetura que preserva simultaneamente unidade suficiente para agir e pluralidade suficiente para conhecer.
 
 > **PRINCÍPIO FUNDAMENTAL — A ordem institucional produz unidade de ação sem converter unidade em monopólio de verdade, poder ou memória.**
 
-A instituição começa quando se torna possível distinguir:
-
-- pessoa e função;
-- capacidade de agir e direito de decidir;
-- obediência circunstancial e legitimidade;
-- costume e norma;
-- memória privada e patrimônio comum;
-- conveniência presente e continuidade institucional.
-
 ---
 
-## 2. O fechamento institucional
+## 2. Fechamento institucional
 
-A vida institucional é composta por questões abertas: qual direção seguir, qual risco assumir, qual interpretação aceitar, qual prioridade prevalecer e qual conflito encerrar.
+A vida institucional é composta por questões abertas: qual direção seguir, qual risco assumir, qual interpretação aceitar e qual conflito encerrar.
 
-Uma decisão realiza um **fechamento institucional**. Ela transforma possibilidades concorrentes em direção comum e torna uma alternativa vinculante para fins de ação coletiva.
+Uma decisão realiza um **fechamento institucional**: transforma possibilidades concorrentes em direção comum e torna uma alternativa vinculante.
 
-Todo fechamento possui duas dimensões.
+Todo fechamento também exclui possibilidades, desloca recursos e restringe autonomias.
 
-A dimensão positiva autoriza uma direção.
+> **PRINCÍPIO FUNDAMENTAL — Toda autoridade é poder de fechamento; todo fechamento exige justificativa proporcional ao que exclui.**
 
-A dimensão negativa exclui alternativas, desloca recursos, restringe autonomias e torna certos futuros menos acessíveis.
-
-Por isso, decidir não é apenas escolher. É alterar o campo de possibilidades da coletividade.
-
-> **PRINCÍPIO FUNDAMENTAL — Toda autoridade é poder de fechamento; todo fechamento exige justificativa proporcional às alternativas, autonomias e recursos que exclui.**
-
-A questão central da ordem não é apenas “quem decide?”, mas:
+A pergunta completa da ordem é:
 
 > Quem pode fechar esta questão, sobre qual matéria, por qual finalidade, com quais informações, dentro de quais limites, respondendo perante quem e sujeito a qual revisão?
 
 ---
 
-## 3. Poder
+## 3. Poder e autoridade
 
-Poder é a capacidade real de produzir, impedir ou condicionar efeitos relevantes.
+Poder é a capacidade real de produzir, impedir ou condicionar efeitos.
 
-Ele existe onde alguém ou algo controla:
+Ele existe onde alguém controla recursos, acessos, infraestrutura, informação, prioridade, execução, interrupção, reputação ou memória.
 
-- recursos;
-- acessos;
-- infraestrutura;
-- informação;
-- prioridades;
-- interpretação;
-- autorização;
-- execução;
-- interrupção;
-- reputação;
-- memória;
-- dependências críticas.
-
-O poder não nasce do reconhecimento formal. Uma pessoa sem título pode possuir poder decisivo ao controlar conhecimento indispensável. Um sistema automatizado exerce poder quando suas classificações condicionam acesso, preço, prioridade ou risco.
-
-Também existe **poder negativo**: capacidade de atrasar, silenciar, negar, reter informação ou tornar uma decisão impraticável. Em muitas instituições, quem controla o ritmo possui poder comparável a quem controla a autorização formal.
-
-O primeiro dever da governança é reconhecer o poder onde ele realmente existe.
-
-Mapas formais que ignoram o poder material produzem:
-
-1. **governo aparente:** quem possui o título não consegue produzir os efeitos esperados;
-2. **poder oculto:** quem produz os efeitos não responde por eles;
-3. **responsabilidade deslocada:** consequências recaem sobre quem não controlava o resultado.
+O poder não depende de título. Uma pessoa sem cargo pode controlar conhecimento indispensável. Um sistema automatizado exerce poder quando suas classificações condicionam acesso ou risco.
 
 > **LEI DA CONVERGÊNCIA INSTITUCIONAL — A estabilidade exige correspondência suficiente entre poder real, autoridade reconhecida e responsabilidade atribuída.**
 
-A governança deve observar poder potencial, não apenas abuso consumado. Uma concentração pode ser perigosa mesmo quando nunca foi usada indevidamente, porque torna o abuso impossível de detectar ou interromper.
+Autoridade é poder reconhecido como apto a produzir fechamentos vinculantes. Não se confunde com força, influência ou conhecimento.
+
+> **PRINCÍPIO FUNDAMENTAL — A autoridade pertence à função institucional; o ocupante é depositário temporário, nunca proprietário do poder.**
+
+Autoridade originária participa da definição da ordem. Autoridade derivada exerce competências constituídas por ordem anterior.
+
+> **LEI DA DERIVA CONSTITUINTE — Toda autoridade derivada tende a converter necessidades operacionais em argumento para ampliar seu poder de definir a ordem. Essa ampliação exige validação externa à própria competência.**
+
+Governança é predominantemente autoridade de segunda ordem: define como decisões serão formadas, executadas, registradas e revistas.
 
 ---
 
-## 4. Autoridade
+## 4. Legitimidade
 
-Autoridade é poder reconhecido como apto a produzir fechamentos institucionalmente vinculantes.
+Legitimidade é a qualidade que torna um fechamento digno de reconhecimento.
 
-Ela não se confunde com força, influência ou conhecimento.
+Ela exige:
 
-A força obtém conformidade independentemente do reconhecimento.  
-A influência altera decisões sem possuir jurisdição final.  
-O conhecimento qualifica a compreensão de uma matéria, mas não produz automaticamente autoridade sobre ela.
+- origem válida;
+- fidelidade à finalidade;
+- procedimento proporcional;
+- relação honesta com evidências e incertezas;
+- distribuição justificável de custos e riscos;
+- possibilidade de explicação e correção posterior.
 
-A autoridade é uma relação entre:
+> **PRINCÍPIO FUNDAMENTAL — Nenhuma posição institucional possui autoridade para substituir a realidade por conveniência decisória.**
 
-- finalidade;
-- matéria;
-- função;
-- agente;
-- procedimento;
-- comunidade vinculada;
-- limite;
-- responsabilidade;
-- revisão.
+A legitimidade é renovável, mas consumível. Decisões justificáveis ampliam confiança; decisões arbitrárias utilizam confiança acumulada.
 
-Não existe autoridade em abstrato. Existe autoridade sobre determinada matéria, para determinada finalidade e em determinadas condições.
+> **LEI DO ATRASO DA LEGITIMIDADE — A legitimidade pode desaparecer antes da obediência. A organização continua funcionando por hábito, dependência ou medo depois que o reconhecimento interior da autoridade se perdeu.**
 
-### 4.1 Autoridade e função
+---
 
-A pessoa exerce autoridade, mas não a possui como patrimônio privado.
+## 5. Governança
 
-> **PRINCÍPIO FUNDAMENTAL — A autoridade pertence à função institucional; o ocupante é depositário temporário, nunca proprietário do poder que exerce.**
+Governança disciplina formação, execução, consequência e revisão das decisões.
 
-A autoridade não aumenta o valor humano do ocupante, não transforma discordância em deslealdade e não concede conhecimento universal.
+Ela define:
 
-Quando pessoa e função se confundem, limite é tratado como ofensa, revisão como desconfiança, sucessão como ameaça e documentação como perda de controle.
+- quem decide e com qual competência;
+- quais informações são indispensáveis;
+- quais conflitos impedem participação;
+- quem executa e quem verifica;
+- quais limites não podem ser ultrapassados;
+- como a decisão expira, é contestada ou reaberta;
+- quem preserva sua memória.
 
-### 4.2 Autoridade originária e derivada
+> **LEI DA PROPORCIONALIDADE DA GOVERNANÇA — A intensidade do controle deve crescer com a irreversibilidade, a amplitude e a opacidade do poder.**
 
-Autoridade originária participa da definição da própria ordem: cria funções, distribui competências e estabelece finalidades.
+Governança sem observação de consequências produz irresponsabilidade. Revisão apenas posterior ao dano produz ritual. Prevenção sem possibilidade de ação produz paralisia.
 
-Autoridade derivada exerce competências constituídas por ordem anterior.
+---
 
-Uma função operacional pode ser extensa sem possuir direito de redefinir os fundamentos que justificam sua própria existência.
+## 6. Hierarquia, autonomia e competência
 
-> **LEI DA DERIVA CONSTITUINTE — Toda autoridade derivada tende a converter necessidades operacionais em argumento para ampliar o próprio poder de definir a ordem. Essa ampliação somente é legítima quando reconhecida por autoridade superior à competência expandida.**
+Hierarquia é distribuição desigual do direito de fechamento. Ela ordena decisões, não o valor humano das pessoas.
 
-### 4.3 Autoridade formal e material
+> **PRINCÍPIO FUNDAMENTAL — A decisão pode ser hierárquica; a verdade não é.**
 
-Autoridade formal decorre do desenho reconhecido.
+A hierarquia é legítima quando integra perspectivas, resolve externalidades e assume responsabilidade final. Torna-se substitutiva quando absorve continuamente decisões locais.
 
-Autoridade material decorre da capacidade real de tornar uma decisão efetiva.
+> **LEI DA ATROFIA HIERÁRQUICA — Toda decisão local persistentemente absorvida pelo centro reduz a capacidade da periferia e aumenta a dependência futura do próprio centro.**
 
-A separação persistente entre ambas cria governo aparente e poder informal. A ordem madura aproxima autoridade formal, poder material e responsabilidade.
+Autonomia é discricionariedade responsável dentro de finalidade, competência e limite conhecidos.
 
-### 4.4 Autoridade de primeira e segunda ordem
+> **LEI DA CLAREZA AUTONÔMICA — A autonomia cresce quando suas fronteiras são claras; competências ambíguas produzem centralização preventiva.**
 
-Autoridade de primeira ordem decide matérias concretas.
+Competência reúne capacidade e jurisdição. Toda função deve definir objeto, finalidade, meios, limites, duração, responsabilidade e revisão.
 
-Autoridade de segunda ordem define como decisões concretas serão produzidas: quem decide, quais evidências são exigidas, quais impedimentos existem, quais revisões são possíveis e quais registros permanecem.
+> **LEI DA COMPETÊNCIA MÍNIMA SUFICIENTE — A função deve receber poder bastante para cumprir sua finalidade e limitado o bastante para não se expandir indefinidamente.**
 
-Governança é predominantemente autoridade de segunda ordem.
+> **LEI DA SUBSIDIARIEDADE — Retirar uma decisão do nível mais próximo da realidade exige justificativa; a centralização não deve ser presumida.**
 
-A concentração irrestrita das duas ordens permite que o decisor altere as regras de validade conforme sua conveniência.
+Responsabilidade sem informação, recursos, acesso e capacidade de interrupção é competência fictícia.
+
+---
+
+## 7. Responsabilidade e delegação
+
+Responsabilidade é obrigação de responder pela decisão, execução, informação, supervisão e estrutura.
+
+> **PRINCÍPIO FUNDAMENTAL — Ninguém deve responder por resultados sobre os quais não possuía poder suficiente; ninguém deve exercer poder relevante sem responder por seus efeitos.**
+
+A omissão também produz consequências. Quem possuía dever e capacidade de agir responde pelo que permitiu continuar.
+
+Delegação transfere exercício, não apaga a cadeia de legitimidade nem a responsabilidade final.
+
+Automação é forma de delegação. Devem permanecer identificáveis quem definiu critérios, escolheu dados, autorizou, monitorou e poderia interromper.
+
+> **PRINCÍPIO FUNDAMENTAL — Nenhuma delegação a sistemas elimina a responsabilidade humana pela definição, autorização e supervisão do poder automatizado.**
+
+---
+
+## 8. Conflitos
+
+Conflito é colisão entre pretensões, competências, finalidades ou racionalidades. Pode revelar premissas ocultas, riscos transferidos e fronteiras mal definidas.
+
+> **PRINCÍPIO FUNDAMENTAL — Uma instituição ordenada não é aquela sem conflitos, mas aquela capaz de processá-los sem ocultação, violência ou dissolução da responsabilidade.**
+
+Conflitos recorrentes raramente são apenas pessoais. Frequentemente indicam falha estrutural de competência, finalidade ou distribuição de custos.
+
+O conflito deve possuir foro, critérios, decisor não capturado, registro das razões e possibilidade proporcional de recurso. Divergências fundamentadas devem permanecer na memória mesmo quando vencidas.
+
+---
+
+## 9. Limites do poder
+
+O limite fundamental é a proibição da autovalidação integral.
+
+> **PRINCÍPIO FUNDAMENTAL — Nenhum poder deve ser o único intérprete de sua competência, o único avaliador de sua evidência, o único executor e o único juiz de seus efeitos.**
+
+Os limites podem ser de finalidade, matéria, procedimento, duração, intensidade, domínio, conhecimento e autoampliação.
+
+Quanto maior a incerteza factual, menor deve ser a pretensão de irreversibilidade.
+
+Poderes excepcionais devem nascer com causa, âmbito, duração, registro, revisão e condição de término independente da vontade de quem os exerce.
+
+---
+
+## 10. Mecanismos de equilíbrio
+
+Equilíbrio não significa igualdade matemática de poderes nem multiplicação indiscriminada de vetos. Significa impedir que um único centro reúna regra, interpretação, execução, certificação e memória.
+
+Seus mecanismos gerais são:
+
+- separação entre proposição, autorização, execução e verificação;
+- contestabilidade e recurso;
+- revisão independente;
+- transparência suficiente para responsabilização;
+- reversibilidade proporcional;
+- expiração de mandatos e exceções;
+- impedimento por conflito;
+- redundância de funções críticas;
+- proteção da dissidência responsável;
+- memória institucional plural;
+- autoridade clara para interrupção de riscos.
+
+> **LEI DO EQUILÍBRIO FUNCIONAL — Um controle é legítimo quando reduz risco relevante sem destruir a capacidade da competência controlada de cumprir sua finalidade.**
+
+> **LEI DA COMPENSAÇÃO DO PODER — Todo crescimento de poder exige crescimento proporcional de observação, contestação, auditabilidade e contenção.**
+
+---
+
+## 11. Leis sintéticas da ordem
+
+1. Poder existe antes de ser formalizado.
+2. Autoridade é poder qualificado para produzir fechamento.
+3. Todo fechamento exclui possibilidades e exige justificativa.
+4. Poder real, autoridade formal e responsabilidade precisam convergir.
+5. Legitimidade depende de finalidade, verdade, processo, distribuição e revisão.
+6. Hierarquia ordena decisões, não a dignidade humana.
+7. Autonomia exige fronteira, recurso e responsabilidade.
+8. Competência exige jurisdição válida e capacidade suficiente.
+9. Delegação não extingue responsabilidade.
+10. Conflitos recorrentes revelam frequentemente falhas estruturais.
+11. Nenhum poder deve validar sozinho a totalidade do próprio exercício.
+12. Decisões irreversíveis exigem controles mais densos.
+13. A memória institucional limita o poder presente.
+14. A ordem formal fracassa quando ignora a distribuição real do poder.
+15. A instituição permanece ordenada quando pode agir sem tornar qualquer poder absoluto.
+
+## Conclusão doutrinária
+
+A ordem institucional é a capacidade de transformar poder disperso em ação comum sem permitir que a coordenação destrua verdade, autonomia responsável, responsabilidade ou continuidade.
+
+> **PRINCÍPIO FUNDAMENTAL FINAL — A ordem existe quando o poder pode fechar questões sem fechar a possibilidade de ser examinado, responsabilizado e corrigido.**
