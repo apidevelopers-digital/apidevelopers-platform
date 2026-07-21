@@ -1,0 +1,310 @@
+{
+  "generatedAt": "2026-07-21T03:44:26.507Z",
+  "workspaceCount": 43,
+  "passedCount": 43,
+  "failedCount": 0,
+  "failures": [],
+  "results": [
+    {
+      "name": "@apidevelopers/activation-core",
+      "path": "packages/activation-core/package.json",
+      "status": "passed",
+      "exitCode": 0,
+      "signal": null
+    },
+    {
+      "name": "@apidevelopers/api-gateway",
+      "path": "apps/api-gateway/package.json",
+      "status": "passed",
+      "exitCode": 0,
+      "signal": null
+    },
+    {
+      "name": "@apidevelopers/apikey-core",
+      "path": "packages/apikey-core/package.json",
+      "status": "passed",
+      "exitCode": 0,
+      "signal": null
+    },
+    {
+      "name": "@apidevelopers/architecture-rule-engine",
+      "path": "packages/architecture-rule-engine/package.json",
+      "status": "passed",
+      "exitCode": 0,
+      "signal": null
+    },
+    {
+      "name": "@apidevelopers/auth",
+      "path": "packages/auth/package.json",
+      "status": "passed",
+      "exitCode": 0,
+      "signal": null
+    },
+    {
+      "name": "@apidevelopers/auth-core",
+      "path": "packages/auth-core/package.json",
+      "status": "passed",
+      "exitCode": 0,
+      "signal": null
+    },
+    {
+      "name": "@apidevelopers/billing-core",
+      "path": "packages/billing-core/package.json",
+      "status": "passed",
+      "exitCode": 0,
+      "signal": null
+    },
+    {
+      "name": "@apidevelopers/checkout-core",
+      "path": "packages/checkout-core/package.json",
+      "status": "passed",
+      "exitCode": 0,
+      "signal": null
+    },
+    {
+      "name": "@apidevelopers/commercial-journey-core",
+      "path": "packages/commercial-journey-core/package.json",
+      "status": "passed",
+      "exitCode": 0,
+      "signal": null
+    },
+    {
+      "name": "@apidevelopers/contracts",
+      "path": "packages/contracts/package.json",
+      "status": "passed",
+      "exitCode": 0,
+      "signal": null
+    },
+    {
+      "name": "@apidevelopers/conversation",
+      "path": "engines/conversation/package.json",
+      "status": "passed",
+      "exitCode": 0,
+      "signal": null
+    },
+    {
+      "name": "@apidevelopers/entitlement-core",
+      "path": "packages/entitlement-core/package.json",
+      "status": "passed",
+      "exitCode": 0,
+      "signal": null
+    },
+    {
+      "name": "@apidevelopers/gateway-core",
+      "path": "packages/gateway-core/package.json",
+      "status": "passed",
+      "exitCode": 0,
+      "signal": null
+    },
+    {
+      "name": "@apidevelopers/guard",
+      "path": "services/guard/package.json",
+      "status": "passed",
+      "exitCode": 0,
+      "signal": null
+    },
+    {
+      "name": "@apidevelopers/kernel-audit",
+      "path": "packages/kernel-audit/package.json",
+      "status": "passed",
+      "exitCode": 0,
+      "signal": null
+    },
+    {
+      "name": "@apidevelopers/kernel-constitution",
+      "path": "packages/kernel-constitution/package.json",
+      "status": "passed",
+      "exitCode": 0,
+      "signal": null
+    },
+    {
+      "name": "@apidevelopers/kernel-decision",
+      "path": "packages/kernel-decision/package.json",
+      "status": "passed",
+      "exitCode": 0,
+      "signal": null
+    },
+    {
+      "name": "@apidevelopers/kernel-evidence",
+      "path": "packages/kernel-evidence/package.json",
+      "status": "passed",
+      "exitCode": 0,
+      "signal": null
+    },
+    {
+      "name": "@apidevelopers/kernel-evolution",
+      "path": "packages/kernel-evolution/package.json",
+      "status": "passed",
+      "exitCode": 0,
+      "signal": null
+    },
+    {
+      "name": "@apidevelopers/kernel-governance",
+      "path": "packages/kernel-governance/package.json",
+      "status": "passed",
+      "exitCode": 0,
+      "signal": null
+    },
+    {
+      "name": "@apidevelopers/kernel-memory",
+      "path": "packages/kernel-memory/package.json",
+      "status": "passed",
+      "exitCode": 0,
+      "signal": null
+    },
+    {
+      "name": "@apidevelopers/kernel-planning",
+      "path": "packages/kernel-planning/package.json",
+      "status": "passed",
+      "exitCode": 0,
+      "signal": null
+    },
+    {
+      "name": "@apidevelopers/kernel-policy",
+      "path": "packages/kernel-policy/package.json",
+      "status": "passed",
+      "exitCode": 0,
+      "signal": null
+    },
+    {
+      "name": "@apidevelopers/kernel-reasoning",
+      "path": "packages/kernel-reasoning/package.json",
+      "status": "passed",
+      "exitCode": 0,
+      "signal": null
+    },
+    {
+      "name": "@apidevelopers/kernel-reflection",
+      "path": "packages/kernel-reflection/package.json",
+      "status": "passed",
+      "exitCode": 0,
+      "signal": null
+    },
+    {
+      "name": "@apidevelopers/kernel-runtime",
+      "path": "packages/kernel-runtime/package.json",
+      "status": "passed",
+      "exitCode": 0,
+      "signal": null
+    },
+    {
+      "name": "@apidevelopers/limits-core",
+      "path": "packages/limits-core/package.json",
+      "status": "passed",
+      "exitCode": 0,
+      "signal": null
+    },
+    {
+      "name": "@apidevelopers/onboarding-core",
+      "path": "packages/onboarding-core/package.json",
+      "status": "passed",
+      "exitCode": 0,
+      "signal": null
+    },
+    {
+      "name": "@apidevelopers/outbox-core",
+      "path": "packages/outbox-core/package.json",
+      "status": "passed",
+      "exitCode": 0,
+      "signal": null
+    },
+    {
+      "name": "@apidevelopers/persistence-core",
+      "path": "packages/persistence-core/package.json",
+      "status": "passed",
+      "exitCode": 0,
+      "signal": null
+    },
+    {
+      "name": "@apidevelopers/plan-core",
+      "path": "packages/plan-core/package.json",
+      "status": "passed",
+      "exitCode": 0,
+      "signal": null
+    },
+    {
+      "name": "@apidevelopers/platform-core",
+      "path": "packages/platform-core/package.json",
+      "status": "passed",
+      "exitCode": 0,
+      "signal": null
+    },
+    {
+      "name": "@apidevelopers/portal-projector",
+      "path": "packages/portal-projector/package.json",
+      "status": "passed",
+      "exitCode": 0,
+      "signal": null
+    },
+    {
+      "name": "@apidevelopers/portal-projector-http",
+      "path": "packages/portal-projector-http/package.json",
+      "status": "passed",
+      "exitCode": 0,
+      "signal": null
+    },
+    {
+      "name": "@apidevelopers/project-core",
+      "path": "packages/project-core/package.json",
+      "status": "passed",
+      "exitCode": 0,
+      "signal": null
+    },
+    {
+      "name": "@apidevelopers/provisioning-core",
+      "path": "packages/provisioning-core/package.json",
+      "status": "passed",
+      "exitCode": 0,
+      "signal": null
+    },
+    {
+      "name": "@apidevelopers/registry",
+      "path": "packages/registry/package.json",
+      "status": "passed",
+      "exitCode": 0,
+      "signal": null
+    },
+    {
+      "name": "@apidevelopers/registry-core",
+      "path": "packages/registry-core/package.json",
+      "status": "passed",
+      "exitCode": 0,
+      "signal": null
+    },
+    {
+      "name": "@apidevelopers/subscription-core",
+      "path": "packages/subscription-core/package.json",
+      "status": "passed",
+      "exitCode": 0,
+      "signal": null
+    },
+    {
+      "name": "@apidevelopers/tenancy",
+      "path": "packages/tenancy/package.json",
+      "status": "passed",
+      "exitCode": 0,
+      "signal": null
+    },
+    {
+      "name": "@apidevelopers/tenant-core",
+      "path": "packages/tenant-core/package.json",
+      "status": "passed",
+      "exitCode": 0,
+      "signal": null
+    },
+    {
+      "name": "@apidevelopers/usage-core",
+      "path": "packages/usage-core/package.json",
+      "status": "passed",
+      "exitCode": 0,
+      "signal": null
+    },
+    {
+      "name": "@apidevelopers/user-core",
+      "path": "packages/user-core/package.json",
+      "status": "passed",
+      "exitCode": 0,
+      "signal": null
+    }
+  ]
+}

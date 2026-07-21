@@ -1,18 +1,46 @@
-file:///home/runner/work/apidevelopers-platform/apidevelopers-platform/scripts/diagnose-workspace-tests.mjs:16
-  : rootManifest.workspaces/.packages ?? [];
-                            ^
+PASS @apidevelopers/activation-core
+PASS @apidevelopers/api-gateway
+PASS @apidevelopers/apikey-core
+PASS @apidevelopers/architecture-rule-engine
+PASS @apidevelopers/auth
+PASS @apidevelopers/auth-core
+PASS @apidevelopers/billing-core
+PASS @apidevelopers/checkout-core
+PASS @apidevelopers/commercial-journey-core
+PASS @apidevelopers/contracts
+PASS @apidevelopers/conversation
+PASS @apidevelopers/entitlement-core
+PASS @apidevelopers/gateway-core
+PASS @apidevelopers/guard
+PASS @apidevelopers/kernel-audit
+PASS @apidevelopers/kernel-constitution
+PASS @apidevelopers/kernel-decision
+PASS @apidevelopers/kernel-evidence
+PASS @apidevelopers/kernel-evolution
+PASS @apidevelopers/kernel-governance
+PASS @apidevelopers/kernel-memory
+PASS @apidevelopers/kernel-planning
+PASS @apidevelopers/kernel-policy
+PASS @apidevelopers/kernel-reasoning
+PASS @apidevelopers/kernel-reflection
+PASS @apidevelopers/kernel-runtime
+PASS @apidevelopers/limits-core
+PASS @apidevelopers/onboarding-core
+PASS @apidevelopers/outbox-core
+PASS @apidevelopers/persistence-core
+PASS @apidevelopers/plan-core
+PASS @apidevelopers/platform-core
+PASS @apidevelopers/portal-projector
+PASS @apidevelopers/portal-projector-http
+PASS @apidevelopers/project-core
+PASS @apidevelopers/provisioning-core
+PASS @apidevelopers/registry
+PASS @apidevelopers/registry-core
+PASS @apidevelopers/subscription-core
+PASS @apidevelopers/tenancy
+PASS @apidevelopers/tenant-core
+PASS @apidevelopers/usage-core
+PASS @apidevelopers/user-core
+All workspace tests passed.
 
-SyntaxError: Unexpected token '.'
-    at compileSourceTextModule (node:internal/modules/esm/utils:346:16)
-    at ModuleLoader.moduleStrategy (node:internal/modules/esm/translators:110:18)
-    at #translate (node:internal/modules/esm/loader:559:20)
-    at afterLoad (node:internal/modules/esm/loader:612:29)
-    at ModuleLoader.loadAndTranslate (node:internal/modules/esm/loader:617:12)
-    at #createModuleJob (node:internal/modules/esm/loader:640:36)
-    at #getJobFromResolveResult (node:internal/modules/esm/loader:353:34)
-    at ModuleLoader.getModuleJobForImport (node:internal/modules/esm/loader:321:41)
-    at async onImport.tracePromise.__proto__ (node:internal/modules/esm/loader:680:25)
-
-Node.js v22.23.1
-
-exit_code=1
+exit_code=0
