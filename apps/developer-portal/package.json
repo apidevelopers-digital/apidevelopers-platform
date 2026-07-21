@@ -4,6 +4,6 @@
   "private": true,
   "description": "Portal estático do desenvolvedor e painel administrativo do MVP.",
   "scripts": {
-    "check": "node ./test/static-contracts.test.mjs"
+    "check": "node ./test/static-contracts.test.mjs && node ./test/response-contracts.test.mjs"
   }
 }
