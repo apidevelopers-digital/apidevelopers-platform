@@ -1,0 +1,47 @@
+name: Platform Workspace Diagnostics
+
+on:
+  push:
+    paths:
+      - "scripts/diagnose-workspace-tests.mjs"
+      - ".github/workflows/platform-workspace-diagnostics-ci.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  diagnose:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: Install workspaces
+        run: npm install
+
+      - name: Diagnose workspaces
+        id: diagnose
+        continue-on-error: true
+        run: |
+          mkdir -p diagnostics
+          node scripts/diagnose-workspace-tests.mjs --report=diagnostics/workspace-tests-r4.json
+
+      - name: Persist report
+        if: always() && github.ref_type == 'branch'
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -f diagnostics/workspace-tests-r4.json
+          git commit -m "chor(diagnostics): record workspace failures [skip ci]"
+          git push origin "HEAD:${GITHUB_REF#refs/heads/}"
+
+      - name: Fail after report
+        if: steps.diagnose.outcome == 'failure'
+        run: exit 1
