@@ -18,17 +18,35 @@ assertFunction(runCycle, "runCycle");
 assertFunction(createJsonLearningSnapshotRepository, "createJsonLearningSnapshotRepository");
 assertFunction(createLearningRoute, "createLearningRoute");
 
-const repository = createJsonLearningSnapshotRepository({ filePath: "/tmp/portal-learning-preflight.json" });
+const repository = createJsonLearningSnapshotRepository({
+  filePath: "/tmp/portal-learning-preflight.json",
+});
 assertFunction(repository.getLatest, "repository.getLatest");
 assert.equal(repository.mutationAllowed, false);
 
 const route = createLearningRoute({
-  repository: { getLatest: async () => ({ schemaVersion: "portal.learning-screen/v1" }) },
+  repository: {
+    getLatest: async () => ({ schemaVersion: "portal.learning-screen/v1" }),
+  },
   adminKey: "preflight-key",
 });
 assertFunction(route.handleRequest, "route.handleRequest");
-assert.equal(route.mutationAllowed, false);
-assert.equal(route.executionAllowed, false);
+
+const response = await route.handleRequest({
+  method: "GET",
+  url: "/v1/admin/learning",
+  headers: { "x-api-key": "preflight-key" },
+});
+assert.equal(response.status, 200);
+assert.equal(response.headers["cache-control"], "no-store");
+
+const body = JSON.parse(response.body);
+assert.deepEqual(body.meta, {
+  readOnly: true,
+  mutationAllowed: false,
+  executionAllowed: false,
+  automaticApprovalAllowed: false,
+});
 
 const currentDir = path.dirname(fileURLToPath(import.meta.url));
 const screenPath = path.resolve(currentDir, "../../developer-portal/public/learning.html");
