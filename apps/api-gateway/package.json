@@ -10,12 +10,13 @@
     "@apidevelopers/apikey-core": "*",
     "@apidevelopers/auth-core": "*",
     "@apidevelopers/platform-core": "*",
+    "@apidevelopers/portal-projector-http": "*",
     "@apidevelopers/registry-core": "*"
   },
   "scripts": {
     "start": "node src/server.mjs",
     "dev": "node --watch src/server.mjs",
     "test": "node --test test/*.test.mjs",
-    "check": "node --check src/catalog.mjs && node --check src/client-repository.mjs && node --check src/client-registry.mjs && node --check src/audit-log.mjs && node --check src/rate-limit.mjs && node --check src/security.mjs && node --check src/openapi.mjs && node --check src/app.mjs && node --check src/server.mjs && npm test"
+    "check": "node --check src/catalog.mjs && node --check src/client-repository.mjs && node --check src/client-registry.mjs && node --check src/audit-log.mjs && node --check src/rate-limit.mjs && node --check src/security.mjs && node --check src/openapi.mjs && node --check src/app.mjs && node --check src/portal-projector-route.mjs && node --check src/server.mjs && npm test"
   }
 }
