@@ -182,10 +182,77 @@ Uma instituição incapaz de imaginar condições legítimas para o próprio fim
 
 Continuar não é sempre vencer. Encerrar não é sempre fracassar.
 
-## Síntese provisória
+
+## Fundamento da preservação por inteligência artificial
+
+Uma inteligência artificial encarregada de preservar uma instituição por cem anos não poderia confundir preservação com repetição.
+
+Ela precisaria distinguir:
+
+- norma de hábito;
+- princípio de preferência;
+- identidade de aparência;
+- continuidade de inércia;
+- lealdade de obediência;
+- memória de registro;
+- autoridade de controle;
+- adaptação de oportunismo;
+- mudança de dissolução.
+
+Também precisaria compreender que a instituição não é redutível aos dados disponíveis. Há significados que aparecem em conflitos, silêncios, renúncias, ausências e expectativas não formalizadas.
+
+Sua memória deveria preservar três camadas:
+
+- o que aconteceu;
+- por que aconteceu;
+- por que isso continua importando.
+
+Uma inteligência institucional responsável deveria funcionar como guardiã de continuidade, testemunha de decisões, detectora de contradições, preservadora de proveniência, facilitadora de sucessão e alerta contra esquecimento.
+
+Não deveria ser soberana.
+
+Seu maior risco seria acreditar que possuir mais memória significa possuir mais legitimidade. Memória não concede autoridade moral automática. Capacidade preditiva não transforma o futuro em objeto disponível.
+
+O futuro não é uma previsão a ser otimizada. É uma comunidade ainda ausente, à qual se deve respeito.
+
+## Princípios desenvolvidos
+
+1. **Princípio da responsabilidade persistente:** a instituição existe enquanto uma responsabilidade reconhecível atravessa a substituição de seus agentes e instrumentos.
+2. **Princípio da não apropriação:** os administradores presentes são custodiante e intérpretes, não proprietários absolutos da instituição.
+3. **Princípio da identidade responsável:** a identidade se preserva pela explicação honesta das transformações, não pela ficção de imutabilidade.
+4. **Princípio da autolimitação:** capacidade institucional não equivale a autorização institucional.
+5. **Princípio da legitimidade renovável:** legitimidade depende da coerência contínua entre promessa e conduta.
+6. **Princípio da verdade consequente:** fatos só integram a vida institucional quando podem contestar decisões e produzir revisão.
+7. **Princípio da memória significativa:** preservar registros sem preservar razões não conserva memória institucional.
+8. **Princípio da sucessão interpretativa:** sucessores recebem responsabilidade, liberdade de correção e dever de prestação de contas.
+9. **Princípio da autocorreção:** crítica verificável e reparação são condições de continuidade, não ameaças à identidade.
+10. **Princípio da futuridade não apropriável:** nenhuma geração pode consumir integralmente as possibilidades das gerações posteriores.
+11. **Princípio da instrumentalidade tecnológica:** nenhum sistema técnico ou cognitivo pode ser confundido com a totalidade ou a soberania da instituição.
+12. **Princípio da dissolução legítima:** a permanência só é valiosa enquanto a finalidade e os meios permanecem legítimos.
+
+## Questões ainda abertas
+
+A teoria permanece incompleta em pontos decisivos:
+
+- como distinguir, em casos limítrofes, adaptação profunda de substituição institucional;
+- quanto reconhecimento externo é necessário para a existência plena da instituição;
+- como medir obrigações em relação a gerações futuras sem presumir seus valores;
+- quando a reparação restaura legitimidade e quando a ruptura já é irreversível;
+- que formas de autoridade podem ser delegadas a sistemas cognitivos sem converter competência em soberania;
+- como preservar memória suficiente sem transformar o passado em peso incapacitante.
+
+Essas perguntas não enfraquecem os fundamentos. Delimitam o campo em que a síntese futura precisará exercer julgamento.
+
+## Síntese final
 
 Uma instituição é uma promessa tornada capaz de atravessar ausências.
 
-Ela existe quando uma responsabilidade sobrevive aos autores, os presentes não se tratam como proprietários absolutos, a identidade explica transformações, o poder aceita limites, a memória preserva razões, a sucessão transmite responsabilidade, a verdade corrige a autoridade e o futuro não é consumido como recurso sem voz.
+Ela não é aquilo que nunca muda. É aquilo cuja mudança continua responsável por algo anterior a ela e por alguém posterior a ela.
 
-Sua verdadeira medida não é quanto tempo sobreviveu, mas o que permaneceu possível porque ela existiu.
+Sua memória não está na quantidade de registros, mas na preservação das razões. Sua força não está em impedir sucessores, mas em formá-los. Sua legitimidade não está em durar, mas em merecer durar.
+
+A instituição se preserva quando o poder aceita limite, a verdade pode corrigir a autoridade, a sucessão transmite responsabilidade e o futuro permanece aberto.
+
+Sua verdadeira medida não é quanto tempo sobreviveu.
+
+É o que permaneceu possível porque ela existiu.
