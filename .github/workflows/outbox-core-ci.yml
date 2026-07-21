@@ -1,0 +1,40 @@
+name: Outbox Core CI
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - main
+      - "foundation/**"
+    paths:
+      - "packages/outbox-core/**"
+      - "packages/persistence-core/**"
+      - ".github/workflows/outbox-core-ci.yml"
+  pull_request:
+    branches:
+      - main
+    paths:
+      - "packages/outbox-core/**"
+      - "packages/persistence-core/**"
+      - ".github/workflows/outbox-core-ci.yml"
+
+permissions:
+  contents: read
+
+concurrency:
+  group: outbox-core-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  validate:
+    runs-on: [self-hosted, macOS, X64]
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+      - name: Check persistence-core
+        run: npm --prefix packages/persistence-core run check
+      - name: Check outbox-core
+        run: npm --prefix packages/outbox-core run check
