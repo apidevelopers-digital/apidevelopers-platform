@@ -13,7 +13,8 @@
     "./typed-integrity": "./src/typed-integrity.mjs",
     "./institutional-facade": "./src/institutional-facade.mjs",
     "./github-provider": "./src/github-provider.mjs",
-    "./derived-store": "./src/derived-store.mjs"
+    "./derived-store": "./src/derived-store.mjs",
+    "./institutional-publisher": "./src/institutional-publisher.mjs"
   },
   "scripts": {
     "test": "node --test"
