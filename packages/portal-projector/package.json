@@ -9,7 +9,8 @@
     "./git-reader": "./src/git-reader.mjs",
     "./markdown-parser": "./src/markdown-parser.mjs",
     "./document-pipeline": "./src/document-pipeline.mjs",
-    "./typed-extractor": "./src/typed-extractor.mjs"
+    "./typed-extractor": "./src/typed-extractor.mjs",
+    "./typed-integrity": "./src/typed-integrity.mjs"
   },
   "scripts": {
     "test": "node --test"
