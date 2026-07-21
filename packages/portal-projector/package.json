@@ -15,7 +15,8 @@
     "./github-provider": "./src/github-provider.mjs",
     "./derived-store": "./src/derived-store.mjs",
     "./institutional-publisher": "./src/institutional-publisher.mjs",
-    "./read-api": "./src/read-api.mjs"
+    "./read-api": "./src/read-api.mjs",
+    "./learning-facade": "./src/learning-facade.mjs"
   },
   "scripts": {
     "test": "node --test"
