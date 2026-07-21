@@ -4,7 +4,7 @@ import os from "node:os";
 import path from "node:path";
 import test from "node:test";
 import { publishLearningSnapshot } from "../src/publisher.mjs";
-import { createLearningSnapshotRepository } from "../../api-gateway/src/learning-snapshot-repository.mjs";
+import { createJsonLearningSnapshotRepository } from "../../api-gateway/src/learning-snapshot-repository.mjs";
 
 const clock = () => "2026-07-21T12:00:00.000Z";
 
@@ -17,11 +17,28 @@ test("publishes deterministic read-only snapshot and gateway reads it", async ()
 
   await writeFile(memoryPath, JSON.stringify({ entries: [] }));
   await writeFile(graphPath, JSON.stringify({ nodes: [], relations: [] }));
-  await writeFile(auditPath, JSON.stringify({ auditId: "audit-1", status: "compliant", checks: [] }));
+  await writeFile(auditPath, JSON.stringify({
+    auditId: "audit-1",
+    status: "compliant",
+    checks: [],
+  }));
 
-  const first = await publishLearningSnapshot({ memoryPath, graphPath, auditPath, outputPath, clock });
+  const first = await publishLearningSnapshot({
+    memoryPath,
+    graphPath,
+    auditPath,
+    outputPath,
+    clock,
+  });
   const serializedFirst = await readFile(outputPath, "utf8");
-  const second = await publishLearningSnapshot({ memoryPath, graphPath, auditPath, outputPath, clock });
+
+  const second = await publishLearningSnapshot({
+    memoryPath,
+    graphPath,
+    auditPath,
+    outputPath,
+    clock,
+  });
   const serializedSecond = await readFile(outputPath, "utf8");
 
   assert.deepEqual(second, first);
@@ -34,13 +51,14 @@ test("publishes deterministic read-only snapshot and gateway reads it", async ()
     automaticApprovalAllowed: false,
   });
 
-  const repository = createLearningSnapshotRepository({ snapshotPath: outputPath });
-  const loaded = await repository.read();
+  const repository = createJsonLearningSnapshotRepository({ filePath: outputPath });
+  const loaded = await repository.getLatest();
   assert.deepEqual(loaded, first);
 });
 
 test("fails closed when a real source is absent", async () => {
   const dir = await mkdtemp(path.join(os.tmpdir(), "portal-learning-missing-"));
+
   await assert.rejects(
     publishLearningSnapshot({
       memoryPath: path.join(dir, "missing-memory.json"),
