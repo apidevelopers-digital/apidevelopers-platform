@@ -23,6 +23,10 @@ const COMMANDS = Object.freeze({
     script: "scripts/architecture-validate.mjs",
     description: "Executa validação arquitetural canônica.",
   },
+  learning: {
+    script: "apps/portal-learning-worker/src/integrated-cycle.mjs",
+    description: "Gera fontes reais, publica o snapshot e verifica o endpoint somente leitura.",
+  },
   test: {
     nodeArgs: ["--test", "tests/tooling/publish-pipeline.test.mjs"],
     description: "Executa os testes essenciais do pipeline.",
