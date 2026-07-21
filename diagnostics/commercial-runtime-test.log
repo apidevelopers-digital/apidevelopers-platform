@@ -3,41 +3,79 @@
 > node --test test/*.test.mjs
 
 TAP version 13
-# file:///home/runner/work/apidevelopers-platform/apidevelopers-platform/packages/commercial-journey-memory-runtime/test/index.test.mjs:82
-#     runtime.execute({ ...input paymentAmount: 1 }),
-#                                ^^^^^^^^^^^^^
-# SyntaxError: Unexpected identifier 'paymentAmount'
-#     at compileSourceTextModule (node:internal/modules/esm/utils:346:16)
-#     at ModuleLoader.moduleStrategy (node:internal/modules/esm/translators:110:18)
-#     at \#translate (node:internal/modules/esm/loader:559:20)
-#     at afterLoad (node:internal/modules/esm/loader:612:29)
-#     at ModuleLoader.loadAndTranslate (node:internal/modules/esm/loader:617:12)
-#     at \#createModuleJob (node:internal/modules/esm/loader:640:36)
-#     at \#getJobFromResolveResult (node:internal/modules/esm/loader:353:34)
-#     at ModuleLoader.getModuleJobForImport (node:internal/modules/esm/loader:321:41)
-#     at async onImport.tracePromise.__proto__ (node:internal/modules/esm/loader:680:25)
-# Node.js v22.23.1
-# Subtest: test/index.test.mjs
-not ok 1 - test/index.test.mjs
+# Subtest: defaults disabled and exposes no live capability
+ok 1 - defaults disabled and exposes no live capability
   ---
-  duration_ms: 34.738175
+  duration_ms: 4.780905
   type: 'test'
-  location: '/home/runner/work/apidevelopers-platform/apidevelopers-platform/packages/commercial-journey-memory-runtime/test/index.test.mjs:1:1'
-  failureType: 'testCodeFailure'
-  exitCode: 1
-  signal: ~
-  error: 'test failed'
-  code: 'ERR_TEST_FAILURE'
   ...
-1..1
-# tests 1
+# Subtest: executes the eight-step in-memory journey
+not ok 2 - executes the eight-step in-memory journey
+  ---
+  duration_ms: 2.37341
+  type: 'test'
+  location: '/home/runner/work/apidevelopers-platform/apidevelopers-platform/packages/commercial-journey-memory-runtime/test/index.test.mjs:27:1'
+  failureType: 'testCodeFailure'
+  error: 'plan does not belong to selected product version'
+  code: 'plan_product_mismatch'
+  name: 'CheckoutDomainError'
+  stack: |-
+    validateCatalogSelection (file:///home/runner/work/apidevelopers-platform/apidevelopers-platform/packages/checkout-core/src/service-context.mjs:18:11)
+    Object.createSession (file:///home/runner/work/apidevelopers-platform/apidevelopers-platform/packages/checkout-core/src/session-operations.mjs:67:25)
+    Object.createCheckoutSession (file:///home/runner/work/apidevelopers-platform/apidevelopers-platform/packages/commercial-journey-memory-runtime/src/index.mjs:162:33)
+    Object.execute (file:///home/runner/work/apidevelopers-platform/apidevelopers-platform/packages/commercial-journey-core/src/index.mjs:52:42)
+    async TestContext.<anonymous> (file:///home/runner/work/apidevelopers-platform/apidevelopers-platform/packages/commercial-journey-memory-runtime/test/index.test.mjs:28:18)
+    async Test.run (node:internal/test_runner/test:1054:7)
+    async Test.processPendingSubtests (node:internal/test_runner/test:744:7)
+  ...
+# Subtest: does not return the raw API key or hash
+not ok 3 - does not return the raw API key or hash
+  ---
+  duration_ms: 0.859037
+  type: 'test'
+  location: '/home/runner/work/apidevelopers-platform/apidevelopers-platform/packages/commercial-journey-memory-runtime/test/index.test.mjs:42:1'
+  failureType: 'testCodeFailure'
+  error: 'plan does not belong to selected product version'
+  code: 'plan_product_mismatch'
+  name: 'CheckoutDomainError'
+  stack: |-
+    validateCatalogSelection (file:///home/runner/work/apidevelopers-platform/apidevelopers-platform/packages/checkout-core/src/service-context.mjs:18:11)
+    Object.createSession (file:///home/runner/work/apidevelopers-platform/apidevelopers-platform/packages/checkout-core/src/session-operations.mjs:67:25)
+    Object.createCheckoutSession (file:///home/runner/work/apidevelopers-platform/apidevelopers-platform/packages/commercial-journey-memory-runtime/src/index.mjs:162:33)
+    Object.execute (file:///home/runner/work/apidevelopers-platform/apidevelopers-platform/packages/commercial-journey-core/src/index.mjs:52:42)
+    async TestContext.<anonymous> (file:///home/runner/work/apidevelopers-platform/apidevelopers-platform/packages/commercial-journey-memory-runtime/test/index.test.mjs:43:18)
+    async Test.run (node:internal/test_runner/test:1054:7)
+    async Test.processPendingSubtests (node:internal/test_runner/test:744:7)
+  ...
+# Subtest: fails closed on payment mismatch
+not ok 4 - fails closed on payment mismatch
+  ---
+  duration_ms: 2.981199
+  type: 'test'
+  location: '/home/runner/work/apidevelopers-platform/apidevelopers-platform/packages/commercial-journey-memory-runtime/test/index.test.mjs:51:1'
+  failureType: 'testCodeFailure'
+  error: |-
+    The validation function is expected to return "true". Received false
+    
+    Caught error:
+    
+    CheckoutDomainError: plan does not belong to selected product version
+  code: 'ERR_ASSERTION'
+  name: 'AssertionError'
+  stack: |-
+    async TestContext.<anonymous> (file:///home/runner/work/apidevelopers-platform/apidevelopers-platform/packages/commercial-journey-memory-runtime/test/index.test.mjs:53:3)
+    async Test.run (node:internal/test_runner/test:1054:7)
+    async Test.processPendingSubtests (node:internal/test_runner/test:744:7)
+  ...
+1..4
+# tests 4
 # suites 0
-# pass 0
-# fail 1
+# pass 1
+# fail 3
 # cancelled 0
 # skipped 0
 # todo 0
-# duration_ms 46.304247
+# duration_ms 92.337405
 npm error Lifecycle script `test` failed with error:
 npm error code 1
 npm error path /home/runner/work/apidevelopers-platform/apidevelopers-platform/packages/commercial-journey-memory-runtime
