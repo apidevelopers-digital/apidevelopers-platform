@@ -100,7 +100,7 @@ export function createOutboxPublisher({
     const committed = await store.transaction((tx) =>
       tx.failOutboxClaim(entry.id, error, {
         workerId: normalizedWorkerId,
-        deadLetter;
+        deadLetter,
         nextAttemptAt: addMilliseconds(at, delay),
         deadLetteredAt: at,
       }),
