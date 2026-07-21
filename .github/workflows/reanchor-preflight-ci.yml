@@ -1,0 +1,44 @@
+name: Reanchor Preflight CI
+
+on:
+  push:
+    paths:
+      - "packages/**/package.json"
+      - "apps/**/package.json"
+      - "scripts/reanchor-preflight.mjs"
+      - "tests/tooling/reanchor-preflight.test.mjs"
+      - ".github/workflows/reanchor-preflight-ci.yml"
+  pull_request:
+    paths:
+      - "packages/**/package.json"
+      - "apps/**/package.json"
+      - "scripts/reanchor-preflight.mjs"
+      - "tests/tooling/reanchor-preflight.test.mjs"
+      - ".github/workflows/reanchor-preflight-ci.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: reanchor-preflight-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  preflight:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Checkout exact SHA
+        uses: actions/checkout4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: Validate workspace manifests before install
+        run: node scripts/reanchor-preflight.mjs 
+
+      - name: Run preflight tests
+        run: node --test tests/tooling/reanchor-preflight.test.mjs
