@@ -8,14 +8,28 @@ on:
       - "apps/portal-learning-worker/**"
       - "apps/api-gateway/src/learning-snapshot-repository.mjs"
       - "apps/developer-portal/public/learning.html"
+      - "capabilities/**"
+      - "packages/kernel-memory/**"
+      - "packages/kernel-reflection/**"
+      - "packages/kernel-evolution/**"
       - "scripts/apid.mjs"
+      - "scripts/check-capability-registry.mjs"
+      - "scripts/institutional-audit/**"
+      - "scripts/lib/institutional-knowledge-graph.mjs"
       - ".github/workflows/portal-learning-integrated-cycle-ci.yml"
   pull_request:
     paths:
       - "apps/portal-learning-worker/**"
       - "apps/api-gateway/src/learning-snapshot-repository.mjs"
       - "apps/developer-portal/public/learning.html"
+      - "capabilities/**"
+      - "packages/kernel-memory/**"
+      - "packages/kernel-reflection/**"
+      - "packages/kernel-evolution/**"
       - "scripts/apid.mjs"
+      - "scripts/check-capability-registry.mjs"
+      - "scripts/institutional-audit/**"
+      - "scripts/lib/institutional-knowledge-graph.mjs"
       - ".github/workflows/portal-learning-integrated-cycle-ci.yml"
 
 permissions:
@@ -45,3 +59,31 @@ jobs:
           done
       - name: Check integrated learning cycle
         run: npm --workspace @apidevelopers/portal-learning-worker run check
+      - name: Run real repository learning cycle
+        shell: bash
+        env:
+          PORTAL_LEARNING_MEMORY_PATH: ${{ runner.temp }}/portal-learning/memory.json
+          PORTAL_LEARNING_GRAPH_PATH: ${{ runner.temp }}/portal-learning/graph.json
+          PORTAL_LEARNING_AUDIT_PATH: ${{ runner.temp }}/portal-learning/audit.json
+          PORTAL_LEARNING_SNAPSHOT_PATH: ${{ runner.temp }}/portal-learning/snapshot.json
+        run: |
+          set -euo pipefail
+          receipt="$RUNNER_TEMP/portal-learning-receipt.json"
+          node scripts/apid.mjs learning > "$receipt"
+          node --input-type=module - "$receipt" <<'NODE'
+          import assert from "node:assert/strict";
+          import { readFile } from "node:fs/promises";
+
+          const receiptPath = process.argv[2];
+          const receipt = JSON.parse(await readFile(receiptPath, "utf8"));
+
+          assert.equal(receipt.status, "completed");
+          assert.equal(receipt.readOnly, true);
+          assert.equal(receipt.endpoint.status, 200);
+          assert.equal(receipt.endpoint.cacheControl, "no-store");
+          assert.equal(receipt.gates.humanApprovalRequired, true);
+          assert.equal(receipt.gates.mutationAllowed, false);
+          assert.equal(receipt.gates.executionAllowed, false);
+          assert.equal(receipt.gates.automaticApprovalAllowed, false);
+          assert.ok(receipt.sources.capabilities > 0);
+          NODE
