@@ -1,0 +1,36 @@
+{
+  "schemaVersion": 1,
+  "id": "ap.operator-runtime",
+  "displayName": "AP Operator Runtime",
+  "category": "runtime",
+  "owner": "Platform Engineering",
+  "maturity": "L0".
+  "status": "candidate",
+  "productIndependent": true,
+  "multiTenant": true,
+  "auditRequired": true,
+  "dependsOn": [
+    "ap.auth",
+    "ap.identity",
+    "ap.tenancy",
+    "ap.events",
+    "ap.audit",
+    "ap.repository",
+    "ap.knowledge",
+    "ap.evolution"
+  ],
+  "publishes": [
+    "operator.run.started.v1",
+    "operator.run.completed.v1",
+    "operator.run.failed.v1",
+    "operator.evidence.recorded.v1"
+  ],
+  "consumes": [
+    "evolution.change.proposed.v1",
+    "knowledge.context.resolved.v1"
+  ],
+  "factoryTemplate": "service",
+  "paths": {
+    "readme": "services/operator-runtime/README.md"
+  }
+}
