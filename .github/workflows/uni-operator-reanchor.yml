@@ -33,7 +33,7 @@ jobs:
           fetch-depth: 0
 
       - name: Generate reanchor evidence
-        uses: actions/github-script@dv7
+        uses: actions/github-script@v7
         env:
           TARGET_REF: ${{ steps.target.outputs.ref }}
         with:
@@ -145,7 +145,7 @@ jobs:
                 ['Successful Actions for HEAD', String(successfulRuns.length)],
                 ['Open pull requests', String(pulls.length)]
               ])
-              .addRaw('\nCource of truth: published Git ref + successful GitHub Actions evidence.')
+              .addRaw('\nSource of truth: published Git ref + successful GitHub Actions evidence.')
               .write();
 
       - name: Upload reanchor artifact
