@@ -1,0 +1,190 @@
+
+> @apidevelopers/architecture-rule-engine@0.3.0 test
+> node --test test/*.test.mjs
+
+TAP version 13
+# Subtest: filesystem repository lists only safe regular files deterministically
+ok 1 - filesystem repository lists only safe regular files deterministically
+  ---
+  duration_ms: 24.019153
+  type: 'test'
+  ...
+# Subtest: filesystem repository reads text and checks exact files
+ok 2 - filesystem repository reads text and checks exact files
+  ---
+  duration_ms: 10.89145
+  type: 'test'
+  ...
+# Subtest: filesystem repository blocks traversal and symbolic links
+ok 3 - filesystem repository blocks traversal and symbolic links
+  ---
+  duration_ms: 4.392457
+  type: 'test'
+  ...
+# Subtest: validates the canonical input contract
+ok 4 - validates the canonical input contract
+  ---
+  duration_ms: 2.214773
+  type: 'test'
+  ...
+# Subtest: blocks secret-like fields and unsafe output traversal
+ok 5 - blocks secret-like fields and unsafe output traversal
+  ---
+  duration_ms: 0.28974
+  type: 'test'
+  ...
+# Subtest: calculates all canonical result states
+ok 6 - calculates all canonical result states
+  ---
+  duration_ms: 0.290012
+  type: 'test'
+  ...
+# Subtest: maps canonical exit codes
+ok 7 - maps canonical exit codes
+  ---
+  duration_ms: 0.158396
+  type: 'test'
+  ...
+# Subtest: matches only active, exact and non-expired exceptions
+ok 8 - matches only active, exact and non-expired exceptions
+  ---
+  duration_ms: 1.025153
+  type: 'test'
+  ...
+# Subtest: runs a compliant deterministic pipeline and verifies report integrity
+ok 9 - runs a compliant deterministic pipeline and verifies report integrity
+  ---
+  duration_ms: 5.191749
+  type: 'test'
+  ...
+# Subtest: returns NON_COMPLIANT for an uncovered blocking finding
+ok 10 - returns NON_COMPLIANT for an uncovered blocking finding
+  ---
+  duration_ms: 0.98053
+  type: 'test'
+  ...
+# Subtest: returns CONDITIONAL when every blocking finding is excepted
+ok 11 - returns CONDITIONAL when every blocking finding is excepted
+  ---
+  duration_ms: 0.764827
+  type: 'test'
+  ...
+# Subtest: returns INVALID for unsupported required rule semantics
+ok 12 - returns INVALID for unsupported required rule semantics
+  ---
+  duration_ms: 0.739229
+  type: 'test'
+  ...
+# Subtest: returns INCOMPLETE when a deterministic adapter crashes
+ok 13 - returns INCOMPLETE when a deterministic adapter crashes
+  ---
+  duration_ms: 1.07725
+  type: 'test'
+  ...
+# Subtest: orders findings deterministically by severity then identity
+ok 14 - orders findings deterministically by severity then identity
+  ---
+  duration_ms: 8.384837
+  type: 'test'
+  ...
+# Subtest: normalizes paths and rejects traversal
+ok 15 - normalizes paths and rejects traversal
+  ---
+  duration_ms: 2.466522
+  type: 'test'
+  ...
+# Subtest: memory repository rejects duplicate normalized paths
+ok 16 - memory repository rejects duplicate normalized paths
+  ---
+  duration_ms: 0.452885
+  type: 'test'
+  ...
+# Subtest: changed-files scope is normalized, filtered and sorted
+ok 17 - changed-files scope is normalized, filtered and sorted
+  ---
+  duration_ms: 1.470284
+  type: 'test'
+  ...
+# Subtest: loader validates identity and maps lifecycle to enabled
+ok 18 - loader validates identity and maps lifecycle to enabled
+  ---
+  duration_ms: 12.910763
+  type: 'test'
+  ...
+# Subtest: loader rejects mismatched ruleset identity
+ok 19 - loader rejects mismatched ruleset identity
+  ---
+  duration_ms: 1.168882
+  type: 'test'
+  ...
+# Subtest: optional exception snapshot absence is explicit and non-fatal
+ok 20 - optional exception snapshot absence is explicit and non-fatal
+  ---
+  duration_ms: 0.604508
+  type: 'test'
+  ...
+# Subtest: runtime loads rules, optional exceptions and deterministic scope
+ok 21 - runtime loads rules, optional exceptions and deterministic scope
+  ---
+  duration_ms: 1.798316
+  type: 'test'
+  ...
+# Subtest: required-path reports exact and companion files deterministically
+ok 22 - required-path reports exact and companion files deterministically
+  ---
+  duration_ms: 1.011354
+  type: 'test'
+  ...
+# Subtest: required-field validates JSON pointer and package namespace
+ok 23 - required-field validates JSON pointer and package namespace
+  ---
+  duration_ms: 1.24362
+  type: 'test'
+  ...
+# Subtest: pattern adapters preserve locations without exposing matched text
+not ok 24 - pattern adapters preserve locations without exposing matched text
+  ---
+  duration_ms: 3.122937
+  type: 'test'
+  location: '/home/runner/work/apidevelopers-platform/apidevelopers-platform/packages/architecture-rule-engine/test/runtime.test.mjs:282:1'
+  failureType: 'testCodeFailure'
+  error: |-
+    Expected values to be strictly equal:
+    
+    0 !== 1
+    
+  code: 'ERR_ASSERTION'
+  name: 'AssertionError'
+  expected: 1
+  actual: 0
+  operator: 'strictEqual'
+  stack: |-
+    TestContext.<anonymous> (file:///home/runner/work/apidevelopers-platform/apidevelopers-platform/packages/architecture-rule-engine/test/runtime.test.mjs:323:10)
+    async Test.run (node:internal/test_runner/test:1054:7)
+    async Test.processPendingSubtests (node:internal/test_runner/test:744:7)
+  ...
+# Subtest: allowed-value enforces canonical manifest values
+ok 25 - allowed-value enforces canonical manifest values
+  ---
+  duration_ms: 0.62116
+  type: 'test'
+  ...
+1..25
+# tests 25
+# suites 0
+# pass 24
+# fail 1
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 118.341169
+npm error Lifecycle script `test` failed with error:
+npm error code 1
+npm error path /home/runner/work/apidevelopers-platform/apidevelopers-platform/packages/architecture-rule-engine
+npm error workspace @apidevelopers/architecture-rule-engine@0.3.0
+npm error location /home/runner/work/apidevelopers-platform/apidevelopers-platform/packages/architecture-rule-engine
+npm error command failed
+npm error command sh -c node --test test/*.test.mjs
+
+
+exit_code=1
