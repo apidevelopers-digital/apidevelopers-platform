@@ -1,16 +1,16 @@
-✔ apid routes architecture validate help without executing validation (207.202025ms)
-✔ apid rejects unsupported architecture subcommands (80.40137ms)
-✔ report check exposes help without reading a file (93.442703ms)
-✔ report check accepts a canonical report and writes GitHub metadata (114.08489ms)
-✔ report check rejects malformed JSON (98.843488ms)
-✔ report check rejects a report with invalid integrity (92.703191ms)
-✔ validator accepts valid JSON and confirms Base64 round-trip (116.359803ms)
-✔ validator rejects empty files (167.659736ms)
-✔ validator rejects invalid JSON (71.392395ms)
-✔ publisher enforces explicit confirmation and post-publish verification (1.377689ms)
-✔ accepts explicit local dependency versions (120.618356ms)
-✔ rejects npm-incompatible workspace protocol (75.172748ms)
-✔ rejects duplicate package names (72.864033ms)
+✔ apid routes architecture validate help without executing validation (211.188564ms)
+✔ apid rejects unsupported architecture subcommands (68.905536ms)
+✔ report check exposes help without reading a file (211.912722ms)
+✔ report check accepts a canonical report and writes GitHub metadata (95.595074ms)
+✔ report check rejects malformed JSON (163.313164ms)
+✔ report check rejects a report with invalid integrity (68.095994ms)
+✔ validator accepts valid JSON and confirms Base64 round-trip (287.874668ms)
+✔ validator rejects empty files (178.782485ms)
+✔ validator rejects invalid JSON (67.469224ms)
+✔ publisher enforces explicit confirmation and post-publish verification (2.959858ms)
+✔ accepts explicit local dependency versions (134.549249ms)
+✔ rejects npm-incompatible workspace protocol (67.388452ms)
+✔ rejects duplicate package names (73.323268ms)
 ℹ tests 13
 ℹ suites 0
 ℹ pass 13
@@ -18,4 +18,4 @@
 ℹ cancelled 0
 ℹ skipped 0
 ℹ todo 0
-ℹ duration_ms 753.232953
+ℹ duration_ms 890.964243
