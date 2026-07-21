@@ -1,0 +1,29 @@
+{
+  "name": "@apidevelopers/commercial-journey-memory-runtime",
+  "version": "0.1.0",
+  "private": true,
+  "description": "In-memory commercial journey runtime built from the platform domain cores.",
+  "type": "module",
+  "exports": {
+    ".": "./src/index.mjs"
+  },
+  "scripts": {
+    "test": "node --test test/*.test.mjs",
+    "check": "node --check src/index.mjs && npm test"
+  },
+  "dependencies": {
+    "@apidevelopers/apikey-core": "*",
+    "@apidevelopers/checkout-core": "*",
+    "@apidevelopers/commercial-journey-core": "*",
+    "@apidevelopers/gateway-core": "*",
+    "@apidevelopers/plan-core": "*",
+    "@apidevelopers/project-core": "*",
+    "@apidevelopers/provisioning-core": "*",
+    "@apidevelopers/subscription-core": "*",
+    "@apidevelopers/tenant-core": "*",
+    "@apidevelopers/user-core": "*"
+  },
+  "engines": {
+    "node": ">=22"
+  }
+}
