@@ -1,0 +1,40 @@
+name: Commercial Journey Memory Runtime CI
+
+on:
+  push:
+    paths:
+      - "packages/commercial-journey-memory-runtime/**"
+      - ".github/workflows/commercial-journey-memory-runtime-ci.yml"
+  pull_request:
+    paths:
+      - "packages/commercial-journey-memory-runtime/**"
+      - ".github/workflows/commercial-journey-memory-runtime-ci.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: commercial-journey-memory-runtime-ci-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Install workspace
+        run: npm ci
+
+      - name: Syntax and tests
+        working-directory: packages/commercial-journey-memory-runtime
+        run: npm run check
