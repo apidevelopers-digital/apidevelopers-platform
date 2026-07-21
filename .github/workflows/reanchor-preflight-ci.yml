@@ -30,7 +30,7 @@ jobs:
     timeout-minutes: 10
     steps:
       - name: Checkout exact SHA
-        uses: actions/checkout4
+        uses: actions/checkout@v4
 
       - name: Setup Node
         uses: actions/setup-node@v4
@@ -38,7 +38,7 @@ jobs:
           node-version: 22
 
       - name: Validate workspace manifests before install
-        run: node scripts/reanchor-preflight.mjs 
+        run: node scripts/reanchor-preflight.mjs
 
       - name: Run preflight tests
         run: node --test tests/tooling/reanchor-preflight.test.mjs
