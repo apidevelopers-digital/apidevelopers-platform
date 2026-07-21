@@ -1,0 +1,48 @@
+name: Commercial Runtime Diagnostic
+
+on:
+  push:
+    paths:
+      - ".github/workflows/commercial-runtime-diagnostic.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  diagnose:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: Run phases
+        id: phases
+        continue-on-error: true
+        run: |
+          mkdir -p diagnostics
+          set +e
+          npm install --ignore-scripts --no-audit --no-fund --no-package-lock > diagnostics/commercial-runtime-install.log 2>&1
+          install_status=$?
+          node --check packages/commercial-journey-memory-runtime/src/index.mjs > diagnostics/commercial-runtime-syntax.log 2>&1
+          syntax_status=$?
+          npm test --workspace=@apidevelopers/commercial-journey-memory-runtime > diagnostics/commercial-runtime-test.log 2>&1
+          test_status=$?
+          printf "install=%s\nsyntax=%s\ntest=%s\n" "$install_status" "$syntax_status" "$test_status" > diagnostics/commercial-runtime-status.txt
+          test "$install_status" -eq 0 -a "$syntax_status" -eq 0 -a "$test_status" -eq 0
+
+      - name: Persist logs
+        if: always()
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -f diagnostics/commercial-runtime-*.log diagnostics/commercial-runtime-status.txt
+          git commit -m "chore(diagnostics): record commercial runtime failure [skip ci]"
+          git push origin "HEAD:${GITHUB_REF#refs/heads/}"
+
+      - name: Fail after persistence
+        if: steps.phases.outcome == 'failure'
+        run: exit 1
