@@ -12,7 +12,8 @@
     "./typed-extractor": "./src/typed-extractor.mjs",
     "./typed-integrity": "./src/typed-integrity.mjs",
     "./institutional-facade": "./src/institutional-facade.mjs",
-    "./github-provider": "./src/github-provider.mjs"
+    "./github-provider": "./src/github-provider.mjs",
+    "./derived-store": "./src/derived-store.mjs"
   },
   "scripts": {
     "test": "node --test"
