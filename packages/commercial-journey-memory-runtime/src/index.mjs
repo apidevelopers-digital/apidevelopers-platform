@@ -155,7 +155,14 @@ export function createCommercialJourneyMemoryRuntime({ enabled = false } = {}) {
     },
 
     selectPlan({ input }) {
-      return ok(planService.getSellablePlan(input.planId ?? "developer"));
+      const selection = planService.getSellablePlan(input.planId ?? "developer");
+      return ok({
+        ...selection,
+        plan: Object.freeze({
+          ...selection.plan,
+          productVersion: selection.product.version,
+        }),
+      });
     },
 
     createCheckoutSession(context) {
