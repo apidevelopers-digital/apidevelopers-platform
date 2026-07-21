@@ -38,6 +38,7 @@ jobs:
           - institutional-facade.test.mjs
           - institutional-publisher.test.mjs
           - markdown-parser.test.mjs
+          - read-api.test.mjs
           - typed-extractor.test.mjs
           - typed-integrity.test.mjs
 
