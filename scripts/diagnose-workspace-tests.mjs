@@ -1,14 +1,16 @@
 #!/usr/bin/env node
-import { readFile, readdir } from "node:fs/promises";
+import { readFile, readdir, writeFile } from "node:fs/promises";
 import path from "node:path";
 import process from "node:process";
 import { spawnSync } from "node:child_process";
 
 const root = process.cwd();
+const reportArg = process.argv.find((arg) => arg.startsWith("--report="));
+const reportPath = reportArg ? path.resolve(root, reportArg.slice("--report=".length)) : null;
 const rootManifest = JSON.parse(await readFile(path.join(root, "package.json"), "utf8"));
 const patterns = Array.isArray(rootManifest.workspaces)
   ? rootManifest.workspaces
-  : rootManifest.workspaces/.packages ?? [];
+  : rootManifest.workspaces?.packages ?? [];
 
 const workspaces = [];
 for (const pattern of patterns) {
@@ -29,13 +31,13 @@ for (const pattern of patterns) {
         workspaces.push({ name: manifest.name, path: path.relative(root, manifestPath) });
       }
     } catch {
-      // The manifest preflight reports JSON and schema failures.
+      // Manifest preflight owns JSON validation.
     }
   }
 }
 
 workspaces.sort((a, b) => a.name.localeCompare(b.name));
-const failures = [];
+const results = [];
 
 for (const workspace of workspaces) {
   console.log(`\n==> ${workspace.name} (${workspace.path})`);
@@ -43,17 +45,38 @@ for (const workspace of workspaces) {
     cwd: root,
     encoding: "utf8",
     env: process.env,
+    maxBuffer: 1024 * 1024 * 20,
   });
 
   if (result.stdout) process.stdout.write(result.stdout);
   if (result.stderr) process.stderr.write(result.stderr);
 
-  if (result.status !== 0) {
-    failures.push({ ...workspace, status: result.status });
-    console.error(
-      `::error file=${workspace.path},title=Workspace test failed: ${workspace.name}::Exit code ${result.status ?? "unknown"}`,
-    );
+  const failed = result.status !== 0;
+  results.push({
+    name: workspace.name,
+    path: workspace.path,
+    status: failed ? "failed" : "passed",
+    exitCode: result.status,
+    signal: result.signal ?? null,
+  });
+
+  if (failed) {
+    console.error(`::error file=${workspace.path},title=Workspace test failed: ${workspace.name}::Exit code ${result.status ?? "unknown"}`);
   }
+}
+
+const failures = results.filter((item) => item.status === "failed");
+const report = {
+  generatedAt: new Date().toISOString(),
+  workspaceCount: workspaces.length,
+  passedCount: results.length - failures.length,
+  failedCount: failures.length,
+  failures: failures.map((item) => ({ name: item.name, path: item.path, exitCode: item.exitCode, signal: item.signal })),
+  results,
+};
+
+if (reportPath) {
+  await writeFile(reportPath, `${JSON.stringify(report, null, 2)}\n`, "utf8");
 }
 
 console.log(`\nTested ${workspaces.length} workspace(s).`);
