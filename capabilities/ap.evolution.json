@@ -1,0 +1,33 @@
+{
+  "schemaVersion": 1,
+  "id": "ap.evolution",
+  "displayName": "AP Evolution",
+  "category": "intelligence",
+  "owner": "Platform Intelligence",
+  "maturity": "L0",
+  "status": "candidate",
+  "productIndependent": true,
+  "multiTenant": true,
+  "auditRequired": true,
+  "dependsOn": [
+    "ap.events",
+    "ap.tenancy",
+    "ap.radar",
+    "ap.memory",
+    "ap.audit",
+    "ap.repository"
+  ],
+  "publishes": [
+    "evolution.hypothesis.created.v1",
+    "evolution.change.proposed.v1",
+    "evolution.change.validated.v1"
+  ],
+  "consumes": [
+    "radar.pattern.detected.v1",
+    "memory.promoted.v1"
+  ],
+  "factoryTemplate": "service",
+  "paths": {
+    "readme": "services/evolution/README.md"
+  }
+}
