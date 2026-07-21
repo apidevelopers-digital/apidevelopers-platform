@@ -6,8 +6,10 @@ on:
     branches:
       - main
       - "foundation/**"
+      - "work/portal-projector-gateway-route-*"
     paths:
       - "apps/api-gateway/**"
+      - "packages/portal-projector-http/**"
       - "package.json"
       - ".github/workflows/api-gateway-mvp-ci.yml"
   pull_request:
@@ -15,6 +17,7 @@ on:
       - main
     paths:
       - "apps/api-gateway/**"
+      - "packages/portal-projector-http/**"
       - "package.json"
       - ".github/workflows/api-gateway-mvp-ci.yml"
 
@@ -40,7 +43,7 @@ jobs:
           set -euo pipefail
           scope_dir="$GITHUB_WORKSPACE/node_modules/@apidevelopers"
           mkdir -p "$scope_dir"
-          for package in registry-core platform-core auth-core apikey-core; do
+          for package in registry-core platform-core auth-core apikey-core portal-projector-http; do
             source_dir="$GITHUB_WORKSPACE/packages/$package"
             target="$scope_dir/$package"
             test -f "$source_dir/package.json"
