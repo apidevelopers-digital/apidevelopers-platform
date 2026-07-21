@@ -13,7 +13,7 @@ permissions:
 jobs:
   diagnose:
     runs-on: ubuntu-latest
-    timeout-minutes: 30
+    timeout-minutes: 10
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -29,22 +29,24 @@ jobs:
       - name: Install workspaces
         run: npm install
 
-      - name: Diagnose workspace tests
+      - name: Diagnose architecture rule engine
         id: diagnose
         continue-on-error: true
         run: |
           mkdir -p diagnostics
-          node scripts/diagnose-workspace-tests.mjs --report=diagnostics/workspace-tests.json
+          node scripts/diagnose-workspace-tests.mjs \
+            --workspace=@apidevelopers/architecture-rule-engine \
+            --report=diagnostics/architecture-rule-engine.json
 
       - name: Persist diagnostic report
         if: always() && github.ref_type == 'branch'
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add diagnostics/workspace-tests.json
+          git add diagnostics/architecture-rule-engine.json
           git diff --quiet && git diff --cached --quiet || {
-            git commit -m "chore(diagnostics): record workspace test results [skip ci]"
-            git push origin "HEAD:${GITHUB_REF#slash }"
+            git commit -m "chor(diagnostics): record architecture rule engine failure [skip ci]"
+            git push origin "HEAD:${GITHUB_REF#slash}"
           }
 
       - name: Fail after report persistence
