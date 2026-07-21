@@ -31,7 +31,11 @@ jobs:
         with:
           node-version: "22"
       - name: Generate capability validation
-        continue-on-error: true
-        run: node scripts/check-capability-registry.mjs
-      - name: Verify capability validation artifact
-        run: test -s generated/capabilities.validation.json
+        shell: bash
+        run: |
+          set +e
+          node scripts/check-capability-registry.mjs
+          validation_exit=$?
+          set -e
+          test -s generated/capabilities.validation.json
+          echo "capability_validation_exit=$validation_exit"
