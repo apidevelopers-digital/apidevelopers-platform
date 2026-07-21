@@ -1,0 +1,117 @@
+{
+  "schemaVersion": "coordination.chat-workstreams/v1",
+  "updatedAt": "2026-07-21",
+  "owner": "consolidation-quality",
+  "foundationBranch": "foundation/global-platform-bootstrap-20260715",
+  "foundationHeadAtLastAudit": "3c9fee3a829ba8cc8026f535aa5dfb49ad382d98",
+  "globalProgramPercent": 42,
+  "workstreams": [
+    {
+      "id": "chat-master",
+      "name": "Chat Mestre",
+      "status": "pronta-para-consolidar",
+      "provisional": true,
+      "branch": "docs/institutional-chat-reanchoring-20260721",
+      "head": "06b1e7068726522093c1fb3fef45e9c2f4d8e511",
+      "ci": "not-applicable-docs",
+      "pullRequest": 3,
+      "frontPercent": 85,
+      "globalImpactPointsAfterConsolidation": 0,
+      "handoffPath": "docs/coordination/handoffs/chat-master.md"
+    },
+    {
+      "id": "platform-engineering",
+      "name": "Engenharia da Plataforma",
+      "status": "pronta-para-consolidar",
+      "provisional": true,
+      "branch": "work/fix-architecture-rule-engine-platform-ci-20260721-r2",
+      "head": "5315f65279e965b8f96d1c906c484b95cfba0d48",
+      "ci": {
+        "workflow": "Platform CI",
+        "runId": 29798708871,
+        "conclusion": "success"
+      },
+      "frontPercent": 78,
+      "globalImpactPointsAfterConsolidation": 1,
+      "handoffPath": "docs/coordination/handoffs/platform-engineering.md"
+    },
+    {
+      "id": "portal-unified",
+      "name": "Portal unificado",
+      "status": "em-execucao",
+      "provisional": true,
+      "branch": "work/portal-institutional-phase3-20260721",
+      "head": "8f68f555919ab571d32239b43249af0cb1385bcd",
+      "ci": "not-found-for-branch",
+      "frontPercent": 62,
+      "globalImpactPointsAfterConsolidation": 1,
+      "handoffPath": "docs/coordination/handoffs/portal-unified.md"
+    },
+    {
+      "id": "ops-integrations",
+      "name": "Operações e integrações",
+      "status": "validada-isoladamente",
+      "provisional": true,
+      "branch": "work/commercial-journey-core-20260721-r2",
+      "head": "a0e7427ba181c8012e9f56a574a376f980ed51c3",
+      "ci": {
+        "workflow": "Commercial Journey Core CI",
+        "runId": 29796613325,
+        "conclusion": "success"
+      },
+      "frontPercent": 70,
+      "globalImpactPointsAfterConsolidation": 1,
+      "handoffPath": "docs/coordination/handoffs/ops-integrations.md"
+    },
+    {
+      "id": "learning-systems",
+      "name": "Aprendizado supervisionado",
+      "status": "pronta-para-consolidar",
+      "provisional": true,
+      "branch": "work/portal-learning-integrated-cycle-v2-20260721",
+      "head": "da8551ee7ab0b0f63c98a8315f324a17f8bb79b4",
+      "ci": [
+        {
+          "workflow": "Portal Learning Integrated Cycle CI",
+          "runId": 29798754506,
+          "conclusion": "success"
+        },
+        {
+          "workflow": "Portal Learning Capability Validation Diagnostic CI",
+          "runId": 29798571377,
+          "conclusion": "success"
+        }
+      ],
+      "frontPercent": 86,
+      "globalImpactPointsAfterConsolidation": 2,
+      "handoffPath": "docs/coordination/handoffs/learning-systems.md"
+    },
+    {
+      "id": "consolidation-quality",
+      "name": "Consolidação e qualidade",
+      "status": "em-execucao",
+      "provisional": false,
+      "branch": "docs/chat-workstream-registry-20260721",
+      "head": "pending-current-branch-head",
+      "ci": "not-applicable-docs",
+      "frontPercent": 42,
+      "globalImpactPointsAfterConsolidation": 0,
+      "handoffPath": "docs/coordination/handoffs/consolidation-quality.md"
+    }
+  ],
+  "summary": {
+    "readyToConsolidate": 3,
+    "validatedIsolated": 1,
+    "inExecution": 2,
+    "blocked": 0,
+    "confirmedByOwningChat": 1,
+    "provisionalFromGitAudit": 5
+  },
+  "rules": {
+    "centralRegistryEditor": "consolidation-quality",
+    "maxConcurrentTechnicalWorkstreams": 2,
+    "isolatedGreenCiMeansConsolidated": false,
+    "specializedChatMayChangeGlobalPercent": false,
+    "mergeRequiresExplicitApproval": true
+  }
+}
