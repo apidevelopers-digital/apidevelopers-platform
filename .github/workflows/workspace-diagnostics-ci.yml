@@ -24,10 +24,10 @@ jobs:
           node-version: 22
 
       - name: Preflight manifests
-        run: node scripts/reanchor-preflight.mjs > /tmp/preflight.txt || true
+        run: node scripts/reanchor-preflight.mjs 
 
       - name: Install workspaces
         run: npm install
 
       - name: Diagnose workspace tests
-        run: node scripts/diagnose-workspace-tests.mjs  
+        run: node scripts/diagnose-workspace-tests.mjs
