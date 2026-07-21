@@ -22,7 +22,22 @@ export async function loadProjections(client, { signal } = {}) {
     result.learning.metric,
   ];
   result.observability = summarizeMetrics(result.metrics);
+  publishObservability(result);
   return result;
+}
+
+function publishObservability(result) {
+  if (
+    typeof globalThis.CustomEvent !== "function" ||
+    typeof globalThis.dispatchEvent !== "function"
+  ) return;
+
+  globalThis.dispatchEvent(new CustomEvent("portal:observability", {
+    detail: {
+      summary: result.observability,
+      metrics: result.metrics,
+    },
+  }));
 }
 
 function toProjectionResult(name, settled, startedAt) {
