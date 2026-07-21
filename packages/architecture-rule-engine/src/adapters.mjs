@@ -5,6 +5,7 @@ import {
   matchesPatterns,
   normalizeRepositoryPath,
 } from "./repository.mjs";
+import { createExportContractAdapter } from "./export-contract.mjs";
 
 function clone(value) {
   return structuredClone(value);
@@ -208,6 +209,13 @@ export function createBuiltinAdapters(io) {
 
       return findings;
     },
+
+    "export-contract": createExportContractAdapter({
+      readText: io.readText,
+      exists: io.exists,
+      createFinding,
+      selectTargets,
+    }),
 
     async "required-pattern"({ rule, targets }) {
       const findings = [];
