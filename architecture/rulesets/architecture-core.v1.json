@@ -1,0 +1,165 @@
+{
+  "schemaVersion": "1.0.0",
+  "rulesetId": "architecture-core",
+  "name": "API Developers Platform Architecture Core",
+  "version": "1.0.0",
+  "status": "active",
+  "scope": "sitedauni/apidevelopers-platform",
+  "sourceRefs": [
+    "docs/architecture/ARCHITECTURE_ASSURANCE_MODEL.md",
+    "docs/architecture/CANONICAL_RULESET_SPEC.md",
+    "docs/architecture/RULE_ENGINE_SPEC.md"
+  ],
+  "effectiveFrom": "2026-07-21",
+  "owner": "platform-architecture",
+  "defaultSeverity": "ERROR",
+  "metadata": {
+    "enginePackage": "@apidevelopers/architecture-rule-engine",
+    "engineMinimumVersion": "0.2.0",
+    "deterministic": true
+  },
+  "rules": [
+    {
+      "ruleId": "ARC-CLI-001",
+      "ruleVersion": "1.0.0",
+      "title": "Canonical apid CLI entrypoint exists",
+      "description": "The official platform CLI must remain available at scripts/apid.mjs.",
+      "category": "tooling-contract",
+      "type": "required-path",
+      "severity": "CRITICAL",
+      "status": "active",
+      "appliesTo": {
+        "include": [
+          "**"
+        ],
+        "exclude": []
+      },
+      "parameters": {
+        "paths": [
+          "scripts/apid.mjs"
+        ]
+      },
+      "message": "The canonical apid CLI entrypoint is missing.",
+      "remediation": "Restore scripts/apid.mjs and preserve apid as the official CLI name.",
+      "sourceRefs": [
+        "docs/architecture/ARCHITECTURE_ASSURANCE_MODEL.md",
+        "docs/architecture/CANONICAL_RULESET_SPEC.md",
+        "docs/architecture/RULE_ENGINE_SPEC.md"
+      ]
+    },
+    {
+      "ruleId": "ARC-PKG-001",
+      "ruleVersion": "1.0.0",
+      "title": "Packages use the canonical namespace",
+      "description": "Every workspace package must use the @apidevelopers namespace.",
+      "category": "package-contract",
+      "type": "required-field",
+      "severity": "ERROR",
+      "status": "active",
+      "appliesTo": {
+        "include": [
+          "packages/*/package.json"
+        ],
+        "exclude": []
+      },
+      "parameters": {
+        "pointer": "/name",
+        "pattern": "^@apidevelopers/[a-z0-9][a-z0-9-]*$"
+      },
+      "message": "A package manifest does not use the canonical @apidevelopers namespace.",
+      "remediation": "Rename the package to @apidevelopers/<canonical-name>.",
+      "sourceRefs": [
+        "docs/architecture/ARCHITECTURE_ASSURANCE_MODEL.md",
+        "docs/architecture/CANONICAL_RULESET_SPEC.md",
+        "docs/architecture/RULE_ENGINE_SPEC.md"
+      ]
+    },
+    {
+      "ruleId": "ARC-PKG-002",
+      "ruleVersion": "1.0.0",
+      "title": "Packages use ECMAScript modules",
+      "description": "Workspace packages must declare module semantics explicitly.",
+      "category": "package-contract",
+      "type": "allowed-value",
+      "severity": "ERROR",
+      "status": "active",
+      "appliesTo": {
+        "include": [
+          "packages/*/package.json"
+        ],
+        "exclude": []
+      },
+      "parameters": {
+        "pointer": "/type",
+        "values": [
+          "module"
+        ]
+      },
+      "message": "A package manifest does not declare type=module.",
+      "remediation": "Set the package.json type field to module.",
+      "sourceRefs": [
+        "docs/architecture/ARCHITECTURE_ASSURANCE_MODEL.md",
+        "docs/architecture/CANONICAL_RULESET_SPEC.md",
+        "docs/architecture/RULE_ENGINE_SPEC.md"
+      ]
+    },
+    {
+      "ruleId": "ARC-KRN-001",
+      "ruleVersion": "1.0.0",
+      "title": "Kernel packages expose the canonical structure",
+      "description": "Each kernel package must provide documentation, public source entrypoint and deterministic test entrypoint.",
+      "category": "kernel-structure",
+      "type": "required-path",
+      "severity": "ERROR",
+      "status": "active",
+      "appliesTo": {
+        "include": [
+          "packages/kernel-*/package.json"
+        ],
+        "exclude": []
+      },
+      "parameters": {
+        "forEach": "packages/kernel-*/package.json",
+        "relativePaths": [
+          "README.md",
+          "src/index.mjs",
+          "test/index.test.mjs"
+        ]
+      },
+      "message": "A kernel package is missing one or more canonical companion files.",
+      "remediation": "Add README.md, src/index.mjs and test/index.test.mjs to the kernel package.",
+      "sourceRefs": [
+        "docs/architecture/ARCHITECTURE_ASSURANCE_MODEL.md",
+        "docs/architecture/CANNICAL_RULESET_SPEC.md",
+        "docs/architecture/RULE_ENGINE_SPEC.md"
+      ]
+    },
+    {
+      "ruleId": "ARC-KRN-002",
+      "ruleVersion": "1.0.0",
+      "title": "Kernel packages declare Node.js 22 compatibility",
+      "description": "Kernel packages must explicitly declare compatibility with the platform runtime baseline.",
+      "category": "runtime-contract",
+      "type": "required-field",
+      "severity": "WARN",
+      "status": "active",
+      "appliesTo": {
+        "include": [
+          "packages/kernel-*/package.json"
+        ],
+        "exclude": []
+      },
+      "parameters": {
+        "pointer": "/engines/node",
+        "pattern": "^>=22(?:\\.0\\.0)?$"
+      },
+      "message": "A kernel package does not declare the Node.js 22 runtime baseline.",
+      "remediation": "Set engines.node to >=22.",
+      "sourceRefs": [
+        "docs/architecture/ARCHITECTURE_ASSURANCE_MODEL.md",
+        "docs/architecture/CANNICAL_RULESET_SPEC.md",
+        "docs/architecture/RULE_ENGINE_SPEC.md"
+      ]
+    }
+  ]
+}
