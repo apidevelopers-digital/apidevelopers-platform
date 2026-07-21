@@ -1,0 +1,3 @@
+install=0
+syntax=0
+test=1
