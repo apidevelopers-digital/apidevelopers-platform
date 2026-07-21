@@ -21,9 +21,23 @@ concurrency:
 
 jobs:
   test:
-    name: Node tests
+    name: ${{ matrix.test }}
     runs-on: ubuntu-latest
     timeout-minutes: 10
+
+    strategy:
+      fail-fast: false
+      matrix:
+        test:
+          - document-pipeline.test.mjs
+          - e2e-github-institutional.test.mjs
+          - git-reader.test.mjs
+          - github-provider.test.mjs
+          - index.test.mjs
+          - institutional-facade.test.mjs
+          - markdown-parser.test.mjs
+          - typed-extractor.test.mjs
+          - typed-integrity.test.mjs
 
     steps:
       - name: Checkout
@@ -34,15 +48,6 @@ jobs:
         with:
           node-version: 22
 
-      - name: Run portal-projector tests
+      - name: Run test file
         working-directory: packages/portal-projector
-        shell: bash
-        run: |
-          set -o pipefail
-          node --test --test-reporter=tap 2>&1 | tee /tmp/portal-projector-tests.tap
-          status=${PIPESTATUS[0]}
-          if [ "$status" -ne 0 ]; then
-            summary=$(tail -n 40 /tmp/portal-projector-tests.tap | tr '\n' ' ' | sed 's/%/%25/g; s/\r/%0D/g; s/\n/%0A/g')
-            echo "::error title=Portal Projector tests failed::$summary"
-            exit "$status"
-          fi
+        run: node --test "test/${{ matrix.test }}"
