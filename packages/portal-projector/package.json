@@ -11,7 +11,8 @@
     "./document-pipeline": "./src/document-pipeline.mjs",
     "./typed-extractor": "./src/typed-extractor.mjs",
     "./typed-integrity": "./src/typed-integrity.mjs",
-    "./institutional-facade": "./src/institutional-facade.mjs"
+    "./institutional-facade": "./src/institutional-facade.mjs",
+    "./github-provider": "./src/github-provider.mjs"
   },
   "scripts": {
     "test": "node --test"
