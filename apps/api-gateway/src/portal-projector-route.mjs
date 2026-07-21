@@ -22,8 +22,14 @@ function toGatewayResponse(response) {
 }
 
 function readApiKey(apiKeyManager, rawKey) {
-  if (!rawKey || typeof apiKeyManager?.resolveByRawKey !== "function") return null;
-  return apiKeyManager.resolveByRawKey(rawKey);
+  if (!rawKey) return null;
+  if (typeof apiKeyManager?.resolveByRawKey === "function") {
+    return apiKeyManager.resolveByRawKey(rawKey);
+  }
+  if (typeof apiKeyManager?.authenticate === "function") {
+    return apiKeyManager.authenticate(rawKey);
+  }
+  return null;
 }
 
 export function createPortalProjectorGatewayRoute({
@@ -35,8 +41,16 @@ export function createPortalProjectorGatewayRoute({
   if (!readApi || readApi.mutationAllowed !== false) {
     throw new TypeError("readApi must be read-only");
   }
-  if (!apiKeyManager || typeof apiKeyManager.resolveByRawKey !== "function") {
-    throw new TypeError("apiKeyManager.resolveByRawKey must be a function");
+  if (
+    !apiKeyManager ||
+    (
+      typeof apiKeyManager.resolveByRawKey !== "function" &&
+      typeof apiKeyManager.authenticate !== "function"
+    )
+  ) {
+    throw new TypeError(
+      "apiKeyManager must expose resolveByRawKey or authenticate",
+    );
   }
   if (rateLimiter && typeof rateLimiter.check !== "function") {
     throw new TypeError("rateLimiter.check must be a function");
