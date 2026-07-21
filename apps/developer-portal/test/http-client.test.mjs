@@ -2,6 +2,9 @@ import assert from "node:assert/strict";
 import { ReadApiClient } from "../public/api-client.js";
 
 const originalFetch = globalThis.fetch;
+const gatewayPolicy = {
+  allowedGatewayOrigins: ["https://gateway.example.test"],
+};
 
 try {
   const calls = [];
@@ -29,6 +32,7 @@ try {
     baseUrl: "https://gateway.example.test/",
     apiKey: "read-key",
     timeoutMs: 500,
+    gatewayPolicy,
   });
 
   const institutional = await client.institutionalSnapshot();
@@ -65,12 +69,17 @@ try {
 
   globalThis.fetch = async (_url, options) =>
     new Promise((_resolve, reject) => {
-      options.signal.addEventListener("abort", () => reject(new DOMException("aborted", "AbortError")), { once: true });
+      options.signal.addEventListener(
+        "abort",
+        () => reject(new DOMException("aborted", "AbortError")),
+        { once: true },
+      );
     });
 
   const timeoutClient = new ReadApiClient({
     baseUrl: "https://gateway.example.test",
     timeoutMs: 100,
+    gatewayPolicy,
   });
 
   await assert.rejects(
@@ -81,7 +90,7 @@ try {
       assert.equal(error.retryable, true);
       return true;
     },
-   );
+  );
 
   const external = new AbortController();
   const cancelled = timeoutClient.learningSnapshot({ signal: external.signal });
@@ -96,6 +105,28 @@ try {
       return true;
     },
   );
+
+  let networkCalls = 0;
+  globalThis.fetch = async () => {
+    networkCalls += 1;
+    throw new Error("must not run");
+  };
+
+  const blockedClient = new ReadApiClient({
+    baseUrl: "https://forbidden.example.test",
+    gatewayPolicy,
+  });
+
+  await assert.rejects(
+    () => blockedClient.institutionalSnapshot(),
+    (error) => {
+      assert.equal(error.message, "GATEWAY_ORIGIN_FORBIDDEN");
+      assert.equal(error.status, 400);
+      assert.equal(error.retryable, false);
+      return true;
+    },
+  );
+  assert.equal(networkCalls, 0);
 } finally {
   globalThis.fetch = originalFetch;
 }
