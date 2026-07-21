@@ -1,7 +1,7 @@
 # COMPANY WORLD INDEX
 
 **Status:** Canônico  
-**Atualizado em:** 2026-07-20  
+**Atualizado em:** 2026-07-21  
 **Repositório:** `sitedauni/apidevelopers-platform`
 
 ## 1. Propósito
@@ -25,16 +25,26 @@ Este documento não substitui as fontes canônicas. Ele localiza cada fonte de v
 ## 3. Ordem obrigatória de leitura
 
 1. `docs/company/COMPANY_WORLD_INDEX.md`
-2. `docs/operating-model/CURRENT_STATE.md`
-3. `docs/operating-model/NEXT_ITERATION.md`
-4. Documento canônico da área de trabalho
-5. HEAD real da branch
-6. CI e evidências do domínio
+2. `docs/company/DOUTRINA_INSTITUCIONAL_GLOBAL.md`
+3. `docs/company/HERMENEUTICA_INSTITUCIONAL_DA_CONSTITUICAO.md`
+4. `docs/company/FILOSOFIA_DA_ENGENHARIA_DIGITAL.md`
+5. `docs/company/MODELO_INDUSTRIAL.md`
+6. `docs/company/CAPACIDADES_INSTITUCIONAIS.md`
+7. `docs/operating-model/CURRENT_STATE.md`
+8. `docs/operating-model/NEXT_ITERATION.md`
+9. Documento canônico da área de trabalho
+10. HEAD real da branch
+11. CI e evidências do domínio
 
 ## 4. Mapa institucional
 
 | Continente | Fonte canônica | Função |
 |---|---|---|
+| Doutrina institucional | `docs/company/DOUTRINA_INSTITUCIONAL_GLOBAL.md` | Identidade, propósito, princípios e direção institucional |
+| Hermenêutica institucional | `docs/company/HERMENEUTICA_INSTITUCIONAL_DA_CONSTITUICAO.md` | Método de interpretação e aplicação da Constituição institucional |
+| Filosofia da engenharia | `docs/company/FILOSOFIA_DA_ENGENHARIA_DIGITAL.md` | Princípios filosóficos da construção de sistemas digitais |
+| Modelo industrial | `docs/company/MODELO_INDUSTRIAL.md` | Como capacidades são transformadas em produção governada e repetível |
+| Capacidades institucionais | `docs/company/CAPACIDADES_INSTITUCIONAIS.md` | Competências permanentes, maturidade, risco e patrimônio institucional |
 | Operação | `docs/operating-model/COMPANY_OPERATING_SYSTEM.md` | Como a empresa opera |
 | Continuidade | `docs/operating-model/CONVERSATION_CONTINUITY_PROTOCOL.md` | Como iniciar, retomar e encerrar sessões |
 | Estado | `docs/operating-model/CURRENT_STATE.md` | Situação factual atual |
@@ -110,11 +120,16 @@ Arquivos grandes devem ser alterados por patch pontual. Publicações devem usar
 
 ### Existentes
 
+- doutrina institucional global;
+- hermenêutica institucional da Constituição;
+- filosofia da engenharia digital;
+- modelo industrial;
+- capacidades institucionais;
 - modelo operacional;
 - protocolo de continuidade;
 - painel executivo;
 - blueprint digital;
-- critérios de não prontidão;
+- canonical;
 - registro de capacidades.
 
 ### Próximos marcos
