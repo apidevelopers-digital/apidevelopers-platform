@@ -8,7 +8,7 @@ import { loadRuleEngineRuntime } from "./loaders.mjs";
 export const DEFAULT_RULESET_DESCRIPTOR = Object.freeze({
   path: "architecture/rulesets/architecture-core.v1.json",
   expectedId: "architecture-core",
-  expectedVersion: "1.0.0",
+  expectedVersion: "1.1.0",
 });
 
 export const DEFAULT_EXCEPTION_DESCRIPTOR = Object.freeze({
