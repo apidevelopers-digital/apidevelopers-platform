@@ -1,7 +1,10 @@
 import assert from "node:assert/strict";
 import { loadProjections } from "../public/projection-loader.js";
 
-const ready = await loadProjections({});
+const ready = await loadProjections({
+  institutionalSnapshot: async () => ({ records: [] }),
+  learningSnapshot: async () => ({ memories: [] }),
+});
 assert.equal(ready.summary.kind, "ready");
 assert.equal(ready.institutional.ok, true);
 assert.equal(ready.learning.ok, true);
