@@ -29,9 +29,9 @@ function pushDiagnostic(diagnostics, options) {
 }
 
 function validateNode(value, schema, pointer, diagnostics, capability) {
-  if (!schem || typeof schema !== "object") return;
+  if (!schema || typeof schema !== "object") return;
 
-  if ("const" in schem && value !== schema.const) {
+  if ("const" in schema && value !== schema.const) {
     pushDiagnostic(diagnostics, {
       capability,
       code: "CONTRACT_CONST_MISMATCH",
@@ -54,7 +54,7 @@ function validateNode(value, schema, pointer, diagnostics, capability) {
     pushDiagnostic(diagnostics, {
       capability,
       code: "CONTRACT_ENUM_MISMATCH",
-     message: `${pointer} must match an allowed value`,
+      message: `${pointer} must match an allowed value`,
       evidence: { pointer, allowed: schema.enum, actual: value },
     });
   }
@@ -63,7 +63,7 @@ function validateNode(value, schema, pointer, diagnostics, capability) {
     pushDiagnostic(diagnostics, {
       capability,
       code: "CONTRACT_PATTERN_MISMATCH",
-     message: `${pointer} does not match the required pattern`,
+      message: `${pointer} does not match the required pattern`,
       evidence: { pointer, pattern: schema.pattern, actual: value },
     });
   }
