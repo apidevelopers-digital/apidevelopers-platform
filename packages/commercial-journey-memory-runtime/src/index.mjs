@@ -53,6 +53,7 @@ function createCatalog() {
   const plan = createPlanVersion({
     id: "developer",
     productId: product.id,
+    productVersion: product.version,
     name: "Developer",
     status: "ACTIVE",
     version: 1,
