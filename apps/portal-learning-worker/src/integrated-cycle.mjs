@@ -12,12 +12,24 @@ import { createLearningRoute } from "../../api-gateway/src/learning-route.mjs";
 const exec = promisify(execFile);
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "../../..");
 const at = (value) => path.resolve(root, value);
+
 const paths = {
   memory: at(process.env.PORTAL_LEARNING_MEMORY_PATH ?? "var/learning-memory.json"),
   graph: at(process.env.PORTAL_LEARNING_GRAPH_PATH ?? "var/learning-graph.json"),
   audit: at(process.env.PORTAL_LEARNING_AUDIT_PATH ?? "var/learning-audit.json"),
   snapshot: at(process.env.PORTAL_LEARNING_SNAPSHOT_PATH ?? "var/portal-learning.json"),
 };
+
+function canonicalSegment(value) {
+  const normalized = String(value ?? "")
+    .trim()
+    .toLowerCase()
+    .replace(/[^a-z0-9.-]+/g, "-")
+    .replace(/^[^a-z]+/, "")
+    .replace(/-+/g, "-")
+    .replace(/^[.-]+|[.-]+$/g, "");
+  return normalized || "unknown";
+}
 
 async function atomic(file, value) {
   await mkdir(path.dirname(file), { recursive: true });
@@ -28,60 +40,133 @@ async function atomic(file, value) {
 
 async function run(script, allowFailure = false) {
   try {
-    const result = await exec(process.execPath, [at(script)], { cwd: root, maxBuffer: 10_000_000 });
-    return { ok: true, stdout: result.stdout };
+    const result = await exec(process.execPath, [at(script)], {
+      cwd: root,
+      maxBuffer: 10_000_000,
+    });
+    return { ok: true, stdout: result.stdout, stderr: result.stderr };
   } catch (error) {
     if (!allowFailure) throw error;
-    return { ok: false, stdout: error.stdout ?? "", stderr: error.stderr ?? "" };
+    return {
+      ok: false,
+      stdout: error.stdout ?? "",
+      stderr: error.stderr ?? "",
+      exitCode: Number(error.code ?? 1),
+    };
   }
 }
 
 async function loadManifests() {
   const dir = at("capabilities");
-  const files = (await readdir(dir)).filter((name) => name.endsWith(".json")).sort();
-  return Promise.all(files.map((name) => readFile(path.join(dir, name), "utf8").then(JSON.parse)));
+  const files = (await readdir(dir))
+    .filter((name) => name.endsWith(".json"))
+    .sort();
+  return Promise.all(
+    files.map((name) =>
+      readFile(path.join(dir, name), "utf8").then(JSON.parse),
+    ),
+  );
 }
 
-function buildGraph(manifests) {
+export function buildGraph(manifests) {
   const graph = new InstitutionalKnowledgeGraph();
+
   for (const manifest of manifests) {
-    const component = `component.${manifest.id}`;
-    const capability = `capability.${manifest.id}`;
-    graph.registerNode({ id: component, kind: "component", status: manifest.status ?? "planned" });
-    graph.registerNode({ id: capability, kind: "capability", status: manifest.status ?? "planned" });
-    graph.relate({ type: "implements", from: component, to: capability });
+    const id = canonicalSegment(manifest.id);
+    const solution = `solution.${id}`;
+    const capability = `capability.${id}`;
+
+    graph.registerNode({
+      id: solution,
+      kind: "solution",
+      status: manifest.status ?? "planned",
+      metadata: { source: `capabilities/${manifest.id}.json` },
+    });
+    graph.registerNode({
+      id: capability,
+      kind: "capability",
+      status: manifest.status ?? "planned",
+      metadata: { displayName: manifest.displayName ?? manifest.id },
+    });
+    graph.relate({
+      type: "implements",
+      from: solution,
+      to: capability,
+      metadata: { source: "capability-manifest" },
+    });
   }
+
   return graph.snapshot();
 }
 
 function buildMemory(audit) {
   const recordedAt = audit.generatedAt ?? new Date().toISOString();
-  const id = String(audit.commit ?? recordedAt).replace(/[^a-zA-Z0-9]+/g, "-");
-  return { entries: [{
-    id: `memory.${id}.audit`,
-    type: "evidence",
-    subject: "repository.audit",
-    cycleId: `cycle.${id}`,
-    status: "observed",
-    refs: [".audit/snapshot.json"],
-    data: { summary: audit.summary ?? {}, delta: audit.delta ?? {} },
-    recordedBy: "portal-learning-integrated-cycle",
-    recordedAt,
-  }] };
+  const token = canonicalSegment(audit.commit ?? recordedAt);
+  return {
+    entries: [{
+      id: `memory.${token}.audit`,
+      type: "evidence",
+      subject: "repository.audit",
+      cycleId: `cycle.${token}`,
+      status: "observed",
+      refs: [".audit/snapshot.json"],
+      data: {
+        summary: audit.summary ?? {},
+        delta: audit.delta ?? {},
+      },
+      recordedBy: "portal-learning-integrated-cycle",
+      recordedAt,
+    }],
+  };
 }
 
 function buildAudit(audit, validation) {
-  const diagnostics = Array.isArray(validation.diagnostics) ? validation.diagnostics : [];
-  return {
-    auditId: `audit.portal-learning.${audit.commit ?? "working-tree"}`,
-    status: diagnostics.some((item) => item.severity === "error") ? "attention-required" : "compliant",
-    checks: diagnostics.map((item, index) => ({
+  const diagnostics = Array.isArray(validation.diagnostics)
+    ? validation.diagnostics
+    : [];
+
+  const checks = diagnostics.map((item, index) => {
+    const severity = String(item.severity ?? "").toLowerCase();
+    const state = ["error", "critical"].includes(severity)
+      ? "fail"
+      : severity === "warning"
+        ? "warn"
+        : "pass";
+
+    return {
       ruleId: item.code ?? `CAPABILITY_${index + 1}`,
-      state: item.severity === "error" ? "fail" : "warn",
-      subject: item.capability ?? "capability-registry",
+      state,
+      subject: item.capability ?? item.subject ?? "capability-registry",
       statement: item.message ?? "Capability validation diagnostic.",
+      recommendation: item.recommendation ?? null,
       evidence: [item.source, item.path].filter(Boolean),
-    })),
+    };
+  });
+
+  if (checks.length === 0) {
+    checks.push({
+      ruleId: "CAPABILITY_REGISTRY_VALID",
+      state: "pass",
+      subject: "capability-registry",
+      statement: "Capability registry validation produced no diagnostics.",
+      recommendation: null,
+      evidence: ["generated/capabilities.validation.json"],
+    });
+  }
+
+  const hasFailure = checks.some((check) => check.state === "fail");
+  const hasWarning = checks.some((check) => check.state === "warn");
+
+  return {
+    auditId: `audit.portal-learning.${canonicalSegment(audit.commit ?? "working-tree")}`,
+    status: hasFailure
+      ? "attention-required"
+      : hasWarning
+        ? "review"
+        : "compliant",
+    generatedAt: audit.generatedAt ?? validation.generatedAt ?? null,
+    sourceCommit: audit.commit ?? null,
+    checks,
   };
 }
 
@@ -90,16 +175,21 @@ export async function runIntegratedCycle() {
     audit: await run("scripts/institutional-audit/audit.mjs"),
     validation: await run("scripts/check-capability-registry.mjs", true),
   };
+
   const [audit, validation, manifests] = await Promise.all([
     readFile(at(".audit/snapshot.json"), "utf8").then(JSON.parse),
     readFile(at("generated/capabilities.validation.json"), "utf8").then(JSON.parse),
     loadManifests(),
   ]);
 
+  const memory = buildMemory(audit);
+  const graph = buildGraph(manifests);
+  const evolutionAudit = buildAudit(audit, validation);
+
   await Promise.all([
-    atomic(paths.memory, buildMemory(audit)),
-    atomic(paths.graph, buildGraph(manifests)),
-    atomic(paths.audit, buildAudit(audit, validation)),
+    atomic(paths.memory, memory),
+    atomic(paths.graph, graph),
+    atomic(paths.audit, evolutionAudit),
   ]);
 
   const snapshot = await publishLearningSnapshot({
@@ -109,31 +199,54 @@ export async function runIntegratedCycle() {
     outputPath: paths.snapshot,
   });
 
-  const repository = createJsonLearningSnapshotRepository({ filePath: paths.snapshot });
-  const route = createLearningRoute({ repository, adminKey: "local-verifier" });
+  const repository = createJsonLearningSnapshotRepository({
+    filePath: paths.snapshot,
+  });
+  const route = createLearningRoute({
+    repository,
+    adminKey: "local-verifier",
+  });
   const response = await route.handleRequest({
     method: "GET",
     url: "/v1/admin/learning",
     headers: { "x-api-key": "local-verifier" },
   });
-  if (response.status !== 200) throw new Error(`endpoint verification failed: ${response.status}`);
+
+  if (response.status !== 200) {
+    throw new Error(`endpoint verification failed: ${response.status}`);
+  }
 
   return {
     status: "completed",
     readOnly: true,
     producers,
-    sources: { capabilities: manifests.length },
+    sources: {
+      capabilities: manifests.length,
+      memories: memory.entries.length,
+      graphNodes: graph.nodes.length,
+      graphRelations: graph.relations.length,
+      auditChecks: evolutionAudit.checks.length,
+    },
     snapshot: snapshot.summary,
-    endpoint: { status: response.status, cacheControl: response.headers["cache-control"] },
+    endpoint: {
+      status: response.status,
+      cacheControl: response.headers["cache-control"],
+    },
     gates: snapshot.gates,
   };
 }
 
-if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) {
+if (
+  process.argv[1] &&
+  import.meta.url === pathToFileURL(process.argv[1]).href
+) {
   runIntegratedCycle()
     .then((receipt) => console.log(JSON.stringify(receipt, null, 2)))
     .catch((error) => {
-      console.error(JSON.stringify({ status: "failed", message: error.message }));
+      console.error(JSON.stringify({
+        status: "failed",
+        message: error.message,
+      }));
       process.exitCode = 1;
     });
 }
