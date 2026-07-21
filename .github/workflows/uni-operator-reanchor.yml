@@ -1,0 +1,157 @@
+name: UNI Operator Reanchor
+
+on:
+  workflow_dispatch:
+    inputs:
+      target_ref:
+        description: Branch or ref to reanchor from
+        required: false
+        default: foundation/global-platform-bootstrap-20260715
+
+permissions:
+  contents: read
+  actions: read
+  pull-requests: read
+
+jobs:
+  reanchor:
+    name: Build operational reanchor evidence
+    runs-on: ubuntu-latest
+    steps:
+      - name: Resolve target ref
+        id: target
+        shell: bash
+        run: |
+          set -euo pipefail
+          TARGET_REF="${{ inputs.target_ref }}"
+          echo "ref=$TARGET_REF" >> "$GITHUB_OUTPUT"
+
+      - name: Checkout published state
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ steps.target.outputs.ref }}
+          fetch-depth: 0
+
+      - name: Generate reanchor evidence
+        uses: actions/github-script@dv7
+        env:
+          TARGET_REF: ${{ steps.target.outputs.ref }}
+        with:
+          script: |
+            const fs = require('fs');
+            const cp = require('child_process');
+            const owner = context.repo.owner;
+            const repo = context.repo.repo;
+            const targetRef = process.env.TARGET_REF;
+            const headSha = cp.execSync('git rev-parse HEAD').toString().trim();
+            const headMessage = cp.execSync('git log -1 --pretty=%s').toString().trim();
+            const headDate = cp.execSync('git log -1 --pretty=%cI').toString().trim();
+
+            const runs = await github.paginate(
+              github.rest.actions.listWorkflowRunsForRepo,
+              {
+                owner,
+                repo,
+                branch: targetRef,
+                status: 'success',
+                per_page: 100
+              }
+            );
+
+            const successfulRuns = runs
+              .filter(run => run.head_sha === headSha)
+              .sort((a, b) => new Date(b.updated_at) - new Date(a.updated_at));
+
+            const pulls = await github.paginate(
+              github.rest.pulls.list,
+              {
+                owner,
+                repo,
+                state: 'open',
+                per_page: 100
+              }
+            );
+
+            const evidence = {
+              schema_version: '1.0',
+              generated_at: new Date().toISOString(),
+              repository: `${owner}/${repo}`,
+              target_ref: targetRef,
+              published_head: {
+                sha: headSha,
+                message: headMessage,
+                committed_at: headDate
+              },
+              action_evidence: {
+                successful_runs_for_head: successfulRuns.map(run => ({
+                  id: run.id,
+                  workflow: run.name,
+                  event: run.event,
+                  conclusion: run.conclusion,
+                  created_at: run.created_at,
+                  updated_at: run.updated_at,
+                  url: run.html_url
+                }))
+              },
+              open_pull_requests: pulls.map(pr => ({
+                number: pr.number,
+                title: pr.title,
+                head: pr.head.ref,
+                head_sha: pr.head.sha,
+                base: pr.base.ref,
+                draft: pr.draft,
+                updated_at: pr.updated_at,
+                url: pr.html_url
+              })),
+              continuity_rule: {
+                source_of_truth: 'published Git ref plus successful GitHub Actions evidence',
+                chat_memory_is_authoritative: false,
+                canonical_documents_are_authoritative: false
+              }
+            };
+
+            fs.mkdirSync('operator-reanchor', { recursive: true });
+            fs.writeFileSync(
+              'operator-reanchor/evidence.json',
+              JSON.stringify(evidence, null, 2) + '\n'
+            );
+
+            const lines = [
+              '# UNI Operator Reanchor Evidence',
+              '',
+              `- Repository: \`${evidence.repository}\``,
+              `- Target ref: \`${targetRef}\``,
+              `- Published HEAD: \`${headSha}\``,
+              `- Commit: ${headMessage}`,
+              `- Commit date: ${headDate}`,
+              `- Generated at: ${evidence.generated_at}`,
+              `- Successful Actions for HEAD: ${successfulRuns.length}`,
+              `- Open pull requests: ${pulls.length}`,
+              '',
+              '## Continuity rule',
+              '',
+              'The operator must reanchor from the published Git ref and successful GitHub Actions evidence.',
+              'Chat memory and canonical documents may assist interpretation, but they are not authoritative.',
+              ''
+            ];
+            fs.writeFileSync('operator-reanchor/README.md', lines.join('\n'));
+
+            await core.summary
+              .addHeading('UNI Operator Reanchor')
+              .addTable([
+                [{data: 'Field', header: true}, {data: 'Value', header: true}],
+                ['Target ref', targetRef],
+                ['Published HEAD', headSha],
+                ['Successful Actions for HEAD', String(successfulRuns.length)],
+                ['Open pull requests', String(pulls.length)]
+              ])
+              .addRaw('\nCource of truth: published Git ref + successful GitHub Actions evidence.')
+              .write();
+
+      - name: Upload reanchor artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: uni-operator-reanchor-${{ github.run_id }}
+          path: operator-reanchor/
+          if-no-files-found: error
+          retention-days: 90
