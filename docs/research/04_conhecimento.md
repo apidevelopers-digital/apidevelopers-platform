@@ -74,7 +74,44 @@ Sabedoria institucional Ã© a capacidade de relacionar conhecimento, finalidade, 
 
 ---
 
-## 3. Conhecimento como relpéğèÛÂ‚“ÈÛÛšXÚ[Y[È°èÛÈ™\ÚYH[Z\›È[H[H\œ]Z]›Ë\ÜÛØK˜[˜ÛÈHYÜÈİH[Ù[Ëˆ[H[Y\™ÙHH™[péğíY\È[™N‚‚‹HÛÛpî™ÈHÜšYÙ[NÂ‹HYš\›XpéğèÛÈH]šY0ê›˜ÚXNÂ‹HXÚ\ğèÛÈH˜^°èÛÎÂ‹H™YÜ˜HHš[˜[YYNÂ‹H›ØÙY[Y[ÈH™\İ[YÎÂ‹HY[pìÜšXHHÛÛ^ÎÂ‹H[Ù[ÈH™X[YYNÂ‹H°è]XØHH™]š\ğèÛË‚‚H\™H\ÜØ\È™[:|;VW2öFR6W"Ö—2w&fRFòVRW&FFR6öçF\;¦F÷2—6öÆF÷2âVÖ6öÆ\:|:6ò6VÒvVæVÆöv–&öGW¢Öì:—6–6VÜ:&çF–6¢–ç7F—GVœ:|:6òl:¢òVRfö’&Vv—7G&FòÂÖ2¬:ì:6ò6ö×&VVæFR÷"VRFWfW&–6öæf–"ÂÆ–6"÷R&æFöæ"à £â¢¥$”ä<8Õ”òeTäDÔTåDÂ(	B$”Ô¤”D2$TÄ8|9TU2U•5DTÔôÌ94t”42¢ £à£âò6–væ–f–6FòFRVÒ6öæ†V6–ÖVçFò–ç7F—GV6–öæÂFWVæFRF2&VÇŸÕ•ÌÅÕ”ÁÉ•Í•ÉÙ…´ÍÕ„½É¥•´°Í•Ô‘½·µ¹¥¼°ÍÕ„…ÕÑ½É¥‘…‘”°ÍÕ…Ì‘•Á•¹“©¹¥…Ì”Í•ÕÌ•™•¥Ñ½Ì¸((´´´((ŒŒ€Ğ¸A…ÑÉ¥·Ñ¹¥¼½¹¥Ñ¥Ù¼()A…ÑÉ¥·Ñ¹¥¼½¹¥Ñ¥Ù¼ƒ¤¼½¹©Õ¹Ñ¼•ÍÑÉÕÑÕÉ…‘¼‘”…Á…¥‘…‘•Ì¥¹Ñ•±•ÑÕ…¥ÌÕ©„½¹Ñ¥¹Õ¥‘…‘”Á•Éµ¥Ñ”ƒ€¥¹ÍÑ¥ÑÕ§Ÿ¼É•½¹¡••ÈÍÕ„¥‘•¹Ñ¥‘…‘”°½µÁÉ••¹‘•ÈÍ•Ô…µ‰¥•¹Ñ”°ÕµÁÉ¥ÈÍÕ„™¥¹…±¥‘…‘””½¹Ñ¥¹Õ…È…ÁÉ•¹‘•¹‘¼¸()±”¥¹±Õ¤è((´½¹•¥Ñ½Ì”Ù½…‰Õ³…É¥½Ìì(´·¥Ñ½‘½Ì‘”¥¹Ù•ÍÑ¥‡Ÿ¼”Ù•É¥™¥‡Ÿ¼ì(´‘•¥ÏÕ•Ì”É•ÍÁ•Ñ¥Ù…ÌÉ…ëÕ•Ìì(´µ½‘•±½Ì”±…ÍÍ¥™¥‡ŸÕ•Ìì(´•áÁ•É§©¹¥…Ì¥¹Ñ•ÉÁÉ•Ñ…‘…Ìì(´½µÁ•Ó©¹¥…Ì¡Õµ…¹…Ì”Ó¥¹¥…Ìì(´µ•·ÍÉ¥…Ì¹½Éµ…Ñ¥Ù…Ì°½Á•É…¥½¹…¥Ì”¡¥ÍÓÍÉ¥…Ìì(´µ•…¹¥Íµ½Ì‘”ÑÉ…¹Íµ¥ÍÏ¼ì(´™½Éµ…Ì‘”ËµÑ¥„”É•Ù¥Ï¼¸()A…ÑÉ¥·Ñ¹¥¼»¼Í¥¹¥™¥„ÁÉ½ÁÉ¥•‘…‘”¥ÉÉ•ÍÑÉ¥Ñ„¸A…ÉÑ”‘¼½¹¡•¥µ•¹Ñ¼Á½‘”‘•É¥Ù…È‘”±¥•¹Ñ•Ì°Á…É•¥É½Ì°Á•ÍÍ½…Ì°½µÕ¹¥‘…‘•Ì°™½¹Ñ•ÌÃé‰±¥…Ì½ÔÉ•±Ã§Ãµes confidenciais. A instituiÃ§Ã£o pode ter responsabilidade de custÃ³dia ou direito de uso limitado sem adquirir legitimidade para exploraÃ§Ã£o ilimitada.
+## 3. Conhecimento como relaÃ§Ã£o
+
+O conhecimento nÃ£o reside inteiro em um arquivo, pessoa, banco de dados ou modelo. Ele emerge de relaÃ§Ãµes entre:
+
+- conteÃºdo e origem;
+- afirmaÃ§Ã£o e evidÃªncia;
+- decisÃ£o e razÃ£o;
+- regra e finalidade;
+- procedimento e resultado;
+- memÃ³ria e contexto;
+- modelo e realidade;
+- prÃ¡tica e revisÃ£o.
+
+A perda dessas relaÃ§Ãµes pode ser mais grave do que a perda de conteÃºdos isolados. Uma coleÃ§Ã£o sem genealogia produz amnÃ©sia semÃ¢ntica: a instituiÃ§Ã£o vÃª o que foi registrado, mas jÃ¡ nÃ£o compreende por que deveria confiar, aplicar ou abandonar.
+
+> **PRINCÃPIO FUNDAMENTAL â€” PRIMAZIA DAS RELAÃ‡Ã•ES EPISTEMOLÃ“GICAS**
+>
+> O significado de um conhecimento institucional depende das relaÃ§Ãµes que preservam sua origem, seu domÃ­nio, sua autoridade, suas dependÃªncias e seus efeitos.
+
+---
+
+## 4. PatrimÃ´nio cognitivo
+
+PatrimÃ´nio cognitivo Ã© o conjunto estruturado de capacidades intelectuais cuja continuidade permite Ã  instituiÃ§Ã£o reconhecer sua identidade, compreender seu ambiente, cumprir sua finalidade e continuar aprendendo.
+
+Ele inclui:
+
+- conceitos e vocabulÃ¡rios;
+- mÃ©todos de investigaÃ§Ã£o e verificaÃ§Ã£o;
+- decisÃµes e respectivas razÃµes;
+- modelos e classificaÃ§Ãµes;
+- experiÃªncias interpretadas;
+- competÃªncias humanas e tÃ©cnicas;
+- memÃ³rias normativas, operacionais e histÃ³ricas;
+- mecanismos de transmissÃ£o;
+- formas de crÃ­tica e revisÃ£o.
+
+PatrimÃ´nio nÃ£o significa propriedade irrestrita. Parte do conhecimento pode derivar de clientes, parceiros, pessoas, comunidades, fontes pÃºblicas ou relaÃ§Ãµes confidenciais. A instituiÃ§Ã£o pode ter responsabilidade de custÃ³dia ou direito de uso limitado sem adquirir legitimidade para exploraÃ§Ã£o ilimitada.
 
 > **PRINCÃPIO FUNDAMENTAL â€” APRENDER SEM APROPRIAR**
 >
@@ -154,3 +191,41 @@ Registro histÃ³rico nÃ£o Ã© verdade final. MemÃ³rias podem conter erro, viÃ©s, r
 >
 > A preservaÃ§Ã£o do passado nÃ£o transforma qualquer registro em verdade incontestÃ¡vel nem qualquer precedente em obrigaÃ§Ã£o permanente.
 
+
+---
+
+## 6. InteligÃªncia, aprendizagem, arquitetura e IA
+
+InteligÃªncia organizacional Ã© a capacidade de transformar percepÃ§Ã£o distribuÃ­da em compreensÃ£o coordenada e aÃ§Ã£o coerente. Ela exige diversidade de perspectivas, representaÃ§Ã£o explÃ­cita da ignorÃ¢ncia e mecanismos que conectem observaÃ§Ã£o, interpretaÃ§Ã£o, deliberaÃ§Ã£o, execuÃ§Ã£o, verificaÃ§Ã£o e aprendizagem.
+
+Aprendizagem institucional ocorre quando a experiÃªncia modifica de modo justificÃ¡vel uma capacidade, interpretaÃ§Ã£o, prÃ¡tica, arquitetura ou doutrina. Registros acumulados sem alteraÃ§Ã£o verificÃ¡vel constituem memÃ³ria, nÃ£o aprendizagem.
+
+> **PRINCÃPIO FUNDAMENTAL â€” APRENDIZAGEM VERIFICÃVEL**
+>
+> A instituiÃ§Ã£o somente deve afirmar que aprendeu quando consegue identificar qual capacidade foi modificada e como essa mudanÃ§a serÃ¡ avaliada.
+
+Doutrina Ã© conhecimento interpretativo estabilizado que disciplina o julgamento sem substituÃ­-lo. Deve preservar problema de origem, premissas, crÃ­ticas e condiÃ§Ãµes de revisÃ£o.
+
+Arquitetura do conhecimento Ã© a estrutura pela qual conteÃºdos sÃ£o produzidos, classificados, relacionados, validados, acessados, transmitidos e preservados. Deve distinguir observaÃ§Ã£o, interpretaÃ§Ã£o, norma, decisÃ£o, procedimento e memÃ³ria. Um arquivo pode conter objetos epistemolÃ³gicos de autoridades diferentes.
+
+DocumentaÃ§Ã£o Ã© interface cognitiva. Sua validade depende da funÃ§Ã£o que exerce: explicar, orientar, provar, ensinar, preservar ou permitir reconstruÃ§Ã£o.
+
+TransmissÃ£o Ã© o processo pelo qual o conhecimento deixa de depender exclusivamente de seu portador original. Pode ocorrer por texto, ensino, demonstraÃ§Ã£o, prÃ¡tica supervisionada, diÃ¡logo, narrativa, simulaÃ§Ã£o e ferramentas.
+
+IA institucional pode ampliar busca, sÃ­ntese, crÃ­tica e simulaÃ§Ã£o, mas nÃ£o deve ser confundida com memÃ³ria nem com autoridade final.
+
+> **PRINCÃPIO FUNDAMENTAL â€” SEPARAÃ‡ÃƒO ENTRE MODELO E MEMÃ“RIA**
+>
+> A instituiÃ§Ã£o nÃ£o deve confiar seu patrimÃ´nio essencial exclusivamente a representaÃ§Ãµes internas opacas de modelos artificiais.
+
+Toda contribuiÃ§Ã£o artificial relevante deve poder ser identificada, contestada, corrigida, desconsiderada e substituÃ­da.
+
+Preservar conhecimento Ã© manter a possibilidade de recuperar significado ao longo do tempo. Isso exige preservar nÃ£o apenas conteÃºdo, mas proveniÃªncia, contexto, relaÃ§Ãµes, mÃ©todos e razÃµes.
+
+> **PRINCÃPIO FUNDAMENTAL â€” SOBERANIA COGNITIVA**
+>
+> Infraestrutura e processamento podem ser terceirizados; a capacidade de compreender e reconstruir o patrimÃ´nio cognitivo essencial, nÃ£o.
+
+## 7. SÃ­ntese
+
+O conhecimento institucional Ã© capacidade distribuÃ­da de continuidade intelectual. A memÃ³ria impede que cada geraÃ§Ã£o comece do zero. A doutrina impede interpretaÃ§Ã£o arbitrÃ¡ria. A aprendizagem impede que a memÃ³ria se torne prisÃ£o. A arquitetura impede fragmentaÃ§Ã£o. A transmissÃ£o converte experiÃªncia privada em continuidade coletiva. A IA amplia a inteligÃªncia institucional, mas nÃ£o deve tornar-se proprietÃ¡ria da memÃ³ria nem Ã¡rbitra final da verdade.
