@@ -1,3 +1,4 @@
+import { normalizeInstitutional, normalizeLearning } from "./contracts.js";
 
 export class ReadApiClient {
   constructor({ baseUrl, apiKey = "" }) {
@@ -33,11 +34,11 @@ export class ReadApiClient {
     return payload;
   }
 
-  institutionalSnapshot() {
-    return this.get("/v1/portal/snapshot");
+  async institutionalSnapshot() {
+    return normalizeInstitutional(await this.get("/v1/portal/snapshot"));
   }
 
-  learningSnapshot() {
-    return this.get("/v1/admin/learning");
+  async learningSnapshot() {
+    return normalizeLearning(await this.get("/v1/admin/learning"));
   }
 }
