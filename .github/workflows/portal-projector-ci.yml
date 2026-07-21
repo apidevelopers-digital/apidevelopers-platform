@@ -1,0 +1,53 @@
+# CI segmentada, somente leitura, sem release ou deploy.
+name: Portal Projector CI
+
+on:
+  push:
+    paths:
+      - "packages/portal-projector/**"
+      - ".github/workflows/portal-projector-ci.yml"
+  pull_request:
+    paths:
+      - "packages/portal-projector/**"
+      - ".github/workflows/portal-projector-ci.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: portal-projector-ci-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  test:
+    name: ${{ matrix.test }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+
+    strategy:
+      fail-fast: false
+      matrix:
+        test:
+          - document-pipeline.test.mjs
+          - e2e-github-institutional.test.mjs
+          - git-reader.test.mjs
+          - github-provider.test.mjs
+          - index.test.mjs
+          - institutional-facade.test.mjs
+          - markdown-parser.test.mjs
+          - typed-extractor.test.mjs
+          - typed-integrity.test.mjs
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: Run test file
+        working-directory: packages/portal-projector
+        run: node --test "test/${{ matrix.test }}"
