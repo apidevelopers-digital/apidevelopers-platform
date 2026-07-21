@@ -19,6 +19,10 @@ const COMMANDS = Object.freeze({
     script: "scripts/publish-github-file.mjs",
     description: "Publica com dry-run por padrão e verificação pós-publicação.",
   },
+  architecture: {
+    script: "scripts/architecture-validate.mjs",
+    description: "Executa validação arquitetural canônica.",
+  },
   test: {
     nodeArgs: ["--test", "tests/tooling/publish-pipeline.test.mjs"],
     description: "Executa os testes essenciais do pipeline.",
@@ -34,8 +38,11 @@ function help() {
     "",
     "Comandos:",
     ...Object.entries(COMMANDS).map(
-      ([name, entry]) => `  ${name.padEnd(10)} ${entry.description}`,
+      ([name, entry]) => `  ${name.padEnd(12)} ${entry.description}`,
     ),
+    "",
+    "Arquitetura:",
+    "  apid architecture validate [opções]",
     "",
     "Publicação real:",
     "  exige --confirm PUBLISH_GITHUB_FILE_REAL",
@@ -70,7 +77,7 @@ function main() {
   }
 
   if (["version", "--version", "-v"].includes(command)) {
-    console.log("apid-toolkit 0.1.0");
+    console.log("apid-toolkit 0.2.0");
     return;
   }
 
@@ -91,6 +98,19 @@ function main() {
         3,
       );
     }
+  }
+
+  if (command === "architecture") {
+    const [subcommand, ...subcommandArgs] = args;
+    if (!subcommand || ["help", "--help", "-h"].includes(subcommand)) {
+      runNode([resolve(ROOT, entry.script), "--help"]);
+      return;
+    }
+    if (subcommand !== "validate") {
+      fail(`Subcomando de architecture desconhecido: ${subcommand}`, 2);
+    }
+    runNode([resolve(ROOT, entry.script), ...subcommandArgs]);
+    return;
   }
 
   if (entry.nodeArgs) {
