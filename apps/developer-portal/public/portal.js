@@ -1,86 +1,69 @@
-
 import { ReadApiClient } from "./api-client.js";
+import { loadProjections } from "./projection-loader.js";
 
 const byId = (id) => document.getElementById(id);
-const safeArray = (value) => Array.isArray(value) ? value : [];
-const text = (value) => value == null || value === "" ? "—" : String(value);
+const array = (value) => Array.isArray(value) ? value : [];
+const value = (input) => input == null || input === "" ? "—" : String(input);
 
-function item(title, body, badge = "") {
+function entry(title, body, badge = "") {
   const node = document.createElement("div");
   node.className = "item";
   const heading = document.createElement("strong");
-  heading.textContent = badge ? `${badge} · ${text(title)}` : text(title);
+  heading.textContent = badge ? `${badge} · ${value(title)}` : value(title);
   const detail = document.createElement("div");
   detail.className = "muted";
-  detail.textContent = text(body);
+  detail.textContent = value(body);
   node.append(heading, detail);
   return node;
 }
 
-function renderList(target, entries, emptyTitle, mapper) {
+function list(id, items, empty, map) {
+  const target = byId(id);
   target.replaceChildren();
-  if (!entries.length) {
-    target.append(item(emptyTitle, "Estado vazio legítimo."));
-    return;
-  }
-  entries.forEach((entry) => target.append(mapper(entry)));
+  if (!items.length) target.append(entry(empty, "Estado vazio legítimo."));
+  else items.forEach((item) => target.append(map(item)));
 }
 
-function setState(kind, title, message) {
-  const state = byId("globalState");
-  state.className = `card wide state ${kind || ""}`.trim();
-  state.replaceChildren();
-  const h = document.createElement("h2");
-  h.textContent = title;
-  const p = document.createElement("p");
-  p.textContent = message;
-  state.append(h, p);
+function state(kind, title, message) {
+  const node = byId("globalState");
+  node.className = `card wide state ${kind}`.trim();
+  node.replaceChildren();
+  const heading = document.createElement("h2");
+  const detail = document.createElement("p");
+  heading.textContent = title;
+  detail.textContent = message;
+  node.append(heading, detail);
 }
 
-function normalizeInstitutional(payload) {
-  return payload?.data || payload?.snapshot || payload || {};
-}
-
-function normalizeLearning(payload) {
-  return payload?.data || payload?.learning || payload || {};
-}
-
-function renderInstitutional(payload) {
-  const data = normalizeInstitutional(payload);
-  const records = safeArray(data.records);
-  const modules = safeArray(data.modules);
-  const versions = safeArray(data.versions);
+function renderInstitutional(data) {
+  const records = array(data.records);
+  const modules = array(data.modules);
+  const versions = array(data.versions);
   const summary = data.summary || {};
   const integrity = data.integrity || {};
-  const meta = payload?.meta || data.meta || {};
+  const meta = data.meta || {};
 
-  byId("summaryTitle").textContent = text(summary.title || "Resumo institucional");
-  byId("summaryText").textContent = text(summary.description || summary.status || "Projeção institucional carregada.");
+  byId("summaryTitle").textContent = value(summary.title || "Resumo institucional");
+  byId("summaryText").textContent = value(summary.description || summary.status || "Projeção institucional carregada.");
   byId("recordsCount").textContent = records.length;
   byId("modulesCount").textContent = modules.length;
   byId("versionsCount").textContent = versions.length;
 
-  renderList(byId("recordsList"), records, "Nenhum registro projetado", (entry) =>
-    item(entry.title || entry.label || entry.id, entry.summary || entry.status || "Registro derivado")
-  );
-  renderList(byId("modulesList"), modules, "Nenhum módulo projetado", (entry) =>
-    item(entry.title || entry.label || entry.id, entry.summary || entry.status || "Módulo derivado")
-  );
+  list("recordsList", records, "Nenhum registro projetado", (item) =>
+    entry(item.title || item.label || item.id, item.summary || item.status || "Registro derivado"));
+  list("modulesList", modules, "Nenhum módulo projetado", (item) =>
+    entry(item.title || item.label || item.id, item.summary || item.status || "Módulo derivado"));
 
-  const integrityEntries = [
-    { title: "Integridade", body: integrity.status || "unknown" },
-    ...safeArray(integrity.sources).map((source) => ({
+  const sources = [{ title: "Integridade", body: integrity.status || "unknown" },
+    ...array(integrity.sources).map((source) => ({
       title: source.label || source.id,
       body: source.version || "fonte canônica",
-    })),
-  ];
-  renderList(byId("integrityPanel"), integrityEntries, "Origem não informada", (entry) =>
-    item(entry.title, entry.body)
-  );
+    }))];
+  list("integrityPanel", sources, "Origem não informada", (item) => entry(item.title, item.body));
 
   byId("projectionBadge").textContent = meta.stale
     ? "Potencialmente desatualizado"
-    : `Projeção ${text(meta.projectionVersion || "carregada")}`;
+    : `Projeção ${value(meta.projectionVersion || "carregada")}`;
 
   const trace = [
     ["Versão da projeção", meta.projectionVersion],
@@ -89,64 +72,59 @@ function renderInstitutional(payload) {
     ["Gerado em", meta.generatedAt],
     ["Correlação", meta.correlationId],
   ];
-  renderList(byId("traceabilityPanel"), trace, "Metadados não informados", ([title, body]) =>
-    item(title, body)
-  );
+  list("traceabilityPanel", trace, "Metadados não informados", ([title, body]) => entry(title, body));
 }
 
-function renderLearning(payload) {
-  const data = normalizeLearning(payload);
-  const memories = safeArray(data.memories);
-  const findings = safeArray(data.findings);
-  const proposals = safeArray(data.proposals);
-  const evidence = safeArray(data.evidence);
-  const recent = [...memories.slice(0, 2), ...findings.slice(0, 3)];
+function renderLearning(data) {
+  const memories = array(data.memories);
+  const findings = array(data.findings);
+  const proposals = array(data.proposals);
+  const evidence = array(data.evidence);
 
-  renderList(byId("learningPreview"), recent, "Sem aprendizado recente", (entry) =>
-    item(entry.title || entry.label || entry.id, entry.summary || entry.description || "Leitura derivada")
-  );
-  renderList(byId("findingsList"), [...memories, ...findings], "Sem memórias ou achados", (entry) =>
-    item(entry.title || entry.label || entry.id, entry.summary || entry.description || "Leitura derivada")
-  );
-  renderList(byId("proposalsList"), proposals, "Sem propostas", (entry) =>
-    item(
-      entry.title || entry.id,
-      entry.summary || "Proposta derivada",
-      entry.status === "approved" ? "Aprovada externamente" : "Não aprovada"
-    )
-  );
-  renderList(byId("evidenceList"), evidence, "Sem evidências", (entry) =>
-    item(entry.title || entry.id, entry.summary || entry.uri || "Evidência rastreável")
-  );
+  list("learningPreview", [...memories.slice(0, 2), ...findings.slice(0, 3)], "Sem aprendizado recente",
+    (item) => entry(item.title || item.label || item.id, item.summary || item.description || "Leitura derivada"));
+  list("findingsList", [...memories, ...findings], "Sem memórias ou achados",
+    (item) => entry(item.title || item.label || item.id, item.summary || item.description || "Leitura derivada"));
+  list("proposalsList", proposals, "Sem propostas",
+    (item) => entry(item.title || item.id, item.summary || "Proposta derivada",
+      item.status === "approved" ? "Aprovada externamente" : "Não aprovada"));
+  list("evidenceList", evidence, "Sem evidências",
+    (item) => entry(item.title || item.id, item.summary || item.uri || "Evidência rastreável"));
+}
+
+function resultText(name, result) {
+  if (result.ok) return `${name}: disponível`;
+  if (result.error?.policy) return `${name}: acesso restrito`;
+  if (result.error?.code === "REQUEST_TIMEOUT") return `${name}: tempo limite excedido`;
+  if (result.error?.code === "REQUEST_CANCELLED") return `${name}: leitura cancelada`;
+  return `${name}: indisponível`;
 }
 
 async function loadAll() {
   const button = byId("loadButton");
   button.disabled = true;
-  setState("", "Carregando projeções", "Consultando APIs de leitura pelo gateway.");
+  state("", "Carregando projeções", "Consultando APIs de leitura pelo gateway.");
+
+  const client = new ReadApiClient({
+    baseUrl: byId("baseUrl").value,
+    apiKey: byId("apiKey").value,
+    timeoutMs: 8000,
+  });
 
   try {
-    const client = new ReadApiClient({
-      baseUrl: byId("baseUrl").value,
-      apiKey: byId("apiKey").value,
-    });
-    const [institutional, learning] = await Promise.all([
-      client.institutionalSnapshot(),
-      client.learningSnapshot(),
-    ]);
-    renderInstitutional(institutional);
-    renderLearning(learning);
-    setState("", "Leitura disponível", "Projeções carregadas sem mutação. Aprovação humana continua obrigatória.");
-  } catch (error) {
-    const policy = [401, 403].includes(error.status);
-    setState(
-      policy ? "warn" : "error",
-      policy ? "Sem permissão ou bloqueado por política" : "Erro de carregamento",
-      policy
-        ? "O Portal não revelará objetos fora do escopo autorizado."
-        : `Falha ${error.message}. Tente novamente quando o gateway estiver disponível.`
-    );
-    byId("projectionBadge").textContent = policy ? "Acesso restrito" : "Projeção indisponível";
+    const result = await loadProjections(client);
+    if (result.institutional.ok) renderInstitutional(result.institutional.data);
+    if (result.learning.ok) renderLearning(result.learning.data);
+
+    const details = `${resultText("Institucional", result.institutional)} · ${resultText("Aprendizado", result.learning)}`;
+    if (result.summary.kind === "ready") state("", "Leitura disponível", `${details}. Nenhuma mutação foi executada.`);
+    else if (result.summary.kind === "partial") state("warn", "Leitura parcial", `${details}. Os dados disponíveis foram preservados.`);
+    else if (result.summary.kind === "policy") state("warn", "Sem permissão ou bloqueado por política", "Nenhum objeto protegido foi revelado.");
+    else state("error", "Projeções indisponíveis", `${details}. Tente novamente quando o gateway estiver disponível.`);
+
+    if (result.summary.kind === "partial") byId("projectionBadge").textContent = "Disponibilidade parcial";
+  } catch {
+    state("error", "Falha inesperada", "A leitura não pôde ser concluída. Nenhum detalhe sensível foi exibido.");
   } finally {
     button.disabled = false;
   }
@@ -160,4 +138,5 @@ document.querySelectorAll("nav button").forEach((button) => {
     byId(`${button.dataset.view}View`).classList.remove("hidden");
   });
 });
+
 byId("loadButton").addEventListener("click", loadAll);
