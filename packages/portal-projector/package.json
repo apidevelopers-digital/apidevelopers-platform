@@ -14,7 +14,8 @@
     "./institutional-facade": "./src/institutional-facade.mjs",
     "./github-provider": "./src/github-provider.mjs",
     "./derived-store": "./src/derived-store.mjs",
-    "./institutional-publisher": "./src/institutional-publisher.mjs"
+    "./institutional-publisher": "./src/institutional-publisher.mjs",
+    "./read-api": "./src/read-api.mjs"
   },
   "scripts": {
     "test": "node --test"
