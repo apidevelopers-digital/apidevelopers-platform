@@ -1,0 +1,40 @@
+name: Portal Projector CI
+
+on:
+  push:
+    paths:
+      - "packages/portal-projector/**"
+      - ".github/workflows/portal-projector-ci.yml"
+  pull_request:
+    paths:
+      - "packages/portal-projector/**"
+      - ".github/workflows/portal-projector-ci.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: portal-projector-ci-{{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  test:
+    name: Node tests
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: packages/portal-projector/package.json
+
+      - name: Run portal-projector tests
+        working-directory: packages/portal-projector
+        run: node --test
