@@ -1,0 +1,17 @@
+{
+  "name": "@apidevelopers/commercial-journey-core",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Fail-closed commercial journey orchestration from registration to first API request.",
+  "type": "module",
+  "exports": {
+    ".": "./src/index.mjs"
+  },
+  "scripts": {
+    "test": "node --test test/*.test.mjs",
+    "check": "node --check src/index.mjs && npm test"
+  },
+  "engines": {
+    "node": ">=22"
+  }
+}
