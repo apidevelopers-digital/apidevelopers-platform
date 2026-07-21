@@ -1,0 +1,171 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://developers.digital/contracts/platform-learning-event.schema.json",
+  "title": "UNI Platform Learning Event",
+  "type": "object",
+  "required": [
+    "event_id",
+    "occurred_at",
+    "tenant_id",
+    "platform",
+    "radar",
+    "memory",
+    "operator_learning"
+  ],
+  "properties": {
+    "event_id": {
+      "type": "string",
+      "minLength": 8
+    },
+    "occurred_at": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "tenant_id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "platform": {
+      "type": "object",
+      "required": [
+        "surface",
+        "event_type"
+      ],
+      "properties": {
+        "surface": {
+          "type": "string",
+          "minLength": 1
+        },
+        "event_type": {
+          "type": "string",
+          "minLength": 1
+        },
+        "session_id": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "payload_ref": {
+          "type": [
+            "string",
+            "null"
+          ]
+        }
+      },
+      "additionalProperties": true
+    },
+    "radar": {
+      "type": "object",
+      "required": [
+        "tracked",
+        "signals"
+      ],
+      "properties": {
+        "tracked": {
+          "const": true
+        },
+        "signals": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "score": {
+          "type": [
+            "number",
+            "null"
+          ]
+        },
+        "lead_id": {
+          "type": [
+            "string",
+            "null"
+          ]
+        }
+      },
+      "additionalProperties": true
+    },
+    "memory": {
+      "type": "object",
+      "required": [
+        "scope",
+        "retention",
+        "privacy_class"
+      ],
+      "properties": {
+        "scope": {
+          "enum": [
+            "tenant",
+            "product",
+            "global_candidate"
+          ]
+        },
+        "retention": {
+          "enum": [
+            "ephemeral",
+            "session",
+            "long_term"
+          ]
+        },
+        "privacy_class": {
+          "enum": [
+            "public",
+            "internal",
+            "confidential",
+            "restricted"
+          ]
+        },
+        "memory_ref": {
+          "type": [
+            "string",
+            "null"
+          ]
+        }
+      },
+      "additionalProperties": false
+    },
+    "operator_learning": {
+      "type": "object",
+      "required": [
+        "status",
+        "candidate_change",
+        "cross_tenant_safe"
+      ],
+      "properties": {
+        "status": {
+          "enum": [
+            "observed",
+            "candidate",
+            "validated",
+            "rejected",
+            "published"
+          ]
+        },
+        "candidate_change": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "cross_tenant_safe": {
+          "type": "boolean"
+        },
+        "evidence_refs": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "approved_by": {
+          "type": [
+            "string",
+            "null"
+          ]
+        }
+      },
+      "additionalProperties": false
+    }
+  },
+  "additionalProperties": false
+}
