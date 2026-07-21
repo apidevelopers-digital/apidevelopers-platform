@@ -32,21 +32,12 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: "22"
-      - name: Check runtime
-        run: node --version
-      - name: Check source syntax
-        run: |
-          node --check packages/persistence-core/src/model.mjs
-          node --check packages/persistence-core/src/transaction-context.mjs
-          node --check packages/persistence-core/src/file-store.mjs
-          node --check packages/persistence-core/src/repository.mjs
-          node --check packages/persistence-core/src/index.mjs
-          node --check packages/persistence-core/test/index.test.mjs
-      - name: Run persistence-core tests
-        run: node --test --test-reporter=spec packages/persistence-core/test/index.test.mjs
+      - name: Check persistence-core
+        run: npm --prefix packages/persistence-core run check
       - name: Check consuming domain boundaries
         run: |
           node --check packages/tenant-core/src/index.mjs
           node --check packages/project-core/src/index.mjs
           node --check packages/usage-core/src/index.mjs
           node --check packages/entitlement-core/src/index.mjs
+          node --check packages/gateway-core/src/index.mjs
