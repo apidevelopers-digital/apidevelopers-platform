@@ -90,3 +90,15 @@ await store.transaction((tx) => {
 ```bash
 npm --prefix packages/persistence-core run check
 ```
+
+## Claim transacional da outbox
+
+O contexto transacional também oferece operações compatíveis com múltiplos workers:
+
+- `claimOutbox({ workerId, limit, at, leaseUntil })`;
+- `completeOutboxClaim(id, { workerId, publishedAt })`;
+- `failOutboxClaim(id, error, { workerId, nextAttemptAt, deadLetter })`.
+
+A claim usa lease explícito. Entradas com lease expirado podem ser retomadas por outro worker. A confirmação exige o mesmo `workerId`, e falhas podem retornar a entrada para `pending` ou movê-la para `dead_letter`.
+
+A entrega é **at-least-once**: o transporte externo deve deduplicar pelo `event.id`.
