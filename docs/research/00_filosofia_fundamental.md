@@ -3,145 +3,189 @@
 **Missão:** Filosofia institucional  
 **Status:** material doutrinário de pesquisa  
 **Efeito normativo:** nenhum  
-**Relação com a Constituição:** fonte de conceitos, distinções, problemas e princípios candidatos; não constitui texto constitucional  
-**Escopo negativo:** não disciplina procedimentos, não distribui competências concretas, não define estados operacionais e não altera norma vigente  
-**Fronteiras:** Tempo, Ordem, Conhecimento e Evolução possuem pesquisas próprias; aqui aparecem apenas quando indispensáveis à fundamentação filosófica
+**Escopo:** teoria; não constitui texto constitucional
 
----
+## Método
 
-## 0. Método e critério de validade
+Esta pesquisa pergunta o que uma instituição é, por que merece continuar, que poder pode ser legítimo e o que precisa sobreviver à substituição de pessoas, empresas, produtos e tecnologias.
 
-Este documento não procura preencher capítulos futuros. Procura descobrir quais ideias precisam ser verdadeiras para que uma Constituição institucional seja coerente, inteligível e durável.
+Seus critérios são: distinção conceitual, não redução tecnológica, resistência temporal, capacidade crítica e incompletude honesta.
 
-A pesquisa adota cinco exigências:
+## Fundamento ontológico
 
-1. **distinção conceitual:** termos diferentes não serão usados como sinônimos por conveniência;
-2. **não redução tecnológica:** nenhuma tese dependerá de linguagem, fornecedor, plataforma, modelo de inteligência artificial ou arquitetura específica;
-3. **resistência temporal:** um princípio só é candidato fundamental se continuar inteligível após a substituição de pessoas, produtos e tecnologias;
-4. **capacidade crítica:** a doutrina deve poder julgar a própria instituição, e não apenas justificar decisões já tomadas;
-5. **incompletude honesta:** questões não resolvidas serão mantidas abertas em vez de receberem respostas artificiais.
+Uma instituição é uma continuidade de responsabilidade que atravessa pessoas, formas jurídicas, tecnologias e gerações sem se reduzir a nenhuma delas.
 
-A filosofia institucional começa antes da norma. Ela pergunta o que existe, o que merece permanecer, que tipo de poder pode ser considerado legítimo, a quem a instituição deve responder e por que sua continuidade seria valiosa.
+Ela existe quando um compromisso se torna capaz de sobreviver aos seus autores, limitar seus administradores presentes e permanecer inteligível para sucessores ainda ausentes.
 
----
+Sua unidade não está na identidade material dos componentes. Está na persistência reconhecível de uma obrigação.
 
-# PARTE I — ONTOLOGIA INSTITUCIONAL
+> **Instituição é uma ordem durável de finalidade, compromissos, autoridade, responsabilidade, memória e capacidades, reconhecível através de transformações e apta a produzir ações imputáveis.**
 
-## 1. O problema ontológico
+Capacidade sem responsabilidade produz uma máquina de efeitos.  
+Finalidade sem capacidade produz apenas intenção coletiva.  
+Autoridade sem compromisso produz arbítrio organizado.
 
-Antes de governar uma instituição, é necessário saber o que ela é.
+## Fundamento da promessa
 
-A expressão “API Developers Digital” pode designar, em usos cotidianos, uma empresa, uma marca, uma equipe, uma plataforma, um portfólio de produtos, uma capacidade industrial, uma comunidade técnica ou um sistema cognitivo. Esses usos podem ser pragmaticamente aceitáveis, mas são insuficientes para uma Constituição. Uma Constituição não pode distribuir autoridade a um sujeito conceitualmente indeterminado.
+Toda instituição nasce de uma promessa, ainda que essa promessa nunca tenha sido formulada em uma única frase.
 
-A pergunta ontológica não é “quais ativos pertencem à organização?”. É:
+A promessa institucional declara que alguma coisa não será abandonada à conveniência imediata. Pode ser uma obrigação de proteger, ensinar, investigar, preservar, representar, julgar, cuidar, transmitir, criar ou servir.
 
-> **Que realidade permanece sendo a mesma instituição quando ativos, pessoas, tecnologias, produtos e estruturas são substituídos?**
+A promessa não é propaganda. É a medida contra a qual a própria instituição pode ser julgada.
 
-Uma resposta inadequada torna a Constituição refém do elemento escolhido. Se a instituição for definida como plataforma, deixa de existir quando a plataforma muda. Se for definida como empresa, sua identidade fica reduzida à forma jurídica contingente. Se for definida como fundador, não possui sucessão real. Se for definida como tecnologia, torna-se obsoleta com sua própria inovação.
+Uma organização que só pode ser avaliada pelos objetivos que ela mesma redefine não possui compromisso institucional; possui apenas vontade operacional.
 
-### 1.1 Definição doutrinária candidata
+A instituição começa quando aceita que nem tudo o que consegue fazer está autorizado por sua finalidade.
 
-**Instituição** é uma ordem durável de finalidade, compromissos, autoridades, responsabilidades, memória e capacidades, reconhecível através de transformações e apta a produzir ações imputáveis.
+## Fundamento da responsabilidade intergeracional
 
-A definição contém sete elementos inseparáveis:
+A instituição não pertence inteiramente aos que a administram.
 
-- **ordem:** os elementos mantêm relações inteligíveis e não formam mera coleção;
-- **duração:** a instituição pretende ultrapassar atos e projetos isolados;
-- **finalidade:** existe uma razão orientadora que permite julgar escolhas;
-- **compromissos:** certas obrigações vinculam a instituição para além da conveniência imediata;
-- **autoridade:** existem meios legítimos de produzir decisões institucionais;
-- **responsabilidade:** ações e omissões podem ser atribuídas e respondidas;
-- **capacidade:** a instituição consegue transformar decisões legítimas em efeitos.
+Os presentes exercem autoridade sobre algo que receberam de anteriores e que afeta posteriores. Sua posição é fiduciária: podem interpretar, corrigir e transformar, mas não tratar a instituição como propriedade privada absoluta.
 
-Uma entidade que possui capacidade sem responsabilidade é uma máquina de efeitos, não uma instituição plenamente governada. Uma entidade que possui finalidade sem capacidade é uma intenção coletiva, não uma instituição operacional. Uma entidade que possui autoridade sem compromissos pode tornar-se arbítrio organizado.
+A responsabilidade possui três direções:
 
-> **PRINCÍPIO FUNDAMENTAL — A INSTITUIÇÃO É UMA ORDEM DE COMPROMISSOS, NÃO UMA COLEÇÃO DE ATIVOS.**
+- responde ao passado, porque recebe compromissos, aprendizados, dívidas e consequências;
+- responde ao presente, porque precisa agir diante de necessidades reais;
+- responde ao futuro, porque suas decisões alteram possibilidades de pessoas ainda ausentes.
 
-## 2. Distinções ontológicas necessárias
+O passado sem o presente produz culto.  
+O presente sem o passado produz arrogância.  
+O presente sem o futuro produz saque.
 
-### 2.1 Instituição e empresa
+## Fundamento da continuidade
 
-A empresa é uma forma jurídica, econômica e organizacional por meio da qual a instituição pode agir. Ela pode deter ativos, contratar pessoas, celebrar obrigações e responder legalmente.
+Continuidade não é repetição.
 
-A instituição, contudo, não se reduz à empresa. Uma mesma instituição pode utilizar sociedades distintas, reorganizar participações, criar unidades nacionais ou substituir formas jurídicas sem perder necessariamente sua identidade.
+Uma instituição permanece quando conserva uma relação inteligível entre suas transformações e a responsabilidade que justifica sua existência.
 
-### 2.2 Instituição e organização
+A imobilidade pode destruí-la tanto quanto a mudança arbitrária. Formas que antes protegiam a promessa podem se tornar obstáculos. Mudanças justificadas em nome da eficiência podem dissolver o compromisso.
 
-Organização é o arranjo coordenado de pessoas, papéis e processos em determinado momento. A organização muda com contratações, desligamentos e reestruturações.
+A continuidade exige duas capacidades inseparáveis:
 
-A instituição contém organizações, mas também compromissos e identidade que julgam as próprias formas organizacionais. Uma reorganização pode ser administrativamente eficiente e institucionalmente destrutiva.
+- conservar o que não pode ser abandonado sem perda de identidade;
+- transformar o que não pode ser mantido sem perda de legitimidade.
 
-### 2.3 Instituição e marca
+A permanência é uma disciplina de interpretação.
 
-A marca permite reconhecimento simbólico e econômico. Ela transporta reputação, promessa e identidade pública.
+## Fundamento da identidade
 
-Reconhecimento visual não equivale a identidade institucional. Uma marca pode permanecer enquanto a finalidade é abandonada; pode também mudar sem que a instituição deixe de existir.
+A identidade institucional não é uma essência imóvel escondida na origem.
 
-### 2.4 Instituição e plataforma
+Ela é a capacidade de atravessar mudanças sem perder a obrigação de explicar-se. Uma instituição conserva identidade quando pode narrar honestamente o que recebeu, preservou, alterou, abandonou e por que ainda responde pelo mesmo nome.
 
-Plataforma é uma arquitetura de capacidades, interações e serviços. Pode ser o principal meio de realização da finalidade institucional em uma fase histórica.
+A identidade não exige continuidade perfeita. Exige responsabilidade pela descontinuidade.
 
-A plataforma continua sendo meio. Não é fonte originária de legitimidade nem sujeito último da Constituição.
+Quando uma instituição encobre rupturas ou reescreve o passado para legitimar o presente, destrói o vínculo entre memória e verdade.
 
-### 2.5 Instituição e produto
+## Distinções fundamentais
 
-Produto é uma configuração delimitada de valor oferecido a destinatários. Produtos nascem, amadurecem, são substituídos e encerrados.
+A empresa é uma forma jurídica e econômica por meio da qual a instituição pode agir. A organização é o arranjo atual de pessoas e processos. A marca oferece reconhecimento. A plataforma organiza capacidades. O produto entrega valor delimitado. A tecnologia materializa meios. Um sistema cognitivo observa, infere, recomenda ou executa ações delegadas.
 
-Uma instituição incapaz de encerrar um produto sem perder identidade tornou-se dependente de sua própria produção.
+Nenhum desses elementos, isoladamente, é a instituição.
 
-### 2.6 Instituição e tecnologia
+Uma empresa pergunta:
 
-Tecnologia é capacidade materializada em métodos, artefatos e sistemas. Amplia possibilidades de ação, mas não determina por si mesma o que deve ser feito.
+> Como preservar a operação e produzir valor?
 
-Toda tecnologia incorpora escolhas, mas nenhuma tecnologia possui, por sua mera existência, autoridade para definir a finalidade da instituição.
+Uma instituição também precisa perguntar:
 
-### 2.7 Instituição e comunidade
+> O que deve permanecer verdadeiro, mesmo que a operação atual precise ser transformada?
 
-Comunidades podem participar da formação de sentido, conhecimento, legitimidade e benefício. Ainda assim, “comunidade” não deve ser usada como abstração que apaga diferenças entre clientes, trabalhadores, mantenedores, parceiros, usuários e terceiros afetados.
+A duração é cronológica. A permanência institucional é moral.
 
-Uma Constituição deve reconhecer relações concretas, não invocar uma comunidade imaginária para presumir consentimento.
+Nenhum instrumento da instituição pode ser confundido com a totalidade da instituição.
 
-### 2.8 Instituição e sistema cognitivo
+## Fundamento do limite
 
-Um sistema cognitivo pode observar, organizar memória, inferir, recomendar, planejar ou executar ações delegadas. Pode tornar-se parte central da capacidade institucional.
+A instituição torna-se reconhecível por seus limites.
 
-Não se segue daí que o sistema cognitivo seja a própria instituição. O sistema não é, por si só, origem da finalidade, titular soberano da autoridade ou destinatário final do benefício.
+Seu poder não é definido apenas pelo que consegue fazer, mas pelo que se recusa a fazer, mesmo diante de vantagem, urgência ou pressão.
 
-> **PRINCÍPIO FUNDAMENTAL — NENHUM INSTRUMENTO DA INSTITUIÇÃO PODE SER CONFUNDIDO COM A TOTALIDADE DA INSTITUIÇÃO.**
+Sem autolimitação, toda capacidade tende a converter-se em autorização. A instituição deixa de servir a uma responsabilidade e passa a servir à própria expansão.
 
-## 3. O sujeito constitucional
+Uma instituição sem limites pode continuar poderosa, mas deixa de ser confiável.
 
-O sujeito constitucional é a entidade à qual se atribuem identidade, finalidade, compromissos e continuidade.
+## Fundamento da autoridade
 
-A tese candidata desta pesquisa é:
+Autoridade institucional não é sinônimo de controle.
 
-> **O sujeito constitucional é a Instituição API Developers Digital, entendida como ordem durável de finalidade, compromissos, autoridade, responsabilidade, memória e capacidades; empresas, marcas, plataformas, produtos e sistemas são instrumentos por meio dos quais essa instituição se manifesta.**
+Controle é capacidade de determinar comportamentos. Autoridade é capacidade reconhecida de orientar ações em nome de uma responsabilidade legítima.
 
-Essa tese implica que:
+Ela depende de competência, memória, limite e prestação de contas. Nenhum agente, humano ou artificial, possui autoridade institucional apenas porque sabe mais, calcula melhor ou controla mais recursos.
 
-1. a Constituição não pertence a um produto;
-2. a autoridade não nasce de credenciais técnicas;
-3. a substituição de pessoas não extingue compromissos;
-4. a reorganização societária não pode, por si só, apagar responsabilidades;
-5. a tecnologia deve ser julgada pelo propósito e pelos limites institucionais;
-6. o patrimônio institucional não pode ser apropriado informalmente por seu custodiante;
-7. a continuidade exige mais do que preservar operações.
+Conhecimento pode justificar influência. Responsabilidade pode justificar mandato. Nenhum dos dois elimina a necessidade de limite.
 
-### 3.1 Existência e reconhecimento
+## Fundamento da legitimidade
 
-Uma instituição não existe apenas porque declara existir. Sua existência depende de consistência entre identidade afirmada, compromissos efetivamente assumidos, decisões reconhecíveis, capacidade de responder por efeitos, memória suficiente para continuidade e reconhecimento interno e externo minimamente estável.
+A legitimidade não é conquistada de uma vez. Precisa ser renovada pela coerência entre compromisso declarado e conduta observável.
 
-O reconhecimento externo não cria sozinho a instituição, mas a completa. Uma ordem que ninguém consegue identificar, responsabilizar ou distinguir de seus agentes individuais possui existência institucional precária.
+Ela se deteriora quando a missão se torna pretexto para autopreservação, o segredo protege reputação em vez de pessoas, a autoridade rejeita revisão, o passado é manipulado ou o futuro é consumido para sustentar resultados presentes.
 
-### 3.2 A instituição como agente imputável
+A legitimidade não exige ausência de erro. Exige capacidade de reconhecer, corrigir e reparar.
 
-Dizer que a instituição age não significa atribuir-lhe consciência humana. Significa que certas ações podem ser legitimamente imputadas a ela porque foram produzidas por agentes, ofícios e sistemas dentro de uma cadeia reconhecida de autoridade e responsabilidade.
+## Fundamento da verdade
 
-A imputação institucional evita dois extremos:
+Nenhuma instituição pode durar legitimamente se precisa falsificar a realidade para preservar a própria imagem.
 
-- reduzir toda ação a indivíduos isolados, tornando impossível a continuidade da responsabilidade;
-- atribuir ações a uma abstração impessoal, permitindo que indivíduos e sistemas escapem da prestação de contas.
+A verdade institucional é disposição estrutural para permitir que fatos inconvenientes produzam consequências.
 
-A instituição responde como unidade; agentes concretos respondem conforme suas competências, decisões, omissões e deveres.
+Uma organização pode acumular dados e ainda impedir conhecimento. Isso ocorre quando registros existem, mas não podem contestar decisões; quando indicadores substituem experiências; quando a versão oficial é protegida contra evidência contrária.
 
-> **PRINCÍPIO FUNDAMENTAL — TODA AÇÃO INSTITUCIONAL DEVE SER IMPUTÁVEL À INSTITUIÇÃO E RASTREÁVEL A RESPONSABILIDADES CONCRETAS.**
+A reputação que depende da ocultação já é uma forma de insolvência moral.
+
+## Fundamento da memória
+
+Memória institucional não é arquivo acumulado.
+
+É a capacidade de reconstruir por que fatos, decisões, conflitos, perdas e renúncias importam.
+
+Há três dimensões:
+
+- factual: o que ocorreu;
+- causal: por que ocorreu;
+- normativa: por que deveria continuar importando.
+
+Uma instituição pode conservar todos os documentos e ainda esquecer os danos que certas decisões pretendiam evitar ou os limites que estavam protegendo.
+
+A memória que registra apenas vitórias é propaganda. A memória que registra apenas fracassos é condenação. A memória madura preserva complexidade suficiente para aprendizagem e responsabilidade.
+
+## Fundamento da sucessão
+
+A sucessão institucional não é mera substituição de pessoas. É transmissão de responsabilidade sem transmissão de servidão.
+
+O sucessor legítimo precisa receber autoridade para agir, memória para compreender, liberdade para corrigir, limites para não se apropriar da instituição e instrumentos para prestar contas.
+
+A sucessão fracassa quando o novo agente acredita que tudo começa com ele. Também fracassa quando acredita que nada pode mudar depois dos anteriores.
+
+O sucessor não é imitador nem conquistador. É intérprete responsável.
+
+## Fundamento da autocorreção
+
+A instituição não é preservada evitando todos os erros.
+
+Ela é preservada mantendo condições pelas quais o erro possa ser descoberto, admitido, interrompido e reparado sem que a crítica seja tratada como traição.
+
+Autocorreção exige memória verificável, contestação, proteção contra retaliação, distinção entre reputação e verdade, capacidade de revisão e mecanismos de reparação.
+
+Uma instituição que só aceita informações favoráveis substitui realidade por autopreservação.
+
+## Fundamento da dissolução
+
+Nem toda instituição deve durar para sempre.
+
+Há instituições que devem terminar quando a obrigação foi cumprida, quando a finalidade se tornou ilegítima ou quando a continuidade exige danos maiores que os bens preservados.
+
+A possibilidade de dissolução faz parte da honestidade institucional.
+
+Uma instituição incapaz de imaginar condições legítimas para o próprio fim tende a transformar toda missão em justificativa infinita para sua permanência.
+
+Continuar não é sempre vencer. Encerrar não é sempre fracassar.
+
+## Síntese provisória
+
+Uma instituição é uma promessa tornada capaz de atravessar ausências.
+
+Ela existe quando uma responsabilidade sobrevive aos autores, os presentes não se tratam como proprietários absolutos, a identidade explica transformações, o poder aceita limites, a memória preserva razões, a sucessão transmite responsabilidade, a verdade corrige a autoridade e o futuro não é consumido como recurso sem voz.
+
+Sua verdadeira medida não é quanto tempo sobreviveu, mas o que permaneceu possível porque ela existiu.
