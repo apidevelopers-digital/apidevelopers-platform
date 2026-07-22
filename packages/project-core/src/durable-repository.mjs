@@ -1,8 +1,8 @@
 import { createDurableRepository } from "@apidevelopers/persistence-core";
 
 function assertStore(store) {
-  if (!store || typeof store.read !== "function" || typeof store.transact !== "function") {
-    throw new TypeError("store must implement read() and transact()");
+  if (!store || typeof store.read !== "function" || typeof store.transaction !== "function") {
+    throw new TypeError("store must implement read() and transaction()");
   }
   return store;
 }
