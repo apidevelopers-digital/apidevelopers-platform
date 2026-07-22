@@ -32,6 +32,8 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: "22"
+      - name: Install workspace dependencies
+        run: npm install --ignore-scripts
       - name: Check project-core
         run: npm --prefix packages/project-core run check
       - name: Check tenant boundaries
