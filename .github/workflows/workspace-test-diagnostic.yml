@@ -2,6 +2,9 @@ name: Workspace Test Diagnostic
 
 on:
   workflow_dispatch:
+  push:
+    branches:
+      - feature/institutional-multi-agent-core-20260721
 
 permissions:
   contents: read
