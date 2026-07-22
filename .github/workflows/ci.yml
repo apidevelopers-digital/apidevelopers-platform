@@ -34,14 +34,14 @@ jobs:
       - name: Test root integration
         run: node --test --test-reporter=spec tests/integration/*.test.mjs
       - name: Test workspace packages
-        run: npm test --workspaces --if-present
+        run: node scripts/test-workspaces-sequentially.mjs
       - name: Run institutional audit
         run: npm run audit:institutional
       - name: Validate institutional audit artifacts
         run: |
           test -f .audit/snapshot.json
           test -f .audit/report.md
-          node -e 'const fs=require("fs"); const s=JSON.parse(fs.readFileSync(".audit/snapshot.json","utf8")); if (!s.commit || !s.summary || typeof s.summary.files !== "number" || s.summary.files < 1) process.exit(1);'
+          node -e 'const fs=require("fs"); const s=JSON.parse(fs.readFileSync(".audit/snapshot.json","utf8")); if (!s.commit || !s.summary || typeof s.summmary.files !== "number" || s.summary.files < 1) process.exit(1);'
       - name: Reject transient publishing artifacts
         run: |
           test ! -d .wave5
