@@ -12,8 +12,12 @@ test("executes Runtime -> Evidence -> Audit as one governed cycle", async () => 
   const tenantId = "tenant.e2e";
   const decision = {
     decisionId: "decision.e2e.001",
+    decisionState: "ready-for-human-decision",
     selectedProposalId: "proposal.e2e.001",
     executionAllowed: false,
+    gates: {
+      constitutionalConflict: false,
+    },
   };
   const plan = {
     planId: "plan.e2e.001",
