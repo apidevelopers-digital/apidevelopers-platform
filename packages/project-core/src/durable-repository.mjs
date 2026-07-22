@@ -1,4 +1,4 @@
-import { createRepository } from "@apidevelopers/persistence-core";
+import { createDurableRepository } from "@apidevelopers/persistence-core";
 
 function assertStore(store) {
   if (!store || typeof store.read !== "function" || typeof store.transact !== "function") {
@@ -12,7 +12,7 @@ function clone(value) {
 }
 
 export function createDurableProjectRepository({ store } = {}) {
-  const repository = createRepository({
+  const repository = createDurableRepository({
     store: assertStore(store),
     collection: "projects",
   });
