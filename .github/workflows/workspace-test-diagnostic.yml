@@ -23,7 +23,7 @@ jobs:
       - name: Test each workspace individually
         shell: bash
         run: |
-          set -o pipefail
+          set -euo pipefail
           npm query .workspace | node --input-type=module -e '
             let data = "";
             process.stdin.on("data", chunk => data += chunk);
@@ -34,6 +34,9 @@ jobs:
             });
           ' | while IFS= read -r workspace; do
             echo "::group::${workspace}"
-            npm test --workspace "${workspace}" --if-present
+            if ! npm test --workspace "${workspace}" --if-present; then
+              echo "::error title=Workspace test failed::${workspace}"
+              exit 1
+            fi
             echo "::endgroup::"
           done
