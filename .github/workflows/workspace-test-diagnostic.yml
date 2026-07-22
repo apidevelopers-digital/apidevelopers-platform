@@ -1,0 +1,36 @@
+name: Workspace Test Diagnostic
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  diagnose:
+    runs-on: [self-hosted, macOS, X64]
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+      - name: Install workspace links
+        run: npm install --ignore-scripts --no-audit --no-fund --no-package-lock
+      - name: Test each workspace individually
+        shell: bash
+        run: |
+          set -o pipefail
+          npm query .workspace | node --input-type=module -e '
+            let data = "";
+            process.stdin.on("data", chunk => data += chunk);
+            process.stdin.on("end", () => {
+              for (const item of JSON.parse(data)) {
+                if (item.package?.scripts?.test) console.log(item.location);
+              }
+            });
+          ' | while IFS= read -r workspace; do
+            echo "::group::${workspace}"
+            npm test --workspace "${workspace}" --if-present
+            echo "::endgroup::"
+          done
