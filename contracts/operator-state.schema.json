@@ -1,0 +1,81 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://developers.digital/contracts/operator-state.schema.json",
+  "title": "UNI Operator State",
+  "type": "object",
+  "required": [
+    "schema_version",
+    "generated_at",
+    "repository",
+    "target_ref",
+    "target_sha",
+    "validation",
+    "continuity"
+  ],
+  "properties": {
+    "schema_version": {
+      "const": "1.0.0"
+    },
+    "generated_at": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "repository": {
+      "type": "string",
+      "minLength": 3
+    },
+    "target_ref": {
+      "type": "string",
+      "minLength": 1
+    },
+    "target_sha": {
+      "type": "string",
+      "pattern": "^[0-9a-f]{40}$"
+    },
+    "validation": {
+      "type": "object",
+      "required": [
+        "status",
+        "successful_action_runs"
+      ],
+      "properties": {
+        "status": {
+          "enum": [
+            "candidate",
+            "validated",
+            "published"
+          ]
+        },
+        "successful_action_runs": {
+          "type": "array"
+        }
+      },
+      "additionalProperties": true
+    },
+    "open_pull_requests": {
+      "type": "array",
+      "default": []
+    },
+    "continuity": {
+      "type": "object",
+      "required": [
+        "source_of_truth",
+        "chat_memory_authoritative",
+        "canonical_documents_authoritative"
+      ],
+      "properties": {
+        "source_of_truth": {
+          "const": "published_git_ref_plus_successful_github_actions"
+        },
+        "chat_memory_authoritative": {
+          "const": false
+        },
+        "canonical_documents_authoritative": {
+          "const": false
+        }
+      },
+      "additionalProperties": false
+    }
+  },
+  "additionalProperties": true
+}
