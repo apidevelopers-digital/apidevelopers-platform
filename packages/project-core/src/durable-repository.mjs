@@ -25,7 +25,7 @@ export function createDurableProjectRepository({ store } = {}) {
     },
 
     async replace(project) {
-      return clone(await repository.replace(project.id, project));
+      return clone(await repository.replace(project));
     },
 
     async getById(id) {
