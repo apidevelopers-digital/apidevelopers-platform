@@ -1,13 +1,22 @@
 {
   "name": "@apidevelopers/user-core",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "private": true,
   "description": "User identity, profile, verification and lifecycle contracts for API Developers.digital.",
   "type": "module",
-  "exports": {".": "./src/index.mjs"},
+  "exports": {
+    ".": "./src/index.mjs",
+    "./async-service": "./src/async-service.mjs",
+    "./durable-repository": "./src/durable-repository.mjs"
+  },
   "scripts": {
     "test": "node --test test/*.test.mjs",
-    "check": "node --check src/index.mjs && npm test"
+    "check": "node --check src/index.mjs && node --check src/async-service.mjs && node --check src/durable-repository.mjs && npm test"
   },
-  "engines": {"node": ">=22"}
+  "dependencies": {
+    "@apidevelopers/persistence-core": "0.3.0"
+  },
+  "engines": {
+    "node": ">=22"
+  }
 }
