@@ -1,0 +1,41 @@
+name: Kernel Orchestration CI
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - main
+      - "foundation/**"
+      - "feature/institutional-multi-agent-core-20260721"
+    paths:
+      - "packages/kernel-orchestration/**"
+      - ".github/workflows/kernel-orchestration-ci.yml"
+  pull_request:
+    paths:
+      - "packages/kernel-orchestration/**"
+      - ".github/workflows/kernel-orchestration-ci.yml"
+
+permissions:
+  contents: read
+
+concurrency:
+  group: kernel-orchestration-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+
+      - name: Check syntax
+        run: |
+          node --check packages/kernel-orchestration/src/index.mjs
+          node --check packages/kernel-orchestration/test/index.test.mjs
+
+      - name: Test kernel-orchestration
+        run: npm --prefix packages/kernel-orchestration test
