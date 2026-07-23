@@ -1,0 +1,106 @@
+name: API Gateway Runtime Diagnostic
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: api-gateway-runtime-diagnostic-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  diagnose:
+    runs-on: [self-hosted, macOS, X64]
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+
+      - name: Link Gateway Core workspaces
+        shell: bash
+        run: |
+          set -euo pipefail
+          scope_dir="$GITHUB_WORKSPACE/node_modules/@apidevelopers"
+          mkdir -p "$scope_dir"
+          for package in registry-core platform-core auth-core apikey-core portal-projector-http; do
+            source_dir="$GITHUB_WORKSPACE/packages/$package"
+            target="$scope_dir/$package"
+            test -f "$source_dir/package.json"
+            rm -rf "$target"
+            ln -s "$source_dir" "$target"
+            test -f "$target/package.json"
+          done
+
+      - name: Import auth-core
+        run: node -e "import('@apidevelopers/auth-core').then((m) => { if (typeof m.createAuthenticator !== 'function') process.exit(1); })"
+
+      - name: Exercise sync auth-core authenticator
+        run: |
+          node --input-type=module <<'NODE'
+          import { createAuthenticator } from "@apidevelopers/auth-core";
+          const authenticator = createAuthenticator({
+            adminKey: "admin-test-key",
+            resolveClient: () => null,
+          });
+          const identity = authenticator.authenticate({ "x-api-key": "admin-test-key" });
+          if (identity?.role !== "admin") {
+            console.error("Expected admin identity", identity);
+            process.exit(1);
+          }
+          NODE
+
+      - name: Import Gateway security adapter
+        run: node -e "import('./apps/api-gateway/src/security.mjs')"
+
+      - name: Exercise Gateway security adapter
+        run: |
+          node --input-type=module <<'NODE'
+          import { createAuthenticator } from "./apps/api-gateway/src/security.mjs";
+          const authenticator = createAuthenticator({
+            adminKey: "admin-test-key",
+            clientStore: { authenticate: () => null },
+          });
+          const identity = authenticator.authenticate({ "x-api-key": "admin-test-key" });
+          if (identity?.role !== "admin") {
+            console.error("Expected Gateway admin identity", identity);
+            process.exit(1);
+          }
+          NODE
+
+      - name: Import Gateway app
+        run: node -e "import('./apps/api-gateway/src/app.mjs')"
+
+      - name: Exercise Gateway public health
+        run: |
+          node --input-type=module <<'NODE'
+          import { createApp } from "./apps/api-gateway/src/app.mjs";
+          const app = createApp();
+          const result = await app.handleRequest({ url: "/health" });
+          if (result.status !== 200) {
+            console.error("Expected health 200", result);
+            process.exit(1);
+          }
+          NODE
+
+      - name: Exercise Gateway admin authorization
+        run: |
+          node --input-type=module <<'NODE'
+          import { createApp } from "./apps/api-gateway/src/app.mjs";
+          const app = createApp({ adminKey: "admin-test-key" });
+          const result = await app.handleRequest({
+            method: "GET",
+            url: "/v1/admin/clients",
+            headers: { "x-api-key": "admin-test-key" },
+          });
+          if (result.status !== 200) {
+            console.error("Expected admin clients 200", result);
+            process.exit(1);
+          }
+          NODE
+
+      - name: Run authorization contract
+        run: node --test apps/api-gateway/test/authorization.test.mjs
