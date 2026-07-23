@@ -27,7 +27,7 @@ concurrency:
 
 jobs:
   validate:
-    runs-on: [self-hosted, macOS, X64]
+    runs-on: [self-hosted, macOS]
     timeout-minutes: 10
     steps:
       - uses: actions/checkout@v4
@@ -51,4 +51,4 @@ jobs:
             test -f "$target/package.json"
           done
       - name: Check Gateway integration
-        run: npm --workspace @apidevelopers/api-gateway run check
+        run: npm --workspace @pidevelopers/api-gateway run check
