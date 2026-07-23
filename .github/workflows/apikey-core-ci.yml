@@ -34,8 +34,5 @@ jobs:
           node-version: "22"
       - name: Install workspace dependencies
         run: npm install --ignore-scripts
-      - name: Check API Key Core syntax
-        run: |
-          node --check packages/apikey-core/src/index.mjs
-          node --check packages/apikey-core/src/durable-repository.mjs
-          node --check packages/apikey-core/src/lifecycle-service.mjs
+      - name: Check API Key Core legacy contract
+        run: node --test packages/apikey-core/test/index.test.mjs
