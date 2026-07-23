@@ -8,6 +8,7 @@ on:
     paths:
       - "scripts/lib/planning-engine.mjs"
       - ".github/workflows/planning-engine-ci.yml"
+      - ".github/RUNNER_POLICY.md"
   workflow_dispatch:
 
 permissions:
@@ -15,7 +16,10 @@ permissions:
 
 jobs:
   validate:
-    runs-on: ubuntu-latest
+    runs-on:
+      - self-hosted
+      - macOS
+      - X64
     timeout-minutes: 5
     steps:
       - name: Checkout
