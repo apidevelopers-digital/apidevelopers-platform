@@ -8,12 +8,14 @@ on:
       - "foundation/**"
     paths:
       - "packages/apikey-core/**"
+      - "apps/api-gateway/**"
       - ".github/workflows/apikey-core-ci.yml"
   pull_request:
     branches:
       - main
     paths:
       - "packages/apikey-core/**"
+      - "apps/api-gateway/**"
       - ".github/workflows/apikey-core-ci.yml"
 
 permissions:
@@ -34,5 +36,7 @@ jobs:
           node-version: "22"
       - name: Install workspace dependencies
         run: npm install --ignore-scripts
-      - name: Check durable API Key lifecycle
-        run: node --test packages/apikey-core/test/durable-lifecycle.test.mjs
+      - name: Check API Key Core
+        run: npm --workspace @apidevelopers/apikey-core run check
+      - name: Check API Gateway integration
+        run: npm --workspace @apidevelopers/api-gateway run check
