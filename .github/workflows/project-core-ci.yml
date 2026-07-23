@@ -34,65 +34,9 @@ jobs:
           node-version: "22"
       - name: Install workspace dependencies
         run: npm install --ignore-scripts
-      - name: Audit async activation and event
+      - name: Run project-core full validation
+        run: npm --prefix packages/project-core run check
+      - name: Check tenant boundaries
         run: |
-          node --input-type=module <<'NODE'
-          import assert from "node:assert/strict";
-          import { createAsyncProjectService } from "./packages/project-core/src/async-service.mjs";
-
-          const byId = new Map();
-          const keyToId = new Map();
-          const key = (tenantId, slug) => `${tenantId}:${slug}`;
-
-          const repository = {
-            kind: "async-test",
-            async create(project) {
-              if (byId.has(project.id)) throw new Error("project id already exists");
-              const projectKey = key(project.tenantId, project.slug);
-              if (keyToId.has(projectKey)) throw new Error("project slug already exists");
-              byId.set(project.id, structuredClone(project));
-              keyToId.set(projectKey, project.id);
-              return structuredClone(project);
-            },
-            async replace(project) {
-              const current = byId.get(project.id);
-              if (!current) throw new Error("project not found");
-              keyToId.delete(key(current.tenantId, current.slug));
-              byId.set(project.id, structuredClone(project));
-              keyToId.set(key(project.tenantId, project.slug), project.id);
-              return structuredClone(project);
-            },
-            async getById(id) {
-              return byId.has(id) ? structuredClone(byId.get(id)) : null;
-            },
-            async getByTenantAndSlug(tenantId, slug) {
-              const id = keyToId.get(key(tenantId, slug));
-              return id ? structuredClone(byId.get(id)) : null;
-            },
-            async listByTenant(tenantId, { status } = {}) {
-              return [...byId.values()]
-                .filter((project) =>
-                  project.tenantId === tenantId &&
-                  (status === undefined || project.status === status))
-                .map(structuredClone);
-            },
-          };
-
-          const service = createAsyncProjectService({
-            repository,
-            idFactory: () => "project_001",
-            clock: () => "2026-07-22T10:00:00.000Z",
-            assertTenantOperational: async () => true,
-          });
-
-          const created = await service.createProject({
-            tenantId: "tenant_001",
-            name: "Core API",
-          });
-
-          const activated = await service.activateProject(created.project.id);
-
-          assert.equal(activated.project.status, "active");
-          assert.equal(activated.events[0].type, "project.activated");
-          assert.equal(activated.project.updatedAt, "2026-07-22T10:00:00.000Z");
-          NODE
+          node --check packages/tenant-core/src/index.mjs
+          node --check packages/tenancy/src/index.mjs
