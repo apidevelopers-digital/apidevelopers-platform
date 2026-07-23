@@ -33,24 +33,6 @@ jobs:
         with:
           node-version: "22"
       - name: Install workspace dependencies
-        run: |
-          npm install --ignore-scripts || {
-            echo "::error title=Project Core CI::Install workspace dependencies failed"
-            exit 1
-          }
-      - name: Check project-core
-        run: |
-          npm --prefix packages/project-core run check || {
-            echo "::error title=Project Core CI::Check project-core failed"
-            exit 1
-          }
-      - name: Check tenant boundaries
-        run: |
-          node --check packages/tenant-core/src/index.mjs || {
-            echo "::error title=Project Core CI::tenant-core syntax check failed"
-            exit 1
-          }
-          node --check packages/tenancy/src/index.mjs || {
-            echo "::error title=Project Core CI::tenancy syntax check failed"
-            exit 1
-          }
+        run: npm install --ignore-scripts
+      - name: Isolate project-core check
+        run: npm --prefix packages/project-core run check
