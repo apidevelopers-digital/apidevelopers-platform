@@ -1,12 +1,22 @@
 import test from "node:test";
 import assert from "node:assert/strict";
+import { mkdtemp, rm } from "node:fs/promises";
+import { join } from "node:path";
+import { tmpdir } from "node:os";
 
-import { createMemoryStateStore } from "@apidevelopers/persistence-core";
+import { createJsonFileStore } from "@apidevelopers/persistence-core";
 import { createDurableApiKeyRepository } from "../src/durable-repository.mjs";
 import { createApiKeyLifecycleService } from "../src/lifecycle-service.mjs";
 
-test("durable API key lifecycle isolates tenants and rotates atomically", async () => {
-  const store = createMemoryStateStore();
+test("durable API key lifecycle isolates tenants and rotates atomically", async (t) => {
+  const directory = await mkdtemp(join(tmpdir(), "apikey-durable-"));
+  t.after(() => rm(directory, { recursive: true, force: true }));
+
+  const store = createJsonFileStore({
+    filePath: join(directory, "state.json"),
+    clock: () => "2026-07-23T10:00:00.000Z",
+    idFactory: () => "test-write",
+  });
   const repository = createDurableApiKeyRepository({ store });
 
   const ids = ["key_001", "key_002"];
