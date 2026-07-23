@@ -1,6 +1,7 @@
 import {
   createApiKeyRecord,
   generateApiKey,
+  hashApiKey,
   revokeApiKeyRecord,
 } from "./index.mjs";
 
@@ -24,9 +25,26 @@ function requireText(value, name) {
   return normalized;
 }
 
+function normalizeGeneratedKey(value) {
+  if (typeof value === "string") {
+    return {
+      secret: value,
+      prefix: value.slice(0, 12),
+      keyHash: hashApiKey(value),
+    };
+  }
+
+  const secret = requireText(value?.secret, "generated secret");
+  return {
+    secret,
+    prefix: requireText(value?.prefix ?? secret.slice(0, 12), "generated prefix"),
+    keyHash: requireText(value?.keyHash ?? value?.hash ?? hashApiKey(secret), "generated keyHash"),
+  };
+}
+
 export function createApiKeyLifecycleService({
   repository,
-  idFactory = () => crypto.randomUUID(),
+  idFactory = () => crypto.randomUURI(),
   clock = () => new Date().toISOString(),
   generateKey = generateApiKey,
   assertTenantOperational = async () => true,
@@ -44,7 +62,7 @@ export function createApiKeyLifecycleService({
       const normalizedTenantId = requireText(tenantId, "tenantId");
       await assertTenant(normalizedTenantId);
 
-      const generated = issueKey();
+      const generated = normalizeGeneratedKey(issueKey());
       const record = createApiKeyRecord({
         id: nextId(),
         tenantId: normalizedTenantId,
@@ -104,7 +122,7 @@ export function createApiKeyLifecycleService({
       }
 
       const rotatedAt = now();
-      const generated = issueKey();
+      const generated = normalizeGeneratedKey(issueKey());
       const previous = revokeApiKeyRecord(current, {
         revokedAt: rotatedAt,
         reason: "rotated",
