@@ -100,7 +100,7 @@ function impactAvailable(subject, impactAnalysis) {
     : false;
 }
 
-fanction groupFindings(findings) {
+function groupFindings(findings) {
   const groups = new Map();
 
   findings.forEach((finding, index) => {
