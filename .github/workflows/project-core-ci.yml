@@ -34,8 +34,5 @@ jobs:
           node-version: "22"
       - name: Install workspace dependencies
         run: npm install --ignore-scripts
-      - name: Check project-core syntax
-        run: |
-          node --check packages/project-core/src/index.mjs
-          node --check packages/project-core/src/async-service.mjs
-          node --check packages/project-core/src/durable-repository.mjs
+      - name: Run project-core index contract tests
+        run: node --test packages/project-core/test/index.test.mjs
