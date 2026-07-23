@@ -63,8 +63,14 @@ jobs:
           node --check apps/api-gateway/src/app.mjs
           node --check apps/api-gateway/src/portal-projector-route.mjs
           node --check apps/api-gateway/src/server.mjs
-      - name: Test Gateway app
-        run: node --test apps/api-gateway/test/app.test.mjs
+      - name: Test Gateway app public routes
+        run: node --test --test-name-pattern="serves health, catalog and OpenAPI publicly" apps/api-gateway/test/app.test.mjs
+      - name: Test Gateway app client key lifecycle
+        run: node --test --test-name-pattern="admin creates, rotates and revokes client API Keys" apps/api-gateway/test/app.test.mjs
+      - name: Test Gateway app client status and audit
+        run: node --test --test-name-pattern="client status and audit routes are administrative" apps/api-gateway/test/app.test.mjs
+      - name: Test Gateway app rate limits
+        run: node --test --test-name-pattern="returns 429 with rate limit headers" apps/api-gateway/test/app.test.mjs
       - name: Test Gateway audit and rate limit
         run: node --test apps/api-gateway/test/audit-rate-limit.test.mjs
       - name: Test Gateway authorization
