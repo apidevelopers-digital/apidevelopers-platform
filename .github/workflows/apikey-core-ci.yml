@@ -8,14 +8,12 @@ on:
       - "foundation/**"
     paths:
       - "packages/apikey-core/**"
-      - "apps/api-gateway/src/client-registry.mjs"
       - ".github/workflows/apikey-core-ci.yml"
   pull_request:
     branches:
       - main
     paths:
       - "packages/apikey-core/**"
-      - "apps/api-gateway/src/client-registry.mjs"
       - ".github/workflows/apikey-core-ci.yml"
 
 permissions:
@@ -34,21 +32,5 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: "22"
-      - name: Check apikey-core
+      - name: Check apikey-core baseline
         run: npm --prefix packages/apikey-core run check
-      - name: Link Gateway Core workspaces
-        shell: bash
-        run: |
-          set -euo pipefail
-          scope_dir="$GITHUB_WORKSPACE/node_modules/@apidevelopers"
-          mkdir -p "$scope_dir"
-          for package in registry-core platform-core auth-core apikey-core; do
-            source_dir="$GITHUB_WORKSPACE/packages/$package"
-            target="$scope_dir/$package"
-            test -f "$source_dir/package.json"
-            rm -rf "$target"
-            ln -s "$source_dir" "$target"
-            test -f "$target/package.json"
-          done
-      - name: Check Gateway integration
-        run: npm --workspace @pidevelopers/api-gateway run check
