@@ -123,3 +123,44 @@ jobs:
           done
       - name: Run app contract
         run: node --test --test-name-pattern="${{ matrix.pattern }}" apps/api-gateway/test/app.test.mjs
+  runtime-diagnostic:
+    name: Runtime diagnostic - ${{ matrix.check }}
+    runs-on: [self-hosted, macOS, X64]
+    timeout-minutes: 10
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - check: import-auth-core
+            command: node -e "import('@apidevelopers/auth-core').then((m) => { if (typeof m.createAuthenticator !== 'function') process.exit(1); })"
+          - check: sync-authenticator
+            command: node --input-type=module -e "import { createAuthenticator } from '@apidevelopers/auth-core'; const a=createAuthenticator({adminKey:'admin-test-key',resolveClient:()=>null}); const i=a.authenticate({'x-api-key':'admin-test-key'}); if(i?.role!=='admin') process.exit(1)"
+          - check: import-security
+            command: node -e "import('./apps/api-gateway/src/security.mjs')"
+          - check: import-app
+            command: node -e "import('./apps/api-gateway/src/app.mjs')"
+          - check: public-health
+            command: node --input-type=module -e "import { createApp } from './apps/api-gateway/src/app.mjs'; const r=await createApp().handleRequest({url:'/health'}); if(r.status!==200) process.exit(1)"
+          - check: admin-authorization
+            command: node --input-type=module -e "import { createApp } from './apps/api-gateway/src/app.mjs'; const r=await createApp({adminKey:'admin-test-key'}).handleRequest({method:'GET',url:'/v1/admin/clients',headers:{'x-api-key':'admin-test-key'}}); if(r.status!==200) process.exit(1)"
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+      - name: Link Gateway Core workspaces
+        shell: bash
+        run: |
+          set -euo pipefail
+          scope_dir="$GITHUB_WORKSPACE/node_modules/@apidevelopers"
+          mkdir -p "$scope_dir"
+          for package in registry-core platform-core auth-core apikey-core portal-projector-http; do
+            source_dir="$GITHUB_WORKSPACE/packages/$package"
+            target="$scope_dir/$package"
+            test -f "$source_dir/package.json"
+            rm -rf "$target"
+            ln -s "$source_dir" "$target"
+            test -f "$target/package.json"
+          done
+      - name: Run runtime diagnostic
+        run: ${{ matrix.command }}
