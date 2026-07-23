@@ -34,7 +34,7 @@ jobs:
           node-version: "22"
       - name: Install workspace dependencies
         run: npm install --ignore-scripts
-      - name: Audit async project creation
+      - name: Audit async activation and event
         run: |
           node --input-type=module <<'NODE'
           import assert from "node:assert/strict";
@@ -90,9 +90,12 @@ jobs:
             name: "Core API",
           });
 
-          assert.equal(service.repositoryKind, "async-test");
-          assert.equal(created.project.id, "project_001");
-          assert.equal(created.project.slug, "core-api");
-          assert.equal(created.project.status, "provisioning");
-          assert.equal(created.events[0].type, "project.created");
+          const activated = await service.activateProject({
+            tenantId: "tenant_001",
+            projectId: created.project.id,
+          });
+
+          assert.equal(activated.project.status, "active");
+          assert.equal(activated.events[0].type, "project.activated");
+          assert.equal(activated.project.updatedAt, "2026-07-22T10:00:00.000Z");
           NODE
