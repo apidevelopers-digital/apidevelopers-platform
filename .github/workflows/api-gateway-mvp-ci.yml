@@ -1,0 +1,166 @@
+name: API Gateway MVP CI
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - main
+      - "foundation/**"
+      - "work/portal-projector-gateway-route-*"
+    paths:
+      - "apps/api-gateway/**"
+      - "packages/portal-projector-http/**"
+      - "package.json"
+      - ".github/workflows/api-gateway-mvp-ci.yml"
+  pull_request:
+    branches:
+      - main
+    paths:
+      - "apps/api-gateway/**"
+      - "packages/portal-projector-http/**"
+      - "package.json"
+      - ".github/workflows/api-gateway-mvp-ci.yml"
+
+permissions:
+  contents: read
+
+concurrency:
+  group: api-gateway-mvp-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  validate:
+    runs-on: [self-hosted, macOS, X64]
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+      - name: Link Gateway Core workspaces
+        shell: bash
+        run: |
+          set -euo pipefail
+          scope_dir="$GITHUB_WORKSPACE/node_modules/@apidevelopers"
+          mkdir -p "$scope_dir"
+          for package in registry-core platform-core auth-core apikey-core persistence-core portal-projector-http; do
+            source_dir="$GITHUB_WORKSPACE/packages/$package"
+            target="$scope_dir/$package"
+            test -f "$source_dir/package.json"
+            rm -rf "$target"
+            ln -s "$source_dir" "$target"
+            test -f "$target/package.json"
+          done
+      - name: Check API Gateway syntax
+        run: |
+          node --check apps/api-gateway/src/catalog.mjs
+          node --check apps/api-gateway/src/client-repository.mjs
+          node --check apps/api-gateway/src/client-registry.mjs
+          node --check apps/api-gateway/src/audit-log.mjs
+          node --check apps/api-gateway/src/rate-limit.mjs
+          node --check apps/api-gateway/src/security.mjs
+          node --check apps/api-gateway/src/openapi.mjs
+          node --check apps/api-gateway/src/app.mjs
+          node --check apps/api-gateway/src/portal-projector-route.mjs
+          node --check apps/api-gateway/src/server.mjs
+      - name: Test Gateway audit and rate limit
+        run: node --test apps/api-gateway/test/audit-rate-limit.test.mjs
+      - name: Test Gateway authorization
+        run: node --test apps/api-gateway/test/authorization.test.mjs
+      - name: Test Gateway client registry
+        run: node --test apps/api-gateway/test/client-registry.test.mjs
+      - name: Test Gateway learning runtime
+        run: node --test apps/api-gateway/test/learning-runtime.test.mjs
+      - name: Test Gateway OpenAPI scopes
+        run: node --test apps/api-gateway/test/openapi-scopes.test.mjs
+      - name: Test Gateway portal projector route
+        run: node --test apps/api-gateway/test/portal-projector-route.test.mjs
+      - name: Test Gateway portal projector runtime
+        run: node --test apps/api-gateway/test/portal-projector-runtime-e2e.test.mjs
+      - name: Test Gateway server
+        run: node --test apps/api-gateway/test/server.test.mjs
+      - name: Validate no committed API keys
+        run: |
+          if grep -RInE 'apid_[A-Za-z0-9_][20,}' apps/api-gateway --exclude='*.test.mjs'; then
+            echo "Potential API key committed"
+            exit 1
+          fi
+
+  app-contract:
+    name: App contract - ${{ matrix.contract }}
+    runs-on: [self-hosted, macOS, X64]
+    timeout-minutes: 10
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - contract: public-routes
+            pattern: serves health, catalog and OpenAPI publicly
+          - contract: client-key-lifecycle
+            pattern: admin creates, rotates and revokes client API Keys
+          - contract: client-status-audit
+            pattern: client status and audit routes are administrative
+          - contract: rate-limits
+            pattern: returns 429 with rate limit headers
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+      - name: Link Gateway Core workspaces
+        shell: bash
+        run: |
+          set -euo pipefail
+          scope_dir="$GITHUB_WORKSPACE/node_modules/@apidevelopers"
+          mkdir -p "$scope_dir"
+          for package in registry-core platform-core auth-core apikey-core persistence-core portal-projector-http; do
+            source_dir="$GITHUB_WORKSPACE/packages/$package"
+            target="$scope_dir/$package"
+            test -f "$source_dir/package.json"
+            rm -rf "$target"
+            ln -s "$source_dir" "$target"
+            test -f "$target/package.json"
+          done
+      - name: Run app contract
+        run: node --test --test-name-pattern="${{ matrix.pattern }}" apps/api-gateway/test/app.test.mjs
+  runtime-diagnostic:
+    name: Runtime diagnostic - ${{ matrix.check }}
+    runs-on: [self-hosted, macOS, X64]
+    timeout-minutes: 10
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - check: import-auth-core
+            command: node -e "import('@apidevelopers/auth-core').then((m) => { if (typeof m.createAuthenticator !== 'function') process.exit(1); })"
+          - check: sync-authenticator
+            command: node --input-type=module -e "import { createAuthenticator } from '@apidevelopers/auth-core'; const a=createAuthenticator({adminKey:'admin-test-key',resolveClient:()=>null}); const i=a.authenticate({'x-api-key':'admin-test-key'}); if(i?.role!=='admin') process.exit(1)"
+          - check: import-security
+            command: node -e "import('./apps/api-gateway/src/security.mjs')"
+          - check: import-app
+            command: node -e "import('./apps/api-gateway/src/app.mjs')"
+          - check: public-health
+            command: node --input-type=module -e "import { createApp } from './apps/api-gateway/src/app.mjs'; const r=await createApp().handleRequest({url:'/health'}); if(r.status!==200) process.exit(1)"
+          - check: admin-authorization
+            command: node --input-type=module -e "import { createApp } from './apps/api-gateway/src/app.mjs'; const r=await createApp({adminKey:'admin-test-key'}).handleRequest({method:'GET',url:'/v1/admin/clients',headers:{'x-api-key':'admin-test-key'}}); if(r.status!==200) process.exit(1)"
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+      - name: Link Gateway Core workspaces
+        shell: bash
+        run: |
+          set -euo pipefail
+          scope_dir="$GITHUB_WORKSPACE/node_modules/@apidevelopers"
+          mkdir -p "$scope_dir"
+          for package in registry-core platform-core auth-core apikey-core persistence-core portal-projector-http; do
+            source_dir="$GITHUB_WORKSPACE/packages/$package"
+            target="$scope_dir/$package"
+            test -f "$source_dir/package.json"
+            rm -rf "$target"
+            ln -s "$source_dir" "$target"
+            test -f "$target/package.json"
+          done
+      - name: Run runtime diagnostic
+        run: ${{ matrix.command }}
