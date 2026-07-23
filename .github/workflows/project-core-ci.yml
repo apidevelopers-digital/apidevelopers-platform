@@ -90,10 +90,7 @@ jobs:
             name: "Core API",
           });
 
-          const activated = await service.activateProject({
-            tenantId: "tenant_001",
-            projectId: created.project.id,
-          });
+          const activated = await service.activateProject(created.project.id);
 
           assert.equal(activated.project.status, "active");
           assert.equal(activated.events[0].type, "project.activated");
