@@ -51,8 +51,36 @@ jobs:
             ln -s "$source_dir" "$target"
             test -f "$target/package.json"
           done
-      - name: Check API Gateway
-        run: npm --workspace @apidevelopers/api-gateway run check
+      - name: Check API Gateway syntax
+        run: |
+          node --check apps/api-gateway/src/catalog.mjs
+          node --check apps/api-gateway/src/client-repository.mjs
+          node --check apps/api-gateway/src/client-registry.mjs
+          node --check apps/api-gateway/src/audit-log.mjs
+          node --check apps/api-gateway/src/rate-limit.mjs
+          node --check apps/api-gateway/src/security.mjs
+          node --check apps/api-gateway/src/openapi.mjs
+          node --check apps/api-gateway/src/app.mjs
+          node --check apps/api-gateway/src/portal-projector-route.mjs
+          node --check apps/api-gateway/src/server.mjs
+      - name: Test Gateway app
+        run: node --test apps/api-gateway/test/app.test.mjs
+      - name: Test Gateway audit and rate limit
+        run: node --test apps/api-gateway/test/audit-rate-limit.test.mjs
+      - name: Test Gateway authorization
+        run: node --test apps/api-gateway/test/authorization.test.mjs
+      - name: Test Gateway client registry
+        run: node --test apps/api-gateway/test/client-registry.test.mjs
+      - name: Test Gateway learning runtime
+        run: node --test apps/api-gateway/test/learning-runtime.test.mjs
+      - name: Test Gateway OpenAPI scopes
+        run: node --test apps/api-gateway/test/openapi-scopes.test.mjs
+      - name: Test Gateway portal projector route
+        run: node --test apps/api-gateway/test/portal-projector-route.test.mjs
+      - name: Test Gateway portal projector runtime
+        run: node --test apps/api-gateway/test/portal-projector-runtime-e2e.test.mjs
+      - name: Test Gateway server
+        run: node --test apps/api-gateway/test/server.test.mjs
       - name: Validate no committed API keys
         run: |
           if grep -RInE 'apid_[A-Za-z0-9_-]{20,}' apps/api-gateway --exclude='*.test.mjs'; then
