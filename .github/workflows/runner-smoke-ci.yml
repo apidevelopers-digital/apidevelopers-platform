@@ -21,3 +21,5 @@ jobs:
           echo "ok"
           uname -m
           sw_vers
+
+# validation-trigger: 2026-07-23T09:00:00Z
