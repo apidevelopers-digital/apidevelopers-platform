@@ -63,14 +63,6 @@ jobs:
           node --check apps/api-gateway/src/app.mjs
           node --check apps/api-gateway/src/portal-projector-route.mjs
           node --check apps/api-gateway/src/server.mjs
-      - name: Test Gateway app public routes
-        run: node --test --test-name-pattern="serves health, catalog and OpenAPI publicly" apps/api-gateway/test/app.test.mjs
-      - name: Test Gateway app client key lifecycle
-        run: node --test --test-name-pattern="admin creates, rotates and revokes client API Keys" apps/api-gateway/test/app.test.mjs
-      - name: Test Gateway app client status and audit
-        run: node --test --test-name-pattern="client status and audit routes are administrative" apps/api-gateway/test/app.test.mjs
-      - name: Test Gateway app rate limits
-        run: node --test --test-name-pattern="returns 429 with rate limit headers" apps/api-gateway/test/app.test.mjs
       - name: Test Gateway audit and rate limit
         run: node --test apps/api-gateway/test/audit-rate-limit.test.mjs
       - name: Test Gateway authorization
@@ -89,7 +81,45 @@ jobs:
         run: node --test apps/api-gateway/test/server.test.mjs
       - name: Validate no committed API keys
         run: |
-          if grep -RInE 'apid_[A-Za-z0-9_-]{20,}' apps/api-gateway --exclude='*.test.mjs'; then
+          if grep -RInE 'apid_[A-Za-z0-9_-[20,}' apps/api-gateway --exclude='*.test.mjs'; then
             echo "Potential API key committed"
             exit 1
           fi
+
+  app-contract:
+    name: App contract - ${{ matrix.contract }}
+    runs-on: [self-hosted, macOS, X64]
+    timeout-minutes: 10
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - contract: public-routes
+            pattern: serves health, catalog and OpenAPI publicly
+          - contract: client-key-lifecycle
+            pattern: admin creates, rotates and revokes client API Keys
+          - contract: client-status-audit
+            pattern: client status and audit routes are administrative
+          - contract: rate-limits
+            pattern: returns 429 with rate limit headers
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+      - name: Link Gateway Core workspaces
+        shell: bash
+        run: |
+          set -euo pipefail
+          scope_dir="$GITHUB_WORKSPACE/node_modules/@apidevelopers"
+          mkdir -p "$scope_dir"
+          for package in registry-core platform-core auth-core apikey-core portal-projector-http; do
+            source_dir="$GITHUB_WORKSPACE/packages/$package"
+            target="$scope_dir/$package"
+            test -f "$source_dir/package.json"
+            rm -rf "$target"
+            ln -s "$source_dir" "$target"
+            test -f "$target/package.json"
+          done
+      - name: Run app contract
+        run: node --test --test-name-pattern="${{ matrix.pattern }}" apps/api-gateway/test/app.test.mjs
