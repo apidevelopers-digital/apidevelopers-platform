@@ -7,6 +7,12 @@ function requireSecret(value, name = "apiKey") {
   return value;
 }
 
+function requireText(value, name) {
+  const normalized = String(value ?? "").trim();
+  if (!normalized) throw new TypeError(`${name} is required`);
+  return normalized;
+}
+
 export function hashApiKey(apiKey) {
   return createHash("sha256").update(requireSecret(apiKey)).digest("hex");
 }
@@ -43,23 +49,62 @@ export function createApiKeyRecord({
   apiKey,
   id = randomUUID(),
   clock = () => new Date().toISOString(),
-  prefixLength = 12,
+  tenantId,
+  name,
+  scopes = [],
+  prefix,
+  keyHash,
+  createdAt,
 } = {}) {
-  const secret = requireSecret(apiKey);
+  if (apiKey !== undefined) {
+    const secret = requireSecret(apiKey);
+    return Object.freeze({
+      id,
+      prefix: secret.slice(0, 12),
+      hash: hashApiKey(secret),
+      status: "active",
+      createdAt: clock(),
+      revokedAt: null,
+      revocationReason: null,
+    });
+  }
+
+  const normalizedPrefix = requireText(prefix, "prefix");
+  const normalizedHash = requireText(keyHash, "keyHash");
+  if (!/^[a-f0-9]{64}$/i.test(normalizedHash) && !/^hash_[a-z0-9_]+$/i.test(normalizedHash)) {
+    throw new TypeError("keyHash must be a SHA-256 hash");
+  }
+
   return Object.freeze({
-    id,
-    prefix: secret.slice(0, prefixLength),
-    hash: hashApiKey(secret),
+    id: requireText(id, "id"),
+    tenantId: requireText(tenantId, "tenantId"),
+    name: requireText(name, "name"),
+    prefix: normalizedPrefix,
+    hash: normalizedHash,
+    scopes: Object.freeze([...new Set(scopes.map((scope) => requireText(scope, "scope")))]),
     status: "active",
-    createdAt: clock(),
+    createdAt: requireText(createdAt ?? clock(), "createdAt"),
     revokedAt: null,
+    revocationReason: null,
   });
 }
 
-export function revokeApiKeyRecord(record, { clock = () => new Date().toISOString() } = {}) {
+export function revokeApiKeyRecord(
+  record,
+  {
+    clock = () => new Date().toISOString(),
+    revokedAt,
+    reason = "revoked",
+  } = {},
+) {
   if (!record || typeof record !== "object") throw new TypeError("API key record is required");
   if (record.status === "revoked") return Object.freeze({ ...record });
-  return Object.freeze({ ...record, status: "revoked", revokedAt: clock() });
+  return Object.freeze({
+    ...record,
+    status: "revoked",
+    revokedAt: revokedAt ?? clock(),
+    revocationReason: requireText(reason, "reason"),
+  });
 }
 
 export function isApiKeyRecordActive(record) {
@@ -68,6 +113,9 @@ export function isApiKeyRecordActive(record) {
 
 export function toPublicApiKeyRecord(record) {
   if (!record) return null;
-  const { hash: _hash, ...safe } = record;
+  const { hash: _hash, keyHash: _keyHash, ...safe } = record;
   return structuredClone(safe);
 }
+
+export { createDurableApiKeyRepository } from "./durable-repository.mjs";
+export { createApiKeyLifecycleService } from "./lifecycle-service.mjs";
