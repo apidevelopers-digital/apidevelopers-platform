@@ -99,3 +99,5 @@ export function authorize(identity, {
     missingScopes,
   });
 }
+
+export { createAsyncAuthenticator } from "./async-authenticator.mjs";
