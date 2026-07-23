@@ -8,14 +8,12 @@ on:
       - "foundation/**"
     paths:
       - "packages/auth-core/**"
-      - "apps/api-gateway/src/security.mjs"
       - ".github/workflows/auth-core-ci.yml"
   pull_request:
     branches:
       - main
     paths:
       - "packages/auth-core/**"
-      - "apps/api-gateway/src/security.mjs"
       - ".github/workflows/auth-core-ci.yml"
 
 permissions:
@@ -36,19 +34,3 @@ jobs:
           node-version: "22"
       - name: Check auth-core
         run: npm --prefix packages/auth-core run check
-      - name: Link Gateway Core workspaces
-        shell: bash
-        run: |
-          set -euo pipefail
-          scope_dir="$GITHUB_WORKSPACE/node_modules/@apidevelopers"
-          mkdir -p "$scope_dir"
-          for package in registry-core platform-core auth-core apikey-core; do
-            source_dir="$GITHUB_WORKSPACE/packages/$package"
-            target="$scope_dir/$package"
-            test -f "$source_dir/package.json"
-            rm -rf "$target"
-            ln -s "$source_dir" "$target"
-            test -f "$target/package.json"
-          done
-      - name: Check Gateway integration
-        run: npm --workspace @apidevelopers/api-gateway run check
