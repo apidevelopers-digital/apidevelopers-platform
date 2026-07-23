@@ -19,7 +19,7 @@ jobs:
     timeout-minutes: 5
     steps:
       - name: Checkout
-      uses: actions/checkout@v4
+        uses: actions/checkout@v4
 
       - name: Set up Node.js
         uses: actions/setup-node@v4
@@ -31,5 +31,4 @@ jobs:
 
       - name: Import smoke test
         run: |
-          node --input-type=module --%val
-          node --input-type=module -e "import('./scripts/lib/planning-engine.mjs').then((m) => { if (typeof m.createPlanningEngine !== 'function') throw new Error('missing createPlanningEngine export'); const e = m.createPlanningEngine({ clock: () => '2026-07-23T00:00:00.000Z' }); const p = e.plan( { reflectionId: 'ci-smoke', findings: [] } ); if (p.mode !== 'advisory') throw new Error('non-advisory plan'); console.log('planning-engine smoke ok'); })"
+          node --input-type=module -e "import('./scripts/lib/planning-engine.mjs').then((m) => { if (typeof m.createPlanningEngine !== 'function') throw new Error('missing createPlanningEngine export'); const e = m.createPlanningEngine({ clock: () => '2026-07-23T00:00:00.000Z' }); const p = e.plan({ reflectionId: 'ci-smoke', findings: [] }); if (p.mode !== 'advisory') throw new Error('non-advisory plan'); console.log('planning-engine smoke ok'); })"
