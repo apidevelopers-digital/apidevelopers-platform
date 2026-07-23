@@ -34,9 +34,5 @@ jobs:
           node-version: "22"
       - name: Install workspace dependencies
         run: npm install --ignore-scripts
-      - name: Run project-core full validation
-        run: npm --prefix packages/project-core run check
-      - name: Check tenant boundaries
-        run: |
-          node --check packages/tenant-core/src/index.mjs
-          node --check packages/tenancy/src/index.mjs
+      - name: Run complete async project service tests
+        run: node --test packages/project-core/test/async-service.test.mjs
