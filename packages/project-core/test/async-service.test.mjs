@@ -44,7 +44,7 @@ function createAsyncProjectRepository() {
         .filter((project) =>
           project.tenantId === tenantId &&
           (status === undefined || project.status === status))
-        .map(structuredClone);
+        .map((project) => structuredClone(project));
     },
   };
 }
