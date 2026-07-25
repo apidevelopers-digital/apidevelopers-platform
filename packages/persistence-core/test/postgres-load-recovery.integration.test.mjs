@@ -171,6 +171,19 @@ test(
     const sustainedCallbackExecutions = new Map(
       sustainedKeys.map((key) => [key, 0]),
     );
+
+    await Promise.all(
+      sustainedKeys.map((key, workerIndex) =>
+        store.executeIdempotent(key, async () => {
+          sustainedCallbackExecutions.set(
+            key,
+            sustainedCallbackExecutions.get(key) + 1,
+          );
+          return { workerIndex, stable: true };
+        }),
+      ),
+    );
+
     let sustainedOperations = 0;
     const startedAt = Date.now();
     const deadline = startedAt + sustainedDurationMillis;
@@ -186,12 +199,11 @@ test(
             assert.equal(listed.length, recordCount);
           } else {
             const result = await store.executeIdempotent(key, async () => {
-              sustainedCallbackExecutions.set(
-                key,
-                sustainedCallbackExecutions.get(key) + 1,
+              throw new Error(
+                `sustained idempotent callback must not re-execute for ${key}`,
               );
-              return { workerIndex, stable: true };
             });
+            assert.equal(result.result.executed, false);
             assert.equal(result.result.value.stable, true);
           }
           sustainedOperations += 1;
