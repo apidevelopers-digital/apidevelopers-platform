@@ -1,29 +1,80 @@
 import http from "node:http";
 import { pathToFileURL } from "node:url";
 
-export function createApp() {
+const JSON_HEADERS = Object.freeze({
+  "content-type": "application/json; charset=utf-8",
+});
+
+function jsonResponse(status, payload) {
   return {
-    async handleRequest({ method = "GET", url = "/" } = {}) {
+    status,
+    headers: JSON_HEADERS,
+    body: JSON.stringify(payload),
+  };
+}
+
+function toPublicIdentity(identity) {
+  if (!identity || typeof identity !== "object") return null;
+
+  const principal = identity.principal ?? {};
+  return Object.freeze({
+    role: identity.role,
+    principal: Object.freeze({
+      ...(principal.id !== undefined ? { id: principal.id } : {}),
+      ...(principal.tenantId !== undefined ? { tenantId: principal.tenantId } : {}),
+      ...(principal.name !== undefined ? { name: principal.name } : {}),
+      ...(principal.status !== undefined ? { status: principal.status } : {}),
+      ...(Array.isArray(principal.scopes) ? { scopes: [...principal.scopes] } : {}),
+      ...(principal.prefix !== undefined ? { prefix: principal.prefix } : {}),
+    }),
+  });
+}
+
+export function createApp({ authenticator } = {}) {
+  if (
+    authenticator !== undefined &&
+    typeof authenticator?.authenticate !== "function"
+  ) {
+    throw new TypeError("authenticator.authenticate must be a function");
+  }
+
+  return {
+    async handleRequest({
+      method = "GET",
+      url = "/",
+      headers = {},
+    } = {}) {
       const normalizedMethod = String(method).toUpperCase();
 
       if (normalizedMethod === "GET" && url === "/health") {
-        return {
-          status: 200,
-          headers: { "content-type": "application/json; charset=utf-8" },
-          body: JSON.stringify({
-            service: "api-gateway",
-            status: "ok",
-          }),
-        };
+        return jsonResponse(200, {
+          service: "api-gateway",
+          status: "ok",
+        });
       }
 
-      return {
-        status: 404,
-        headers: { "content-type": "application/json; charset=utf-8" },
-        body: JSON.stringify({
-          error: "not_found",
-        }),
-      };
+      if (normalizedMethod === "GET" && url === "/v1/whoami") {
+        if (!authenticator) {
+          return jsonResponse(503, {
+            error: "authentication_unavailable",
+          });
+        }
+
+        const identity = await authenticator.authenticate(headers);
+        if (!identity) {
+          return jsonResponse(401, {
+            error: "unauthorized",
+          });
+        }
+
+        return jsonResponse(200, {
+          identity: toPublicIdentity(identity),
+        });
+      }
+
+      return jsonResponse(404, {
+        error: "not_found",
+      });
     },
   };
 }
@@ -40,9 +91,7 @@ export function createHttpServer({ app = createApp() } = {}) {
       response.writeHead(result.status, result.headers);
       response.end(result.body);
     } catch (error) {
-      response.writeHead(500, {
-        "content-type": "application/json; charset=utf-8",
-      });
+      response.writeHead(500, JSON_HEADERS);
       response.end(
         JSON.stringify({
           error: "internal_error",
