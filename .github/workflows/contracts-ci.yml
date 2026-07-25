@@ -44,5 +44,17 @@ jobs:
           node --version
           npm --version
 
+      - name: Diagnose contract syntax
+        shell: bash
+        run: |
+          set -euo pipefail
+          while IFS= read -r file; do
+            echo "checking syntax: $file"
+            if ! node --check "$file"; then
+              echo "::error file=packages/contracts/$file,title=Invalid JavaScript syntax::Syntax check failed for $file"
+              exit 1
+            fi
+          done < <(find src test -type f -name '*.mjs' | sort)
+
       - name: Validate contracts
         run: npm run check
