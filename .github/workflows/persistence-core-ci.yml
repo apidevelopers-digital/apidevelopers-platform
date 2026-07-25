@@ -73,51 +73,69 @@ jobs:
 
           resolve_pg_bin() {
             local candidate=""
+            local brew_prefix=""
 
             if command -v initdb >/dev/null 2>&1; then
               candidate="$(dirname "$(command -v initdb)")"
-            else
-              candidate="$(brew --prefix postgresql@16 2>/dev/null || true)/bin"
+              if [[ -x "$candidate/initdb" && -x "$candidate/pg_ctl" && -x "$candidate/createdb" ]]; then
+                printf '%s\n' "$candidate"
+                return 0
+              fi
             fi
 
-            if [[ -n "$candidate" ]]               && [[ -x "$candidate/initdb" ]]               && [[ -x "$candidate/pg_ctl" ]]               && [[ -x "$candidate/createdb" ]]; then
-              printf '%s\n' "$candidate"
-              return 0
+            brew_prefix="$(brew --prefix postgresql@16 2>/dev/null || true)"
+            if [[ -n "$brew_prefix" ]]; then
+              candidate="$brew_prefix/bin"
+              if [[ -x "$candidate/initdb" && -x "$candidate/pg_ctl" && -x "$candidate/createdb" ]]; then
+                printf '%s\n' "$candidate"
+                return 0
+              fi
             fi
+
+            for candidate in               /usr/local/Cellar/postgresql@16/*/bin               /opt/homebrew/Cellar/postgresql@16/*/bin
+            do
+              if [[ -x "$candidate/initdb" && -x "$candidate/pg_ctl" && -x "$candidate/createdb" ]]; then
+                printf '%s\n' "$candidate"
+                return 0
+              fi
+            done
 
             return 1
           }
 
-          PG_BIN=""
-          if PG_BIN="$(resolve_pg_bin)"; then
-            echo "Using existing PostgreSQL tooling at $PG_BIN"
-          else
+          PG_BIN="$(resolve_pg_bin || true)"
+
+          if [[ -z "$PG_BIN" ]]; then
+            echo "No usable PostgreSQL 16 binaries found yet."
+            echo "Existing Homebrew/PostgreSQL processes:"
+            ps -axo pid=,ppid=,etime=,command= | grep -E '[b]rew|postgresql@16' || true
+
             for attempt in {1..60}; do
-              if PG_BIN="$(resolve_pg_bin)"; then
+              if HOMEBREW_NO_AUTO_UPDATE=1 brew install postgresql@16; then
+                PG_BIN="$(resolve_pg_bin || true)"
+              else
+                PG_BIN="$(resolve_pg_bin || true)"
+              fi
+
+              if [[ -n "$PG_BIN" ]]; then
                 echo "PostgreSQL tooling became available at $PG_BIN"
                 break
               fi
 
-              if ! pgrep -f "[b]rew install postgresql@16" >/dev/null 2>&1; then
-                break
-              fi
-
-              echo "Waiting for existing Homebrew PostgreSQL installation ($attempt/60)"
-              sleep 10
+              echo "::warning::PostgreSQL tooling is still locked or unavailable ($attempt/60); retrying in 15 seconds."
+              sleep 15
             done
+          else
+            echo "Using existing PostgreSQL tooling at $PG_BIN"
           fi
 
           if [[ -z "$PG_BIN" ]]; then
-            if pgrep -f "[b]rew install postgresql@16" >/dev/null 2>&1; then
-              echo "::error::Existing Homebrew PostgreSQL installation did not finish within 10 minutes."
-              exit 1
-            fi
-
-            brew install postgresql@16
-            PG_BIN="$(brew --prefix postgresql@16)/bin"
+            echo "::error::PostgreSQL 16 tooling did not become available within the retry window."
+            ps -axo pid=,ppid=,etime=,command= | grep -E '[b]rew|postgresql@16' || true
+            exit 1
           fi
 
-          for command_name in initdb pg_ctl createdb; do
+          for command_name in initdb pg_ctl creatdb; do
             if [[ ! -x "$PG_BIN/$command_name" ]]; then
               echo "::error::Missing PostgreSQL executable: $PG_BIN/$command_name"
               exit 1
