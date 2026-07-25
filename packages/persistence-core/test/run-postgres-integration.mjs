@@ -9,6 +9,7 @@ import { fileURLToPath } from "node:url";
 import EmbeddedPostgres from "embedded-postgres";
 
 const packageRoot = dirname(dirname(fileURLToPath(import.meta.url)));
+const MAX_DIAGNOSTIC_CHARACTERS = 12_000;
 
 function escapeWorkflowData(value) {
   return String(value)
@@ -24,6 +25,13 @@ function annotateError(title, error) {
   process.stderr.write(
     `::error title=${escapeWorkflowData(title)}::${escapeWorkflowData(message)}\n`,
   );
+}
+
+function appendTail(current, chunk) {
+  const next = `${current}${String(chunk)}`;
+  return next.length > MAX_DIAGNOSTIC_CHARACTERS
+    ? next.slice(-MAX_DIAGNOSTIC_CHARACTERS)
+    : next;
 }
 
 async function reserveFreePort() {
@@ -54,14 +62,27 @@ async function runTest(connectionString) {
         ...process.env,
         POSTGRES_TEST_URL: connectionString,
       },
-      stdio: "inherit",
+      stdio: ["ignore", "pipe", "pipe"],
     },
   );
+
+  let stdoutTail = "";
+  let stderrTail = "";
+  child.stdout?.on("data", (chunk) => {
+    process.stdout.write(chunk);
+    stdoutTail = appendTail(stdoutTail, chunk);
+  });
+  child.stderr?.on("raw", (chunk) => {
+    process.stderr.write(chunk);
+    stderrTail = appendTail(stderrTail, chunk);
+  });
 
   const [code, signal] = await once(child, "exit");
   if (code !== 0) {
     throw new Error(
-      `PostgreSQL integration test failed (code=${code ?? "null"}, signal=${signal ?? "null"}).`,
+      `PostgreSQL integration test failed (code=${code ?? "null"}, signal=${signal ?? "null"}).\n` +
+      `:: child stdout tail ::\n${stdoutTail || "<empty>"}\n ` +
+      `:: child stderr tail ::\n${stderrTail || "<empty>"}`,
     );
   }
 }
