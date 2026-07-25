@@ -19,6 +19,10 @@ on:
 permissions:
   contents: read
 
+concurrency:
+  group: persistence-core-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: false
+
 jobs:
   validate:
     runs-on:
@@ -66,10 +70,60 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          if ! brew list postgresql@16 >/dev/null 2>&1; then
-            brew install postgresql@16
+
+          resolve_pg_bin() {
+            local candidate=""
+
+            if command -v initdb >/dev/null 2>&1; then
+              candidate="$(dirname "$(command -v initdb)")"
+            else
+              candidate="$(brew --prefix postgresql@16 2>/dev/null || true)/bin"
+            fi
+
+            if [[ -n "$candidate" ]]               && [[ -x "$candidate/initdb" ]]               && [[ -x "$candidate/pg_ctl" ]]               && [[ -x "$candidate/createdb" ]]; then
+              printf '%s\n' "$candidate"
+              return 0
+            fi
+
+            return 1
+          }
+
+          PG_BIN=""
+          if PG_BIN="$(resolve_pg_bin)"; then
+            echo "Using existing PostgreSQL tooling at $PG_BIN"
+          else
+            for attempt in {1..60}; do
+              if PG_BIN="$(resolve_pg_bin)"; then
+                echo "PostgreSQL tooling became available at $PG_BIN"
+                break
+              fi
+
+              if ! pgrep -f "[b]rew install postgresql@16" >/dev/null 2>&1; then
+                break
+              fi
+
+              echo "Waiting for existing Homebrew PostgreSQL installation ($attempt/60)"
+              sleep 10
+            done
           fi
-          PG_BIN="$(brew --prefix postgresql@16)/bin"
+
+          if [[ -z "$PG_BIN" ]]; then
+            if pgrep -f "[b]rew install postgresql@16" >/dev/null 2>&1; then
+              echo "::error::Existing Homebrew PostgreSQL installation did not finish within 10 minutes."
+              exit 1
+            fi
+
+            brew install postgresql@16
+            PG_BIN="$(brew --prefix postgresql@16)/bin"
+          fi
+
+          for command_name in initdb pg_ctl createdb; do
+            if [[ ! -x "$PG_BIN/$command_name" ]]; then
+              echo "::error::Missing PostgreSQL executable: $PG_BIN/$command_name"
+              exit 1
+            fi
+          done
+
           echo "$PG_BIN" >> "$GITHUB_PATH"
           echo "PG_BIN=$PG_BIN" >> "$GITHUB_ENV"
 
