@@ -3,7 +3,8 @@ name: Persistence Core CI
 on:
   push:
     branches:
-      - feat/gateway-persistence-baseline-v0
+      - main
+      - feat/persistence-core-v0
     paths:
       - "packages/persistence-core/**"
       - ".github/workflows/persistence-core-ci.yml"
@@ -21,9 +22,8 @@ permissions:
 jobs:
   validate:
     runs-on:
-      - self-hosted
-      - macOS
-      - X64
+      group: organization-macos-ci
+      labels: [self-hosted, macOS, X64]
     timeout-minutes: 10
 
     steps:
