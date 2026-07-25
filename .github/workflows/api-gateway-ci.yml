@@ -7,12 +7,18 @@ on:
       - "feat/api-gateway-foundation-clean-20260725"
     paths:
       - "apps/api-gateway/**"
+      - "packages/auth-core/**"
+      - "packages/apikey-core/**"
+      - "packages/persistence-core/**"
       - ".github/workflows/api-gateway-ci.yml"
   pull_request:
     branches:
       - main
     paths:
       - "apps/api-gateway/**"
+      - "packages/auth-core/**"
+      - "packages/apikey-core/**"
+      - "packages/persistence-core/**"
       - ".github/workflows/api-gateway-ci.yml"
   workflow_dispatch:
 
@@ -24,7 +30,7 @@ jobs:
     runs-on:
       group: organization-macos-ci
       labels: [self-hosted, macOS, X64]
-    timeout-minutes: 5
+    timeout-minutes: 10
     defaults:
       run:
         working-directory: apps/api-gateway
@@ -37,6 +43,20 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: "22"
+
+      - name: Link local security dependencies
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          mkdir -p "$GITHUB_WORKSPACE/apps/api-gateway/node_modules/@apidevelopers"
+          ln -sfn "$GITHUB_WORKSPACE/packages/auth-core"             "$GITHUB_WORKSPACE/apps/api-gateway/node_modules/@apidevelopers/auth-core"
+
+          mkdir -p "$GITHUB_WORKSPACE/packages/auth-core/node_modules/@apidevelopers"
+          ln -sfn "$GITHUB_WORKSPACE/packages/apikey-core"             "$GITHUB_WORKSPACE/packages/auth-core/node_modules/@apidevelopers/apikey-core"
+
+          mkdir -p "$GITHUB_WORKSPACE/packages/apikey-core/node_modules/@apidevelopers"
+          ln -sfn "$GITHUB_WORKSPACE/packages/persistence-core"             "$GITHUB_WORKSPACE/packages/apikey-core/node_modules/@apidevelopers/persistence-core"
 
       - name: Validate API Gateway
         run: npm run check
