@@ -137,7 +137,7 @@ export class InstitutionalMemory {
       throw new Error("cross-tenant memory append blocked");
     }
     if (!ALLOWED_TYPES.includes(entry.type)) {
-      throw new Error( unsupported memory type: ${entry.type}`);
+      throw new Error(`unsupported memory type: ${entry.type}`);
     }
     if (this.#byId.has(entry.id)) {
       throw new Error(`memory entry already exists: ${entry.id}`);
