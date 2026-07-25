@@ -21,7 +21,7 @@ permissions:
 
 concurrency:
   group: persistence-core-${{ github.workflow }}-${{ github.ref }}
-  cancel-in-progress: false
+  cancel-in-progress: true
 
 jobs:
   validate:
@@ -55,7 +55,7 @@ jobs:
     runs-on:
       group: organization-macos-ci
       labels: [self-hosted, macOS, X64]
-    timeout-minutes: 45
+    timeout-minutes: 15
 
     steps:
       - name: Checkout
@@ -66,104 +66,14 @@ jobs:
         with:
           node-version: "22"
 
-      - name: Recover stale PostgreSQL Homebrew installation
-        shell: bash
-        run: |
-          set -euo pipefail
-
-          matching_pids="$(pgrep -f '([b]rew|[b]rew\.rb) install postgresql@16' || true)"
-
-          if [[ -n "$matching_pids" ]]; then
-            echo "Found stale PostgreSQL Homebrew process(es):"
-            for pid in $matching_pids; do
-              ps -p "$pid" -o pid=,ppid=,etime=,stat=,command= || true
-            done
-
-            for pid in $matching_pids; do
-              kill -TERM "$pid" 2>/dev/null || true
-            done
-
-            for _ in {1..15}; do
-              still_running=""
-              for pid in $matching_pids; do
-                if kill -0 "$pid" 2>/dev/null; then
-                  still_running="$still_running $pid"
-                fi
-              done
-
-              [[ -z "$still_running" ]] && break
-              sleep 1
-            done
-
-            for pid in $matching_pids; do
-              if kill -0 "$pid" 2>/dev/null; then
-                echo "Process $pid did not stop after SIGTERM; sending SIGKILL."
-                kill -KILL "$pid"
-              fi
-            done
-          else
-            echo "No stale PostgreSQL Homebrew process found."
-          fi
-
-          if pgrep -f '([b]rew|[b]rew\.rb) install postgresql@16' >/dev/null 2>&1; then
-            echo "::error::PostgreSQL Homebrew process is still running after maintenance."
-            exit 1
-          fi
-
-          lock_root="$(brew --prefix)/var/homebrew/locks"
-          if [[ -d "$lock_root" ]]; then
-            find "$lock_root" -maxdepth 1 -type f -name 'postgresql@16*.lock' -print -delete
-          fi
-
-      - name: Prepare PostgreSQL tooling
-        shell: bash
-        run: |
-          set -euo pipefail
-
-          if ! brew list --versions postgresql@16 >/dev/null 2>&1; then
-            HOMEBREW_NO_AUTO_UPDATE=1 brew install postgresql@16
-          fi
-
-          PG_BIN="$(brew --prefix postgresql@16)/bin"
-
-          for command_name in initdb pg_ctl creatdb; do
-            if [[ ! -x "$PG_BIN/$command_name" ]]; then
-              echo "::error::Missing PostgreSQL executable: $PG_BIN/$command_name"
-              exit 1
-            fi
-          done
-
-          echo "$PG_BIN" >> "$GITHUB_PATH"
-          echo "PG_BIN=$PG_BIN" >> "$GITHUB_ENV"
-
-      - name: Install integration driver
+      - name: Install persistence dependencies
         shell: bash
         run: |
           set -euo pipefail
           npm --prefix packages/persistence-core install --ignore-scripts
 
-      - name: Run PostgreSQL integration
+      - name: Run PostgreSQL 16 integration
         shell: bash
         run: |
           set -euo pipefail
-          export PATH="$PG_BIN:$PATH"
-
-          PGDATA="$RUNNER_TEMP/apidev-postgres-${GITHUB_RUN_ID}-${GITHUB_RUN_ATTEMPT}"
-          PORT=$((55000 + RANDOM % 5000))
-          DATABASE="apidev_persistence_test"
-          USER_NAME="$(whoami)"
-
-          rm -rf "$PGDATA"
-          initdb -D "$PGDATA" --no-locale --encoding=UTF8 --auth=trust >/dev/null
-          pg_ctl -D "$PGDATA" -o "-F -p $PORT -h 127.0.0.1" -w start >/dev/null
-
-          cleanup() {
-            pg_ctl -D "$PGDATA" -m fast -w stop >/dev/null 2>&1 || true
-            rm -rf "$PGDATA"
-          }
-          trap cleanup EXIT
-
-          createdb -h 127.0.0.1 -p "$PORT" "$DATABASE"
-          export POSTGRES_TEST_URL="postgresql://${USER_NAME}@127.0.0.1:${PORT}/${DATABASE}"
-
           npm --prefix packages/persistence-core run test:postgres
