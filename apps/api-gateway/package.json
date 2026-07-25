@@ -1,6 +1,6 @@
 {
   "name": "@apidevelopers/api-gateway",
-  "version": "0.3.0",
+  "version": "0.4.0",
   "private": true,
   "type": "module",
   "engines": {
@@ -9,7 +9,7 @@
   "scripts": {
     "start": "node src/server.mjs",
     "test": "node --test test/*.test.mjs",
-    "check": "node --check src/server.mjs && node --check src/auth-composition.mjs && node --check src/operational-composition.mjs && npm test"
+    "check": "node --check src/server.mjs && node --check src/auth-composition.mjs && node --check src/operational-composition.mjs && node --check src/operational-http.mjs && npm test"
   },
   "dependencies": {
     "@apidevelopers/auth-core": "0.2.0",
