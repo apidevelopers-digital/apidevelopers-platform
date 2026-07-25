@@ -1,7 +1,7 @@
 import { assertDecisionReportContract } from "./cognitive-pipeline.mjs";
 import { assertTenantContextContract } from "./tenancy-context.mjs";
 
-const RISK_LEVELS = new Set(["R0", "R2", "R2", "R3", "R4", "R5"]);
+const RISK_LEVELS = new Set(["R0", "R1", "R2", "R3", "R4", "R5"]);
 const EFFECTS = new Set(["allow", "review", "deny"]);
 
 function clone(value) {
@@ -166,7 +166,7 @@ export function createDecisionPolicyHandoff({
     tenantContext: clone(tenantContext),
     payload: {
       decisionReport: clone(decisionReport),
-      executionPlan: clone(executionPlan),
+      executionPlan : clone(executionPlan),
       action: clone(action),
     },
     createdAt,
