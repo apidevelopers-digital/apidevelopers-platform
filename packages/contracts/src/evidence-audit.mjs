@@ -77,7 +77,7 @@ function assertLifecycleContext(context, evidenceRecord, name) {
 
   if (runtimeReport.requestedMode === "execute") {
     object(approval, `${name}.approval`);
-    for (const field of ["approvalId", "approvedBy", "tenantId","decisionId", "proposalId", "planHash"]) {
+    for (const field of ["approvalId", "approvedBy", "tenantId", "decisionId", "proposalId", "planHash"]) {
       string(approval[field], `${name}.approval.${field}`);
     }
     if (approval.status !== "approved") {
