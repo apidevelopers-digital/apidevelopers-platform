@@ -11,3 +11,4 @@ export {
   rollbackPostgresMigrations,
 } from "./postgres-migrations.mjs";
 export * from "./repository.mjs";
+export * from "./postgres-observability.mjs";
