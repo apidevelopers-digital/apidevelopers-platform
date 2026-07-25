@@ -3,6 +3,7 @@ name: API Gateway CI
 on:
   push:
     branches:
+      - main
       - "feat/api-gateway-foundation-clean-20260725"
     paths:
       - "apps/api-gateway/**"
