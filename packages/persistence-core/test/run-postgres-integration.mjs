@@ -9,7 +9,7 @@ import { fileURLToPath } from "node:url";
 import EmbeddedPostgres from "embedded-postgres";
 
 const packageRoot = dirname(dirname(fileURLToPath(import.meta.url)));
-const MAX_DIAGNOSTIC_CHARACTERS = 12_000;
+const MAX_DIAGNOSTIC_CHARACTERS = 8_000;
 
 function escapeWorkflowData(value) {
   return String(value)
@@ -18,12 +18,19 @@ function escapeWorkflowData(value) {
     .replaceAll("\n", "%0A");
 }
 
+function redactDiagnostic(value) {
+  return String(value)
+    .replaceAll("ci-postgres", "***")
+    .replace(/postgres(?:ql)?:\/\/[^\s]+/giu, "postgresql://***");
+}
+
 function annotateError(title, error) {
-  const message = error instanceof Error
-    ? `${error.name}: ${error.message}\n${error.stack ?? ""}`
-    : String(error);
+  const message =
+    error instanceof Error
+      ? `${error.name}: ${error.message}\n${error.stack ?? ""}`
+      : String(error);
   process.stderr.write(
-    `::error title=${escapeWorkflowData(title)}::${escapeWorkflowData(message)}\n`,
+    `::error title=${escapeWorkflowData(title)}::${escapeWorkflowData(redactDiagnostic(message))}\n`,
   );
 }
 
@@ -68,21 +75,30 @@ async function runTest(connectionString) {
 
   let stdoutTail = "";
   let stderrTail = "";
+
   child.stdout?.on("data", (chunk) => {
     process.stdout.write(chunk);
     stdoutTail = appendTail(stdoutTail, chunk);
   });
-  child.stderr?.on("raw", (chunk) => {
+  child.stderr?.on("data", (chunk) => {
     process.stderr.write(chunk);
     stderrTail = appendTail(stderrTail, chunk);
   });
 
   const [code, signal] = await once(child, "exit");
   if (code !== 0) {
+    const diagnostic = redactDiagnostic(
+      [
+        `code=${code ?? "null"} signal=${signal ?? "null"}`,
+        `stdout:\n${stdoutTail || "<empty>"}`,
+        `stderr:\n${stderrTail || "<empty>"}`,
+      ].join("\n"),
+    );
+    process.stderr.write(
+      `::error title=${escapeWorkflowData("PostgreSQL integration child failure")}::${escapeWorkflowData(diagnostic)}\n`,
+    );
     throw new Error(
-      `PostgreSQL integration test failed (code=${code ?? "null"}, signal=${signal ?? "null"}).\n` +
-      `:: child stdout tail ::\n${stdoutTail || "<empty>"}\n ` +
-      `:: child stderr tail ::\n${stderrTail || "<empty>"}`,
+      `PostgreSQL integration test failed (code=${code ?? "null"}, signal=${signal ?? "null"}).`,
     );
   }
 }
