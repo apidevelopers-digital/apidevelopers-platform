@@ -1,18 +1,21 @@
 # @apidevelopers/kernel-planning
 
-Planejamento institucional consultivo, determinístico e isolado por tenant.
+Planejamento institucional determinístico, consultivo e isolado por tenant.
 
 ## Invariantes
 
-- exige `tenantId`, `cycleId` e relatório de reflexão governado;
-- não decide, não aprova e não executa;
-- `humanApprovalRequired: true`;
-- `mutationAllowed: false`;
-- `executionAllowed: false`;
-- propostas críticas ou altas exigem análise de impacto completa;
-- toda proposta mantém evidência e referências de origem;
-- saídas são profundamente imutáveis;
-- o handoff permitido é `kernel-reflection -> kernel-planning -> kernel-decision`.
+- exige `tenantId`, `cycleId` e `reflectionReport`;
+- aceita somente relatório de reflexão em modo `advisory`;
+- não altera a reflexão de entrada;
+- agrupa achados por assunto e categoria;
+- produz prioridades, alternativas, recomendação, evidências e revisões;
+- conflitos constitucionais permanecem `blocked`;
+- propostas de risco alto ou crítico exigem análise de impacto;
+- toda proposta exige aprovação humana;
+- mutação, aprovação automática e execução automática permanecem bloqueadas;
+- o relatório é profundamente imutável;
+- o handoff governado aceita apenas `kernel-reflection -> kernel-planning`;
+- o próximo estágio é `kernel-decision`.
 
 ## Validação
 
@@ -21,7 +24,7 @@ npm install --ignore-scripts --no-audit --no-fund
 npm run check
 ```
 
-Marcador esperado:
+Marcador funcional esperado:
 
 ```text
 KERNEL_PLANNING_GATE_OK
