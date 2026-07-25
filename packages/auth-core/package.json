@@ -1,0 +1,22 @@
+{
+  "name": "@apidevelopers/auth-core",
+  "version": "0.2.0",
+  "private": true,
+  "description": "Authentication and authorization contracts with durable API key verification for API Developers.digital.",
+  "type": "module",
+  "exports": {
+    ".": "./src/index.mjs",
+    "./async-authenticator": "./src/async-authenticator.mjs",
+    "./durable-api-key-authenticator": "./src/durable-api-key-authenticator.mjs"
+  },
+  "scripts": {
+    "test": "node --test test/*.test.mjs",
+    "check": "node --check src/index.mjs && node --check src/async-authenticator.mjs && node --check src/durable-api-key-authenticator.mjs && npm test"
+  },
+  "dependencies": {
+    "@apidevelopers/apikey-core": "0.2.0"
+  },
+  "engines": {
+    "node": ">=22"
+  }
+}
