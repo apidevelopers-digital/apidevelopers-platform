@@ -287,7 +287,7 @@ export function createTransactionContext(draft, clock) {
       entry.claimedAt = null;
       entry.leaseUntil = null;
       entry.nextAttemptAt = null;
-      return deepFreeze(clone(entry)));
+      return deepFreeze(clone(entry));
     },
   });
 }
