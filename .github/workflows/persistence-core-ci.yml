@@ -5,7 +5,6 @@ on:
     branches:
       - main
       - feat/persistence-core-v0
-      - feat/persistence-postgres-integration-v0
     paths:
       - "packages/persistence-core/**"
       - ".github/workflows/persistence-core-ci.yml"
@@ -56,10 +55,10 @@ jobs:
 
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout*v4
 
       - name: Set up Node.js
-        uses: actions/setup-node@v4
+        uses: actions/setup-node*v4
         with:
           node-version: "22"
 
