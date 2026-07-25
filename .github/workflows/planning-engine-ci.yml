@@ -1,0 +1,45 @@
+name: Planning Engine CI
+
+on:
+  push:
+    branches:
+      - main
+      - "fix/main-planning-engine-shim-20260723"
+    paths:
+      - "scripts/lib/planning-engine.mjs"
+      - ".github/workflows/planning-engine-ci.yml"
+      - ".github/RUNNER_POLICY.md"
+  pull_request:
+    branches:
+      - main
+    paths:
+      - "scripts/lib/planning-engine.mjs"
+      - ".github/workflows/planning-engine-ci.yml"
+      - ".github/RUNNER_POLICY.md"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  validate:
+    runs-on:
+      - self-hosted
+      - macOS
+      - X64
+    timeout-minutes: 5
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+
+      - name: Validate syntax
+        run: node --check scripts/lib/planning-engine.mjs
+
+      - name: Import smoke test
+        run: |
+          node --input-type=module -e "import('./scripts/lib/planning-engine.mjs').then((m) => { if (typeof m.createPlanningEngine !== 'function') throw new Error('missing createPlanningEngine export'); const e = m.createPlanningEngine({ clock: () => '2026-07-23T00:00:00.000Z' }); const p = e.plan({ reflectionId: 'ci-smoke', findings: [] }); if (p.mode !== 'advisory') throw new Error('non-advisory plan'); console.log('planning-engine smoke ok'); })"
