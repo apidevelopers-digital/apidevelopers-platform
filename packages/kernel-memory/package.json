@@ -1,0 +1,21 @@
+{
+  "name": "@apidevelopers/kernel-memory",
+  "version": "0.2.0",
+  "private": true,
+  "description": "Tenant-isolated append-only institutional memory with tamper-evident integrity and governed cognitive handoff.",
+  "type": "module",
+  "exports": {
+    ".": "./src/index.mjs",
+    "./governed": "./src/governed.mjs"
+  },
+  "scripts": {
+    "test": "node --test test/*.test.mjs",
+    "check": "node --check src/memory.mjs && node --check src/governed.mjs && node --check src/index.mjs && npm test"
+  },
+  "dependencies": {
+    "@apidevelopers/contracts": "file:../contracts"
+  },
+  "engines": {
+    "node": ">=22"
+  }
+}
