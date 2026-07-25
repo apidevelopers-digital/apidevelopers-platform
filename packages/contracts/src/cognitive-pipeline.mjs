@@ -156,7 +156,7 @@ export function assertDecisionReportContract(report, name = "decisionReport") {
   assertNonEmptyString(report.recommendation, `${name}.recommendation`);
   assertArray(report.candidates, `${name}.candidates`);
   assertObject(report.gates, `${name}.gates`);
-  assertObject(report.constraints, `${name}.constraints );
+  assertObject(report.constraints, `${name}.constraints`);
   assertBoolean(
     report.humanApprovalRequired,
     true,
