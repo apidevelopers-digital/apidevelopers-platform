@@ -21,9 +21,8 @@ permissions:
 jobs:
   validate:
     runs-on:
-      - self-hosted
-      - macOS
-      - X64
+      group: organization-macos-ci
+      labels: [self-hosted, macOS, X64]
     timeout-minutes: 5
     defaults:
       run:
