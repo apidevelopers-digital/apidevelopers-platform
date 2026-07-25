@@ -36,6 +36,12 @@ jobs:
         with:
           node-version: "22"
 
+      - name: Install persistence dependencies
+        shell: bash
+        run: |
+          set -euo pipefail
+          npm --prefix packages/persistence-core install --ignore-scripts
+
       - name: Validate persistence source
         shell: bash
         run: |
@@ -46,7 +52,7 @@ jobs:
     runs-on:
       group: organization-macos-ci
       labels: [self-hosted, macOS, X64]
-    timeout-minutes: 20
+    timeout-minutes: 45
 
     steps:
       - name: Checkout
