@@ -1,0 +1,42 @@
+name: API Gateway CI
+
+on:
+  push:
+    branches:
+      - "feat/api-gateway-foundation-clean-20260725"
+    paths:
+      - "apps/api-gateway/**"
+      - ".github/workflows/api-gateway-ci.yml"
+  pull_request:
+    branches:
+      - main
+    paths:
+      - "apps/api-gateway/**"
+      - ".github/workflows/api-gateway-ci.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  validate:
+    runs-on:
+      - self-hosted
+      - macOS
+      - X64
+    timeout-minutes: 5
+    defaults:
+      run:
+        working-directory: apps/api-gateway
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+
+      - name: Validate API Gateway
+        run: npm run check
