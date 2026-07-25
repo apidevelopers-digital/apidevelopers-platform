@@ -5,6 +5,7 @@ on:
     branches:
       - main
       - feat/persistence-core-v0
+      - feat/persistence-postgres-integration-v0
     paths:
       - "packages/persistence-core/**"
       - ".github/workflows/persistence-core-ci.yml"
@@ -41,8 +42,60 @@ jobs:
           set -euo pipefail
           npm --prefix packages/persistence-core run check
 
-      - name: Run persistence tests
+  postgres-integration:
+    runs-on:
+      group: organization-macos-ci
+      labels: [self-hosted, macOS, X64]
+    timeout-minutes: 20
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+
+      - name: Prepare PostgreSQL tooling
         shell: bash
         run: |
           set -euo pipefail
-          npm --prefix packages/persistence-core test
+          if ! brew list postgresql@16 >/dev/null 2>&1; then
+            brew install postgresql@16
+          fi
+          PG_BIN="$(brew --prefix postgresql@16)/bin"
+          echo "$PG_BIN" >> "$GITHUB_PATH"
+          echo "PG_BIN=$PG_BIN" >> "$GITHUB_ENV"
+
+      - name: Install integration driver
+        shell: bash
+        run: |
+          set -euo pipefail
+          npm --prefix packages/persistence-core install --ignore-scripts
+
+      - name: Run PostgreSQL integration
+        shell: bash
+        run: |
+          set -euo pipefail
+          export PATH="$PG_BIN:$PATH"
+
+          PGDATA="$RUNNER_TEMP/apidev-postgres-${GITHUB_RUN_ID}-${GITHUB_RUN_ATTEMPT}"
+          PORT=$((55000 + RANDOM % 5000))
+          DATABASE="apidev_persistence_test"
+          USER_NAME="$(whoami)"
+
+          rm -rf "$PGDATA"
+          initdb -D "$PGDATA" --no-locale --encoding=UTF8 --auth=trust >/dev/null
+          pg_ctl -D "$PGDATA" -o "-F -p $PORT -h 127.0.0.1" -w start >/dev/null
+
+          cleanup() {
+            pg_ctl -D "$PGDATA" -m fast -w stop >/dev/null 2>&1 || true
+            rm -rf "$PGDATA"
+          }
+          trap cleanup EXIT
+
+          createdb -h 127.0.0.1 -p "$PORT" "$DATABASE"
+          export POSTGRES_TEST_URL="postgresql://${USER_NAME}@127.0.0.1:${PORT}/${DATABASE}"
+
+          npm --prefix packages/persistence-core run test:postgres
