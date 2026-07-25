@@ -1,0 +1,48 @@
+name: Persistence Core CI
+
+on:
+  push:
+    branches:
+      - main
+      - feat/persistence-core-v0
+    paths:
+      - "packages/persistence-core/**"
+      - ".github/workflows/persistence-core-ci.yml"
+  pull_request:
+    branches:
+      - main
+    paths:
+      - "packages/persistence-core/**"
+      - ".github/workflows/persistence-core-ci.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  validate:
+    runs-on:
+      group: organization-macos-ci
+      labels: [self-hosted, macOS, X64]
+    timeout-minutes: 10
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+
+      - name: Validate persistence source
+        shell: bash
+        run: |
+          set -euo pipefail
+          npm --prefix packages/persistence-core run check
+
+      - name: Run persistence tests
+        shell: bash
+        run: |
+          set -euo pipefail
+          npm --prefix packages/persistence-core test
