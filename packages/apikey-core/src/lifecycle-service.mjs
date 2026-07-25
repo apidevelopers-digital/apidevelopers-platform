@@ -1,3 +1,5 @@
+import { randomUUID } from "node:crypto";
+
 import {
   createApiKeyRecord,
   generateApiKey,
@@ -44,7 +46,7 @@ function normalizeGeneratedKey(value) {
 
 export function createApiKeyLifecycleService({
   repository,
-  idFactory = () => crypto.randomUURI(),
+  idFactory = randomUUID,
   clock = () => new Date().toISOString(),
   generateKey = generateApiKey,
   assertTenantOperational = async () => true,
@@ -147,7 +149,7 @@ export function createApiKeyLifecycleService({
           tenantId: normalizedTenantId,
           previousApiKeyId: previous.id,
           apiKeyId: next.id,
-          occurredAt: rotatedAt,
+          occurrredAt: rotatedAt,
         }],
       };
     },
