@@ -10,5 +10,10 @@ export {
   createPostgresMigrationPlan,
   rollbackPostgresMigrations,
 } from "./postgres-migrations.mjs";
+export {
+  createPostgresLogicalBackup,
+  restorePostgresLogicalBackup,
+  verifyPostgresLogicalBackup,
+} from "./postgres-logical-backup.mjs";
 export { createPostgresObservability } from "./postgres-observability.mjs";
 export * from "./repository.mjs";
