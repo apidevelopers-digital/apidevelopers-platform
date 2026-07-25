@@ -7,6 +7,7 @@ on:
       - "feat/api-gateway-foundation-clean-20260725"
       - "feat/gateway-operational-auth-lifecycle-v0"
       - "feat/gateway-operational-http-v0"
+      - "feat/gateway-operational-protection-v0"
     paths:
       - "apps/api-gateway/**"
       - "packages/auth-core/**"

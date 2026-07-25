@@ -5,6 +5,7 @@ import {
 } from "@apidevelopers/apikey-core";
 
 import { createGatewayAuthenticator } from "./auth-composition.mjs";
+import { createOperationalProtection } from "./operational-protection.mjs";
 import { createApp } from "./server.mjs";
 
 function requireText(value, name) {
@@ -23,6 +24,7 @@ export function createOperationalGateway({
   adminKey,
   adminPrincipal,
   resolveTenantId,
+  protection,
 } = {}) {
   const store = createJsonFileStore({
     filePath: requireText(stateFilePath, "stateFilePath"),
@@ -46,7 +48,13 @@ export function createOperationalGateway({
     ...(resolveTenantId ? { resolveTenantId } : {}),
   });
 
-  const app = createApp({ authenticator });
+  const baseApp = createApp({ authenticator });
+  const app = protection
+    ? createOperationalProtection({
+        app: baseApp,
+        ...protection,
+      })
+    : baseApp;
 
   return Object.freeze({
     store,
@@ -54,5 +62,6 @@ export function createOperationalGateway({
     apiKeyLifecycle,
     authenticator,
     app,
+    ...(protection ? { metrics: app.metrics } : {}),
   });
 }
