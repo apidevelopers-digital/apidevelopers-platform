@@ -1,0 +1,64 @@
+name: Kernel Memory CI
+
+on:
+  pull_request:
+    paths:
+      - "packages/kernel-memory/**"
+      - "packages/contracts/**"
+      - ".github/workflows/kernel-memory-ci.yml"
+  push:
+    branches:
+      - main
+    paths:
+      - "packages/kernel-memory/**"
+      - "packages/contracts/**"
+      - ".github/workflows/kernel-memory-ci.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: kernel-memory-ci-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  memory:
+    name: Kernel Memory gate
+    runs-on:
+      group: organization-macos-ci
+      labels: [self-hosted, macOS, X64]
+    timeout-minutes: 15
+    defaults:
+      run:
+        working-directory: packages/kernel-memory
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js 22
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+
+      - name: Install local contract dependency
+        run: npm install --ignore-scripts --no-audit --no-fund
+
+      - name: Diagnose kernel memory syntax
+        shell: bash
+        run: |
+          set -euo pipefail
+          while IFS= read -r file; do
+            echo "checking syntax: $file"
+            if ! node --check "$file"; then
+              echo "::error file=packages/kernel-memory/$file,title=Invalid JavaScript syntax::Syntax check failed for $file"
+              exit 1
+            fi
+          done < <(find src test -type f -name '*.mjs' | sort)
+
+      - name: Validate kernel memory
+        shell: bash
+        run: |
+          set -euo pipefail
+          npm run check | tee kernel-memory-gate.log
+          grep -Fq "KERNEL_MEMORY_GATE_OK" kernel-memory-gate.log
