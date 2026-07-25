@@ -166,7 +166,7 @@ export function createDecisionPolicyHandoff({
     tenantContext: clone(tenantContext),
     payload: {
       decisionReport: clone(decisionReport),
-      executionPlan : clone(executionPlan),
+      executionPlan: clone(executionPlan),
       action: clone(action),
     },
     createdAt,
