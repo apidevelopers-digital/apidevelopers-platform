@@ -1,0 +1,22 @@
+{
+  "name": "@apidevelopers/apikey-core",
+  "version": "0.2.0",
+  "private": true,
+  "description": "API key generation, hashing, verification, durable tenant isolation, rotation and revocation.",
+  "type": "module",
+  "exports": {
+    ".": "./src/index.mjs",
+    "./durable-repository": "./src/durable-repository.mjs",
+    "./lifecycle-service": "./src/lifecycle-service.mjs"
+  },
+  "scripts": {
+    "test": "node --test test/*.test.mjs",
+    "check": "node --check src/index.mjs && node --check src/durable-repository.mjs && node --check src/lifecycle-service.mjs && npm test"
+  },
+  "dependencies": {
+    "@apidevelopers/persistence-core": "0.3.0"
+  },
+  "engines": {
+    "node": ">=22"
+  }
+}
