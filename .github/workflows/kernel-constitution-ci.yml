@@ -1,0 +1,64 @@
+name: Kernel Constitution CI
+
+on:
+  pull_request:
+    paths:
+      - "packages/kernel-constitution/**"
+      - ".github/workflows/kernel-constitution-ci.yml"
+  push:
+    branches:
+      - main
+    paths:
+      - "packages/kernel-constitution/**"
+      - ".github/workflows/kernel-constitution-ci.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: kernel-constitution-ci-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  constitution:
+    name: Kernel Constitution gate
+    runs-on:
+      group: organization-macos-ci
+      labels: [self-hosted, macOS, X64]
+    timeout-minutes: 15
+    defaults:
+      run:
+        working-directory: packages/kernel-constitution
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js 22
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+
+      - name: Runtime versions
+        run: |
+          node --version
+          npm --version
+
+      - name: Diagnose kernel constitution syntax
+        shell: bash
+        run: |
+          set -euo pipefail
+          while IFS= read -r file; do
+            echo "checking syntax: $file"
+            if ! node --check "$file"; then
+              echo "::error file=packages/kernel-constitution/$file,title=Invalid JavaScript syntax::Syntax check failed for $file"
+              exit 1
+            fi
+          done < <(find src test -type f -name '*.mjs' | sort)
+
+      - name: Validate kernel constitution
+        shell: bash
+        run: |
+          set -euo pipefail
+          npm run check | tee kernel-constitution-gate.log
+          grep -Fq "KERNEL_CONSTITUTION_GATE_OK" kernel-constitution-gate.log
