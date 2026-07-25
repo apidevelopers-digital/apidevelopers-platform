@@ -1,14 +1,37 @@
-import { spawn } from "node:child_process";
+import { execFile, spawn } from "node:child_process";
 import { once } from "node:events";
-import { mkdtemp, rm } from "node:fs/promises";
+import { constants } from "node:fs";
+import { access, mkdtemp, rm } from "node:fs/promises";
 import net from "node:net";
-import { tmpdir } from "node:os";
+import os, { tmpdir } from "node:os";
 import { dirname, join } from "node:path";
+import { promisify } from "node:util";
 import { fileURLToPath } from "node:url";
 
 import EmbeddedPostgres from "embedded-postgres";
 
+const execFileAsync = promisify(execFile);
 const packageRoot = dirname(dirname(fileURLToPath(import.meta.url)));
+
+function escapeWorkflowData(value) {
+  return String(value)
+    .replaceAll("%", "%25")
+    .replaceAll("\r", "%0D")
+    .replaceAll("\n", "%0A");
+}
+
+function formatError(error) {
+  if (error instanceof Error) {
+    return `${error.name}: ${error.message}\n${error.stack ?? ""}`;
+  }
+  return String(error);
+}
+
+function annotateError(title, error) {
+  process.stderr.write(
+    `::error title=${escapeWorkflowData(title)}::${escapeWorkflowData(formatError(error))}\n`,
+  );
+}
 
 async function reserveFreePort() {
   const server = net.createServer();
@@ -26,6 +49,65 @@ async function reserveFreePort() {
   server.close();
   await once(server, "close");
   return port;
+}
+
+async function resolveBinaries() {
+  if (process.platform !== "darwin") {
+    throw new Error(`Unsupported CI platform: ${process.platform}`);
+  }
+
+  const packageName =
+    process.arch === "arm64"
+      ? "@embedded-postgres/darwin-arm64"
+      : process.arch === "x64"
+        ? "@embedded-postgres/darwin-x64"
+        : null;
+
+  if (!packageName) {
+    throw new Error(`Unsupported macOS architecture: ${process.arch}`);
+  }
+
+  const binaries = await import(packageName);
+  return { packageName, binaries };
+}
+
+async function verifyExecutable(name, path) {
+  await access(path, constants.X_OK);
+
+  try {
+    const { stdout, stderr } = await execFileAsync(path, ["--version"], {
+      timeout: 10_000,
+      maxBuffer: 1024 * 1024,
+    });
+    const version = `${stdout}${stderr}`.trim();
+    process.stdout.write(`[preflight] ${name}: ${version}\n`);
+  } catch (error) {
+    throw new Error(
+      `${name} binary could not execute at ${path}: ${formatError(error)}`,
+      { cause: error },
+    );
+  }
+}
+
+async function preflight() {
+  const uid = typeof process.getuid === "function" ? process.getuid() : "n/a";
+  const { packageName, binaries } = await resolveBinaries();
+
+  process.stdout.write(
+    `::notice title=Embedded PostgreSQL preflight::platform=${process.platform} arch=${process.arch} uid=${uid} package=${packageName}\n`,
+  );
+
+  if (uid === 0) {
+    throw new Error(
+      "The self-hosted runner is executing as root. PostgreSQL refuses to run as root.",
+    );
+  }
+
+  await verifyExecutable("postgres", binaries.postgres);
+  await verifyExecutable("initdb", binaries.initdb);
+  await verifyExecutable("pg_ctl", binaries.pg_ctl);
+
+  return { packageName, binaries };
 }
 
 async function runIntegrationTest(connectionString) {
@@ -50,49 +132,58 @@ async function runIntegrationTest(connectionString) {
   }
 }
 
-const databaseDir = await mkdtemp(
-  join(tmpdir(), "apidev-persistence-postgres-"),
-);
-const port = await reserveFreePort();
-const user = "postgres";
-const password = "ci-postgres";
-const database = "apidev_persistence_test";
+async function main() {
+  await preflight();
 
-const postgres = new EmbeddedPostgres({
-  databaseDir,
-  port,
-  user,
-  password,
-  authMethod: "password",
-  persistent: false,
-  initdbFlags: ["--encoding=UTF8", "--no-locale"],
-  onLog(message) {
-    process.stdout.write(`[embedded-postgres] ${String(message)}`);
-  },
-  onError(message) {
-    process.stderr.write(`[embedded-postgres] ${String(message)}`);
-  },
-});
+  const databaseDir = await mkdtemp(
+    join(tmpdir(), "apidev-persistence-postgres-"),
+  );
+  const port = await reserveFreePort();
+  const user = "postgres";
+  const password = "ci-postgres";
+  const database = "apidev_persistence_test";
 
-let started = false;
+  const postgres = new EmbeddedPostgres({
+    databaseDir,
+    port,
+    user,
+    passsword,
+    authMethod: "password",
+    persistent: false,
+    initdbFlags: ["--encoding=UTF8", "--no-locale"],
+    onLog(message) {
+      process.stdout.write(`[embedded-postgres] ${String(message)}`);
+    },
+    onError(message) {
+      process.stderr.write(`[embedded-postgres] ${String(message)}`);
+    },
+  });
 
-try {
-  await postgres.initialise();
-  await postgres.start();
-  started = true;
-  await postgres.createDatabase(database);
+  let started = false;
 
-  const connectionString =
-    `postgresql://${encodeURIComponent(user)}:${encodeURIComponent(password)}` +
-    `@127.0.0.1:${port}/${encodeURIComponent(database)}`;
+  try {
+    await postgres.initialise();
+    await postgres.start();
+    started = true;
+    await postgres.createDatabase(database);
 
-  await runIntegrationTest(connectionString);
-} finally {
-  if (started) {
-    await postgres.stop().catch((error) => {
-      console.error("Failed to stop embedded PostgreSQL cleanly.", error);
-    });
+    const connectionString =
+      `postgresql://${encodeURIComponent(user)}:${encodeURIComponent(password)}` +
+      `@127.0.0.1:${port}/${encodeURIComponent(database)}`;
+
+    await runIntegrationTest(connectionString);
+  } finally {
+    if (started) {
+      await postgres.stop().catch((error) => {
+        annotateError("Embedded PostgreSQL cleanup failed", error);
+      });
+    }
+
+    await rm(databaseDir, { recursive: true, force: true });
   }
-
-  await rm(databaseDir, { recursive: true, force: true });
 }
+
+main().catch((error) => {
+  annotateError("Embedded PostgreSQL bootstrap failed", error);
+  process.exitCode = 1;
+});
