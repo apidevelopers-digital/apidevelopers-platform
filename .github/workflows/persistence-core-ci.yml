@@ -19,6 +19,10 @@ on:
 permissions:
   contents: read
 
+concurrency:
+  group: persistence-core-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
 jobs:
   validate:
     runs-on:
@@ -35,14 +39,42 @@ jobs:
         with:
           node-version: "22"
 
+      - name: Install persistence dependencies
+        shell: bash
+        run: |
+          set -euo pipefail
+          npm --prefix packages/persistence-core install --ignore-scripts
+
       - name: Validate persistence source
         shell: bash
         run: |
           set -euo pipefail
           npm --prefix packages/persistence-core run check
 
-      - name: Run persistence tests
+  postgres-integration:
+    runs-on:
+      group: organization-macos-ci
+      labels: [self-hosted, macOS, X64]
+    timeout-minutes: 15
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+
+      - name: Install persistence dependencies
         shell: bash
         run: |
           set -euo pipefail
-          npm --prefix packages/persistence-core test
+          npm --prefix packages/persistence-core install --include=optional
+          npm --prefix packages/persistence-core rebuild @embedded-postgres/darwin-x64 --foreground-scripts
+
+      - name: Run PostgreSQL 16 integration
+        shell: bash
+        run: |
+          set -euo pipefail
+          npm --prefix packages/persistence-core run test:postgres
