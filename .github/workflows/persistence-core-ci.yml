@@ -70,7 +70,7 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          npm --prefix packages/persistence-core install --ignore-scripts
+          npm --prefix packages/persistence-core install --include=optional
 
       - name: Run PostgreSQL 16 integration
         shell: bash
