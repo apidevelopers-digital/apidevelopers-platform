@@ -1,6 +1,6 @@
 {
   "name": "@apidevelopers/persistence-core",
-  "version": "0.3.0",
+  "version": "0.4.0",
   "private": true,
   "description": "Atomic durable JSON and PostgreSQL persistence, transactions, idempotency, outbox claim and dead-letter contracts for API Developers.digital.",
   "type": "module",
@@ -9,7 +9,11 @@
   },
   "scripts": {
     "test": "node --test test/*.test.mjs",
+    "test:postgres": "node --test test/postgres.integration.test.mjs",
     "check": "node --check src/model.mjs && node --check src/transaction-context.mjs && node --check src/file-store.mjs && node --check src/postgres-store.mjs && node --check src/repository.mjs && node --check src/index.mjs && npm test"
+  },
+  "devDependencies": {
+    "pg": "^8.13.1"
   },
   "engines": {
     "node": ">=22"
