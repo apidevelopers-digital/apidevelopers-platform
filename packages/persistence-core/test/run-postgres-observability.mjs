@@ -28,15 +28,15 @@ async function reserveFreePort() {
   return port;
 }
 
-async function runBackupRestoreTest(env) {
+async function runTest(connectionString) {
   const child = spawn(
     process.execPath,
-    ["--test", "test/postgres-backup-restore.integration.test.mjs"],
+    ["--test", "test/postgres-observability.integration.test.mjs"],
     {
       cwd: packageRoot,
       env: {
         ...process.env,
-        ...env,
+        POSTGRES_TEST_URL: connectionString,
       },
       stdio: "inherit",
     },
@@ -45,20 +45,18 @@ async function runBackupRestoreTest(env) {
   const [code, signal] = await once(child, "exit");
   if (code !== 0) {
     throw new Error(
-      `PostgreSQL logical backup/restore test failed (code=${code ?? "null"}, signal=${signal ?? "null"}).`,
+      `PostgreSQL observability test failed (code=${code ?? "null"}, signal=${signal ?? "null"}).`,
     );
   }
 }
 
 const databaseDir = await mkdtemp(
-  join(tmpdir(), "apidev-persistence-backup-postgres-"),
-);
-const backupDir = await mkdtemp(
-  join(tmpdir(), "apidev-persistence-backup-artifact-"),
+  join(tmpdir(), "apidev-persistence-observability-postgres-"),
 );
 const port = await reserveFreePort();
 const user = "postgres";
 const password = "ci-postgres";
+const database = "apidev_persistence_observability_test";
 
 const postgres = new EmbeddedPostgres({
   databaseDir,
@@ -69,7 +67,7 @@ const postgres = new EmbeddedPostgres({
   persistent: false,
   initdbFlags: ["--encoding=UTF8", "--no-locale"],
   onLog(message) {
-    process.stdout.write(`[embedded-postgres ] ${String(message)}`);
+    process.stdout.write(`[embedded-postgres] ${String(message)}`);
   },
   onError(message) {
     process.stderr.write(`[embedded-postgres] ${String(message)}`);
@@ -82,24 +80,18 @@ try {
   await postgres.initialise();
   await postgres.start();
   started = true;
+  await postgres.createDatabase(database);
 
-  const adminUrl =
+  const connectionString =
     `postgresql://${encodeURIComponent(user)}:${encodeURIComponent(password)}` +
-    `@127.0.0.1:${port}/postgres`;
+    `@127.0.0.1:${port}/${encodeURIComponent(database)}`;
 
-  await runBackupRestoreTest({
-    POSTGRES_ADMIN_URL: adminUrl,
-    POSTGRES_BACKUP_DIR: backupDir,
-  });
+  await runTest(connectionString);
 } finally {
   if (started) {
     await postgres.stop().catch((error) => {
       console.error("Failed to stop embedded PostgreSQL cleanly.", error);
     });
   }
-
-  await Promise.all([
-    rm(databaseDir, { recursive: true, force: true }),
-    rm(backupDir, { recursive: true, force: true }),
-  ]);
+  await rm(databaseDir, { recursive: true, force: true });
 }

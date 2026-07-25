@@ -1,4 +1,5 @@
 import assert from "node:assert/strict";
+import { setTimeout as delay } from "node:timers/promises";
 import test from "node:test";
 
 import pg from "pg";
@@ -18,6 +19,31 @@ function createPool() {
     idleTimeoutMillis: 1_000,
     connectionTimeoutMillis: 5_000,
   });
+}
+
+async function retryPersistenceConflict(work, {
+  attempts = 8,
+  baseDelayMillis = 10,
+} = {}) {
+  let lastError;
+
+  for (let attempt = 1; attempt <= attempts; attempt += 1) {
+    try {
+      return await work();
+    } catch (error) {
+      lastError = error;
+      if (
+        error?.code !== "persistence_retryable_conflict" ||
+        attempt === attempts
+      ) {
+        throw error;
+      }
+
+      await delay(baseDelayMillis * 2 ** (attempt - 1));
+    }
+  }
+
+  throw lastError;
 }
 
 test(
@@ -59,16 +85,20 @@ test(
     });
 
     await Promise.all([
-      repositoryA.create({
-        id: "project-a",
-        tenantId: "tenant-1",
-        name: "Alpha",
-      }),
-      repositoryB.create({
-        id: "project-b",
-        tenantId: "tenant-1",
-        name: "Beta",
-      }),
+      retryPersistenceConflict(() =>
+        repositoryA.create({
+          id: "project-a",
+          tenantId: "tenant-1",
+          name: "Alpha",
+        }),
+      ),
+      retryPersistenceConflict(() =>
+        repositoryB.create({
+          id: "project-b",
+          tenantId: "tenant-1",
+          name: "Beta",
+        }),
+      ),
     ]);
 
     const first = await storeA.executeIdempotent(

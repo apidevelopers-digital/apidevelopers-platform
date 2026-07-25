@@ -11,6 +11,7 @@ import {
 
 const { Pool } = pg;
 const connectionString = process.env.POSTGRES_TEST_URL;
+const TRANSIENT_TRANSACTION_CODES = new Set(["40001", "40P01"]);
 
 function createPool() {
   return new Pool({
@@ -19,6 +20,28 @@ function createPool() {
     idleTimeoutMillis: 1_000,
     connectionTimeoutMillis: 5_000,
   });
+}
+
+async function retryTransient(work, {
+  attempts = 8,
+  baseDelayMillis = 10,
+} = {}) {
+  let lastError;
+  for (let attempt = 1; attempt <= attempts; attempt += 1) {
+    try {
+      return await work();
+    } catch (error) {
+      lastError = error;
+      if (
+        !TRANSIENT_TRANSACTION_CODES.has(String(error?.code)) ||
+        attempt === attempts
+      ) {
+        throw error;
+      }
+      await delay(baseDelayMillis * 2 ** (attempt - 1));
+    }
+  }
+  throw lastError;
 }
 
 async function waitFor(predicate, {
@@ -63,7 +86,7 @@ test(
       heldClientB?.release();
       heldClientA = null;
       heldClientB = null;
-      await Promise.allSettled(pools.map((pool) => pool.end()));
+      await Promise.allSettled(pools.map((entry) => entry.end()));
     });
 
     let store = createPostgresStore({
@@ -106,18 +129,23 @@ test(
       () => activePool.waitingCount === 0 && activePool.idleCount >= 1,
       { message: "pool did not return to an idle recovered state" },
     );
-    assert.equal((await activePool.query("SELECT 1 AS healthy")).rows[0].healthy, 1);
+    assert.equal(
+      (await activePool.query("SELECT 1 AS healthy")).rows[0].healthy,
+      1,
+    );
 
     const recordCount = 40;
     await Promise.all(
       Array.from({ length: recordCount }, (_, index) =>
-        repository.create({
-          id: `project-${String(index).padStart(3, "0")}`,
-          tenantId: "tenant-load",
-          sequence: index,
-          name: `Project ${index}`,
-        }),
-    ),
+        retryTransient(() =>
+          repository.create({
+            id: `project-${String(index).padStart(3, "0")}`,
+            tenantId: "tenant-load",
+            sequence: index,
+            name: `Project ${index}`,
+          }),
+        ),
+      ),
     );
 
     let sharedCallbackExecutions = 0;
@@ -150,23 +178,25 @@ test(
     const uniqueIdempotencyCount = 20;
     await Promise.all(
       Array.from({ length: uniqueIdempotencyCount }, (_, index) =>
-        store.executeIdempotent(`unique-load-${index}`, async (tx) => {
-          tx.enqueueOutbox({
-            id: `unique-load-event-${index}`,
-            type: "load.unique.completed",
-            aggregateId: namespace,
-            payload: { index },
-          });
-          return { accepted: true, index };
-        }),
-     ),
+        retryTransient(() =>
+          store.executeIdempotent(`unique-load-${index}`, async (tx) => {
+            tx.enqueueOutbox({
+              id: `unique-load-event-${index}`,
+              type: "load.unique.completed",
+              aggregateId: namespace,
+              payload: { index },
+            });
+            return { accepted: true, index };
+          }),
+        ),
+      ),
     );
 
     const sustainedDurationMillis = 20_000;
     const sustainedWorkers = 6;
     const sustainedKeys = Array.from(
-     { length: sustainedWorkers },
-     (_, index) => `steady-load-${index}`,
+      { length: sustainedWorkers },
+      (_, index) => `steady-load-${index}`,
     );
     const sustainedCallbackExecutions = new Map(
       sustainedKeys.map((key) => [key, 0]),
@@ -174,13 +204,15 @@ test(
 
     await Promise.all(
       sustainedKeys.map((key, workerIndex) =>
-        store.executeIdempotent(key, async () => {
-          sustainedCallbackExecutions.set(
-            key,
-            sustainedCallbackExecutions.get(key) + 1,
-          );
-          return { workerIndex, stable: true };
-        }),
+        retryTransient(() =>
+          store.executeIdempotent(key, async () => {
+            sustainedCallbackExecutions.set(
+              key,
+              sustainedCallbackExecutions.get(key) + 1,
+            );
+            return { workerIndex, stable: true };
+          }),
+        ),
       ),
     );
 
@@ -226,7 +258,10 @@ test(
     }
 
     const beforeReconnect = await store.read();
-    assert.equal(beforeReconnect.outbox.length, 1 + uniqueIdempotencyCount);
+    assert.equal(
+      beforeReconnect.outbox.length,
+      1 + uniqueIdempotencyCount,
+    );
     assert.equal(
       Object.keys(beforeReconnect.idempotency).length,
       1 + uniqueIdempotencyCount + sustainedWorkers,
@@ -274,13 +309,19 @@ test(
     });
 
     const afterReconnect = await store.read();
-    assert.equal(afterReconnect.outbox.length, 1 + uniqueIdempotencyCount);
+    assert.equal(
+      afterReconnect.outbox.length,
+      1 + uniqueIdempotencyCount,
+    );
     assert.equal(
       Object.keys(afterReconnect.idempotency).length,
       1 + uniqueIdempotencyCount + sustainedWorkers,
     );
     assert.ok(afterReconnect.revision >= beforeReconnect.revision);
-    assert.equal((await activePool.query("SELECT 1 AS healthy")).rows[0].healthy, 1);
+    assert.equal(
+      (await activePool.query("SELECT 1 AS healthy")).rows[0].healthy,
+      1,
+    );
     assert.equal(activePool.waitingCount, 0);
 
     process.stdout.write(
