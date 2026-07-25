@@ -71,6 +71,7 @@ jobs:
         run: |
           set -euo pipefail
           npm --prefix packages/persistence-core install --include=optional
+          npm --prefix packages/persistence-core rebuild @embedded-postgres/darwin-x64 --foreground-scripts
 
       - name: Run PostgreSQL 16 integration
         shell: bash
