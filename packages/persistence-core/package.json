@@ -9,8 +9,9 @@
   },
   "scripts": {
     "test": "node --test test/*.test.mjs",
-    "test:postgres": "node test/run-postgres-integration.mjs",
-    "check": "node --check src/model.mjs && node --check src/transaction-context.mjs && node --check src/file-store.mjs && node --check src/postgres-store.mjs && node --check src/repository.mjs && node --check src/index.mjs && npm test"
+    "test:postgres": "node test/run-postgres-integration.mjs && node test/run-postgres-migrations.mjs",
+    "test:postgres:migrations": "node test/run-postgres-migrations.mjs",
+    "check": "node --check src/model.mjs && node --check src/transaction-context.mjs && node --check src/file-store.mjs && node --check src/postgres-store.mjs && node --check src/postgres-migrations.mjs && node --check src/postgres-store-migrated.mjs && node --check src/repository.mjs && node --check src/index.mjs && npm test"
   },
   "devDependencies": {
     "embedded-postgres": "16.14.0-beta.17",
