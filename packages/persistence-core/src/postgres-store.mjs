@@ -193,7 +193,7 @@ WHERE namespace = $1${forUpdate ? "\nFOR UPDATE" : ""}`,
         began = true;
         await client.query("SET TRANSACTION ISOLATION LEVEL SERIALIZABLE");
         await client.query(
-          "SELECT pg_advisory_xact_lock(hashtextended($1, 0))",
+          "SELECT pg_advisory_xact_lock(hashtextextended($1, 0))",
           [lockKey],
         );
 
@@ -255,8 +255,8 @@ RETURNING revision`,
               digest,
               draft.updatedAt,
               current.revision,
-            ],
-          );
+          ],
+         );
         }
 
         if (persisted.rowCount !== 1) {
