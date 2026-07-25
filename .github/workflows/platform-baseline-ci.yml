@@ -1,0 +1,83 @@
+name: Platform Baseline CI
+
+on:
+  push:
+    branches:
+      - main
+      - ci/platform-baseline-v0
+  pull_request:
+    branches:
+      - main
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  validate:
+    runs-on:
+      - self-hosted
+      - macOS
+      - X64
+    timeout-minutes: 10
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+
+      - name: Show baseline context
+        shell: bash
+        run: |
+          set -euo pipefail
+          echo "repository=$GITHUB_REPOSITORY"
+          echo "ref=$GITHUB_REF"
+          echo "sha=$GITHUB_SHA"
+          node --version
+          git --version
+
+      - name: Validate required baseline files
+        shell: bash
+        run: |
+          set -euo pipefail
+          test -f README.md
+          test -f scripts/lib/planning-engine.mjs
+          test -f .github/workflows/planning-engine-ci.yml
+
+      - name: Validate JavaScript and MJS syntax
+        shell: bash
+        run: |
+          set -euo pipefail
+          found=0
+          while IFS= read -r file; do
+            found=1
+            echo "checking syntax: $file"
+            node --check "$file"
+          done < <(find . -type f \( -name '*.js' -o -name '*.mjs' -o -name '*.cjs' \) -not -path './.git/*' | sort)
+          if [ "$found" -eq 0 ]; then
+            echo "No JavaScript files found."
+          fi
+
+      - name: Validate JSON files
+        shell: bash
+        run: |
+          set -euo pipefail
+          found=0
+          while IFS= read -r file; do
+            found=1
+            echo "checking json: $file"
+            node -e "JSON.parse(require('node:fs').readFileSync(process.argv[1], 'utf8'))" "$file"
+          done < <(find . -type f -name '*.json' -not -path './.git/*' | sort)
+          if [ "$found" -eq 0 ]; then
+            echo "No JSON files found."
+          fi
+
+      - name: Planning Engine smoke test
+        shell: bash
+        run: |
+          set -euo pipefail
+          node --input-type=module -e "import('./scripts/lib/planning-engine.mjs').then((m) => { if (typeof m.createPlanningEngine !== 'function') throw new Error('missing createPlanningEngine export'); const engine = m.createPlanningEngine({ clock: () => '2026-07-25T00:00:00.000Z' }); const plan = engine.plan({ reflectionId: 'platform-baseline-ci', findings: [] }); if (plan.mode !== 'advisory') throw new Error('non-advisory plan'); console.log('platform baseline smoke ok'); })"
