@@ -9,11 +9,12 @@
   },
   "scripts": {
     "test": "node --test test/*.test.mjs",
-    "test:postgres": "node test/run-postgres-integration.mjs && node test/run-postgres-migrations.mjs && node test/run-postgres-backup-restore.mjs && node test/run-postgres-load-recovery.mjs",
+    "test:postgres": "node test/run-postgres-integration.mjs && node test/run-postgres-migrations.mjs && node test/run-postgres-backup-restore.mjs && node test/run-postgres-load-recovery.mjs && node test/run-postgres-observability.mjs",
     "test:postgres:migrations": "node test/run-postgres-migrations.mjs",
     "test:postgres:backup": "node test/run-postgres-backup-restore.mjs",
     "test:postgres:load": "node test/run-postgres-load-recovery.mjs",
-    "check": "node --check src/model.mjs && node --check src/transaction-context.mjs && node --check src/file-store.mjs && node --check src/postgres-store.mjs && node --check src/postgres-migrations.mjs && node --check src/postgres-store-migrated.mjs && node --check src/repository.mjs && node --check src/index.mjs && node --check test/run-postgres-backup-restore.mjs && node --check test/run-postgres-load-recovery.mjs && npm test"
+    "check": "node --check src/model.mjs && node --check src/transaction-context.mjs && node --check src/file-store.mjs && node --check src/postgres-store.mjs && node --check src/postgres-migrations.mjs && node --check src/postgres-store-migrated.mjs && node --check src/postgres-observability.mjs && node --check src/repository.mjs && node --check src/index.mjs && node --check test/run-postgres-backup-restore.mjs && node --check test/run-postgres-load-recovery.mjs && node --check test/run-postgres-observability.mjs && npm test",
+    "test:postgres:observability": "node test/run-postgres-observability.mjs"
   },
   "devDependencies": {
     "embedded-postgres": "16.14.0-beta.17",
