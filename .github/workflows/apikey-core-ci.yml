@@ -41,12 +41,12 @@ jobs:
         with:
           node-version: "22"
 
-      - name: Link local persistence core
+      - name: Link local persistence dependency
         shell: bash
         run: |
           set -euo pipefail
           mkdir -p packages/apikey-core/node_modules/@apidevelopers
-          ln -sfn "$GITHUB_WORKSPACE/packages/persistence-core"             packages/apikey-core/node_modules/@apidevelopers/persistence-core
+          ln -sfn "$GITHUB_WORKSPACE/packages/persistence-core" packages/apikey-core/node_modules/@apidevelopers/persistence-core
 
       - name: Validate API Key Core
         shell: bash
