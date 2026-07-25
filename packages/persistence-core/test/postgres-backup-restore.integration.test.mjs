@@ -1,17 +1,20 @@
 import assert from "node:assert/strict";
-import { execFile } from "node:child_process";
 import { mkdtemp, rm, stat } from "node:fs/promises";
 import { join } from "node:path";
 import test from "node:test";
-import { promisify } from "node:util";
-import pg from "pg";
-import { createDurableRepository, createPostgresStore } from "../src/index.mjs";
 
-const execFileAsync = promisify(execFile);
+import pg from "pg";
+
+import {
+  createDurableRepository,
+  createPostgresLogicalBackup,
+  createPostgresStore,
+  restorePostgresLogicalBackup,
+  verifyPostgresLogicalBackup,
+} from "../src/index.mjs";
+
 const { Pool } = pg;
 const adminUrl = process.env.POSTGRES_ADMIN_URL;
-const pgDump = process.env.POSTGRES_PG_DUMP_BIN;
-const pgRestore = process.env.POSTGRES_PG_RESTORE_BIN;
 const backupRoot = process.env.POSTGRES_BACKUP_DIR;
 
 function ident(value) {
@@ -30,26 +33,17 @@ function pool(url) {
   });
 }
 
-async function utility(binary, args, password) {
-  return execFileAsync(binary, args, {
-    env: { ...process.env, PGPASSWORD: password },
-    timeout: 60_000,
-    maxBuffer: 8 * 1024 * 1024,
-  });
-}
-
-test("backup, destruction, restore and durable-state verification", {
-  skip: !adminUrl || !pgDump || !pgRestore || !backupRoot,
+test("logical backup, destruction, restore and durable-state verification", {
+  skip: !adminUrl || !backupRoot,
   timeout: 120_000,
 }, async () => {
-  const admin = new URL(adminUrl);
   const database = `apidev_backup_${process.pid}_${Date.now()}`;
   const databaseUrl = new URL(adminUrl);
   databaseUrl.pathname = `/${database}`;
   const backupDir = await mkdtemp(join(backupRoot, "restore-"));
-  const backupFile = join(backupDir, `${database}.dump`);
-  const table = "apidev_persistence_state";
-  const ledger = `${table}_migrations`;
+  const backupFile = join(backupDir, `${database}.logical-backup.json`);
+  const tableName = "apidev_persistence_state";
+  const ledgerTableName = `${tableName}_migrations`;
   const namespace = "backup_restore_validation";
   const adminPool = pool(adminUrl);
   let sourcePool;
@@ -62,8 +56,8 @@ test("backup, destruction, restore and durable-state verification", {
     const sourceStore = createPostgresStore({
       pool: sourcePool,
       namespace,
-      tableName: table,
-      ledgerTableName: ledger,
+      tableName,
+      ledgerTableName,
     });
     await sourceStore.initialize();
 
@@ -71,44 +65,59 @@ test("backup, destruction, restore and durable-state verification", {
       store: sourceStore,
       collection: "projects",
     });
-    await repository.create({ id: "project-a", tenantId: "tenant-1", name: "Alpha" });
-    await repository.create({ id: "project-b", tenantId: "tenant-1", name: "Beta" });
-
-    const first = await sourceStore.executeIdempotent("backup-request-1", async (tx) => {
-      tx.enqueueOutbox({
-        id: "backup-event-1",
-        type: "backup.validation.completed",
-        aggregateId: namespace,
-        payload: { namespace, database },
-      });
-      return { accepted: true, marker: "before-backup" };
+    await repository.create({
+      id: "project-a",
+      tenantId: "tenant-1",
+      name: "Alpha",
     });
+    await repository.create({
+      id: "project-b",
+      tenantId: "tenant-1",
+      name: "Beta",
+    });
+
+    const first = await sourceStore.executeIdempotent(
+      "backup-request-1",
+      async (tx) => {
+        tx.enqueueOutbox({
+          id: "backup-event-1",
+          type: "backup.validation.completed",
+          aggregateId: namespace,
+          payload: { namespace, database },
+        });
+        return { accepted: true, marker: "before-backup" };
+      },
+    );
     assert.equal(first.result.executed, true);
 
     const sourceState = await sourceStore.read();
     const sourceLedger = await sourcePool.query(
-      `SELECT version, name, checksum FROM "public".${ident(ledger)} ORDER BY version`,
+      `SELECT version, name, checksum
+FROM "public".${ident(ledgerTableName)}
+ORDER BY version`,
     );
+
+    const created = await createPostgresLogicalBackup({
+      pool: sourcePool,
+      path: backupFile,
+      tableName,
+      ledgerTableName,
+    });
+    assert.equal(created.stateRows, 1);
+    assert.equal(created.migrations, 1);
+    assert.equal(created.checksum.length, 64);
+    assert.ok((await stat(backupFile)).size > 0);
+
+    const verified = await verifyPostgresLogicalBackup({ path: backupFile });
+    assert.equal(verified.checksum, created.checksum);
+    assert.deepEqual(verified.source, {
+      schema: "public",
+      tableName,
+      ledgerTableName,
+    });
 
     await sourcePool.end();
     sourcePool = null;
-
-    const connection = [
-      "--host=127.0.0.1",
-      `--port=${admin.port}`,
-      `--username=${decodeURIComponent(admin.username)}`,
-      `--dbname=${database}`,
-    ];
-    const password = decodeURIComponent(admin.password);
-
-    await utility(pgDump, [
-      "--format=custom",
-      "--no-owner",
-      "--no-privileges",
-      `--file=${backupFile}`,
-      ...connection,
-    ], password);
-    assert.ok((await stat(backupFile)).size > 0);
 
     await adminPool.query(`DROP DATABASE ${ident(database)}`);
     const destroyed = await adminPool.query(
@@ -118,20 +127,32 @@ test("backup, destruction, restore and durable-state verification", {
     assert.equal(destroyed.rowCount, 0);
 
     await adminPool.query(`CREATE DATABASE ${ident(database)}`);
-    await utility(pgRestore, [
-      "--exit-on-error",
-      "--no-owner",
-      "--no-privileges",
-      ...connection,
-      backupFile,
-    ], password);
-
     restoredPool = pool(databaseUrl.toString());
+
+    await assert.rejects(
+      () =>
+        restorePostgresLogicalBackup({
+          pool: restoredPool,
+          path: backupFile,
+        }),
+      (error) =>
+        error?.code === "postgres_logical_restore_data_loss_not_authorized",
+    );
+
+    const restored = await restorePostgresLogicalBackup({
+      pool: restoredPool,
+      path: backupFile,
+      allowDataLoss: true,
+    });
+    assert.equal(restored.checksum, created.checksum);
+    assert.equal(restored.restoredStateRows, 1);
+    assert.equal(restored.restoredMigrations, 1);
+
     const restoredStore = createPostgresStore({
       pool: restoredPool,
       namespace,
-      tableName: table,
-      ledgerTableName: ledger,
+      tableName,
+      ledgerTableName,
     });
     await restoredStore.initialize();
 
@@ -139,30 +160,47 @@ test("backup, destruction, restore and durable-state verification", {
       store: restoredStore,
       collection: "projects",
     });
-    const projects = await restoredRepository.list({ where: { tenantId: "tenant-1" } });
-    assert.deepEqual(projects.map(({ id }) => id).sort(), ["project-a", "project-b"]);
-
-    const replay = await restoredStore.executeIdempotent("backup-request-1", async () => {
-      throw new Error("idempotent callback must not execute after restore");
+    const projects = await restoredRepository.list({
+      where: { tenantId: "tenant-1" },
     });
-    assert.equal(replay.result.executed, false);
-    assert.deepEqual(replay.result.value, { accepted: true, marker: "before-backup" });
+    assert.deepEqual(
+      projects.map(({ id }) => id).sort(),
+      ["project-a", "project-b"],
+    );
 
+    const replay = await restoredStore.executeIdempotent(
+      "backup-request-1",
+      async () => {
+        throw new Error("idempotent callback must not execute after restore");
+      },
+    );
+    assert.equal(replay.result.executed, false);
+    assert.deepEqual(replay.result.value, {
+      accepted: true,
+      marker: "before-backup",
+    });
     assert.deepEqual(await restoredStore.read(), sourceState);
+
     const restoredLedger = await restoredPool.query(
-      `SELECT version, name, checksum FROM "public".${ident(ledger)} ORDER BY version`,
+      `SELECT version, name, checksum
+FROM "public".${ident(ledgerTableName)}
+ORDER BY version`,
     );
     assert.deepEqual(restoredLedger.rows, sourceLedger.rows);
     assert.equal(restoredLedger.rowCount, 1);
   } finally {
     await Promise.allSettled([sourcePool?.end(), restoredPool?.end()]);
-    await adminPool.query(
-      `SELECT pg_terminate_backend(pid)
-       FROM pg_stat_activity
-       WHERE datname = $1 AND pid <> pg_backend_pid()`,
-      [database],
-    ).catch(() => {});
-    await adminPool.query(`DROP DATABASE IF EXISTS ${ident(database)}`).catch(() => {});
+    await adminPool
+      .query(
+        `SELECT pg_terminate_backend(pid)
+FROM pg_stat_activity
+WHERE datname = $1 AND pid <> pg_backend_pid()`,
+        [database],
+      )
+      .catch(() => {});
+    await adminPool
+      .query(`DROP DATABASE IF EXISTS ${ident(database)}`)
+      .catch(() => {});
     await adminPool.end();
     await rm(backupDir, { recursive: true, force: true });
   }
