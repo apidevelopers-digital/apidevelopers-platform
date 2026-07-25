@@ -9,10 +9,11 @@
   },
   "scripts": {
     "test": "node --test test/*.test.mjs",
-    "test:postgres": "node --test test/postgres.integration.test.mjs",
+    "test:postgres": "node test/run-postgres-integration.mjs",
     "check": "node --check src/model.mjs && node --check src/transaction-context.mjs && node --check src/file-store.mjs && node --check src/postgres-store.mjs && node --check src/repository.mjs && node --check src/index.mjs && npm test"
   },
   "devDependencies": {
+    "embedded-postgres": "16.14.0-beta.17",
     "pg": "^8.13.1"
   },
   "engines": {
