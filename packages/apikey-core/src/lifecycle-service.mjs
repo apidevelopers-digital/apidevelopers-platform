@@ -108,7 +108,7 @@ export function createApiKeyLifecycleService({
       };
     },
 
-    asyninc rotateApiKey({ tenantId, apiKeyId, name, scopes }) {
+    async rotateApiKey({ tenantId, apiKeyId, name, scopes }) {
       const normalizedTenantId = requireText(tenantId, "tenantId");
       const id = requireText(apiKeyId, "apiKeyId");
       await assertTenant(normalizedTenantId);
@@ -145,7 +145,7 @@ export function createApiKeyLifecycleService({
         events: [{
           type: "apikey.rotated",
           tenantId: normalizedTenantId,
-           previousApiKeyId: previous.id,
+          previousApiKeyId: previous.id,
           apiKeyId: next.id,
           occurredAt: rotatedAt,
         }],
