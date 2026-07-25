@@ -1,0 +1,55 @@
+name: API Key Core CI
+
+on:
+  push:
+    branches:
+      - main
+      - feat/apikey-core-v0
+    paths:
+      - "packages/apikey-core/**"
+      - "packages/persistence-core/**"
+      - ".github/workflows/apikey-core-ci.yml"
+  pull_request:
+    branches:
+      - main
+    paths:
+      - "packages/apikey-core/**"
+      - "packages/persistence-core/**"
+      - ".github/workflows/apikey-core-ci.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: apikey-core-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  validate:
+    runs-on:
+      group: organization-macos-ci
+      labels: [self-hosted, macOS, X64]
+    timeout-minutes: 10
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+
+      - name: Link local persistence core
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p packages/apikey-core/node_modules/@apidevelopers
+          ln -sfn "$GITHUB_WORKSPACE/packages/persistence-core"             packages/apikey-core/node_modules/@apidevelopers/persistence-core
+
+      - name: Validate API Key Core
+        shell: bash
+        run: |
+          set -euo pipefail
+          npm --prefix packages/apikey-core run check
