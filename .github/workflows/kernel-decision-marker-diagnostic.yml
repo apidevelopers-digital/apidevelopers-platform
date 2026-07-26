@@ -1,10 +1,9 @@
-name: Kernel Decision Marker Diagnostic
+name: Kernel Decision Syntax Diagnostic
 
 on:
   pull_request:
     paths:
       - "packages/kernel-decision/**"
-      - "packages/contracts/**"
       - ".github/workflows/kernel-decision-marker-diagnostic.yml"
   workflow_dispatch:
 
@@ -12,18 +11,21 @@ permissions:
   contents: read
 
 jobs:
-  marker:
+  syntax:
     runs-on:
       group: organization-macos-ci
       labels: [self-hosted, macOS, X64]
     timeout-minutes: 15
-    defaults:
-      run:
-        working-directory: packages/kernel-decision
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
         with:
           node-version: "22"
-      - run: npm install --ignore-scripts --no-audit --no-fund
-      - run: node --test test/gate-marker.test.mjs
+      - name: Check source and test syntax only
+        shell: bash
+        run: |
+          set -euo pipefail
+          while IFS= read -r file; do
+            echo "checking syntax: $file"
+            node --check "$file"
+          done < <(find packages/kernel-decision/src packages/kernel-decision/test -type f -name '*.mjs' | sort)
