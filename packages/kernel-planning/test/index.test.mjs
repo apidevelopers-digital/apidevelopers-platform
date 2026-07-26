@@ -12,7 +12,7 @@ const reflection = (findings = [], extra = {}) => ({
   tenantId: "tenant_001",
   cycleId: "cycle.001",
   mode: "advisory",
-  mutationAlowed: false,
+  mutationAllowed: false,
   summary: { status: "review", counts: { total: findings.length } },
   findings,
   ...extra,
@@ -42,7 +42,7 @@ test("groups findings and preserves traceability", () => {
   assert.equal(report.cycleId,"cycle.001");
 });
 test("marks missing evidence and blocks constitutional conflicts", () => {
-  const report = engine().plan( {
+  const report = engine().plan({
     tenantId:"tenant_001", cycleId:"cycle.001",
     reflectionReport: reflection([
       {ruleId:"RSN-003",severity:"medium",subject:"component.a",statement:"Missing evidence."},
