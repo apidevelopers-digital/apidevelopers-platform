@@ -40,7 +40,10 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: "22"
-      - name: Install local dependencies
+      - name: Install kernel evidence dependencies
+        working-directory: packages/kernel-evidence
+        run: npm install --ignore-scripts --no-audit --no-fund
+      - name: Install kernel audit dependencies
         run: npm install --ignore-scripts --no-audit --no-fund
       - name: Diagnose syntax
         shell: bash
