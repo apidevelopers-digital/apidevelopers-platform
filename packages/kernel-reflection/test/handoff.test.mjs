@@ -1,14 +1,37 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 
-import { createCognitiveHandoff } from "@apidevelopers/contracts";
+import {
+  createCognitiveHandoff,
+  createTenantContext,
+} from "@apidevelopers/contracts";
 import { runGovernedReflection } from "../src/governed.mjs";
 
-const tenantContext = {
+const tenantContext = createTenantContext({
   tenantId: "tenant_001",
   principalId: "operator_001",
+  requestId: "request.reflection.001",
   roles: ["operator"],
-};
+  permissions: ["kernel.reflection.read"],
+  createdAt: "2026-07-26T08:00:00.000Z",
+});
+
+function reasoningReport() {
+  return {
+    reasoningId: "reasoning.001",
+    mode: "read-only",
+    mutationAllowed: false,
+    summary: {
+      status: "complete",
+      conclusionCount: 0,
+    },
+    conclusions: [],
+    constraints: {
+      automaticDecisionAllowed: false,
+      automaticExecutionAllowed: false,
+    },
+  };
+}
 
 function validHandoff() {
   return createCognitiveHandoff({
@@ -18,9 +41,7 @@ function validHandoff() {
     cycleId: "cycle.001",
     tenantContext,
     payload: {
-      reasoningReport: {
-        reasoningId: "reasoning.001",
-      },
+      reasoningReport: reasoningReport(),
       knowledgeSnapshot: {
         nodes: [],
         relations: [],
@@ -75,6 +96,6 @@ test("rejects a non-canonical incoming route", () => {
         handoff,
         nextHandoffId: "handoff.reflection-planning.002",
       }),
-    /kernel-reasoning -> kernel-reflection/,
+    /transition is not allowed|kernel-reasoning -> kernel-reflection/,
   );
 });
