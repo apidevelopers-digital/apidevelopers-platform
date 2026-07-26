@@ -1,0 +1,58 @@
+name: Kernel Audit CI
+
+on:
+  pull_request:
+    paths:
+      - "packages/kernel-audit/**"
+      - "packages/kernel-evidence/**"
+      - "packages/contracts/**"
+      - ".github/workflows/kernel-audit-ci.yml"
+  push:
+    branches: [main]
+    paths:
+      - "packages/kernel-audit/**"
+      - "packages/kernel-evidence/**"
+      - "packages/contracts/**"
+      - ".github/workflows/kernel-audit-ci.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: kernel-audit-ci-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  audit:
+    name: Kernel Audit gate
+    runs-on:
+      group: organization-macos-ci
+      labels: [self-hosted, macOS, X64]
+    timeout-minutes: 15
+    defaults:
+      run:
+        working-directory: packages/kernel-audit
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Setup Node.js 22
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+      - name: Install local dependencies
+        run: npm install --ignore-scripts --no-audit --no-fund
+      - name: Diagnose syntax
+        shell: bash
+        run: |
+          set -euo pipefail
+          while IFS= read -r file; do
+            echo "checking syntax: $file"
+            node --check "$file"
+          done < <(find src test -type f -name '*.mjs' | sort)
+      - name: Validate kernel audit
+        shell: bash
+        run: |
+          set -euo pipefail
+          npm run check | tee kernel-audit-gate.log
+          grep -Fq "KERNEL_AUDIT_GATE_OK" kernel-audit-gate.log
