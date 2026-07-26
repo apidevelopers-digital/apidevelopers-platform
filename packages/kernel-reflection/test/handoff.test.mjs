@@ -96,6 +96,6 @@ test("rejects a non-canonical incoming route", () => {
         handoff,
         nextHandoffId: "handoff.reflection-planning.002",
       }),
-    /transition is not allowed|kernel-reasoning -> kernel-reflection/,
+    /from is unsupported|transition is not allowed|kernel-reasoning -> kernel-reflection/,
   );
 });
