@@ -72,7 +72,7 @@ jobs:
           done
       - name: Install vertical validation dependencies
         working-directory: tests/kernel-vertical
-        run: npm install --ignore-scripts --no-audit --no-fund
+        run: npm install --install-links --ignore-scripts --no-audit --no-fund
       - name: Run governed vertical lifecycle
         working-directory: tests/kernel-vertical
         shell: bash
