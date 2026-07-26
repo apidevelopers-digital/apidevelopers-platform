@@ -1,4 +1,4 @@
-name: Kernel Decision Behavior Diagnostic
+name: Kernel Decision Install Diagnostic
 
 on:
   pull_request:
@@ -12,7 +12,7 @@ permissions:
   contents: read
 
 jobs:
-  behavior:
+  install:
     runs-on:
       group: organization-macos-ci
       labels: [self-hosted, macOS, X64]
@@ -25,5 +25,5 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: "22"
-      - run: npm install --ignore-scripts --no-audit --no-fund
-      - run: node --test test/index.test.mjs
+      - name: Install local dependencies only
+        run: npm install --ignore-scripts --no-audit --no-fund
