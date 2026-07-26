@@ -1,0 +1,69 @@
+name: Kernel Governance CI
+
+on:
+  pull_request:
+    paths:
+      - "packages/kernel-governance/**"
+      - "packages/contracts/**"
+      - ".github/workflows/kernel-governance-ci.yml"
+  push:
+    branches: [main]
+    paths:
+      - "packages/kernel-governance/**"
+      - "packages/contracts/**"
+      - ".github/workflows/kernel-governance-ci.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: kernel-governance-ci-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  governance:
+    name: Kernel Governance gate
+    runs-on:
+      group: organization-macos-ci
+      labels: [self-hosted, macOS, X64]
+    timeout-minutes: 15
+    defaults:
+      run:
+        working-directory: packages/kernel-governance
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Setup Node.js 22
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+      - name: Install kernel governance dependencies
+        run: npm install --ignore-scripts --no-audit --no-fund
+      - name: Diagnose syntax
+        shell: bash
+        run: |
+          set -euo pipefail
+          while IFS= read -r file; do
+            echo "checking syntax: $file"
+            node --check "$file"
+          done < <(find src test -type f -name '*.mjs' | sort)
+      - name: Validate kernel governance
+        shell: bash
+        run: |
+          set -uo pipefail
+          set +e
+          npm run check 2>&1 | tee kernel-governance-gate.log
+          status=${PIPESTATUS[0]}
+          set -e
+          if [[ "$status" -ne 0 ]]; then
+            key_lines="$(grep -E 'Cannot find|ERR_MODULE_NOT_FOUND|Error \[' kernel-governance-gate.log || true)"
+            if [[ -z "$key_lines" ]]; then
+              key_lines="$(tail -n 20 kernel-governance-gate.log)"
+            fi
+            while IFS= read -r line; do
+              echo "::error::$line"
+            done <<< "$key_lines"
+            exit "$status"
+          fi
+          grep -Fq "KERNEL_GOVERNANCE_GATE_OK" kernel-governance-gate.log

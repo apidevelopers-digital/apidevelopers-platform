@@ -1,0 +1,21 @@
+{
+  "name": "@apidevelopers/kernel-governance",
+  "version": "0.2.0",
+  "private": true,
+  "description": "Deny-by-default governance authorization over constitution, policy, approval, audit and evolution artifacts.",
+  "type": "module",
+  "exports": {
+    ".": "./src/index.mjs",
+    "./governed": "./src/governed.mjs"
+  },
+  "scripts": {
+    "test": "node --test test/*.test.mjs",
+    "check": "node --check src/index.mjs && node --check src/governed.mjs && npm test"
+  },
+  "engines": {
+    "node": ">=22"
+  },
+  "dependencies": {
+    "@apidevelopers/contracts": "file:../contracts"
+  }
+}
