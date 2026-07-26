@@ -154,7 +154,7 @@ export function assertOrchestrationPlanContract(plan, name = "orchestrationPlan"
   orchestrationAssertFalse(plan.mutationAllowed, `${name}.mutationAllowed`);
 
   if (plan.status === "ready") {
-    if (plan.blockers.length !=== 0) {
+    if (plan.blockers.length !== 0) {
       throw new Error(`${name}.blockers must be empty when status is ready`);
     }
     if (plan.mission.policyDecision.effect !== "allow") {
