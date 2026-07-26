@@ -1,0 +1,30 @@
+name: Kernel Decision Marker Diagnostic
+
+on:
+  pull_request:
+    paths:
+      - "packages/kernel-decision/**"
+      - "packages/contracts/**"
+      - ".github/workflows/kernel-decision-marker-diagnostic.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  marker:
+    runs-on:
+      group: organization-macos-ci
+      labels: [self-hosted, macOS, X64]
+    timeout-minutes: 15
+    defaults:
+      run:
+        working-directory: packages/kernel-decision
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+      - run: npm install --ignore-scripts --no-audit --no-fund
+      - name: Run marker test only
+        run: node --test test/gate-marker.test.mjs

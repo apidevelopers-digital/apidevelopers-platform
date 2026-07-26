@@ -1,0 +1,30 @@
+name: Kernel Decision Behavior Diagnostic
+
+on:
+  pull_request:
+    paths:
+      - "packages/kernel-decision/**"
+      - "packages/contracts/**"
+      - ".github/workflows/kernel-decision-behavior-diagnostic.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  behavior:
+    runs-on:
+      group: organization-macos-ci
+      labels: [self-hosted, macOS, X64]
+    timeout-minutes: 15
+    defaults:
+      run:
+        working-directory: packages/kernel-decision
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+      - run: npm install --ignore-scripts --no-audit --no-fund
+      - name: Run behavior tests only
+        run: node --test test/index.test.mjs
