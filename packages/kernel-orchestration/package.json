@@ -1,0 +1,20 @@
+{
+  "name": "@apidevelopers/kernel-orchestration",
+  "version": "0.2.0",
+  "private": true,
+  "description": "Deny-by-default multi-agent orchestration planner for the API Developers.digital Platform Kernel.",
+  "type": "module",
+  "exports": {
+    ".": "./src/index.mjs"
+  },
+  "scripts": {
+    "test": "node --test test/*.test.mjs",
+    "check": "node --check src/index.mjs && npm test"
+  },
+  "dependencies": {
+    "@apidevelopers/contracts": "file:../contracts"
+  },
+  "engines": {
+    "node": ">=22"
+  }
+}
