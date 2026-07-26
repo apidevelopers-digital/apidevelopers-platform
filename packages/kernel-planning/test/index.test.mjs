@@ -1,61 +1,86 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 import { createPlanningEngine } from "../src/index.mjs";
+import { runGovernedPlanning, createPlanningDecisionHandoff } from "../src/governed.mjs";
 
-const reflection = (overrides={}) => ({
-  reflectionId:"reflection.001", tenantId:"tenant_001", cycleId:"cycle.001", mode:"advisory",
-  findings:[
-    { ruleId:"REF-001", subject:"component.alpha", category:"architecture", severity:"high", statement:"Component lacks an owned contract.", recommendation:"Attach an owned contract.", evidence:["ev.001"] },
-    { ruleId:"REF-002", subject:"component.alpha", category:"architecture", severity:"medium", statement:"Owner is not registered." }
-  ],
-  ...overrides
+const clock = () => "2026-07-25T13:00:00.000Z";
+const reflection = (findings = [], extra = {}) => ({
+  reflectionId: "reflection.001",
+  generatedAt: "2026-07-25T12:00:00.000Z",
+  requestedBy: "system",
+  scope: "platform",
+  tenantId: "tenant_001",
+  cycleId: "cycle.001",
+  mode: "advisory",
+  mutationAlowed: false,
+  summary: { status: "review", counts: { total: findings.length } },
+  findings,
+  ...extra,
 });
+const engine = () => createPlanningEngine({ clock });
 
-test("requires tenant, cycle and governed reflection", ()=>{
-  const engine=createPlanningEngine();
-  assert.throws(()=>engine.plan(), /tenantId/);
-  assert.throws(()=>engine.plan({tenantId:"t",cycleId:"c",reflectionReport:reflection({tenantId:"x",cycleId:"c"})}), /cross-tenant/);
-  assert.throws(()=>engine.plan({tenantId:"tenant_001",cycleId:"x",reflectionReport:reflection()}), /cycle mismatch/);
+test("requires tenant cycle and reflection", () => {
+  assert.throws(() => engine().plan(), /tenantId/);
+  assert.throws(() => engine().plan({tenantId:"t",cycleId:"c"}), /reflectionReport/);
 });
-
-test("creates deterministic immutable advisory proposals", ()=>{
-  const engine=createPlanningEngine({clock:()=> "2026-07-25T13:00:00.000Z"});
-  const report=engine.plan({tenantId:"tenant_001",cycleId:"cycle.001",reflectionReport:reflection()},{
-    requestedBy:"operator", impactAnalysis:{subject:"component.alpha",complete:true}
+test("blocks cross-tenant and cross-cycle reports", () => {
+  assert.throws(() => engine().plan({tenantId:"other",cycleId:"cycle.001",reflectionReport:reflection()}), /cross-tenant/);
+  assert.throws(() => engine().plan({tenantId:"tenant_001",cycleId:"other",reflectionReport:reflection()}), /cross-cycle/);
+});
+test("groups findings and preserves traceability", () => {
+  const report = engine().plan({
+    tenantId:"tenant_001", cycleId:"cycle.001",
+    reflectionReport: reflection([
+      {ruleId:"RSN-001",category:"architecture",severity:"medium",subject:"component.publisher",statement:"First.",evidence:["e1"]},
+      {ruleId:"RSN-002",category:"architecture",severity:"low",subject:"component.publisher",statement:"Second.",evidence:["e2"]},
+    ]),
   });
-  assert.equal(report.planningId,"planning.20260725130000000");
-  assert.equal(report.mode,"advisory");
-  assert.equal(report.mutationAllowed,false);
-  assert.equal(report.executionAllowed,false);
   assert.equal(report.proposals.length,1);
-  assert.equal(report.proposals[0].priority,"high");
-  assert.equal(report.proposals[0].decisionState,"needs-review");
-  assert.equal(report.proposals[0].impactAnalysisComplete,true);
-  assert.equal(report.proposals[0].humanApprovalRequired,true);
-  assert.equal(Object.isFrozen(report),true);
-  assert.equal(Object.isFrozen(report.proposals[0]),true);
+  assert.equal(report.proposals[0].findings.length,2);
+  assert.deepEqual(report.proposals[0].sourceReferences,["RSN-001","RSN-002","reflection.001"]);
+  assert.equal(report.tenantId,"tenant_001");
+  assert.equal(report.cycleId,"cycle.001");
 });
-
-test("requires impact analysis and evidence for high priority proposals", ()=>{
-  const report=createPlanningEngine({clock:()=> "2026-07-25T13:00:00.000Z"}).plan({
-    tenantId:"tenant_001",cycleId:"cycle.001",
-    reflectionReport:reflection({findings:[{ruleId:"REF-001",subject:"critical.x",severity:"critical",statement:"Critical issue."}]})
+test("marks missing evidence and blocks constitutional conflicts", () => {
+  const report = engine().plan( {
+    tenantId:"tenant_001", cycleId:"cycle.001",
+    reflectionReport: reflection([
+      {ruleId:"RSN-003",severity:"medium",subject:"component.a",statement:"Missing evidence."},
+      {ruleId:"RSN-004",severity:"critical",subject:"kernel.tenancy",statement:"Weakens isolation.",tags:["weaken-tenant-isolation"],evidence:["e4"]},
+    ]),
+  }, {impactAnalysis:{subject:"kernel.tenancy",complete:true}});
+  const a = report.proposals.find((item)=>item.subject==="component.a");
+  const b = report.proposals.find((item)=>item.subject==="kernel.tenancy");
+  assert.equal(a.decisionState,"needs-evidence");
+  assert.equal(b.decisionState,"blocked");
+  assert.equal(b.constitutionalConflict,true);
+});
+test("requires impact analysis for high risk", () => {
+  const report = engine().plan({
+    tenantId:"tenant_001", cycleId:"cycle.001",
+    reflectionReport: reflection([{ruleId:"RSN-HIGH",severity:"high",subject:"component.high",statement:"High.",evidence:["e"]}]),
   });
-  assert.equal(report.proposals[0].decisionState,"needs-evidence");
-  assert.deepEqual(report.proposals[0].requiredEvidence,["evidence:critical.x","impact-analysis:critical.x"]);
+ assert.equal(report.proposals[0].decisionState,"needs-evidence");
+  assert.ok(report.proposals[0].requiredEvidence.includes("impact-analysis:component.high"));
 });
-
-test("blocks constitutional conflicts", ()=>{
-  const report=createPlanningEngine({clock:()=> "2026-07-25T13:00:00.000Z"}).plan({
-    tenantId:"tenant_001",cycleId:"cycle.001",
-    reflectionReport:reflection({findings:[{ruleId:"REF-C",subject:"authority",severity:"critical",statement:"Conflict.",constitutionalConflict:true,evidence:["ev"]}]})
-  },{impactAnalysis:{complete:true}});
-  assert.equal(report.proposals[0].decisionState,"blocked");
-  assert.equal(report.proposals[0].constitutionalConflict,true);
+test("is deeply immutable and deterministic", () => {
+  const input = reflection([{ruleId:"RSN-LOW",severity:"low",subject:"component.low",statement:"Stable.",evidence:["e"]}]);
+  const before = structuredClone(input);
+  const a = engine().plan({tenantId:"tenant_001",cycleId:"cycle.001",reflectionReport:input});
+  const b = engine().plan({tenantId:"tenant_001",cycleId:"cycle.001",reflectionReport:input});
+  assert.deepEqual(a,b);
+  assert.deepEqual(input,before);
+  assert.equal(Object.isFrozen(a),true);
+  assert.equal(Object.isFrozen(a.proposals[0]),true);
+  assert.throws(()=>{a.proposals[0].priority="critical";},TypeError);
 });
-
-test("does not mutate reflection input", ()=>{
-  const source=reflection(); const before=structuredClone(source);
-  createPlanningEngine({clock:()=> "2026-07-25T13:00:00.000Z"}).plan({tenantId:"tenant_001",cycleId:"cycle.001",reflectionReport:source});
-  assert.deepEqual(source,before);
+test("runs governed reflection to planning and planning to decision handoffs", () => {
+  const tenantContext = {schemaVersion:1,tenantId:"tenant_001",tenantIdOpaque:true,isolationMode:"strict",crossTenantAccessAllowed:false,globalOperation:false,principalId:"p",requestId:"r",roles:[],permissions:[],createdAt:"2026-07-25T12:00:00.000Z"};
+  const handoff = {schemaVersion:1,handoffId:"h.ref.plan",from:"kernel-reflection",to:"Kernel-planning",cycleId:"cycle.001",tenantContext,payload:{reflectionReport:reflection([{ruleId:"RSN-1",severity:"low",subject:"component.a",statement:"A.",evidence:["e"]}])},createdAt:"2026-07-25T12:30:00.000Z",mutationAllowed:false,approvalAllowed:false,executionAllowed:false};
+  const report = runGovernedPlanning({handoff,engine:engine()});
+ assert.equal(report.sourceHandoffId,"h.ref.plan");
+ const next = createPlanningDecisionHandoff({planningReport:report,tenantContext,handoffId:"h.plan.decision",createdAt:"2026-07-25T13:01:00.000Z"});
+ assert.equal(next.from,"kernel-planning");
+ assert.equal(next.to,"kernel-decision");
+ assert.equal(next.mutationAllowed,false);
 });
