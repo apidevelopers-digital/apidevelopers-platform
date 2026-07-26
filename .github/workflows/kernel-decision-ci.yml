@@ -1,0 +1,56 @@
+name: Kernel Decision CI
+
+on:
+  pull_request:
+    paths:
+      - "packages/kernel-decision/**"
+      - "packages/contracts/**"
+      - ".github/workflows/kernel-decision-ci.yml"
+  push:
+    branches: [main]
+    paths:
+      - "packages/kernel-decision/**"
+      - "packages/contracts/**"
+      - ".github/workflows/kernel-decision-ci.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: kernel-decision-ci-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  decision:
+    name: Kernel Decision gate
+    runs-on:
+      group: organization-macos-ci
+      labels: [self-hosted, macOS, X64]
+    timeout-minutes: 15
+    defaults:
+      run:
+        working-directory: packages/kernel-decision
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Setup Node.js 22
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+      - name: Install local dependencies
+        run: npm install --ignore-scripts --no-audit --no-fund
+      - name: Diagnose syntax
+        shell: bash
+        run: |
+          set -euo pipefail
+          while IFS= read -r file; do
+            echo "checking syntax: $file"
+            node --check "$file"
+          done < <(find src test -type f -name '*.mjs' | sort)
+      - name: Validate kernel decision
+        shell: bash
+        run: |
+          set -euo pipefail
+          npm run check | tee kernel-decision-gate.log
+          grep -Fq "KERNEL_DECISION_GATE_OK" kernel-decision-gate.log
