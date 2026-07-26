@@ -1,4 +1,4 @@
-name: Kernel Decision Source Import Diagnostic
+name: Kernel Decision Marker Diagnostic
 
 on:
   pull_request:
@@ -12,7 +12,7 @@ permissions:
   contents: read
 
 jobs:
-  source-import:
+  marker:
     runs-on:
       group: organization-macos-ci
       labels: [self-hosted, macOS, X64]
@@ -26,6 +26,5 @@ jobs:
         with:
           node-version: "22"
       - run: npm install --ignore-scripts --no-audit --no-fund
-      - name: Import kernel decision source
-        run: |
-          node --input-type=module -e 'import("./src/index.mjs").then((m) => { if (typeof m.createDecisionEngine !== "function") throw new Error("missing createDecisionEngine"); })'
+      - name: Run marker test only
+        run: node --test test/gate-marker.test.mjs
