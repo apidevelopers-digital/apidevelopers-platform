@@ -1,0 +1,59 @@
+name: Kernel Orchestration CI
+
+on:
+  pull_request:
+    paths:
+      - "packages/kernel-orchestration/**"
+      - "packages/contracts/**"
+      - ".github/workflows/kernel-orchestration-ci.yml"
+  push:
+    branches: [main]
+    paths:
+      - "packages/kernel-orchestration/**"
+      - "packages/contracts/**"
+      - ".github/workflows/kernel-orchestration-ci.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: kernel-orchestration-ci-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  orchestration:
+    name: Kernel Orchestration gate
+    runs-on:
+      group: organization-macos-ci
+      labels: [self-hosted, macOS, X64]
+    timeout-minutes: 15
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Setup Node.js 22
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+      - name: Validate shared contracts
+        working-directory: packages/contracts
+        run: npm run check
+      - name: Install orchestration dependencies
+        working-directory: packages/kernel-orchestration
+        run: npm install --ignore-scripts --no-audit --no-fund
+      - name: Validate kernel orchestration
+        working-directory: packages/kernel-orchestration
+        shell: bash
+        run: |
+          set -uo pipefail
+          set +e
+          npm run check 2>&1 | tee kernel-orchestration-gate.log
+          status=${PIPESTATUS[0]}
+          set -e
+          if [[ "$status" -ne 0 ]]; then
+            tail -n 40 kernel-orchestration-gate.log | while IFS= read -r line; do
+              echo "::error::$line"
+            done
+            exit "$status"
+          fi
+          grep -Fq "KERNEL_ORCHESTRATION_GATE_OK" kernel-orchestration-gate.log
