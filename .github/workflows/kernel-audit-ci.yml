@@ -53,6 +53,15 @@ jobs:
       - name: Validate kernel audit
         shell: bash
         run: |
-          set -euo pipefail
-          npm run check | tee kernel-audit-gate.log
+          set -uo pipefail
+          set +e
+          npm run check 2>&1 | tee kernel-audit-gate.log
+          status=${PIPESTATUS[0]}
+          set -e
+          if [[ "$status" -ne 0 ]]; then
+            while IFS= read -r line; do
+              echo "::error::$line"
+            done < <(tail -n 80 kernel-audit-gate.log)
+            exit "$status"
+          fi
           grep -Fq "KERNEL_AUDIT_GATE_OK" kernel-audit-gate.log
