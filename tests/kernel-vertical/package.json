@@ -1,0 +1,27 @@
+{
+  "name": "@apidevelopers/kernel-vertical-validation",
+  "version": "0.1.0",
+  "private": true,
+  "description": "End-to-end governed lifecycle validation for the API Developers.digital Platform Kernel.",
+  "type": "module",
+  "scripts": {
+    "test": "node --test test/*.test.mjs",
+    "check": "node --check test/lifecycle.test.mjs && node --check test/gate-marker.test.mjs && npm test"
+  },
+  "dependencies": {
+    "@apidevelopers/contracts": "file:../../packages/contracts",
+    "@apidevelopers/kernel-memory": "file:../../packages/kernel-memory",
+    "@apidevelopers/kernel-reasoning": "file:../../packages/kernel-reasoning",
+    "@apidevelopers/kernel-reflection": "file:../../packages/kernel-reflection",
+    "@apidevelopers/kernel-planning": "file:../../packages/kernel-planning",
+    "@apidevelopers/kernel-decision": "file:../../packages/kernel-decision",
+    "@apidevelopers/kernel-policy": "file:../../packages/kernel-policy",
+    "@apidevelopers/kernel-runtime": "file:../../packages/kernel-runtime",
+    "@apidevelopers/kernel-evidence": "file:../../packages/kernel-evidence",
+    "@apidevelopers/kernel-audit": "file:../../packages/kernel-audit",
+    "@apidevelopers/kernel-evolution": "file:../../packages/kernel-evolution"
+  },
+  "engines": {
+    "node": ">=22"
+  }
+}
