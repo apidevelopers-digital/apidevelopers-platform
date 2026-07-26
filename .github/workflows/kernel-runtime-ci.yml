@@ -1,0 +1,57 @@
+name: Kernel Runtime CI
+
+on:
+  pull_request:
+    paths:
+      - "packages/kernel-runtime/**"
+      - "packages/contracts/**"
+      - ".github/workflows/kernel-runtime-ci.yml"
+  push:
+    branches: [main]
+    paths:
+      - "packages/kernel-runtime/**"
+      - "packages/contracts/**"
+      - ".github/workflows/kernel-runtime-ci.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: kernel-runtime-ci-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  runtime:
+    name: Kernel Runtime gate
+    runs-on:
+      group: organization-macos-ci
+      labels: [self-hosted, macOS, X64]
+    timeout-minutes: 15
+    defaults:
+      run:
+        working-directory: packages/kernel-runtime
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Setup Node.js 22
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+      - name: Install dependencies
+        run: npm install --ignore-scripts --no-audit --no-fund
+      - name: Validate kernel runtime
+        shell: bash
+        run: |
+          set -uo pipefail
+          set +e
+          npm run check 2>&1 | tee kernel-runtime-gate.log
+          status=${PIPESTATUS[0]}
+          set -e
+          if [[ "$status" -ne 0 ]]; then
+            tail -n 30 kernel-runtime-gate.log | while IFS= read -r line; do
+              echo "::error::$line"
+            done
+            exit "$status"
+          fi
+          grep -Fq "KERNEL_RUNTIME_GATE_OK" kernel-runtime-gate.log
