@@ -103,7 +103,7 @@ test("whoami returns only the public identity contract", async () => {
     },
     tenantContext: {
       contractType: "TenantContext",
-      contractVersion: "1.0.0",
+      schemaVersion: "1.0.0",
       tenantId: "tenant_001",
       region: "global",
       isolationMode: "strict",
