@@ -4,20 +4,21 @@ on:
   push:
     branches:
       - main
-      - ci/platform-baseline-v0
   pull_request:
     branches:
       - main
-  workflow_dispatch:
+  workflow_dispatch: {}
 
 permissions:
   contents: read
 
 jobs:
   validate:
+    name: Platform Baseline Gate
     runs-on:
-      group: organization-macos-ci
-      labels: [self-hosted, macOS, X64]
+      - self-hosted
+      - macOS
+      - X64
     timeout-minutes: 10
 
     steps:
