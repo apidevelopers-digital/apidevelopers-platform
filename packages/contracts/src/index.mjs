@@ -12,3 +12,4 @@ export * from "./evidence-audit.mjs";
 export * from "./audit-evolution.mjs";
 export * from "./evolution-governance.mjs";
 export * from "./multi-agent-orchestration.mjs";
+export * from "./outbound-transport.mjs";
