@@ -1,6 +1,8 @@
 import http from "node:http";
 import { pathToFileURL } from "node:url";
 
+import { createGatewayGlobalTrustTenantContext } from "./global-trust-context.mjs";
+
 const JSON_HEADERS = Object.freeze({
   "content-type": "application/json; charset=utf-8",
 });
@@ -27,6 +29,17 @@ function toPublicIdentity(identity) {
       ...(Array.isArray(principal.scopes) ? { scopes: [...principal.scopes] } : {}),
       ...(principal.prefix !== undefined ? { prefix: principal.prefix } : {}),
     }),
+  });
+}
+
+function toGatewayTenantContext(identity, headers) {
+  const principal = identity?.principal;
+  if (!principal?.tenantId) return null;
+
+  return createGatewayGlobalTrustTenantContext({
+    tenantId: principal.tenantId,
+    region: headers["x-region"] ?? "global",
+    scopes: Array.isArray(principal.scopes) ? principal.scopes : [],
   });
 }
 
@@ -67,8 +80,16 @@ export function createApp({ authenticator } = {}) {
           });
         }
 
+        const tenantContext = toGatewayTenantContext(identity, headers);
+        if (!tenantContext) {
+          return jsonResponse(403, {
+            error: "tenant_context_unavailable",
+          });
+        }
+
         return jsonResponse(200, {
           identity: toPublicIdentity(identity),
+          tenantContext,
         });
       }
 
