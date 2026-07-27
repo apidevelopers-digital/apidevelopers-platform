@@ -10,6 +10,7 @@ on:
       - "feat/gateway-operational-protection-v0"
     paths:
       - "apps/api-gateway/**"
+      - "packages/contracts/**"
       - "packages/auth-core/**"
       - "packages/apikey-core/**"
       - "packages/persistence-core/**"
@@ -19,6 +20,7 @@ on:
       - main
     paths:
       - "apps/api-gateway/**"
+      - "packages/contracts/**"
       - "packages/auth-core/**"
       - "packages/apikey-core/**"
       - "packages/persistence-core/**"
@@ -53,6 +55,7 @@ jobs:
           set -euo pipefail
 
           mkdir -p "$GITHUB_WORKSPACE/apps/api-gateway/node_modules/@apidevelopers"
+          ln -sfn "$GITHUB_WORKSPACE/packages/contracts"             "$GITHUB_WORKSPACE/apps/api-gateway/node_modules/@apidevelopers/contracts"
           ln -sfn "$GITHUB_WORKSPACE/packages/auth-core"             "$GITHUB_WORKSPACE/apps/api-gateway/node_modules/@apidevelopers/auth-core"
           ln -sfn "$GITHUB_WORKSPACE/packages/apikey-core"             "$GITHUB_WORKSPACE/apps/api-gateway/node_modules/@apidevelopers/apikey-core"
           ln -sfn "$GITHUB_WORKSPACE/packages/persistence-core"             "$GITHUB_WORKSPACE/apps/api-gateway/node_modules/@apidevelopers/persistence-core"
