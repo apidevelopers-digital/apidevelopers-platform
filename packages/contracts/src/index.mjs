@@ -13,3 +13,33 @@ export * from "./audit-evolution.mjs";
 export * from "./evolution-governance.mjs";
 export * from "./multi-agent-orchestration.mjs";
 export * from "./outbound-transport.mjs";
+
+export {
+  globalTrustCommonContractVersion,
+  globalTrustCommonContractTypes,
+  assertGlobalTrustCommonContract,
+  assertIdentitySubjectContract,
+  createIdentitySubject,
+  assertTenantContextContract as assertGlobalTrustTenantContextContract,
+  createTenantContext as createGlobalTrustTenantContext,
+  assertAuthenticationContextContract,
+  createAuthenticationContext,
+  assertAuthorizationDecisionContract,
+  createAuthorizationDecision,
+  assertCredentialMetadataContract,
+  createCredentialMetadata,
+  assertRiskAssessmentContract,
+  createRiskAssessment,
+  assertModelDescriptorContract,
+  createModelDescriptor,
+  assertToolInvocationPolicyContract,
+  createToolInvocationPolicy,
+  assertSafetyDecisionContract,
+  createSafetyDecision,
+  assertAuditEventContract,
+  createAuditEvent,
+  assertEvidenceRecordContract,
+  createEvidenceRecord,
+  assertLocaleContextContract,
+  createLocaleContext,
+} from "./global-trust-common.mjs";
