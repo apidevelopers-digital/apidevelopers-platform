@@ -1,0 +1,176 @@
+{
+  "schemaVersion": "1.0.0",
+  "locale": "pt-BR",
+  "description": "Exemplos canônicos dos contratos comuns Global Trust.",
+  "contracts": [
+    {
+      "schemaVersion": "1.0.0",
+      "contractType": "IdentitySubject",
+      "subjectId": "subject.igor",
+      "tenantId": "tenant.uni",
+      "subjectType": "person",
+      "status": "active",
+      "displayName": "Igor",
+      "attributes": {
+        "language": "pt-BR"
+      }
+    },
+    {
+      "schemaVersion": "1.0.0",
+      "contractType": "TenantContext",
+      "tenantId": "tenant.uni",
+      "region": "BR-SC",
+      "isolationMode": "strict",
+      "crossTenantAccessAllowed": false,
+      "scopes": [
+        "runtime:read"
+      ]
+    },
+    {
+      "schemaVersion": "1.0.0",
+      "contractType": "AuthenticationContext",
+      "authenticationId": "auth.001",
+      "subjectId": "subject.igor",
+      "tenantId": "tenant.uni",
+      "methods": [
+        "mfa",
+        "passkey"
+      ],
+      "assuranceLevel": "aal2",
+      "authenticatedAt": "2026-07-27T12:00:00.000Z",
+      "expiresAt": "2026-07-27T13:00:00.000Z",
+      "secretMaterialIncluded": false
+    },
+    {
+      "schemaVersion": "1.0.0",
+      "contractType": "AuthorizationDecision",
+      "decisionId": "decision.001",
+      "subjectId": "subject.igor",
+      "tenantId": "tenant.uni",
+      "action": "runtime.read",
+      "resource": "uni-co-runtime",
+      "effect": "allow",
+      "policyVersion": "policy.1.0.0",
+      "reasonCodes": [
+        "scope_match"
+      ],
+      "humanApprovalRequired": false,
+      "decidedAt": "2026-07-27T12:00:00.000Z"
+    },
+    {
+      "schemaVersion": "1.0.0",
+      "contractType": "CredentialMetadata",
+      "credentialId": "credential.001",
+      "subjectId": "subject.igor",
+      "tenantId": "tenant.uni",
+      "credentialType": "passkey",
+      "status": "active",
+      "issuedAt": "2026-07-27T12:00:00.000Z",
+      "expiresAt": "2027-07-27T12:00:00.000Z",
+      "secretMaterialIncluded": false
+    },
+    {
+      "schemaVersion": "1.0.0",
+      "contractType": "RiskAssessment",
+      "assessmentId": "risk.001",
+      "subjectId": "subject.igor",
+      "tenantId": "tenant.uni",
+      "useCase": "assistant.tool.read",
+      "score": 20,
+      "level": "low",
+      "factors": [
+        "read_only"
+      ],
+      "methodVersion": "risk.1.0.0",
+      "assessedAt": "2026-07-27T12:00:00.000Z"
+    },
+    {
+      "schemaVersion": "1.0.0",
+      "contractType": "ModelDescriptor",
+      "modelId": "model.001",
+      "tenantId": "tenant.uni",
+      "provider": "provider",
+      "model": "model-name",
+      "version": "2026-07",
+      "purpose": "assistencia-multilingue",
+      "dataPolicyId": "policy.data.001",
+      "status": "candidate",
+      "allowedLocales": [
+        "en",
+        "pt-BR"
+      ],
+      "secretMaterialIncluded": false
+    },
+    {
+      "schemaVersion": "1.0.0",
+      "contractType": "ToolInvocationPolicy",
+      "policyId": "tool-policy.001",
+      "tenantId": "tenant.uni",
+      "toolId": "github.read",
+      "allowedActions": [
+        "repository.read"
+      ],
+      "deniedActions": [
+        "repository.write"
+      ],
+      "maxCallsPerRequest": 3,
+      "humanApprovalRequired": true,
+      "administrativeExecutionAllowed": false
+    },
+    {
+      "schemaVersion": "1.0.0",
+      "contractType": "SafetyDecision",
+      "safetyDecisionId": "safety.001",
+      "assessmentId": "risk.001",
+      "tenantId": "tenant.uni",
+      "outcome": "pending_approval",
+      "controls": [
+        "human_review"
+      ],
+      "reasonCodes": [
+        "privileged_boundary"
+      ],
+      "humanApprovalRequired": true,
+      "decidedAt": "2026-07-27T12:00:00.000Z"
+    },
+    {
+      "schemaVersion": "1.0.0",
+      "contractType": "AuditEvent",
+      "eventId": "audit.001",
+      "tenantId": "tenant.uni",
+      "actorId": "subject.igor",
+      "action": "runtime.read",
+      "resource": "uni-co-runtime",
+      "outcome": "success",
+      "correlationId": "correlation.001",
+      "occurredAt": "2026-07-27T12:00:00.000Z",
+      "metadata": {
+        "locale": "pt-BR"
+      },
+      "sensitiveContentIncluded": false
+    },
+    {
+      "schemaVersion": "1.0.0",
+      "contractType": "EvidenceRecord",
+      "evidenceId": "evidence.001",
+      "tenantId": "tenant.uni",
+      "kind": "test",
+      "source": "contracts-ci",
+      "hashAlgorithm": "sha256",
+      "digest": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+      "capturedAt": "2026-07-27T12:00:00.000Z",
+      "sensitiveContentIncluded": false
+    },
+    {
+      "schemaVersion": "1.0.0",
+      "contractType": "LocaleContext",
+      "tenantId": "tenant.uni",
+      "locale": "pt-BR",
+      "fallbackLocale": "en",
+      "direction": "ltr",
+      "timeZone": "America/Sao_Paulob",
+      "currency": "BRL",
+      "legalRegion": "BR"
+    }
+  ]
+}
