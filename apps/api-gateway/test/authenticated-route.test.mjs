@@ -101,6 +101,15 @@ test("whoami returns only the public identity contract", async () => {
         prefix: "apid_public",
       },
     },
+    tenantContext: {
+      contractType: "TenantContext",
+      schemaVersion: "1.0.0",
+      tenantId: "tenant_001",
+      region: "global",
+      isolationMode: "strict",
+      crossTenantAccessAllowed: false,
+      scopes: ["projects:read"],
+    },
   });
   assert.equal(response.body.includes("must-not-leak"), false);
   assert.equal(response.body.includes("keyHash"), false);
