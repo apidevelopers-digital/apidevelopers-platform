@@ -1,6 +1,7 @@
 import http from "node:http";
 import { pathToFileURL } from "node:url";
 
+import { createGatewayGlobalTrustAudit } from "./global-trust-audit.mjs";
 import { createGatewayGlobalTrustTenantContext } from "./global-trust-context.mjs";
 
 const JSON_HEADERS = Object.freeze({
@@ -43,12 +44,18 @@ function toGatewayTenantContext(identity, headers) {
   });
 }
 
-export function createApp({ authenticator } = {}) {
+export function createApp({
+  authenticator,
+  audit = createGatewayGlobalTrustAudit(),
+} = {}) {
   if (
     authenticator !== undefined &&
     typeof authenticator?.authenticate !== "function"
   ) {
     throw new TypeError("authenticator.authenticate must be a function");
+  }
+  if (typeof audit?.recordTenantContextIssued !== "function") {
+    throw new TypeError("audit.recordTenantContextIssued must be a function");
   }
 
   return {
@@ -86,6 +93,14 @@ export function createApp({ authenticator } = {}) {
             error: "tenant_context_unavailable",
           });
         }
+
+        await audit.recordTenantContextIssued({
+          identity,
+          tenantContext,
+          method: normalizedMethod,
+          url,
+          correlationId: headers["x-correlation-id"] ?? headers["x-request-id"],
+        });
 
         return jsonResponse(200, {
           identity: toPublicIdentity(identity),
