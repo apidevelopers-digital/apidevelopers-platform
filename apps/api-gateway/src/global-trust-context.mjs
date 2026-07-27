@@ -1,5 +1,5 @@
 import {
-  assertTenantContextContract,
+  assertGlobalTrustTenantContextContract,
   createGlobalTrustTenantContext,
 } from "@apidevelopers/contracts";
 
@@ -27,5 +27,8 @@ export function createGatewayGlobalTrustTenantContext({
     scopes: normalizeScopes(scopes),
   });
 
-  return assertTenantContextContract(context, "gatewayTenantContext");
+  return assertGlobalTrustTenantContextContract(
+    context,
+    "gatewayTenantContext",
+  );
 }
