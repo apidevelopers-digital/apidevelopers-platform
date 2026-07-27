@@ -10,9 +10,9 @@ import {
   createGovernedPolicyRuntimeHandoff,
   runGovernedPolicy,
 } from "../src/governed.mjs";
-import { hashExecutionPlan } from "../src/index.mjs";
-
+import { createPolicyEngine, hashExecutionPlan } from "../src/index.mjs";
 const NOW = "2026-07-26T04:00:00.000Z";
+const engine = () => createPolicyEngine({ clock: () => NOW });
 const tenantContext = createTenantContext({
   tenantId: "tenant_alpha",
   principalId: "human.1",
@@ -63,9 +63,8 @@ const approval = {
   planHash: hashExecutionPlan(executionPlan),
   expiresAt: "2026-07-27T04:00:00.000Z",
 };
-
 test("governed preview preserves explicit execution block", () => {
-  const report = runGovernedPolicy({ handoff: handoff() });
+  const report = runGovernedPolicy({ handoff: handoff(), engine: engine() });
   assertPolicyDecisionContract(report);
   assert.equal(report.effect, "allow");
   assert.equal(report.executionAllowed, false);
@@ -76,9 +75,13 @@ test("governed preview preserves explicit execution block", () => {
   assertPolicyRuntimeHandoffContract(runtime);
   assert.equal(runtime.requestedMode, "preview");
 });
-
 test("real authorization requires and carries explicit approval", () => {
-  const report = runGovernedPolicy({ handoff: handoff(), dryRun: false, approval });
+  const report = runGovernedPolicy({
+    handoff: handoff(),
+    engine: engine(),
+    dryRun: false,
+    approval,
+  });
   assertPolicyDecisionContract(report);
   assert.equal(report.executionAllowed, true);
   assert.equal(report.approvalId, "approval.1");

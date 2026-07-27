@@ -42,7 +42,7 @@ O adapter recebe:
 Ele valida o vínculo `Decision.sourcePlanningId === PlanningReport.planningId`, seleciona a proposta decidida e produz um `ExecutionPlan` distinto:
 
 - `planId`: identidade própria do plano executável;
-- `sourcePlanningId`: rastreabilidade para o relatório de Planning;
+- `sourcePlanningId`: ractreabilidade para o relatório de Planning;
 - `decisionId` e `proposalId`;
 - `steps` construídos apenas pelo callback explícito;
 - `status: draft`;
@@ -78,3 +78,35 @@ const executionPlan = adaptPlanningDecisionToExecutionPlan(
 ## Status
 
 Foundation v1 em implementação.
+
+## Global Trust Common Contracts v1
+
+O Gate 1 do Programa Global Trust & Security acrescenta 12 contratos comuns,
+versionados em `1.0.0`:
+
+- `IdentitySubject`;
+- `TenantContext`;
+- `AuthenticationContext`;
+- `AuthorizationDecision`;
+- `CredentialMetadata`;
+- `RiskAssessment`;
+- `ModelDescriptor`;
+- `ToolInvocationPolicy`;
+- `SafetyDecision`;
+- `AuditEvent`;
+- `EvidenceRecord`;
+- `LocaleContext`.
+
+A implementação é aditiva. Os contratos legados continuam exportados sem alteração.
+Para evitar colisão com o factory legado `createTenantContext`, o novo factory é
+exportado pela raiz do pacote como `createGlobalTrustTenantContext`.
+
+Documentação:
+
+- `docs/GLOBAL_TRUST_COMMON_CONTRACTS.md`;
+- `examples/global-trust.pt-BR.json`;
+- `examples/global-trust.en.json`.
+
+Os contratos são fail-closed: não carregam secrets, bloqueiam acesso entre tenants,
+não permitem execução administrativa automática e exigem aprovação humana quando a
+decisão estiver em `pending_approval`.
