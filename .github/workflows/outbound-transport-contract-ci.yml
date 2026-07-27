@@ -1,0 +1,50 @@
+name: Outbound Transport Contract CI
+
+on:
+  pull_request:
+    paths:
+      - "packages/contracts/**"
+      - ".github/workflows/outbound-transport-contract-ci.yml"
+  push:
+    branches:
+      - main
+    paths:
+      - "packages/contracts/**"
+      - ".github/workflows/outbound-transport-contract-ci.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: outbound-transport-contract-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  outbound-transport-contract:
+    name: Outbound transport contract gate
+    runs-on:
+      group: organization-macos-ci
+      labels: [self-hosted, macOS, X64]
+    timeout-minutes: 15
+    defaults:
+      run:
+        working-directory: packages/contracts
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js 22
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+
+      - name: Validate contract syntax
+        run: node --check src/outbound-transport.mjs
+
+      - name: Run outbound transport contract tests
+        shell: bash
+        run: |
+          set -euo pipefail
+          node --test --test-concurrency=1 test/outbound-transport.test.mjs | tee outbound-transport-contract.log
+          grep -Fq "OUTBOUND_TRANSPORT_CONTRACT_GATE_OK" outbound-transport-contract.log
