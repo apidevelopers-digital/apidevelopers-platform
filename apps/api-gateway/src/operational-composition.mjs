@@ -1,4 +1,3 @@
-
 import { createJsonFileStore } from "@apidevelopers/persistence-core";
 import {
   createApiKeyLifecycleService,
@@ -12,6 +11,8 @@ import { createDurableGlobalTrustAuditSink } from "./durable-global-trust-audit.
 import { createDurableGlobalTrustDecisionEvidence } from "./durable-global-trust-decision-evidence.mjs";
 import { createGatewayGlobalTrustAudit } from "./global-trust-audit.mjs";
 import { createGatewayAuthorizationService } from "./global-trust-authorization.mjs";
+import { createGlobalTrustObservabilityHttpApp } from "./global-trust-observability-http.mjs";
+import { createGlobalTrustObservabilityService } from "./global-trust-observability.mjs";
 import { createGatewayRiskService } from "./global-trust-risk.mjs";
 import { createOperationalProtection } from "./operational-protection.mjs";
 import { createApp } from "./server.mjs";
@@ -44,6 +45,7 @@ export function createOperationalGateway({
   riskMethodVersion,
   decisionEvidenceNow,
   decisionEvidenceIdFactory,
+  globalTrustObservabilityNow,
 } = {}) {
   const store = createJsonFileStore({
     filePath: requireText(stateFilePath, "stateFilePath"),
@@ -81,14 +83,22 @@ export function createOperationalGateway({
   });
   const risk = createGatewayRiskService({
     ...(riskNow ? { now: riskNow } : {}),
-    ...(riskAssessmentIdFactory ? { assessmentIdFactory: riskAssessmentIdFactory } : {}),
-    ...(safetyDecisionIdFactory ? { safetyDecisionIdFactory } : {}),
+    ...(riskAssessmentIdFactory
+      ? { assessmentIdFactory: riskAssessmentIdFactory }
+      : {}),
+    ...(safetyDecisionIdFactory
+      ? { safetyDecisionIdFactory }
+      : {}),
     ...(riskMethodVersion ? { methodVersion: riskMethodVersion } : {}),
   });
   const decisionEvidence = createDurableGlobalTrustDecisionEvidence({
     store,
     ...(decisionEvidenceNow ? { now: decisionEvidenceNow } : {}),
     ...(decisionEvidenceIdFactory ? { idFactory: decisionEvidenceIdFactory } : {}),
+  });
+  const globalTrustObservability = createGlobalTrustObservabilityService({
+    store,
+    ...(globalTrustObservabilityNow ? { now: globalTrustObservabilityNow } : {}),
   });
 
   const baseApp = createApp({ authenticator, audit });
@@ -100,9 +110,15 @@ export function createOperationalGateway({
     decisionEvidence,
     auditQuery,
   });
+  const observabilityApp = createGlobalTrustObservabilityHttpApp({
+    app: queryApp,
+    authenticator,
+    authorization,
+    observability: globalTrustObservability,
+  });
   const app = protection
-    ? createOperationalProtection({ app: queryApp, ...protection })
-    : queryApp;
+    ? createOperationalProtection({ app: observabilityApp, ...protection })
+    : observabilityApp;
 
   return Object.freeze({
     store,
@@ -114,6 +130,7 @@ export function createOperationalGateway({
     authorization,
     risk,
     decisionEvidence,
+    globalTrustObservability,
     app,
     ...(protection ? { metrics: app.metrics } : {}),
   });
