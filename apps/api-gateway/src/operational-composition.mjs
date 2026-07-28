@@ -3,6 +3,7 @@ import {
   createApiKeyLifecycleService,
   createDurableApiKeyRepository,
 } from "@apidevelopers/apikey-core";
+
 import { createGlobalTrustAuditQueryService } from "./audit-query.mjs";
 import { createAuditQueryHttpApp } from "./audit-query-http.mjs";
 import { createGatewayAuthenticator } from "./auth-composition.mjs";
@@ -21,6 +22,8 @@ import { createGlobalTrustKillSwitchService } from "./global-trust-kill-switch.m
 import { createGlobalTrustObservabilityHttpApp } from "./global-trust-observability-http.mjs";
 import { createGlobalTrustObservabilityService } from "./global-trust-observability.mjs";
 import { createGatewayRiskService } from "./global-trust-risk.mjs";
+import { createGlobalTrustToolInvocationGuard } from "./global-trust-tool-invocation-guard.mjs";
+import { createGlobalTrustToolInvocationHttpApp } from "./global-trust-tool-invocation-http.mjs";
 import { createOperationalProtection } from "./operational-protection.mjs";
 import { createApp } from "./server.mjs";
 
@@ -63,6 +66,9 @@ export function createOperationalGateway({
   humanApprovalTtlMs,
   killSwitchNow,
   killSwitchEventIdFactory,
+  toolInvocationPolicies,
+  toolInvocationDecisionNow,
+  toolInvocationDecisionIdFactory,
 } = {}) {
   const store = createJsonFileStore({
     filePath: requireText(stateFilePath, "stateFilePath"),
@@ -103,7 +109,9 @@ export function createOperationalGateway({
   const authorization = createGatewayAuthorizationService({
     ...(authorizationNow ? { now: authorizationNow } : {}),
     ...(authorizationIdFactory ? { idFactory: authorizationIdFactory } : {}),
-    ...(authorizationPolicyVersion ? { policyVersion: authorizationPolicyVersion } : {}),
+    ...(authorizationPolicyVersion
+      ? { policyVersion: authorizationPolicyVersion }
+      : {}),
   });
 
   const risk = createGatewayRiskService({
@@ -142,6 +150,18 @@ export function createOperationalGateway({
       : {}),
   });
 
+  const toolInvocationGuard = createGlobalTrustToolInvocationGuard({
+    store,
+    integrity,
+    policies: toolInvocationPolicies ?? [],
+    ...(toolInvocationDecisionNow
+      ? { now: toolInvocationDecisionNow }
+      : {}),
+    ...(toolInvocationDecisionIdFactory
+      ? { decisionIdFactory: toolInvocationDecisionIdFactory }
+      : {}),
+  });
+
   const decisionEvidence = createDurableGlobalTrustDecisionEvidence({
     store,
     integrity,
@@ -153,7 +173,9 @@ export function createOperationalGateway({
 
   const globalTrustObservability = createGlobalTrustObservabilityService({
     store,
-    ...(globalTrustObservabilityNow ? { now: globalTrustObservabilityNow } : {}),
+    ...(globalTrustObservabilityNow
+      ? { now: globalTrustObservabilityNow }
+      : {}),
   });
 
   const integrityBackfill = createGlobalTrustIntegrityBackfillService({
@@ -185,13 +207,13 @@ export function createOperationalGateway({
     authorization,
     integrity,
   });
-  const integrityBackfillApp = createGlobalTrustIntegrityBackfillHttpApp ({
+  const integrityBackfillApp = createGlobalTrustIntegrityBackfillHttpApp({
     app: integrityApp,
     authenticator,
     authorization,
     backfill: integrityBackfill,
   });
-  const humanApprovalApp = createGlobalTrustHumanApprovalHttpApp ({
+  const humanApprovalApp = createGlobalTrustHumanApprovalHttpApp({
     app: integrityBackfillApp,
     authenticator,
     authorization,
@@ -201,11 +223,20 @@ export function createOperationalGateway({
     app: humanApprovalApp,
     authenticator,
     authorization,
-    killSwitch,
+   killSwitch,
+  });
+  const toolInvocationApp = createGlobalTrustToolInvocationHttpApp({
+    app: killSwitchApp,
+    authenticator,
+    authorization,
+    guard: toolInvocationGuard,
   });
   const app = protection
-    ? createOperationalProtection({ app: killSwitchApp, ...protection })
-    : killSwitchApp;
+    ? createOperationalProtection({
+        app: toolInvocationApp,
+        ...protection,
+      })
+    : toolInvocationApp;
 
   return Object.freeze({
     store,
@@ -218,6 +249,7 @@ export function createOperationalGateway({
     risk,
     humanApproval,
     killSwitch,
+    toolInvocationGuard,
     decisionEvidence,
     globalTrustObservability,
     integrity,
