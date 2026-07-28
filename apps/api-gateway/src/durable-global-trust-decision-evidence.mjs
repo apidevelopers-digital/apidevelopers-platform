@@ -23,7 +23,7 @@ function assertContract(value, contractType, idField, name) {
 
 function uniqueTextList(values) {
   if (!Array.isArray(values)) return [];
-  return [...new Set(values.map((value) => String(value ?? "").trim().filter(Boolean))].sort();
+  return [...new Set(values.map((value) => String(value ?? "").trim()).filter(Boolean))].sort();
 }
 
 export function createDurableGlobalTrustDecisionEvidence({
