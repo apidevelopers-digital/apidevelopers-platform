@@ -21,9 +21,9 @@ test("allows a narrowed tenant audit query with contractual evidence", () => {
   assert.equal(result.safetyDecision.contractType, "SafetyDecision");
   assert.equal(result.safetyDecision.outcome, "allow");
   assert.deepEqual(result.safetyDecision.controls, [
-    "tenant_isolation",
-    "scope_audit_read",
     "bounded_limit",
+    "scope_audit_read",
+    "tenant_isolation",
   ]);
 });
 
