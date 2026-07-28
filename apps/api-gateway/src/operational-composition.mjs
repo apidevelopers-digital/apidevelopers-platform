@@ -11,6 +11,8 @@ import { createDurableGlobalTrustAuditSink } from "./durable-global-trust-audit.
 import { createDurableGlobalTrustDecisionEvidence } from "./durable-global-trust-decision-evidence.mjs";
 import { createGatewayGlobalTrustAudit } from "./global-trust-audit.mjs";
 import { createGatewayAuthorizationService } from "./global-trust-authorization.mjs";
+import { createGlobalTrustIntegrityHttpApp } from "./global-trust-integrity-http.mjs";
+import { createGlobalTrustIntegrityService } from "./global-trust-integrity.mjs";
 import { createGlobalTrustObservabilityHttpApp } from "./global-trust-observability-http.mjs";
 import { createGlobalTrustObservabilityService } from "./global-trust-observability.mjs";
 import { createGatewayRiskService } from "./global-trust-risk.mjs";
@@ -46,6 +48,8 @@ export function createOperationalGateway({
   decisionEvidenceNow,
   decisionEvidenceIdFactory,
   globalTrustObservabilityNow,
+  integrityNow,
+  integrityIdFactory,
 } = {}) {
   const store = createJsonFileStore({
     filePath: requireText(stateFilePath, "stateFilePath"),
@@ -69,7 +73,12 @@ export function createOperationalGateway({
     ...(resolveTenantId ? { resolveTenantId } : {}),
   });
 
-  const auditSink = createDurableGlobalTrustAuditSink({ store });
+  const integrity = createGlobalTrustIntegrityService({
+    store,
+    ...(integrityNow ? { now: integrityNow } : {}),
+    ...(integrityIdFactory ? { idFactory: integrityIdFactory } : {}),
+  });
+  const auditSink = createDurableGlobalTrustAuditSink({ store, integrity });
   const audit = createGatewayGlobalTrustAudit({
     sink: auditSink,
     ...(auditNow ? { now: auditNow } : {}),
@@ -93,6 +102,7 @@ export function createOperationalGateway({
   });
   const decisionEvidence = createDurableGlobalTrustDecisionEvidence({
     store,
+    integrity,
     ...(decisionEvidenceNow ? { now: decisionEvidenceNow } : {}),
     ...(decisionEvidenceIdFactory ? { idFactory: decisionEvidenceIdFactory } : {}),
   });
@@ -116,9 +126,15 @@ export function createOperationalGateway({
     authorization,
     observability: globalTrustObservability,
   });
+  const integrityApp = createGlobalTrustIntegrityHttpApp({
+    app: observabilityApp,
+    authenticator,
+    authorization,
+    integrity,
+  });
   const app = protection
-    ? createOperationalProtection({ app: observabilityApp, ...protection })
-    : observabilityApp;
+    ? createOperationalProtection({ app: integrityApp, ...protection })
+    : integrityApp;
 
   return Object.freeze({
     store,
@@ -131,6 +147,7 @@ export function createOperationalGateway({
     risk,
     decisionEvidence,
     globalTrustObservability,
+    integrity,
     app,
     ...(protection ? { metrics: app.metrics } : {}),
   });
