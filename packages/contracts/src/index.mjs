@@ -14,6 +14,7 @@ export * from "./evolution-governance.mjs";
 export * from "./multi-agent-orchestration.mjs";
 export * from "./outbound-transport.mjs";
 export * from "./global-trust-use-case.mjs";
+export * from "./global-trust-data-policy.mjs";
 
 export {
   globalTrustCommonContractVersion,
