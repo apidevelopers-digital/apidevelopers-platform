@@ -8,8 +8,10 @@ export const GLOBAL_TRUST_PROTECTED_COLLECTIONS = Object.freeze([
   "global_trust_risk_assessments",
   "global_trust_safety_decisions",
   "global_trust_decision_evidence",
+  "global_trust_human_approval_requests",
+  "global_trust_human_approval_resolutions",
+  "global_trust_human_approval_consumptions",
 ]);
-
 const SOURCE_SET = new Set(GLOBAL_TRUST_PROTECTED_COLLECTIONS);
 const GENESIS = "0".repeat(64);
 
@@ -18,7 +20,6 @@ function required(value, name) {
   if (!normalized) throw new TypeError(`${name} is required`);
   return normalized;
 }
-
 function proofHash(proof) {
   return sha256Canonical({
     proofId: proof.proofId,
@@ -32,7 +33,6 @@ function proofHash(proof) {
     recordedAt: proof.recordedAt,
   });
 }
-
 function tenantProofs(tx, tenantId) {
   return tx.list(GLOBAL_TRUST_INTEGRITY_COLLECTION)
     .map(({ value }) => value)
@@ -43,7 +43,6 @@ function tenantProofs(tx, tenantId) {
 function chainFailures(proofs) {
   const failures = [];
   let previous = GENESIS;
-
   for (let index = 0; index < proofs.length; index += 1) {
     const proof = proofs[index];
     if (proof.sequence !== index + 1) {
@@ -57,7 +56,6 @@ function chainFailures(proofs) {
     }
     previous = String(proof.proofHash ?? "");
   }
-
   return failures;
 }
 
@@ -69,7 +67,6 @@ export function createGlobalTrustIntegrityService({
   if (typeof store?.transaction !== "function") throw new TypeError("store.transaction is required");
   if (typeof idFactory !== "function") throw new TypeError("idFactory is required");
   if (typeof now !== "function") throw new TypeError("now is required");
-
   function appendInTransaction(tx, {
     tenantId,
     sourceCollection,
@@ -79,7 +76,6 @@ export function createGlobalTrustIntegrityService({
     const tenant = required(tenantId, "tenantId");
     const collection = required(sourceCollection, "sourceCollection");
     const id = required(recordId, "recordId");
-
     if (!SOURCE_SET.has(collection)) throw new TypeError("sourceCollection is not protected");
     if (!payload || typeof payload !== "object" || Array.isArray(payload)) {
       throw new TypeError("payload must be an object");
@@ -87,7 +83,6 @@ export function createGlobalTrustIntegrityService({
     if (required(payload.tenantId, "payload.tenantId") !== tenant) {
       throw new TypeError("payload tenant mismatch");
     }
-
     const proofs = tenantProofs(tx, tenant);
     if (chainFailures(proofs).length) throw new TypeError("integrity chain is invalid");
     if (proofs.some((proof) =>
@@ -95,7 +90,6 @@ export function createGlobalTrustIntegrityService({
     )) {
       throw new TypeError("integrity proof already exists");
     }
-
     const proof = {
       contractType: "GlobalTrustIntegrityProof",
       contractVersion: "1.0",
@@ -110,7 +104,6 @@ export function createGlobalTrustIntegrityService({
       recordedAt: required(now(), "recordedAt"),
     };
     proof.proofHash = proofHash(proof);
-
     return tx.put(
       GLOBAL_TRUST_INTEGRITY_COLLECTION,
       proof.proofId,
@@ -126,7 +119,6 @@ export function createGlobalTrustIntegrityService({
     const proofKeys = new Set(
       proofs.map((proof) => `${proof.sourceCollection}\u0000${proof.recordId}`),
     );
-
     let verified = 0;
     for (const proof of proofs) {
       const source = tx.get(proof.sourceCollection, proof.recordId);
@@ -140,7 +132,6 @@ export function createGlobalTrustIntegrityService({
         verified += 1;
       }
     }
-
     let protectedRecords = 0;
     for (const collection of GLOBAL_TRUST_PROTECTED_COLLECTIONS) {
       for (const { id, value } of tx.list(collection)) {
@@ -156,7 +147,6 @@ export function createGlobalTrustIntegrityService({
         }
       }
     }
-
     return Object.freeze({
       contractType: "GlobalTrustIntegrityVerification",
       contractVersion: "1.0",
@@ -172,7 +162,6 @@ export function createGlobalTrustIntegrityService({
       sensitiveContentIncluded: false,
     });
   }
-
   return Object.freeze({
     appendInTransaction,
     verifyTenantInTransaction,
