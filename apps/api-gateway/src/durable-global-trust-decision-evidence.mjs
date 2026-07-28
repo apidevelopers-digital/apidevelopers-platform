@@ -139,7 +139,7 @@ export function createDurableGlobalTrustDecisionEvidence({
         ...approvalFields,
         ...killSwitchFields,
         eventIds: Object.freeze(uniqueTextList(eventIds)),
-        recordedAt: requireText(now(), "recoredAt"),
+        recordedAt: requireText(now(), "recordedAt"),
         sensitiveContentIncluded: false,
       });
 
