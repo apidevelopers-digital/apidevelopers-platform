@@ -4,6 +4,8 @@ import {
   createDurableApiKeyRepository,
 } from "@apidevelopers/apikey-core";
 
+import { createGlobalTrustAuditQueryService } from "./audit-query.mjs";
+import { createAuditQueryHttpApp } from "./audit-query-http.mjs";
 import { createGatewayAuthenticator } from "./auth-composition.mjs";
 import { createDurableGlobalTrustAuditSink } from "./durable-global-trust-audit.mjs";
 import { createGatewayGlobalTrustAudit } from "./global-trust-audit.mjs";
@@ -58,14 +60,20 @@ export function createOperationalGateway({
     ...(auditNow ? { now: auditNow } : {}),
     ...(auditIdFactory ? { idFactory: auditIdFactory } : {}),
   });
+  const auditQuery = createGlobalTrustAuditQueryService({ store });
 
   const baseApp = createApp({ authenticator, audit });
+  const queryApp = createAuditQueryHttpApp({
+    app: baseApp,
+    authenticator,
+    auditQuery,
+  });
   const app = protection
     ? createOperationalProtection({
-        app: baseApp,
+        app: queryApp,
         ...protection,
       })
-    : baseApp;
+    : queryApp;
 
   return Object.freeze({
     store,
@@ -73,6 +81,7 @@ export function createOperationalGateway({
     apiKeyLifecycle,
     authenticator,
     audit,
+    auditQuery,
     app,
     ...(protection ? { metrics: app.metrics } : {}),
   });
