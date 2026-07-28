@@ -1,4 +1,3 @@
-
 function jsonResponse(status, payload) {
   return {
     status,
@@ -32,6 +31,7 @@ export function createAuditQueryHttpApp({
   authorization,
   risk,
   decisionEvidence,
+  humanApproval,
   auditQuery,
 } = {}) {
   if (typeof app?.handleRequest !== "function") throw new TypeError("app.handleRequest must be a function");
@@ -44,13 +44,23 @@ export function createAuditQueryHttpApp({
   if (typeof decisionEvidence?.persistDecisionEvidence !== "function") {
     throw new TypeError("decisionEvidence.persistDecisionEvidence must be a function");
   }
-  if (typeof auditQuery?.listTenantEvents !== "function") throw new TypeError("auditQuery.listTenantEvents must be a function");
+  if (typeof humanApproval?.requestAuditQuery !== "function") {
+    throw new TypeError("humanApproval.requestAuditQuery must be a function");
+  }
+  if (typeof humanApproval?.consumeAuditQuery !== "function") {
+    throw new TypeError("humanApproval.consumeAuditQuery must be a function");
+  }
+  if (typeof auditQuery?.listTenantEvents !== "function") {
+    throw new TypeError("auditQuery.listTenantEvents must be a function");
+  }
 
   return Object.freeze({
     async handleRequest(request = {}) {
       const method = String(request.method ?? "GET").toUpperCase();
       const parsed = new URL(request.url ?? "/", "http://gateway.local");
-      if (method !== "GET" || parsed.pathname !== "/v1/audit-events") return app.handleRequest(request);
+      if (method !== "GET" || parsed.pathname !== "/v1/audit-events") {
+        return app.handleRequest(request);
+      }
 
       const identity = await authenticator.authenticate(request.headers ?? {});
       if (!identity) return jsonResponse(401, { error: "unauthorized" });
@@ -103,32 +113,70 @@ export function createAuditQueryHttpApp({
         });
       }
 
+      let approval;
       if (safetyDecision.outcome === "pending_approval") {
-        const evidence = await decisionEvidence.persistDecisionEvidence({
-          correlationId,
-          outcome: "human_approval_required",
-          authorizationDecision,
-          riskAssessment: assessment,
-          safetyDecision,
-        });
-        return jsonResponse(202, {
-          error: "human_approval_required",
-          correlationId,
-          authorizationDecision,
-          riskAssessment: assessment,
-          safetyDecision,
-          decisionEvidence: evidence,
-        });
+        const approvalRequestId = readHeader(request.headers, "x-human-approval-id");
+        if (!approvalRequestId) {
+          const approvalRequest = await humanApproval.requestAuditQuery({
+            identity,
+            query,
+            assessment,
+            safetyDecision,
+            correlationId,
+          });
+          const evidence = await decisionEvidence.persistDecisionEvidence({
+            correlationId,
+            outcome: "human_approval_required",
+            authorizationDecision,
+            riskAssessment: assessment,
+            safetyDecision,
+            humanApproval: approvalRequest,
+          });
+          return jsonResponse(202, {
+            error: "human_approval_required",
+            correlationId,
+            authorizationDecision,
+            riskAssessment: assessment,
+            safetyDecision,
+            humanApproval: approvalRequest,
+            decisionEvidence: evidence,
+          });
+        }
+
+        try {
+          approval = await humanApproval.consumeAuditQuery({
+            tenantId,
+            approvalRequestId,
+            identity,
+            query,
+            correlationId,
+            assessment,
+            safetyDecision,
+          });
+        } catch (error) {
+          if (error?.name === "HumanApprovalError") {
+            return jsonResponse(error.status ?? 409, {
+              error: error.code ?? "human_approval_error",
+              message: error.message,
+              correlationId,
+              authorizationDecision,
+              riskAssessment: assessment,
+              safetyDecision,
+            });
+          }
+          throw error;
+        }
       }
 
       try {
         const events = await auditQuery.listTenantEvents({ tenantId, ...query });
         const evidence = await decisionEvidence.persistDecisionEvidence({
           correlationId,
-          outcome: "allowed",
+          outcome: approval ? "allowed_after_human_approval" : "allowed",
           authorizationDecision,
           riskAssessment: assessment,
           safetyDecision,
+          humanApproval: approval,
           eventIds: events.map((event) => event.eventId),
         });
         return jsonResponse(200, {
@@ -138,6 +186,7 @@ export function createAuditQueryHttpApp({
           authorizationDecision,
           riskAssessment: assessment,
           safetyDecision,
+          ...(approval ? { humanApproval: approval } : {}),
           decisionEvidence: evidence,
           events,
         });
@@ -149,6 +198,7 @@ export function createAuditQueryHttpApp({
             authorizationDecision,
             riskAssessment: assessment,
             safetyDecision,
+            humanApproval: approval,
           });
           return jsonResponse(400, {
             error: "invalid_query",
