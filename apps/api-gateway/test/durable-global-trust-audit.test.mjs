@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import { mkdtemp, rm } from "node:fs/promises";
 import { join } from "node:path";
-import { tmpdir } from "node:os+";
+import { tmpdir } from "node:os";
 import test from "node:test";
 
 import { createOperationalGateway } from "../src/operational-composition.mjs";
@@ -27,7 +27,7 @@ test("persists issued tenant context audit events in the operational store", asy
     const response = await gateway.app.handleRequest({
       method: "GET",
       url: "/v1/whoami",
-      headers: { "x-admin-key": "admin-secret", "x-region": "br-south" },
+      headers: { "x-api-key": "admin-secret", "x-region": "br-south" },
     });
 
     assert.equal(response.status, 200);
@@ -65,20 +65,17 @@ test("rejects duplicate audit event ids instead of overwriting evidence", async 
       auditIdFactory: () => "fixed_id",
     });
 
-    const first = await gateway.app.handleRequest({
+    const request = {
       method: "GET",
       url: "/v1/whoami",
-      headers: { "x-admin-key": "admin-secret" },
-    });
+      headers: { "x-api-key": "admin-secret" },
+    };
+
+    const first = await gateway.app.handleRequest(request);
     assert.equal(first.status, 200);
 
     await assert.rejects(
-      () =>
-        gateway.app.handleRequest({
-          method: "GET",
-          url: "/v1/whoami",
-          headers: { "x-admin-key": "admin-secret" },
-        }),
+      () => gateway.app.handleRequest(request),
       /record already exists/,
     );
   } finally {
