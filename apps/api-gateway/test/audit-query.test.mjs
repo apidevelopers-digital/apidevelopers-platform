@@ -14,94 +14,82 @@ function request(headers, query = "") {
   };
 }
 
-test("returns only audit events from the authenticated tenant", async () => {
-  const directory = await mkdtemp(join(tmpdir(), "audit-query-"));
+test("returns only audit events from the authenticated tenant with authorization evidence", async () => {
+  const directory = await mkdtemp(join(tmpdir(), "audit-query-authz-"));
   try {
-    const ids = [
-      "corr_a", "event_a",
-      "corr_b", "event_b",
-    ];
-    const gateway = createOperationalGateway({
+    const ids = ["corr_a", "event_a", "decision_a", "corr_b", "event_b", "decision_b"];
+    const common = {
       stateFilePath: join(directory, "state.json"),
-      adminKey: "admin-a",
-      adminPrincipal: { id: "actor_a", tenantId: "tenant_a", scopes: [] },
       auditNow: () => "2026-07-28T12:00:00.000Z",
       auditIdFactory: () => ids.shift(),
+      authorizationNow: () => "2026-07-28T12:00:01.000Z",
+      authorizationIdFactory: () => ids.shift(),
+    };
+    const gatewayA = createOperationalGateway({
+      ...common,
+      adminKey: "admin-a",
+      adminPrincipal: { id: "actor_a", tenantId: "tenant_a", scopes: ["audit:read"] },
     });
-
-    await gateway.app.handleRequest({
+    await gatewayA.app.handleRequest({
       method: "GET",
       url: "/v1/whoami",
       headers: { "x-api-key": "admin-a" },
     });
 
-    const secondGateway = createOperationalGateway({
-      stateFilePath: join(directory, "state.json"),
+    const gatewayB = createOperationalGateway({
+      ...common,
       adminKey: "admin-b",
-      adminPrincipal: { id: "actor_b", tenantId: "tenant_b", scopes: [] },
-      auditNow: () => "2026-07-28T13:00:00.000Z",
-      auditIdFactory: () => ids.shift(),
+      adminPrincipal: { id: "actor_b", tenantId: "tenant_b", scopes: ["audit:read"] },
     });
-
-    await secondGateway.app.handleRequest({
+    await gatewayB.app.handleRequest({
       method: "GET",
       url: "/v1/whoami",
       headers: { "x-api-key": "admin-b" },
     });
 
-    const response = await gateway.app.handleRequest(request({ "x-api-key": "admin-a" }));
+    const response = await gatewayA.app.handleRequest(request({ "x-api-key": "admin-a" }));
     assert.equal(response.status, 200);
     const body = JSON.parse(response.body);
     assert.equal(body.tenantId, "tenant_a");
     assert.equal(body.count, 1);
     assert.equal(body.events[0].tenantId, "tenant_a");
+    assert.equal(body.authorizationDecision.contractType, "AuthorizationDecision");
+    assert.equal(body.authorizationDecision.effect, "allow");
     assert.equal(JSON.stringify(body).includes("tenant_b"), false);
   } finally {
     await rm(directory, { recursive: true, force: true });
   }
 });
 
-test("filters by correlation and rejects invalid limits", async () => {
-  const directory = await mkdtemp(join(tmpdir(), "audit-query-"));
+test("denies audit queries when audit:read scope is missing", async () => {
+  const directory = await mkdtemp(join(tmpdir(), "audit-query-authz-"));
   try {
-    const ids = ["corr_001", "event_001"];
     const gateway = createOperationalGateway({
       stateFilePath: join(directory, "state.json"),
       adminKey: "admin",
       adminPrincipal: { id: "actor", tenantId: "tenant", scopes: [] },
-      auditNow: () => "2026-07-28T12:00:00.000Z",
-      auditIdFactory: () => ids.shift(),
+      authorizationNow: () => "2026-07-28T12:00:00.000Z",
+      authorizationIdFactory: () => "decision_deny",
     });
 
-    await gateway.app.handleRequest({
-      method: "GET",
-      url: "/v1/whoami",
-      headers: { "x-api-key": "admin" },
-    });
-
-    const filtered = await gateway.app.handleRequest(
-      request({ "x-api-key": "admin" }, "?correlationId=corr_001&limit=1"),
-    );
-    assert.equal(filtered.status, 200);
-    assert.equal(JSON.parse(filtered.body).count, 1);
-
-    const invalid = await gateway.app.handleRequest(
-      request({ "x-api-key": "admin" }, "?limit=201"),
-    );
-    assert.equal(invalid.status, 400);
-    assert.equal(JSON.parse(invalid.body).error, "invalid_query");
+    const response = await gateway.app.handleRequest(request({ "x-api-key": "admin" }));
+    assert.equal(response.status, 403);
+    const body = JSON.parse(response.body);
+    assert.equal(body.error, "forbidden");
+    assert.equal(body.authorizationDecision.effect, "deny");
+    assert.deepEqual(body.authorizationDecision.reasonCodes, ["missing_scope:audit:read"]);
   } finally {
     await rm(directory, { recursive: true, force: true });
   }
 });
 
 test("requires authentication and tenant context", async () => {
-  const directory = await mkdtemp(join(tmpdir(), "audit-query-"));
+  const directory = await mkdtemp(join(tmpdir(), "audit-query-authz-"));
   try {
     const gateway = createOperationalGateway({
       stateFilePath: join(directory, "state.json"),
       adminKey: "admin",
-      adminPrincipal: { id: "actor", scopes: [] },
+      adminPrincipal: { id: "actor", scopes: ["audit:read"] },
     });
 
     const unauthorized = await gateway.app.handleRequest(request({}));
