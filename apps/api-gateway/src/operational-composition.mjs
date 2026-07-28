@@ -5,6 +5,8 @@ import {
 } from "@apidevelopers/apikey-core";
 
 import { createGatewayAuthenticator } from "./auth-composition.mjs";
+import { createDurableGlobalTrustAuditSink } from "./durable-global-trust-audit.mjs";
+import { createGatewayGlobalTrustAudit } from "./global-trust-audit.mjs";
 import { createOperationalProtection } from "./operational-protection.mjs";
 import { createApp } from "./server.mjs";
 
@@ -25,6 +27,8 @@ export function createOperationalGateway({
   adminPrincipal,
   resolveTenantId,
   protection,
+  auditNow,
+  auditIdFactory,
 } = {}) {
   const store = createJsonFileStore({
     filePath: requireText(stateFilePath, "stateFilePath"),
@@ -48,7 +52,14 @@ export function createOperationalGateway({
     ...(resolveTenantId ? { resolveTenantId } : {}),
   });
 
-  const baseApp = createApp({ authenticator });
+  const auditSink = createDurableGlobalTrustAuditSink({ store });
+  const audit = createGatewayGlobalTrustAudit({
+    sink: auditSink,
+    ...(auditNow ? { now: auditNow } : {}),
+    ...(auditIdFactory ? { idFactory: auditIdFactory } : {}),
+  });
+
+  const baseApp = createApp({ authenticator, audit });
   const app = protection
     ? createOperationalProtection({
         app: baseApp,
@@ -61,6 +72,7 @@ export function createOperationalGateway({
     apiKeyRepository,
     apiKeyLifecycle,
     authenticator,
+    audit,
     app,
     ...(protection ? { metrics: app.metrics } : {}),
   });
