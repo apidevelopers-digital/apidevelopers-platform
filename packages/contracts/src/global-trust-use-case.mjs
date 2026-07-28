@@ -16,6 +16,7 @@ export const USE_CASE_STATUSES = Object.freeze([
   "suspended",
   "retired",
 ]);
+const USE_CASE_STATUS_SET = new Set(USE_CASE_STATUSES);
 
 export function assertUseCaseDescriptorContract(
   value,
@@ -27,7 +28,7 @@ export function assertUseCaseDescriptorContract(
   id(value.ownerId, `${name}.ownerId`);
   string(value.purpose, `${name}.purpose`);
   id(value.dataPolicyId, `${name}.dataPolicyId`);
-  enumeration(value.status, `${name}.status`, USE_CASE_STATUSES);
+  enumeration(value.status, `${name}.status`, USE_CASE_STATUS_SET);
   enumeration(value.riskLevel, `${name}.riskLevel`, RISK_LEVELS);
   strings(value.allowedModelIds, `${name}.allowedModelIds`, {
     allowEmpty: false,
@@ -37,7 +38,6 @@ export function assertUseCaseDescriptorContract(
     allowEmpty: false,
   });
   bool(value.humanApprovalRequired, `${name}.humanApprovalRequired`);
-
   if (value.secretMaterialIncluded !== false) {
     throw new Error(`${name}.secretMaterialIncluded must be false`);
   }
