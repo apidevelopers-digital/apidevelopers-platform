@@ -72,7 +72,7 @@ function enumeration(value, name, allowed) {
 
 function stringArray(value, name, maximum = 20) {
   if (value === undefined) return Object.freeze([]);
-  if (!Array.isArray(value)) throw new TypeError( ${name} must be an array`);
+  if (!Array.isArray(value)) throw new TypeError(`${name} must be an array`);
   if (value.length > maximum) throw new RangeError(`${name} must contain at most ${maximum} items`);
 
   const normalized = value.map((item, index) =>
