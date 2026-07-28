@@ -21,6 +21,7 @@ test("composes Global Trust controls over one tenant-bound store", async () => {
       stateFilePath,
       adminKey: "operator-key",
       adminPrincipal: principal("tenant_001", "operator_001", [
+        "admission:evaluate",
         "audit:read",
         "incident:manage",
         "incident:read",
@@ -59,6 +60,8 @@ test("composes Global Trust controls over one tenant-bound store", async () => {
       "outputValidatorIntegrity",
       "incidentQueue",
       "incidentIntegrity",
+      "admissionGate",
+      "admissionIntegrity",
       "app",
     ]) {
       assert.ok(gateway[property], `${property} must be composed`);
@@ -66,6 +69,7 @@ test("composes Global Trust controls over one tenant-bound store", async () => {
 
     assert.equal(Object.isFrozen(gateway), true);
     assert.equal(Object.isFrozen(gateway.composition), true);
+    assert.equal(gateway.composition.contractVersion, "1.1");
     assert.equal(gateway.composition.sharedStore, true);
     assert.equal(gateway.composition.inferenceRouteEnabled, false);
     assert.equal(gateway.composition.modelExecutionEnabled, false);
@@ -89,6 +93,7 @@ test("composes Global Trust controls over one tenant-bound store", async () => {
       "prompt-defense",
       "output-validator",
       "incident-queue",
+      "admission-gate",
     ]);
   } finally {
     await rm(directory, { recursive: true, force: true });
