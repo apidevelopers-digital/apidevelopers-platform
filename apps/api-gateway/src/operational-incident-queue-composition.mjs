@@ -1,4 +1,3 @@
-import { createOperationalGateway } from "./operational-composition.mjs";
 import {
   createGlobalTrustIncidentQueue,
 } from "./global-trust-incident-queue.mjs";
@@ -8,6 +7,9 @@ import {
 import {
   createGlobalTrustIncidentQueueIntegrity,
 } from "./global-trust-incident-queue-integrity.mjs";
+import {
+  createOutputValidatedOperationalGateway,
+} from "./operational-output-validator-composition.mjs";
 
 export function createIncidentQueueOperationalGateway({
   incidentIdFactory,
@@ -15,9 +17,9 @@ export function createIncidentQueueOperationalGateway({
   incidentNow,
   incidentIntegrityNow,
   incidentProofIdFactory,
-  ...operationalOptions
+  ...outputValidatorOptions
 } = {}) {
-  const base = createOperationalGateway(operationalOptions);
+  const base = createOutputValidatedOperationalGateway(outputValidatorOptions);
   const incidentIntegrity = createGlobalTrustIncidentQueueIntegrity({
     store: base.store,
     ...(incidentIntegrityNow ? { now: incidentIntegrityNow } : {}),
@@ -29,9 +31,7 @@ export function createIncidentQueueOperationalGateway({
     store: base.store,
     integrity: incidentIntegrity,
     ...(incidentIdFactory ? { incidentIdFactory } : {}),
-    ...(incidentEventIdFactory
-      ? { eventIdFactory: incidentEventIdFactory }
-      : {}),
+    ...(incidentEventIdFactory ? { eventIdFactory: incidentEventIdFactory } : {}),
     ...(incidentNow ? { now: incidentNow } : {}),
   });
   const app = createGlobalTrustIncidentQueueHttpApp({

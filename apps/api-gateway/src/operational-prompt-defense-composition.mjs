@@ -1,4 +1,3 @@
-import { createOperationalGateway } from "./operational-composition.mjs";
 import {
   createGlobalTrustPromptDefense,
 } from "./global-trust-prompt-defense.mjs";
@@ -8,15 +7,20 @@ import {
 import {
   createGlobalTrustPromptDefenseIntegrity,
 } from "./global-trust-prompt-defense-integrity.mjs";
+import {
+  createDataPolicyRegisteredOperationalGateway,
+} from "./operational-data-policy-registry-composition.mjs";
 
 export function createPromptDefendedOperationalGateway({
   promptDefenseDecisionIdFactory,
   promptDefenseNow,
   promptDefenseIntegrityNow,
   promptDefenseProofIdFactory,
-  ...operationalOptions
+  ...dataPolicyRegistryOptions
 } = {}) {
-  const base = createOperationalGateway(operationalOptions);
+  const base = createDataPolicyRegisteredOperationalGateway(
+    dataPolicyRegistryOptions,
+  );
   const promptDefenseIntegrity = createGlobalTrustPromptDefenseIntegrity({
     store: base.store,
     ...(promptDefenseIntegrityNow

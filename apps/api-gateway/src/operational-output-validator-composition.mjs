@@ -1,4 +1,3 @@
-import { createOperationalGateway } from "./operational-composition.mjs";
 import {
   createGlobalTrustOutputValidator,
 } from "./global-trust-output-validator.mjs";
@@ -8,15 +7,18 @@ import {
 import {
   createGlobalTrustOutputValidatorIntegrity,
 } from "./global-trust-output-validator-integrity.mjs";
+import {
+  createPromptDefendedOperationalGateway,
+} from "./operational-prompt-defense-composition.mjs";
 
 export function createOutputValidatedOperationalGateway({
   outputValidatorDecisionIdFactory,
   outputValidatorNow,
   outputValidatorIntegrityNow,
   outputValidatorProofIdFactory,
-  ...operationalOptions
+  ...promptDefenseOptions
 } = {}) {
-  const base = createOperationalGateway(operationalOptions);
+  const base = createPromptDefendedOperationalGateway(promptDefenseOptions);
   const outputValidatorIntegrity = createGlobalTrustOutputValidatorIntegrity({
     store: base.store,
     ...(outputValidatorIntegrityNow
