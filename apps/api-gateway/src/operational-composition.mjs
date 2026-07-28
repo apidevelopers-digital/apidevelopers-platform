@@ -10,6 +10,7 @@ import { createGatewayAuthenticator } from "./auth-composition.mjs";
 import { createDurableGlobalTrustAuditSink } from "./durable-global-trust-audit.mjs";
 import { createGatewayGlobalTrustAudit } from "./global-trust-audit.mjs";
 import { createGatewayAuthorizationService } from "./global-trust-authorization.mjs";
+import { createGatewayRiskService } from "./global-trust-risk.mjs";
 import { createOperationalProtection } from "./operational-protection.mjs";
 import { createApp } from "./server.mjs";
 
@@ -35,6 +36,10 @@ export function createOperationalGateway({
   authorizationNow,
   authorizationIdFactory,
   authorizationPolicyVersion,
+  riskNow,
+  riskAssessmentIdFactory,
+  safetyDecisionIdFactory,
+  riskMethodVersion,
 } = {}) {
   const store = createJsonFileStore({
     filePath: requireText(stateFilePath, "stateFilePath"),
@@ -70,19 +75,23 @@ export function createOperationalGateway({
     ...(authorizationIdFactory ? { idFactory: authorizationIdFactory } : {}),
     ...(authorizationPolicyVersion ? { policyVersion: authorizationPolicyVersion } : {}),
   });
+  const risk = createGatewayRiskService({
+    ...(riskNow ? { now: riskNow } : {}),
+    ...(riskAssessmentIdFactory ? { assessmentIdFactory: riskAssessmentIdFactory } : {}),
+    ...(safetyDecisionIdFactory ? { safetyDecisionIdFactory } : {}),
+    ...(riskMethodVersion ? { methodVersion: riskMethodVersion } : {}),
+  });
 
   const baseApp = createApp({ authenticator, audit });
   const queryApp = createAuditQueryHttpApp({
     app: baseApp,
     authenticator,
     authorization,
+    risk,
     auditQuery,
   });
   const app = protection
-    ? createOperationalProtection({
-        app: queryApp,
-        ...protection,
-      })
+    ? createOperationalProtection({ app: queryApp, ...protection })
     : queryApp;
 
   return Object.freeze({
@@ -93,6 +102,7 @@ export function createOperationalGateway({
     audit,
     auditQuery,
     authorization,
+    risk,
     app,
     ...(protection ? { metrics: app.metrics } : {}),
   });
