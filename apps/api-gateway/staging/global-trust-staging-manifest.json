@@ -1,0 +1,134 @@
+{
+  "contractType": "GlobalTrustStagingHarnessManifest",
+  "contractVersion": "1.0",
+  "mode": "dry-run",
+  "environment": "ephemeral",
+  "tenantId": "tenant_staging_global_trust_001",
+  "provider": {
+    "type": "null",
+    "contactEnabled": false
+  },
+  "network": {
+    "egress": "blocked"
+  },
+  "execution": {
+    "inferenceEnabled": false,
+    "modelExecutionEnabled": false,
+    "toolExecutionEnabled": false,
+    "automaticRemediationEnabled": false
+  },
+  "cleanup": {
+    "required": true,
+    "residualResourcesExpected": 0
+  },
+  "scenarios": [
+    {
+      "id": "STG-01",
+      "name": "approved tenant and policy",
+      "action": "baseline",
+      "expectedResult": "allow"
+    },
+    {
+      "id": "STG-02",
+      "name": "missing or injected tenant",
+      "action": "tenant-boundary",
+      "expectedResult": "deny"
+    },
+    {
+      "id": "STG-03",
+      "name": "insufficient scope",
+      "action": "authorization",
+      "expectedResult": "deny"
+    },
+    {
+      "id": "STG-04",
+      "name": "unapproved model",
+      "action": "model-registry",
+      "expectedResult": "deny"
+    },
+    {
+      "id": "STG-05",
+      "name": "incompatible use case",
+      "action": "use-case-registry",
+      "expectedResult": "deny"
+    },
+    {
+      "id": "STG-06",
+      "name": "incompatible data policy",
+      "action": "data-policy-registry",
+      "expectedResult": "deny"
+    },
+    {
+      "id": "STG-07",
+      "name": "disallowed locale or region",
+      "action": "admission-gate",
+      "expectedResult": "deny"
+    },
+    {
+      "id": "STG-08",
+      "name": "sensitive data requiring review",
+      "action": "human-review",
+      "expectedResult": "review"
+    },
+    {
+      "id": "STG-09",
+      "name": "synthetic prompt injection",
+      "action": "prompt-defense",
+      "expectedResult": "deny"
+    },
+    {
+      "id": "STG-10",
+      "name": "synthetic secret exfiltration",
+      "action": "output-validator",
+      "expectedResult": "deny"
+    },
+    {
+      "id": "STG-11",
+      "name": "administrative tool proposal",
+      "action": "tool-guard",
+      "expectedResult": "deny"
+    },
+    {
+      "id": "STG-12",
+      "name": "allowed tool proposal with execution disabled",
+      "action": "tool-guard",
+      "expectedResult": "allow_no_execution"
+    },
+    {
+      "id": "STG-13",
+      "name": "active kill switch",
+      "action": "kill-switch",
+      "expectedResult": "deny"
+    },
+    {
+      "id": "STG-14",
+      "name": "tampered evidence record",
+      "action": "integrity",
+      "expectedResult": "invalid_integrity"
+    },
+    {
+      "id": "STG-15",
+      "name": "cross-tenant read attempt",
+      "action": "tenant-isolation",
+      "expectedResult": "isolated"
+    },
+    {
+      "id": "STG-16",
+      "name": "dependency failure",
+      "action": "fail-closed",
+      "expectedResult": "fail_closed"
+    },
+    {
+      "id": "STG-17",
+      "name": "deterministic repetition",
+      "action": "determinism",
+      "expectedResult": "deterministic"
+    },
+    {
+      "id": "STG-18",
+      "name": "cleanup readiness",
+      "action": "cleanup",
+      "expectedResult": "cleanup_ready"
+    }
+  ]
+}
