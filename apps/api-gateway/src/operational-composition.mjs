@@ -16,6 +16,8 @@ import { createGlobalTrustIntegrityBackfillHttpApp } from "./global-trust-integr
 import { createGlobalTrustIntegrityBackfillService } from "./global-trust-integrity-backfill.mjs";
 import { createGlobalTrustIntegrityHttpApp } from "./global-trust-integrity-http.mjs";
 import { createGlobalTrustIntegrityService } from "./global-trust-integrity.mjs";
+import { createGlobalTrustKillSwitchHttpApp } from "./global-trust-kill-switch-http.mjs";
+import { createGlobalTrustKillSwitchService } from "./global-trust-kill-switch.mjs";
 import { createGlobalTrustObservabilityHttpApp } from "./global-trust-observability-http.mjs";
 import { createGlobalTrustObservabilityService } from "./global-trust-observability.mjs";
 import { createGatewayRiskService } from "./global-trust-risk.mjs";
@@ -59,12 +61,15 @@ export function createOperationalGateway({
   humanApprovalResolutionIdFactory,
   humanApprovalConsumptionIdFactory,
   humanApprovalTtlMs,
+  killSwitchNow,
+  killSwitchEventIdFactory,
 } = {}) {
   const store = createJsonFileStore({
     filePath: requireText(stateFilePath, "stateFilePath"),
     ...(clock ? { clock } : {}),
     ...(writeIdFactory ? { idFactory: writeIdFactory } : {}),
   });
+
   const apiKeyRepository = createDurableApiKeyRepository({ store });
   const apiKeyLifecycle = createApiKeyLifecycleService({
     repository: apiKeyRepository,
@@ -73,6 +78,7 @@ export function createOperationalGateway({
     ...(generateKey ? { generateKey } : {}),
     ...(assertTenantOperational ? { assertTenantOperational } : {}),
   });
+
   const authenticator = createGatewayAuthenticator({
     apiKeyRepository,
     ...(adminKey ? { adminKey } : {}),
@@ -85,6 +91,7 @@ export function createOperationalGateway({
     ...(integrityNow ? { now: integrityNow } : {}),
     ...(integrityIdFactory ? { idFactory: integrityIdFactory } : {}),
   });
+
   const auditSink = createDurableGlobalTrustAuditSink({ store, integrity });
   const audit = createGatewayGlobalTrustAudit({
     sink: auditSink,
@@ -92,11 +99,13 @@ export function createOperationalGateway({
     ...(auditIdFactory ? { idFactory: auditIdFactory } : {}),
   });
   const auditQuery = createGlobalTrustAuditQueryService({ store });
+
   const authorization = createGatewayAuthorizationService({
     ...(authorizationNow ? { now: authorizationNow } : {}),
     ...(authorizationIdFactory ? { idFactory: authorizationIdFactory } : {}),
     ...(authorizationPolicyVersion ? { policyVersion: authorizationPolicyVersion } : {}),
   });
+
   const risk = createGatewayRiskService({
     ...(riskNow ? { now: riskNow } : {}),
     ...(riskAssessmentIdFactory
@@ -107,6 +116,7 @@ export function createOperationalGateway({
       : {}),
     ...(riskMethodVersion ? { methodVersion: riskMethodVersion } : {}),
   });
+
   const humanApproval = createGlobalTrustHumanApprovalService({
     store,
     integrity,
@@ -122,6 +132,16 @@ export function createOperationalGateway({
       : {}),
     ...(humanApprovalTtlMs ? { ttlMs: humanApprovalTtlMs } : {}),
   });
+
+  const killSwitch = createGlobalTrustKillSwitchService({
+    store,
+    integrity,
+    ...(killSwitchNow ? { now: killSwitchNow } : {}),
+    ...(killSwitchEventIdFactory
+      ? { eventIdFactory: killSwitchEventIdFactory }
+      : {}),
+  });
+
   const decisionEvidence = createDurableGlobalTrustDecisionEvidence({
     store,
     integrity,
@@ -135,11 +155,13 @@ export function createOperationalGateway({
     store,
     ...(globalTrustObservabilityNow ? { now: globalTrustObservabilityNow } : {}),
   });
+
   const integrityBackfill = createGlobalTrustIntegrityBackfillService({
     store,
     integrity,
     ...(integrityBackfillNow ? { now: integrityBackfillNow } : {}),
   });
+
   const baseApp = createApp({ authenticator, audit });
   const queryApp = createAuditQueryHttpApp({
     app: baseApp,
@@ -148,6 +170,7 @@ export function createOperationalGateway({
     risk,
     decisionEvidence,
     humanApproval,
+    killSwitch,
     auditQuery,
   });
   const observabilityApp = createGlobalTrustObservabilityHttpApp({
@@ -162,21 +185,28 @@ export function createOperationalGateway({
     authorization,
     integrity,
   });
-  const integrityBackfillApp = createGlobalTrustIntegrityBackfillHttpApp({
+  const integrityBackfillApp = createGlobalTrustIntegrityBackfillHttpApp ({
     app: integrityApp,
     authenticator,
     authorization,
     backfill: integrityBackfill,
   });
-  const humanApprovalApp = createGlobalTrustHumanApprovalHttpApp({
+  const humanApprovalApp = createGlobalTrustHumanApprovalHttpApp ({
     app: integrityBackfillApp,
     authenticator,
     authorization,
     humanApproval,
   });
+  const killSwitchApp = createGlobalTrustKillSwitchHttpApp ({
+    app: humanApprovalApp,
+    authenticator,
+    authorization,
+    killSwitch,
+  });
   const app = protection
-    ? createOperationalProtection({ app: humanApprovalApp, ...protection })
-    : humanApprovalApp;
+    ? createOperationalProtection({ app: killSwitchApp, ...protection })
+    : killSwitchApp;
+
   return Object.freeze({
     store,
     apiKeyRepository,
@@ -187,6 +217,7 @@ export function createOperationalGateway({
     authorization,
     risk,
     humanApproval,
+    killSwitch,
     decisionEvidence,
     globalTrustObservability,
     integrity,
