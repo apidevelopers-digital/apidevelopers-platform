@@ -139,7 +139,7 @@ export function createGlobalTrustSafetySimulation({
   })) {
     const method = name === "incidentQueue" ? "create" : "evaluate";
     if (typeof service?.[method] !== "function") {
-      throw new TypeError( ${name}.${method} is required`);
+      throw new TypeError(`${name}.${method} is required`);
     }
   }
   if (typeof integrity?.appendInTransaction !== "function") {
