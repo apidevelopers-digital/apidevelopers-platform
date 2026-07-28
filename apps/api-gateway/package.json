@@ -9,7 +9,7 @@
   "scripts": {
     "start": "node src/server.mjs",
     "test": "node --test test/*.test.mjs",
-    "check": "node --check src/server.mjs && node --check src/auth-composition.mjs && node --check src/global-trust-context.mjs && node --check src/global-trust-audit.mjs && node --check src/global-trust-authorization.mjs && node --check src/global-trust-risk.mjs && node --check src/audit-query.mjs && node --check src/audit-query-http.mjs && node --check src/operational-composition.mjs && node --check src/operational-http.mjs && node --check src/operational-protection.mjs && node --check src/durable-observability.mjs && node --check src/observable-operational-composition.mjs && npm test"
+    "check": "node --check src/server.mjs && node --check src/auth-composition.mjs && node --check src/global-trust-context.mjs && node --check src/global-trust-audit.mjs && node --check src/global-trust-authorization.mjs && node --check src/global-trust-risk.mjs && node --check src/durable-global-trust-decision-evidence.mjs && node --check src/audit-query.mjs && node --check src/audit-query-http.mjs && node --check src/operational-composition.mjs && node --check src/operational-http.mjs && node --check src/operational-protection.mjs && node --check src/durable-observability.mjs && node --check src/observable-operational-composition.mjs && npm test"
   },
   "dependencies": {
     "@apidevelopers/auth-core": "0.2.0",

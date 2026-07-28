@@ -1,3 +1,4 @@
+
 import { createJsonFileStore } from "@apidevelopers/persistence-core";
 import {
   createApiKeyLifecycleService,
@@ -8,6 +9,7 @@ import { createGlobalTrustAuditQueryService } from "./audit-query.mjs";
 import { createAuditQueryHttpApp } from "./audit-query-http.mjs";
 import { createGatewayAuthenticator } from "./auth-composition.mjs";
 import { createDurableGlobalTrustAuditSink } from "./durable-global-trust-audit.mjs";
+import { createDurableGlobalTrustDecisionEvidence } from "./durable-global-trust-decision-evidence.mjs";
 import { createGatewayGlobalTrustAudit } from "./global-trust-audit.mjs";
 import { createGatewayAuthorizationService } from "./global-trust-authorization.mjs";
 import { createGatewayRiskService } from "./global-trust-risk.mjs";
@@ -40,6 +42,8 @@ export function createOperationalGateway({
   riskAssessmentIdFactory,
   safetyDecisionIdFactory,
   riskMethodVersion,
+  decisionEvidenceNow,
+  decisionEvidenceIdFactory,
 } = {}) {
   const store = createJsonFileStore({
     filePath: requireText(stateFilePath, "stateFilePath"),
@@ -81,6 +85,11 @@ export function createOperationalGateway({
     ...(safetyDecisionIdFactory ? { safetyDecisionIdFactory } : {}),
     ...(riskMethodVersion ? { methodVersion: riskMethodVersion } : {}),
   });
+  const decisionEvidence = createDurableGlobalTrustDecisionEvidence({
+    store,
+    ...(decisionEvidenceNow ? { now: decisionEvidenceNow } : {}),
+    ...(decisionEvidenceIdFactory ? { idFactory: decisionEvidenceIdFactory } : {}),
+  });
 
   const baseApp = createApp({ authenticator, audit });
   const queryApp = createAuditQueryHttpApp({
@@ -88,6 +97,7 @@ export function createOperationalGateway({
     authenticator,
     authorization,
     risk,
+    decisionEvidence,
     auditQuery,
   });
   const app = protection
@@ -103,6 +113,7 @@ export function createOperationalGateway({
     auditQuery,
     authorization,
     risk,
+    decisionEvidence,
     app,
     ...(protection ? { metrics: app.metrics } : {}),
   });
