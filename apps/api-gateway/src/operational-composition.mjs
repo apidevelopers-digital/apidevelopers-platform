@@ -11,6 +11,8 @@ import { createDurableGlobalTrustAuditSink } from "./durable-global-trust-audit.
 import { createDurableGlobalTrustDecisionEvidence } from "./durable-global-trust-decision-evidence.mjs";
 import { createGatewayGlobalTrustAudit } from "./global-trust-audit.mjs";
 import { createGatewayAuthorizationService } from "./global-trust-authorization.mjs";
+import { createGlobalTrustIntegrityBackfillHttpApp } from "./global-trust-integrity-backfill-http.mjs";
+import { createGlobalTrustIntegrityBackfillService } from "./global-trust-integrity-backfill.mjs";
 import { createGlobalTrustIntegrityHttpApp } from "./global-trust-integrity-http.mjs";
 import { createGlobalTrustIntegrityService } from "./global-trust-integrity.mjs";
 import { createGlobalTrustObservabilityHttpApp } from "./global-trust-observability-http.mjs";
@@ -50,6 +52,7 @@ export function createOperationalGateway({
   globalTrustObservabilityNow,
   integrityNow,
   integrityIdFactory,
+  integrityBackfillNow,
 } = {}) {
   const store = createJsonFileStore({
     filePath: requireText(stateFilePath, "stateFilePath"),
@@ -78,6 +81,7 @@ export function createOperationalGateway({
     ...(integrityNow ? { now: integrityNow } : {}),
     ...(integrityIdFactory ? { idFactory: integrityIdFactory } : {}),
   });
+
   const auditSink = createDurableGlobalTrustAuditSink({ store, integrity });
   const audit = createGatewayGlobalTrustAudit({
     sink: auditSink,
@@ -85,11 +89,13 @@ export function createOperationalGateway({
     ...(auditIdFactory ? { idFactory: auditIdFactory } : {}),
   });
   const auditQuery = createGlobalTrustAuditQueryService({ store });
+
   const authorization = createGatewayAuthorizationService({
     ...(authorizationNow ? { now: authorizationNow } : {}),
     ...(authorizationIdFactory ? { idFactory: authorizationIdFactory } : {}),
     ...(authorizationPolicyVersion ? { policyVersion: authorizationPolicyVersion } : {}),
   });
+
   const risk = createGatewayRiskService({
     ...(riskNow ? { now: riskNow } : {}),
     ...(riskAssessmentIdFactory
@@ -100,15 +106,25 @@ export function createOperationalGateway({
       : {}),
     ...(riskMethodVersion ? { methodVersion: riskMethodVersion } : {}),
   });
+
   const decisionEvidence = createDurableGlobalTrustDecisionEvidence({
     store,
     integrity,
     ...(decisionEvidenceNow ? { now: decisionEvidenceNow } : {}),
-    ...(decisionEvidenceIdFactory ? { idFactory: decisionEvidenceIdFactory } : {}),
+    ...(decisionEvidenceIdFactory
+      ? { idFactory: decisionEvidenceIdFactory }
+      : {}),
   });
+
   const globalTrustObservability = createGlobalTrustObservabilityService({
     store,
     ...(globalTrustObservabilityNow ? { now: globalTrustObservabilityNow } : {}),
+  });
+
+  const integrityBackfill = createGlobalTrustIntegrityBackfillService({
+    store,
+    integrity,
+    ...(integrityBackfillNow ? { now: integrityBackfillNow } : {}),
   });
 
   const baseApp = createApp({ authenticator, audit });
@@ -132,9 +148,15 @@ export function createOperationalGateway({
     authorization,
     integrity,
   });
+  const integrityBackfillApp = createGlobalTrustIntegrityBackfillHttpApp({
+    app: integrityApp,
+    authenticator,
+    authorization,
+    backfill: integrityBackfill,
+  });
   const app = protection
-    ? createOperationalProtection({ app: integrityApp, ...protection })
-    : integrityApp;
+    ? createOperationalProtection({ app: integrityBackfillApp, ...protection })
+    : integrityBackfillApp;
 
   return Object.freeze({
     store,
@@ -148,6 +170,7 @@ export function createOperationalGateway({
     decisionEvidence,
     globalTrustObservability,
     integrity,
+    integrityBackfill,
     app,
     ...(protection ? { metrics: app.metrics } : {}),
   });
