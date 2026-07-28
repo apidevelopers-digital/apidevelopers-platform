@@ -9,6 +9,7 @@ function jsonResponse(status, payload) {
 export function createAuditQueryHttpApp({
   app,
   authenticator,
+  authorization,
   auditQuery,
 } = {}) {
   if (typeof app?.handleRequest !== "function") {
@@ -16,6 +17,9 @@ export function createAuditQueryHttpApp({
   }
   if (typeof authenticator?.authenticate !== "function") {
     throw new TypeError("authenticator.authenticate must be a function");
+  }
+  if (typeof authorization?.decide !== "function") {
+    throw new TypeError("authorization.decide must be a function");
   }
   if (typeof auditQuery?.listTenantEvents !== "function") {
     throw new TypeError("auditQuery.listTenantEvents must be a function");
@@ -38,6 +42,19 @@ export function createAuditQueryHttpApp({
         return jsonResponse(403, { error: "tenant_context_unavailable" });
       }
 
+      const decision = authorization.decide({
+        identity,
+        action: "audit.events.read",
+        resource: `tenant:${tenantId}:audit-events`,
+        requiredScopes: ["audit:read"],
+      });
+      if (decision.effect !== "allow") {
+        return jsonResponse(403, {
+          error: "forbidden",
+          authorizationDecision: decision,
+        });
+      }
+
       try {
         const events = await auditQuery.listTenantEvents({
           tenantId,
@@ -52,6 +69,7 @@ export function createAuditQueryHttpApp({
         return jsonResponse(200, {
           tenantId,
           count: events.length,
+          authorizationDecision: decision,
           events,
         });
       } catch (error) {
