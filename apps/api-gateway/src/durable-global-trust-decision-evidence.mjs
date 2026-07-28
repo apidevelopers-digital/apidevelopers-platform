@@ -63,6 +63,7 @@ export function createDurableGlobalTrustDecisionEvidence({
       authorizationDecision,
       riskAssessment,
       safetyDecision,
+      humanApproval,
       eventIds = [],
     } = {}) {
       const authorization = assertContract(
@@ -87,6 +88,25 @@ export function createDurableGlobalTrustDecisionEvidence({
       if (risk && safety && safety.assessmentId !== risk.assessmentId) {
         throw new TypeError("safetyDecision assessmentId must match riskAssessment assessmentId");
       }
+      if (humanApproval && humanApproval.tenantId !== authorization.tenantId) {
+        throw new TypeError("humanApproval tenantId must match authorizationDecision tenantId");
+      }
+
+      const approvalFields = humanApproval
+        ? {
+            humanApprovalRequestId: requireText(
+              humanApproval.approvalRequestId,
+              "humanApproval.approvalRequestId",
+            ),
+            humanApprovalStatus: requireText(humanApproval.status, "humanApproval.status"),
+            ...(humanApproval.resolutionId
+              ? { humanApprovalResolutionId: requireText(humanApproval.resolutionId, "humanApproval.resolutionId") }
+              : {}),
+            ...(humanApproval.consumptionId
+              ? { humanApprovalConsumptionId: requireText(humanApproval.consumptionId, "humanApproval.consumptionId") }
+              : {}),
+          }
+        : {};
 
       const evidence = Object.freeze({
         contractType: "DecisionEvidence",
@@ -101,6 +121,7 @@ export function createDurableGlobalTrustDecisionEvidence({
         authorizationDecisionId: authorization.decisionId,
         ...(risk ? { riskAssessmentId: risk.assessmentId } : {}),
         ...(safety ? { safetyDecisionId: safety.safetyDecisionId } : {}),
+        ...approvalFields,
         eventIds: Object.freeze(uniqueTextList(eventIds)),
         recordedAt: requireText(now(), "recordedAt"),
         sensitiveContentIncluded: false,
