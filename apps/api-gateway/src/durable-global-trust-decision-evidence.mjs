@@ -64,6 +64,7 @@ export function createDurableGlobalTrustDecisionEvidence({
       riskAssessment,
       safetyDecision,
       humanApproval,
+      killSwitch,
       eventIds = [],
     } = {}) {
       const authorization = assertContract(
@@ -91,6 +92,9 @@ export function createDurableGlobalTrustDecisionEvidence({
       if (humanApproval && humanApproval.tenantId !== authorization.tenantId) {
         throw new TypeError("humanApproval tenantId must match authorizationDecision tenantId");
       }
+      if (killSwitch && killSwitch.tenantId !== authorization.tenantId) {
+        throw new TypeError("killSwitch tenantId must match authorizationDecision tenantId");
+      }
 
       const approvalFields = humanApproval
         ? {
@@ -108,6 +112,17 @@ export function createDurableGlobalTrustDecisionEvidence({
           }
         : {};
 
+      const killSwitchFields = killSwitch
+        ? {
+            killSwitchEventId: requireText(
+              killSwitch.killSwitchEventId,
+              "killSwitch.killSwitchEventId",
+            ),
+            killSwitchEnabled: Boolean(killSwitch.enabled),
+            killSwitchVersion: Number(killSwitch.version),
+          }
+        : {};
+
       const evidence = Object.freeze({
         contractType: "DecisionEvidence",
         contractVersion: "1.0",
@@ -122,6 +137,7 @@ export function createDurableGlobalTrustDecisionEvidence({
         ...(risk ? { riskAssessmentId: risk.assessmentId } : {}),
         ...(safety ? { safetyDecisionId: safety.safetyDecisionId } : {}),
         ...approvalFields,
+        ...killSwitchFields,
         eventIds: Object.freeze(uniqueTextList(eventIds)),
         recordedAt: requireText(now(), "recordedAt"),
         sensitiveContentIncluded: false,
@@ -149,6 +165,7 @@ export function createDurableGlobalTrustDecisionEvidence({
         protect(tx, EVIDENCE_COLLECTION, evidence.evidenceId, evidence);
         return evidence;
       });
+
       return result.result;
     },
   });
