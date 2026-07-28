@@ -1,7 +1,10 @@
 import { randomUUID } from "node:crypto";
+
 import { sha256Canonical } from "./canonical-hash.mjs";
 
-export const GLOBAL_TRUST_INTEGRITY_COLLECTION = "global_trust_integrity_proofs";
+export const GLOBAL_TRUST_INTEGRITY_COLLECTION =
+  "global_trust_integrity_proofs";
+
 export const GLOBAL_TRUST_PROTECTED_COLLECTIONS = Object.freeze([
   "global_trust_audit_events",
   "global_trust_authorization_decisions",
@@ -12,7 +15,9 @@ export const GLOBAL_TRUST_PROTECTED_COLLECTIONS = Object.freeze([
   "global_trust_human_approval_resolutions",
   "global_trust_human_approval_consumptions",
   "global_trust_kill_switch_events",
+  "global_trust_tool_invocation_decisions",
 ]);
+
 const SOURCE_SET = new Set(GLOBAL_TRUST_PROTECTED_COLLECTIONS);
 const GENESIS = "0".repeat(64);
 
@@ -40,7 +45,10 @@ function tenantProofs(tx, tenantId) {
   return tx.list(GLOBAL_TRUST_INTEGRITY_COLLECTION)
     .map(({ value }) => value)
     .filter((proof) => proof?.tenantId === tenantId)
-    .sort((a, b) => a.sequence - b.sequence || a.proofId.localeCompare(b.proofId));
+    .sort((left, right) =>
+      left.sequence - right.sequence
+      || left.proofId.localeCompare(right.proofId)
+    );
 }
 
 function chainFailures(proofs) {
@@ -50,13 +58,22 @@ function chainFailures(proofs) {
   for (let index = 0; index < proofs.length; index += 1) {
     const proof = proofs[index];
     if (proof.sequence !== index + 1) {
-      failures.push({ proofId: String(proof.proofId ?? ""), code: "sequence_mismatch" });
+      failures.push({
+        proofId: String(proof.proofId ?? ""),
+        code: "sequence_mismatch",
+      });
     }
     if (proof.previousProofHash !== previous) {
-      failures.push({ proofId: String(proof.proofId ?? ""), code: "previous_hash_mismatch" });
+      failures.push({
+        proofId: String(proof.proofId ?? ""),
+        code: "previous_hash_mismatch",
+      });
     }
     if (proof.proofHash !== proofHash(proof)) {
-      failures.push({ proofId: String(proof.proofId ?? ""), code: "proof_hash_mismatch" });
+      failures.push({
+        proofId: String(proof.proofId ?? ""),
+        code: "proof_hash_mismatch",
+      });
     }
     previous = String(proof.proofHash ?? "");
   }
@@ -69,8 +86,12 @@ export function createGlobalTrustIntegrityService({
   idFactory = randomUUID,
   now = () => new Date().toISOString(),
 } = {}) {
-  if (typeof store?.transaction !== "function") throw new TypeError("store.transaction is required");
-  if (typeof idFactory !== "function") throw new TypeError("idFactory is required");
+  if (typeof store?.transaction !== "function") {
+    throw new TypeError("store.transaction is required");
+  }
+  if (typeof idFactory !== "function") {
+    throw new TypeError,"idFactory is required");
+  }
   if (typeof now !== "function") throw new TypeError("now is required");
 
   function appendInTransaction(tx, {
@@ -82,7 +103,10 @@ export function createGlobalTrustIntegrityService({
     const tenant = required(tenantId, "tenantId");
     const collection = required(sourceCollection, "sourceCollection");
     const id = required(recordId, "recordId");
-    if (!SOURCE_SET.has(collection)) throw new TypeError("sourceCollection is not protected");
+
+    if (!SOURCE_SET.has(collection)) {
+      throw new TypeError("sourceCollection is not protected");
+    }
     if (!payload || typeof payload !== "object" || Array.isArray(payload)) {
       throw new TypeError("payload must be an object");
     }
@@ -91,10 +115,15 @@ export function createGlobalTrustIntegrityService({
     }
 
     const proofs = tenantProofs(tx, tenant);
-    if (chainFailures(proofs).length) throw new TypeError("integrity chain is invalid");
-    if (proofs.some((proof) =>
-      proof.sourceCollection === collection && proof.recordId === id
-    )) {
+    if (chainFailures(proofs).length) {
+      throw new TypeError("integrity chain is invalid");
+    }
+    if (
+      proofs.some((proof) =>
+        proof.sourceCollection === collection
+        && proof.recordId === id
+      )
+    ) {
       throw new TypeError("integrity proof already exists");
     }
 
@@ -126,18 +155,32 @@ export function createGlobalTrustIntegrityService({
     const proofs = tenantProofs(tx, tenant);
     const failures = chainFailures(proofs);
     const proofKeys = new Set(
-      proofs.map((proof) => `${proof.sourceCollection}\u0000${proof.recordId}`),
+      proofs.map((proof) =>
+        `${proof.sourceCollection}\u0000${proof.recordId}`
+      ),
     );
 
     let verified = 0;
     for (const proof of proofs) {
-      const source = tx.get(proof.sourceCollection, proof.recordId);
+      const source = tx.get(
+        proof.sourceCollection,
+        proof.recordId,
+      );
       if (!source) {
-        failures.push({ proofId: proof.proofId, code: "source_record_missing" });
+        failures.push({
+          proofId: proof.proofId,
+          code: "source_record_missing",
+        });
       } else if (source.tenantId !== tenant) {
-        failures.push({ proofId: proof.proofId, code: "source_tenant_mismatch" });
+        failures.push({
+          proofId: proof.proofId,
+          code: "source_tenant_mismatch",
+        });
       } else if (sha256Canonical(source) !== proof.payloadHash) {
-        failures.push({ proofId: proof.proofId, code: "payload_hash_mismatch" });
+        failures.push({
+          proofId: proof.proofId,
+          code: "payload_hash_mismatch",
+        });
       } else {
         verified += 1;
       }
@@ -169,7 +212,11 @@ export function createGlobalTrustIntegrityService({
       proofCount: proofs.length,
       protectedRecordCount: protectedRecords,
       verifiedRecordCount: verified,
-      failures: Object.freeze(failures.map((failure) => Object.freeze({ ...failure }))),
+      failures: Object.freeze(
+        failures.map((failure) =>
+          Object.freeze({ ...failure })
+        ),
+      ),
       generatedAt: required(now(), "generatedAt"),
       sensitiveContentIncluded: false,
     });
