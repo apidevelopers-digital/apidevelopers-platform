@@ -9,6 +9,7 @@ import { createAuditQueryHttpApp } from "./audit-query-http.mjs";
 import { createGatewayAuthenticator } from "./auth-composition.mjs";
 import { createDurableGlobalTrustAuditSink } from "./durable-global-trust-audit.mjs";
 import { createGatewayGlobalTrustAudit } from "./global-trust-audit.mjs";
+import { createGatewayAuthorizationService } from "./global-trust-authorization.mjs";
 import { createOperationalProtection } from "./operational-protection.mjs";
 import { createApp } from "./server.mjs";
 
@@ -31,6 +32,9 @@ export function createOperationalGateway({
   protection,
   auditNow,
   auditIdFactory,
+  authorizationNow,
+  authorizationIdFactory,
+  authorizationPolicyVersion,
 } = {}) {
   const store = createJsonFileStore({
     filePath: requireText(stateFilePath, "stateFilePath"),
@@ -61,11 +65,17 @@ export function createOperationalGateway({
     ...(auditIdFactory ? { idFactory: auditIdFactory } : {}),
   });
   const auditQuery = createGlobalTrustAuditQueryService({ store });
+  const authorization = createGatewayAuthorizationService({
+    ...(authorizationNow ? { now: authorizationNow } : {}),
+    ...(authorizationIdFactory ? { idFactory: authorizationIdFactory } : {}),
+    ...(authorizationPolicyVersion ? { policyVersion: authorizationPolicyVersion } : {}),
+  });
 
   const baseApp = createApp({ authenticator, audit });
   const queryApp = createAuditQueryHttpApp({
     app: baseApp,
     authenticator,
+    authorization,
     auditQuery,
   });
   const app = protection
@@ -82,6 +92,7 @@ export function createOperationalGateway({
     authenticator,
     audit,
     auditQuery,
+    authorization,
     app,
     ...(protection ? { metrics: app.metrics } : {}),
   });
