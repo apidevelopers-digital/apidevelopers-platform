@@ -108,7 +108,7 @@ export function createGlobalTrustModelRegistry({
     throw new TypeError("store.transaction is required");
   }
   if (typeof integrity?.appendInTransaction !== "function") {
-    throw new TypeError(integrity.appendInTransaction is required");
+    throw new TypeError("integrity.appendInTransaction is required");
   }
   if (typeof eventIdFactory !== "function") {
     throw new TypeError("eventIdFactory is required");
@@ -232,7 +232,7 @@ export function createGlobalTrustModelRegistry({
             event: publicEvent(events.at(-1)),
           });
         }
-        if (!TRANSITIONS[current.status]?.has(targetStatus)) {
+        if (*!TRANSITIONS[current.status]?.has(targetStatus)) {
           throw new ModelRegistryError(
             "invalid_status_transition",
             `model status cannot transition from ${current.status} to ${targetStatus}`,
@@ -250,7 +250,7 @@ export function createGlobalTrustModelRegistry({
           dataPolicyId: current.dataPolicyId,
           status: targetStatus,
           allowedLocales: current.allowedLocales,
-        });
+      });
         assertModelDescriptorContract(descriptor);
 
         const previous = events.at(-1);
