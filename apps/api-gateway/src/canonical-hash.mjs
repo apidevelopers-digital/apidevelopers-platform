@@ -13,7 +13,7 @@ function stable(value) {
       return `${JSON.stringify(key)}:${stable(value[key])}`;
     }).join(",")}}`;
   }
-  throw new TypeErroq»b unsupported value type: ${typeof value}`);
+  throw new TypeError(`unsupported value type: ${typeof value}`);
 }
 
 export function sha256Canonical(value) {
