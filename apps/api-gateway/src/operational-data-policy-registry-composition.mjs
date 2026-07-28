@@ -8,17 +8,17 @@ import {
   createGlobalTrustDataPolicyRegistry,
 } from "./global-trust-data-policy-registry.mjs";
 import {
-  createModelRegisteredOperationalGateway,
-} from "./operational-model-registry-composition.mjs";
+  createUseCaseRegisteredOperationalGateway,
+} from "./operational-use-case-registry-composition.mjs";
 
 export function createDataPolicyRegisteredOperationalGateway({
   dataPolicyRegistryNow,
   dataPolicyRegistryEventIdFactory,
   dataPolicyRegistryIntegrityNow,
   dataPolicyRegistryProofIdFactory,
-  ...modelRegistryOptions
+  ...useCaseRegistryOptions
 } = {}) {
-  const base = createModelRegisteredOperationalGateway(modelRegistryOptions);
+  const base = createUseCaseRegisteredOperationalGateway(useCaseRegistryOptions);
 
   const dataPolicyRegistryIntegrity =
     createGlobalTrustDataPolicyRegistryIntegrity({
