@@ -1,4 +1,5 @@
 import { randomUUID } from "node:crypto";
+import { createGlobalTrustIntegrityService } from "./global-trust-integrity.mjs";
 
 const AUTHORIZATION_COLLECTION = "global_trust_authorization_decisions";
 const RISK_COLLECTION = "global_trust_risk_assessments";
@@ -30,12 +31,25 @@ export function createDurableGlobalTrustDecisionEvidence({
   store,
   idFactory = randomUUID,
   now = () => new Date().toISOString(),
+  integrity = createGlobalTrustIntegrityService({ store }),
 } = {}) {
   if (typeof store?.transaction !== "function") {
     throw new TypeError("store.transaction must be a function");
   }
   if (typeof idFactory !== "function") throw new TypeError("idFactory must be a function");
   if (typeof now !== "function") throw new TypeError("now must be a function");
+  if (typeof integrity?.appendInTransaction !== "function") {
+    throw new TypeError("integrity.appendInTransaction must be a function");
+  }
+
+  function protect(tx, collection, id, payload) {
+    integrity.appendInTransaction(tx, {
+      tenantId: payload.tenantId,
+      sourceCollection: collection,
+      recordId: id,
+      payload,
+    });
+  }
 
   return Object.freeze({
     createCorrelationId() {
@@ -99,13 +113,19 @@ export function createDurableGlobalTrustDecisionEvidence({
           authorization,
           { ifAbsent: true },
         );
+        protect(tx, AUTHORIZATION_COLLECTION, authorization.decisionId, authorization);
+
         if (risk) {
           tx.put(RISK_COLLECTION, risk.assessmentId, risk, { ifAbsent: true });
+          protect(tx, RISK_COLLECTION, risk.assessmentId, risk);
         }
         if (safety) {
           tx.put(SAFETY_COLLECTION, safety.safetyDecisionId, safety, { ifAbsent: true });
+          protect(tx, SAFETY_COLLECTION, safety.safetyDecisionId, safety);
         }
+
         tx.put(EVIDENCE_COLLECTION, evidence.evidenceId, evidence, { ifAbsent: true });
+        protect(tx, EVIDENCE_COLLECTION, evidence.evidenceId, evidence);
         return evidence;
       });
       return result.result;
