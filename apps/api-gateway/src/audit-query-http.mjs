@@ -5,7 +5,6 @@ function jsonResponse(status, payload) {
     body: JSON.stringify(payload),
   };
 }
-
 function readQuery(searchParams) {
   return {
     correlationId: searchParams.get("correlationId") ?? undefined,
@@ -16,7 +15,6 @@ function readQuery(searchParams) {
     limit: searchParams.get("limit") ?? undefined,
   };
 }
-
 function readHeader(headers, name) {
   const expected = name.toLowerCase();
   for (const [key, value] of Object.entries(headers ?? {})) {
@@ -24,7 +22,6 @@ function readHeader(headers, name) {
   }
   return undefined;
 }
-
 export function createAuditQueryHttpApp({
   app,
   authenticator,
@@ -32,6 +29,7 @@ export function createAuditQueryHttpApp({
   risk,
   decisionEvidence,
   humanApproval,
+  killSwitch,
   auditQuery,
 } = {}) {
   if (typeof app?.handleRequest !== "function") throw new TypeError("app.handleRequest must be a function");
@@ -50,10 +48,12 @@ export function createAuditQueryHttpApp({
   if (typeof humanApproval?.consumeAuditQuery !== "function") {
     throw new TypeError("humanApproval.consumeAuditQuery must be a function");
   }
+  if (typeof killSwitch?.getTenant !== "function") {
+    throw new TypeError("killSwitch.getTenant must be a function");
+  }
   if (typeof auditQuery?.listTenantEvents !== "function") {
     throw new TypeError("auditQuery.listTenantEvents must be a function");
   }
-
   return Object.freeze({
     async handleRequest(request = {}) {
       const method = String(request.method ?? "GET").toUpperCase();
@@ -64,7 +64,6 @@ export function createAuditQueryHttpApp({
 
       const identity = await authenticator.authenticate(request.headers ?? {});
       if (!identity) return jsonResponse(401, { error: "unauthorized" });
-
       const tenantId = identity.principal?.tenantId;
       if (!tenantId) return jsonResponse(403, { error: "tenant_context_unavailable" });
 
@@ -77,7 +76,6 @@ export function createAuditQueryHttpApp({
         resource: `tenant:${tenantId}:audit-events`,
         requiredScopes: ["audit:read"],
       });
-
       if (authorizationDecision.effect !== "allow") {
         const evidence = await decisionEvidence.persistDecisionEvidence({
           correlationId,
@@ -94,6 +92,27 @@ export function createAuditQueryHttpApp({
 
       const query = readQuery(parsed.searchParams);
       const { assessment, safetyDecision } = risk.assessAuditQuery({ identity, query });
+      const killSwitchState = await killSwitch.getTenant({ tenantId });
+
+      if (killSwitchState.enabled) {
+        const evidence = await decisionEvidence.persistDecisionEvidence({
+          correlationId,
+          outcome: "kill_switch_blocked",
+          authorizationDecision,
+          riskAssessment: assessment,
+          safetyDecision,
+          killSwitch: killSwitchState,
+        });
+        return jsonResponse(423, {
+          error: "kill_switch_active",
+          correlationId,
+          authorizationDecision,
+          riskAssessment: assessment,
+          safetyDecision,
+          killSwitch: killSwitchState,
+          decisionEvidence: evidence,
+        });
+      }
 
       if (safetyDecision.outcome === "deny") {
         const evidence = await decisionEvidence.persistDecisionEvidence({
@@ -142,7 +161,6 @@ export function createAuditQueryHttpApp({
             decisionEvidence: evidence,
           });
         }
-
         try {
           approval = await humanApproval.consumeAuditQuery({
             tenantId,
