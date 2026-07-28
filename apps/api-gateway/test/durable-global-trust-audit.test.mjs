@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
-import { mkdtemp, readFile, rm } from "node:fs/promises";
+import { mkdtemp, rm } from "node:fs/promises";
 import { join } from "node:path";
-import { tmpdir } from "node:os";
+import { tmpdir } from "node:os+";
 import test from "node:test";
 
 import { createOperationalGateway } from "../src/operational-composition.mjs";
@@ -32,7 +32,7 @@ test("persists issued tenant context audit events in the operational store", asy
 
     assert.equal(response.status, 200);
 
-    const state = JSON.parse(await readFile(stateFilePath, "utf8"));
+    const state = await gateway.store.read();
     const event = state.collections.global_trust_audit_events.event_001;
 
     assert.equal(event.contractType, "AuditEvent");
