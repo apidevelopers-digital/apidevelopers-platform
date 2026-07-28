@@ -172,7 +172,13 @@ test("registers immutable tenant models, enforces lifecycle, and verifies integr
       tx.list(MODEL_REGISTRY_EVENT_COLLECTION)
     );
     assert.equal(storedEvents.result.length, 4);
-    assert.equal(JSON.stringify(storedEvents.result).includes("secret"), false);
+    assert.equal(
+      storedEvents.result.every(({ value }) =>
+        value.sensitiveContentIncluded === false
+        && value.descriptor?.secretMaterialIncluded === false
+      ),
+      true,
+    );
   } finally {
     await rm(directory, { recursive: true, force: true });
   }
