@@ -3,7 +3,6 @@ import {
   createApiKeyLifecycleService,
   createDurableApiKeyRepository,
 } from "@apidevelopers/apikey-core";
-
 import { createGlobalTrustAuditQueryService } from "./audit-query.mjs";
 import { createAuditQueryHttpApp } from "./audit-query-http.mjs";
 import { createGatewayAuthenticator } from "./auth-composition.mjs";
@@ -11,6 +10,8 @@ import { createDurableGlobalTrustAuditSink } from "./durable-global-trust-audit.
 import { createDurableGlobalTrustDecisionEvidence } from "./durable-global-trust-decision-evidence.mjs";
 import { createGatewayGlobalTrustAudit } from "./global-trust-audit.mjs";
 import { createGatewayAuthorizationService } from "./global-trust-authorization.mjs";
+import { createGlobalTrustHumanApprovalHttpApp } from "./global-trust-human-approval-http.mjs";
+import { createGlobalTrustHumanApprovalService } from "./global-trust-human-approval.mjs";
 import { createGlobalTrustIntegrityBackfillHttpApp } from "./global-trust-integrity-backfill-http.mjs";
 import { createGlobalTrustIntegrityBackfillService } from "./global-trust-integrity-backfill.mjs";
 import { createGlobalTrustIntegrityHttpApp } from "./global-trust-integrity-http.mjs";
@@ -53,13 +54,17 @@ export function createOperationalGateway({
   integrityNow,
   integrityIdFactory,
   integrityBackfillNow,
+  humanApprovalNow,
+  humanApprovalRequestIdFactory,
+  humanApprovalResolutionIdFactory,
+  humanApprovalConsumptionIdFactory,
+  humanApprovalTtlMs,
 } = {}) {
   const store = createJsonFileStore({
     filePath: requireText(stateFilePath, "stateFilePath"),
     ...(clock ? { clock } : {}),
     ...(writeIdFactory ? { idFactory: writeIdFactory } : {}),
   });
-
   const apiKeyRepository = createDurableApiKeyRepository({ store });
   const apiKeyLifecycle = createApiKeyLifecycleService({
     repository: apiKeyRepository,
@@ -68,7 +73,6 @@ export function createOperationalGateway({
     ...(generateKey ? { generateKey } : {}),
     ...(assertTenantOperational ? { assertTenantOperational } : {}),
   });
-
   const authenticator = createGatewayAuthenticator({
     apiKeyRepository,
     ...(adminKey ? { adminKey } : {}),
@@ -81,7 +85,6 @@ export function createOperationalGateway({
     ...(integrityNow ? { now: integrityNow } : {}),
     ...(integrityIdFactory ? { idFactory: integrityIdFactory } : {}),
   });
-
   const auditSink = createDurableGlobalTrustAuditSink({ store, integrity });
   const audit = createGatewayGlobalTrustAudit({
     sink: auditSink,
@@ -89,13 +92,11 @@ export function createOperationalGateway({
     ...(auditIdFactory ? { idFactory: auditIdFactory } : {}),
   });
   const auditQuery = createGlobalTrustAuditQueryService({ store });
-
   const authorization = createGatewayAuthorizationService({
     ...(authorizationNow ? { now: authorizationNow } : {}),
     ...(authorizationIdFactory ? { idFactory: authorizationIdFactory } : {}),
     ...(authorizationPolicyVersion ? { policyVersion: authorizationPolicyVersion } : {}),
   });
-
   const risk = createGatewayRiskService({
     ...(riskNow ? { now: riskNow } : {}),
     ...(riskAssessmentIdFactory
@@ -106,7 +107,21 @@ export function createOperationalGateway({
       : {}),
     ...(riskMethodVersion ? { methodVersion: riskMethodVersion } : {}),
   });
-
+  const humanApproval = createGlobalTrustHumanApprovalService({
+    store,
+    integrity,
+    ...(humanApprovalNow ? { now: humanApprovalNow } : {}),
+    ...(humanApprovalRequestIdFactory
+      ? { requestIdFactory: humanApprovalRequestIdFactory }
+      : {}),
+    ...(humanApprovalResolutionIdFactory
+      ? { resolutionIdFactory: humanApprovalResolutionIdFactory }
+      : {}),
+    ...(humanApprovalConsumptionIdFactory
+      ? { consumptionIdFactory: humanApprovalConsumptionIdFactory }
+      : {}),
+    ...(humanApprovalTtlMs ? { ttlMs: humanApprovalTtlMs } : {}),
+  });
   const decisionEvidence = createDurableGlobalTrustDecisionEvidence({
     store,
     integrity,
@@ -120,13 +135,11 @@ export function createOperationalGateway({
     store,
     ...(globalTrustObservabilityNow ? { now: globalTrustObservabilityNow } : {}),
   });
-
   const integrityBackfill = createGlobalTrustIntegrityBackfillService({
     store,
     integrity,
     ...(integrityBackfillNow ? { now: integrityBackfillNow } : {}),
   });
-
   const baseApp = createApp({ authenticator, audit });
   const queryApp = createAuditQueryHttpApp({
     app: baseApp,
@@ -134,6 +147,7 @@ export function createOperationalGateway({
     authorization,
     risk,
     decisionEvidence,
+    humanApproval,
     auditQuery,
   });
   const observabilityApp = createGlobalTrustObservabilityHttpApp({
@@ -154,10 +168,15 @@ export function createOperationalGateway({
     authorization,
     backfill: integrityBackfill,
   });
+  const humanApprovalApp = createGlobalTrustHumanApprovalHttpApp({
+    app: integrityBackfillApp,
+    authenticator,
+    authorization,
+    humanApproval,
+  });
   const app = protection
-    ? createOperationalProtection({ app: integrityBackfillApp, ...protection })
-    : integrityBackfillApp;
-
+    ? createOperationalProtection({ app: humanApprovalApp, ...protection })
+    : humanApprovalApp;
   return Object.freeze({
     store,
     apiKeyRepository,
@@ -167,6 +186,7 @@ export function createOperationalGateway({
     auditQuery,
     authorization,
     risk,
+    humanApproval,
     decisionEvidence,
     globalTrustObservability,
     integrity,
