@@ -45,7 +45,7 @@ async function seedApprovedRegistries(gateway, tenantId = "tenant_001") {
     dataPolicyId: "policy_support_v1",
     ownerId: "owner_001",
     purpose: "customer_support",
-    allowedDataClasses: ["public", "customer_contact"],
+    allowedDataClasses: ["public", "pii"],
     allowedRegions: ["BR"],
     retentionDays: 30,
     promptPersistenceAllowed: false,
@@ -139,7 +139,7 @@ const confirmation = {
   "x-operation-confirmation": "IGOR_APROVA_EXECUCAO",
 };
 
-test("cross-validates approved model, use case and data policy without execution", async () => {
+test("cross-validates approved registries without execution", async () => {
   const directory = await mkdtemp(join(tmpdir(), "admission-gate-"));
   const stateFilePath = join(directory, "state.json");
 
@@ -156,12 +156,11 @@ test("cross-validates approved model, use case and data policy without execution
       dataPolicyId: "policy_support_v1",
       locale: "pt-BR",
       toolIds: ["crm.read"],
-      dataClasses: ["customer_contact"],
+      dataClasses: ["pii"],
       region: "BR",
       sensitiveData: false,
       correlationId: "corr_allow",
     });
-
     assert.equal(allowed.outcome, "allow");
     assert.equal(allowed.admitted, true);
     assert.deepEqual(allowed.reasonCodes, ["registry_constraints_satisfied"]);
@@ -176,7 +175,7 @@ test("cross-validates approved model, use case and data policy without execution
       dataPolicyId: "policy_support_v1",
       locale: "pt-BR",
       toolIds: [],
-      dataClasses: ["customer_contact"],
+      dataClasses: ["pii"],
       region: "BR",
       sensitiveData: true,
       correlationId: "corr_review",
@@ -194,23 +193,30 @@ test("cross-validates approved model, use case and data policy without execution
       dataPolicyId: "policy_other",
       locale: "en-US",
       toolIds: ["admin.delete"],
-      dataClasses: ["secret"],
+      dataClasses: ["confidential"],
       region: "US",
       sensitiveData: false,
       correlationId: "corr_deny",
     });
     assert.equal(denied.outcome, "deny");
     assert.equal(denied.admitted, false);
-    assert.ok(denied.reasonCodes.includes("data_policy_not_registered"));
-    assert.ok(denied.reasonCodes.includes("model_data_policy_mismatch"));
-    assert.ok(denied.reasonCodes.includes("use_case_data_policy_mismatch"));
-    assert.ok(denied.reasonCodes.includes("locale_not_allowed_by_model"));
-    assert.ok(denied.reasonCodes.includes("tool_not_allowed_for_use_case"));
+    for (const code of [
+      "data_policy_not_registered",
+      "model_data_policy_mismatch",
+      "use_case_data_policy_mismatch",
+      "locale_not_allowed_by_model",
+      "tool_not_allowed_for_use_case",
+    ]) {
+      assert.ok(denied.reasonCodes.includes(code), `missing ${code}`);
+    }
 
     assert.equal(
-      (await gateway.admissionGate.listTenant({ tenantId: "tenant_other" })).length,
+      (await gateway.admissionGate.listTenant({
+        tenantId: "tenant_other",
+      })).length,
       0,
     );
+
     const verification = await gateway.admissionIntegrity.verifyTenant({
       tenantId: "tenant_001",
     });
@@ -222,7 +228,7 @@ test("cross-validates approved model, use case and data policy without execution
   }
 });
 
-test("HTTP admission endpoint requires confirmation, rejects tenant injection and exposes no inference route", async () => {
+test("HTTP admission is confirmed, tenant-bound and has no inference route", async () => {
   const directory = await mkdtemp(join(tmpdir(), "admission-http-"));
   const stateFilePath = join(directory, "state.json");
 
