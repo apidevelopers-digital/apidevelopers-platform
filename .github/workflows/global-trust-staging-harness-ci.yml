@@ -1,0 +1,66 @@
+name: Global Trust Staging Harness CI
+
+on:
+  push:
+    branches:
+      - main
+      - "feat/api-gateway-staging-harness-v1-20260728"
+    paths:
+      - "apps/api-gateway/src/global-trust-null-provider.mjs"
+      - "apps/api-gateway/src/global-trust-staging-harness.mjs"
+      - "apps/api-gateway/staging/global-trust-staging-manifest.json"
+      - "apps/api-gateway/test/global-trust-staging-harness.test.mjs"
+      - ".github/workflows/global-trust-staging-harness-ci.yml"
+  pull_request:
+    branches:
+      - main
+    paths:
+      - "apps/api-gateway/src/global-trust-null-provider.mjs"
+      - "apps/api-gateway/src/global-trust-staging-harness.mjs"
+      - "apps/api-gateway/staging/global-trust-staging-manifest.json"
+      - "apps/api-gateway/test/global-trust-staging-harness.test.mjs"
+      - ".github/workflows/global-trust-staging-harness-ci.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  validate:
+    runs-on:
+      group: organization-macos-ci
+      labels: [self-hosted, macOS, X64]
+    timeout-minutes: 10
+    defaults:
+      run:
+        working-directory: apps/api-gateway
+    env:
+      GLOBAL_TRUST_STAGING_MODE: dry-run
+      GLOBAL_TRUST_STAGING_PROVIDER: "null"
+      GLOBAL_TRUST_STAGING_EGRESS: blocked
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+
+      - name: Validate fail-closed environment
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$GLOBAL_TRUST_STAGING_MODE" = "dry-run"
+          test "$GLOBAL_TRUST_STAGING_PROVIDER" = "null"
+          test "$GLOBAL_TRUST_STAGING_EGRESS" = "blocked"
+
+      - name: Validate harness syntax
+        run: |
+          node --check src/global-trust-null-provider.mjs
+          node --check src/global-trust-staging-harness.mjs
+          node --check test/global-trust-staging-harness.test.mjs
+
+      - name: Execute no-deploy harness contract
+        run: node --test test/global-trust-staging-harness.test.mjs
