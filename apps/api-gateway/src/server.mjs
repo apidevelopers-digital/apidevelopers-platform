@@ -24,11 +24,19 @@ function toPublicIdentity(identity) {
     role: identity.role,
     principal: Object.freeze({
       ...(principal.id !== undefined ? { id: principal.id } : {}),
-      ...(principal.tenantId !== undefined ? { tenantId: principal.tenantId } : {}),
+      ...(principal.tenantId !== undefined
+        ? { tenantId: principal.tenantId }
+        : {}),
       ...(principal.name !== undefined ? { name: principal.name } : {}),
-      ...(principal.status !== undefined ? { status: principal.status } : {}),
-      ...(Array.isArray(principal.scopes) ? { scopes: [...principal.scopes] } : {}),
-      ...(principal.prefix !== undefined ? { prefix: principal.prefix } : {}),
+      ...(principal.status !== undefined
+        ? { status: principal.status }
+        : {}),
+      ...(Array.isArray(principal.scopes)
+        ? { scopes: [...principal.scopes] }
+        : {}),
+      ...(principal.prefix !== undefined
+        ? { prefix: principal.prefix }
+        : {}),
     }),
   });
 }
@@ -40,8 +48,36 @@ function toGatewayTenantContext(identity, headers) {
   return createGatewayGlobalTrustTenantContext({
     tenantId: principal.tenantId,
     region: headers["x-region"] ?? "global",
-    scopes: Array.isArray(principal.scopes) ? principal.scopes : [],
+    scopes: Array.isArray(principal.scopes)
+      ? principal.scopes
+      : [],
   });
+}
+
+async function readRequestBody(request, maximumBytes) {
+  const chunks = [];
+  let totalBytes = 0;
+
+  for await (const chunk of request) {
+    const normalized = Buffer.isBuffer(chunk)
+      ? chunk
+      : Buffer.from(chunk);
+    totalBytes += normalized.byteLength;
+
+    if (totalBytes > maximumBytes) {
+      const error = new RangeError(
+        `request body exceeds ${maximumBytes} bytes`,
+      );
+      error.status = 413;
+      error.code = "request_body_too_large";
+      throw error;
+    }
+
+    chunks.push(normalized);
+  }
+
+  if (chunks.length === 0) return undefined;
+  return Buffer.concat(chunks).toString("utf8");
 }
 
 export function createApp({
@@ -49,13 +85,19 @@ export function createApp({
   audit = createGatewayGlobalTrustAudit(),
 } = {}) {
   if (
-    authenticator !== undefined &&
-    typeof authenticator?.authenticate !== "function"
+    authenticator !== undefined
+    && typeof authenticator?.authenticate !== "function"
   ) {
-    throw new TypeError("authenticator.authenticate must be a function");
+    throw new TypeError(
+      "authenticator.authenticate must be a function",
+    );
   }
-  if (typeof audit?.recordTenantContextIssued !== "function") {
-    throw new TypeError("audit.recordTenantContextIssued must be a function");
+  if (
+    typeof audit?.recordTenantContextIssued !== "function"
+  ) {
+    throw new TypeError(
+      "audit.recordTenantContextIssued must be a function",
+    );
   }
 
   return {
@@ -66,28 +108,36 @@ export function createApp({
     } = {}) {
       const normalizedMethod = String(method).toUpperCase();
 
-      if (normalizedMethod === "GET" && url === "/health") {
+      if (
+        normalizedMethod === "GET"
+        && url === "/health"
+      ) {
         return jsonResponse(200, {
           service: "api-gateway",
           status: "ok",
         });
       }
 
-      if (normalizedMethod === "GET" && url === "/v1/whoami") {
+      if (
+        normalizedMethod === "GET"
+        && url === "/v1/whoami"
+      ) {
         if (!authenticator) {
           return jsonResponse(503, {
             error: "authentication_unavailable",
           });
         }
 
-        const identity = await authenticator.authenticate(headers);
+        const identity =
+          await authenticator.authenticate(headers);
         if (!identity) {
           return jsonResponse(401, {
             error: "unauthorized",
           });
         }
 
-        const tenantContext = toGatewayTenantContext(identity, headers);
+        const tenantContext =
+          toGatewayTenantContext(identity, headers);
         if (!tenantContext) {
           return jsonResponse(403, {
             error: "tenant_context_unavailable",
@@ -99,7 +149,9 @@ export function createApp({
           tenantContext,
           method: normalizedMethod,
           url,
-          correlationId: headers["x-correlation-id"] ?? headers["x-request-id"],
+          correlationId:
+            headers["x-correlation-id"]
+            ?? headers["x-request-id"],
         });
 
         return jsonResponse(200, {
@@ -115,27 +167,60 @@ export function createApp({
   };
 }
 
-export function createHttpServer({ app = createApp() } = {}) {
-  return http.createServer(async (request, response) => {
-    try {
-      const result = await app.handleRequest({
-        method: request.method,
-        url: request.url,
-        headers: request.headers,
-      });
+export function createHttpServer({
+  app = createApp(),
+  maximumBodyBytes = 64 * 1024,
+} = {}) {
+  if (
+    !Number.isInteger(maximumBodyBytes)
+    || maximumBodyBytes < 1
+  ) {
+    throw new RangeError(
+      "maximumBodyBytes must be a positive integer",
+   );
+  }
 
-      response.writeHead(result.status, result.headers);
-      response.end(result.body);
-    } catch (error) {
-      response.writeHead(500, JSON_HEADERS);
-      response.end(
-        JSON.stringify({
-          error: "internal_error",
-          message: error instanceof Error ? error.message : "Unknown error",
-        }),
-      );
-    }
-  });
+  return http.createServer(
+    async (request, response) => {
+      try {
+        const body = await readRequestBody(
+          request,
+          maximumBodyBytes,
+        );
+        const result = await app.handleRequest({
+          method: request.method,
+          url: request.url,
+          headers: request.headers,
+          body,
+        });
+
+        response.writeHead(
+          result.status,
+          result.headers,
+        );
+        response.end(result.body);
+      } catch (error) {
+        const status =
+          Number.isInteger(error?.status)
+            ? error.status
+            : 500;
+        response.writeHead(status, JSON_HEADERS);
+        response.end(
+          JSON.stringify({
+            error:
+              error?.code
+              ?? (status === 500
+                ? "internal_error"
+                : "request_error"),
+            message:
+              error instanceof Error
+                ? error.message
+                : "Unknown error",
+          }),
+        );
+      }
+    },
+  );
 }
 
 export async function startServer({
@@ -158,16 +243,21 @@ async function main() {
   const address = server.address();
 
   console.log(
-    JSON.stringify({
+    JSON.stringify!{
       event: "api_gateway_started",
       host: address.address,
       port: address.port,
     }),
-  );
+   );
 
   const shutdown = (signal) => {
     server.close(() => {
-      console.log(JSON.stringify({ event: "api_gateway_stopped", signal }));
+      console.log(
+        JSON.stringify({
+          event: "api_gateway_stopped",
+          signal,
+        }),
+      );
       process.exit(0);
     });
   };
@@ -177,14 +267,17 @@ async function main() {
 }
 
 if (
-  process.argv[1] &&
-  import.meta.url === pathToFileURL(process.argv[1]).href
+  process.argv[1]
+  && import.meta.url === pathToFileURL(process.argv[1]).href
 ) {
   main().catch((error) => {
     console.error(
-      JSON.stringify({
+      JSON.stringify!{
         event: "api_gateway_failed",
-        message: error instanceof Error ? error.message : "Unknown error",
+        message:
+          error instanceof Error
+            ? error.message
+            : "Unknown error",
       }),
     );
     process.exitCode = 1;
