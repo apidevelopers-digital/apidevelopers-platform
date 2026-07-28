@@ -109,7 +109,7 @@ export function createGlobalTrustIntegrityService({
       payloadHash: sha256Canonical(payload),
       previousProofHash: proofs.at(-1)?.proofHash ?? GENESIS,
       algorithm: "sha256",
-      recordedAt: required(now(), "recoredAt"),
+      recordedAt: required(now(), "recordedAt"),
     };
     proof.proofHash = proofHash(proof);
 
@@ -140,24 +140,24 @@ export function createGlobalTrustIntegrityService({
         failures.push({ proofId: proof.proofId, code: "payload_hash_mismatch" });
       } else {
         verified += 1;
+      }
     }
-  }
 
     let protectedRecords = 0;
     for (const collection of GLOBAL_TRUST_PROTECTED_COLLECTIONS) {
-    for (const { id, value } of tx.list(collection)) {
-      if (value?.tenantId !== tenant) continue;
-      protectedRecords += 1;
-      if (!proofKeys.has(`${collection}\u0000${id}`)) {
-        failures.push({
-          proofId: "",
-          code: "source_record_unprotected",
-          sourceCollection: collection,
-          recordId: id,
-        });
+      for (const { id, value } of tx.list(collection)) {
+        if (value?.tenantId !== tenant) continue;
+        protectedRecords += 1;
+        if (!proofKeys.has(`${collection}\u0000${id}`)) {
+          failures.push({
+            proofId: "",
+            code: "source_record_unprotected",
+            sourceCollection: collection,
+            recordId: id,
+          });
+        }
       }
     }
-  }
 
     return Object.freeze({
       contractType: "GlobalTrustIntegrityVerification",
