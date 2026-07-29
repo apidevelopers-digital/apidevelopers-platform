@@ -126,13 +126,13 @@ function createIntegrityBinding({ gateway, tenantId }) {
   });
 }
 
-export function buildGlobalTrustStagingOperationalBindings(arguments) {
-  const base = buildBaseBindings(arguments);
+export function buildGlobalTrustStagingOperationalBindings(options) {
+  const base = buildBaseBindings(options);
   return Object.freeze({
     ...base,
     integrity: createIntegrityBinding({
-      gateway: arguments.gateway,
-      tenantId: arguments.tenantId,
+      gateway: options.gateway,
+      tenantId: options.tenantId,
     }),
   });
 }
