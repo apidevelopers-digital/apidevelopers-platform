@@ -4,10 +4,12 @@ on:
   push:
     branches:
       - main
-      - "feat/site-factory-api-foundation-20260729"
+      - "feat/site-factory-*"
+      - "ops/site-factory-*"
     paths:
       - "apps/site-factory/**"
       - "packages/hostinger-adapter/**"
+      - "packages/uni-operator-hostinger-adapter/**"
       - "packages/wordpress-adapter/**"
       - ".github/workflows/site-factory-ci.yml"
   pull_request:
@@ -16,6 +18,7 @@ on:
     paths:
       - "apps/site-factory/**"
       - "packages/hostinger-adapter/**"
+      - "packages/uni-operator-hostinger-adapter/**"
       - "packages/wordpress-adapter/**"
       - ".github/workflows/site-factory-ci.yml"
   workflow_dispatch:
@@ -41,6 +44,9 @@ jobs:
 
       - name: Test Hostinger read-only adapter
         run: npm run check --prefix packages/hostinger-adapter
+
+      - name: Test uni. Operador Hostinger bridge adapter
+        run: npm run check --prefix packages/uni-operator-hostinger-adapter
 
       - name: Test WordPress read-only adapter
         run: npm run check --prefix packages/wordpress-adapter
