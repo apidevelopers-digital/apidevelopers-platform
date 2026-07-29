@@ -1,0 +1,69 @@
+name: Global Trust Staging Operational Bindings CI
+
+on:
+  push:
+    branches:
+      - main
+      - "feat/api-gateway-staging-operational-bindings-v1-20260729"
+    paths:
+      - "apps/api-gateway/src/global-trust-staging-operational-adapter.mjs"
+      - "apps/api-gateway/src/global-trust-staging-operational-fixtures.mjs"
+      - "apps/api-gateway/src/global-trust-staging-operational-bindings.mjs"
+      - "apps/api-gateway/test/global-trust-staging-operational-bindings.test.mjs"
+      - ".github/workflows/global-trust-staging-operational-bindings-ci.yml"
+  pull_request:
+    branches:
+      - main
+    paths:
+      - "apps/api-gateway/src/global-trust-staging-operational-adapter.mjs"
+      - "apps/api-gateway/src/global-trust-staging-operational-fixtures.mjs"
+      - "apps/api-gateway/src/global-trust-staging-operational-bindings.mjs"
+      - "apps/api-gateway/test/global-trust-staging-operational-bindings.test.mjs"
+      - ".github/workflows/global-trust-staging-operational-bindings-ci.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  validate:
+    runs-on:
+      group: organization-macos-ci
+      labels: [self-hosted, macOS, X64]
+    timeout-minutes: 10
+    defaults:
+      run:
+        working-directory: apps/api-gateway
+    env:
+      GLOBAL_TRUST_STAGING_MODE: dry-run
+      GLOBAL_TRUST_STAGING_PROVIDER: "null"
+      GLOBAL_TRUST_STAGING_EGRESS: blocked
+      GLOBAL_TRUST_SOURCE_SHA: ${{ github.event.pull_request.head.sha || github.sha }}
+
+    steps:
+      - name: Checkout pinned revision
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+
+      - name: Set up Node.js from pinned action
+        uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020
+        with:
+          node-version: "22"
+
+      - name: Validate fail-closed environment contract
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$GLOBAL_TRUST_STAGING_MODE" = "dry-run"
+          test "$GLOBAL_TRUST_STAGING_PROVIDER" = "null"
+          test "$GLOBAL_TRUST_STAGING_EGRESS" = "blocked"
+          [[ "$GLOBAL_TRUST_SOURCE_SHA" =~ ^[0-9a-f]{40}$ ]]
+
+      - name: Validate operational bindings syntax
+        run: |
+          node --check src/global-trust-staging-operational-fixtures.mjs
+          node --check src/global-trust-staging-operational-bindings.mjs
+          node --check src/global-trust-staging-operational-adapter.mjs
+          node --check test/global-trust-staging-operational-bindings.test.mjs
+
+      - name: Execute operational bindings without deploy
+        run: node --test test/global-trust-staging-operational-bindings.test.mjs
