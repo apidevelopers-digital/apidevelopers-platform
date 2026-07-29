@@ -6,7 +6,7 @@ import {
 import {
   buildGlobalTrustStagingOperationalBindings,
   verifyGlobalTrustStagingOperationalIntegrity,
-} from "./global-trust-staging-operational-bindings.mjs";
+} from "./global-trust-staging-operational-bindings-safe.mjs";
 import {
   DEFAULT_TENANT_ID,
   seedStagingRegistries,
