@@ -1,0 +1,67 @@
+{
+  "schemaVersion": 1,
+  "site": {
+    "id": "apidevelopers-institution",
+    "domain": "apidevelopers.digital",
+    "engine": "wordpress",
+    "locale": "pt-BR",
+    "maintenance": true
+  },
+  "hostinger": {
+    "domain": "apidevelopers.digital"
+  },
+  "wordpress": {
+    "baseUrl": "https://apidevelopers.digital",
+    "pages": [
+      {
+        "slug": "inicio",
+        "title": "Início",
+        "status": "draft",
+        "content": "",
+        "menuOrder": 0
+      },
+      {
+        "slug": "instituicao",
+        "title": "Instituição",
+        "status": "draft",
+        "content": "",
+        "menuOrder": 10
+      },
+      {
+        "slug": "plataforma",
+        "title": "Plataforma",
+        "status": "draft",
+        "content": "",
+        "menuOrder": 20
+      },
+      {
+        "slug": "produtos",
+        "title": "Produtos",
+        "status": "draft",
+        "content": "",
+        "menuOrder": 30
+      },
+      {
+        "slug": "governanca",
+        "title": "Governança",
+        "status": "draft",
+        "content": "",
+        "menuOrder": 40
+      },
+      {
+        "slug": "contato",
+        "title": "Contato",
+        "status": "draft",
+        "content": "",
+        "menuOrder": 50
+      },
+      {
+        "slug": "politica-de-privacidade",
+        "title": "Política de Privacidade",
+        "status": "draft",
+        "content": "",
+        "menuOrder": 60
+      }
+    ]
+  }
+}
