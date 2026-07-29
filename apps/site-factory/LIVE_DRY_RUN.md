@@ -1,21 +1,47 @@
-# Site Factory — live dry-run
+# Site Factory — execução somente leitura
 
-## Escopo
+## Controle de execução
 
-Este incremento executa apenas leitura contra:
+A arquitetura institucional separa os planos:
 
-- Hostinger `GET /api/hosting/v1/websites`;
-- Hostinger `GET /api/hosting/v1/wordpress/installations`;
-- Hostinger `GET /api/hosting/v1/accounts/{username}/wordpress/{software}/jwt-token`;
-- WordPress `GET /wp-json/`;
-- WordPress `GET /wp-json/wp/v2/users/me`;
-- WordPress `GET /wp-json/wp/v2/pages`.
+- **GitHub**: código, manifestos, testes, revisão e sondagem pública;
+- **uni. Operador**: orquestração operacional e auditoria;
+- **ação direta Hostinger**: inventário autenticado da hospedagem e das instalações WordPress.
 
-## Modos
+O token da Hostinger permanece encapsulado no conector direto do uni. Operador. Ele não deve ser duplicado em GitHub Secrets para esta frente.
 
-`public` descobre a REST API sem segredo. `authenticated` inventaria a hospedagem, obtém JWT temporário, valida a identidade técnica e gera o diff das páginas.
+## GitHub Actions
 
-O modo autenticado depende do environment `site-factory-readonly` e do secret `HOSTINGER_API_TOKEN`.
+O workflow `site-factory-live-dry-run.yml` executa somente:
+
+- testes dos adaptadores;
+- validação do planner;
+- descoberta pública `GET /wp-json/`;
+- geração de relatório público redigido.
+
+O workflow não recebe credencial Hostinger e não executa inventário autenticado.
+
+## Ponte uni. Operador
+
+`packages/uni-operator-hostinger-adapter` recebe, em memória, as respostas das ações diretas:
+
+- listagem de websites;
+- listagem de instalações WordPress.
+
+O adaptador remove antes do planejamento:
+
+- IDs internos;
+- usuário da hospedagem;
+- login e e-mail WordPress;
+- caminhos absolutos;
+- identificadores de cliente e pedido;
+- qualquer segredo.
+
+`apps/site-factory/src/uni-operator-bridge.mjs` converte o snapshot redigido para o contrato do planner.
+
+## Estado de autenticação WordPress
+
+O inventário Hostinger direto está disponível. A leitura autenticada das páginas WordPress continua bloqueada até que o conector do uni. Operador exponha uma credencial temporária ou operação equivalente para a REST API WordPress.
 
 ## Garantias
 
@@ -23,6 +49,7 @@ O modo autenticado depende do environment `site-factory-readonly` e do secret `H
 - nenhuma publicação;
 - nenhuma exclusão;
 - nenhuma alteração de DNS;
-- relatórios sem tokens, IDs internos, usuário de hospedagem, identidade administrativa ou conteúdo bruto;
+- nenhum deploy;
+- nenhuma credencial em GitHub, artifact ou relatório;
 - `readyForApply` permanece `false`;
-- qualquer escrita exigirá incremento separado e aprovação explícita.
+- qualquer escrita exige incremento separado e aprovação explícita.
