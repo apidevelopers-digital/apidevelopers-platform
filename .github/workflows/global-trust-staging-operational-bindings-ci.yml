@@ -1,0 +1,96 @@
+name: Global Trust Staging Operational Bindings CI
+
+on:
+  push:
+    branches:
+      - main
+      - "feat/api-gateway-staging-operational-bindings-v1-20260729"
+    paths:
+      - "apps/api-gateway/src/global-trust-staging-operational-adapter.mjs"
+      - "apps/api-gateway/src/global-trust-staging-operational-fixtures.mjs"
+      - "apps/api-gateway/src/global-trust-staging-operational-bindings.mjs"
+      - "apps/api-gateway/test/global-trust-staging-operational-bindings.test.mjs"
+      - ".github/workflows/global-trust-staging-operational-bindings-ci.yml"
+  pull_request:
+    branches:
+      - main
+    paths:
+      - "apps/api-gateway/src/global-trust-staging-operational-adapter.mjs"
+      - "apps/api-gateway/src/global-trust-staging-operational-fixtures.mjs"
+      - "apps/api-gateway/src/global-trust-staging-operational-bindings.mjs"
+      - "apps/api-gateway/test/global-trust-staging-operational-bindings.test.mjs"
+      - ".github/workflows/global-trust-staging-operational-bindings-ci.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  validate:
+    runs-on:
+      group: organization-macos-ci
+      labels: [self-hosted, macOS, X64]
+    timeout-minutes: 10
+    defaults:
+      run:
+        working-directory: apps/api-gateway
+    env:
+      GLOBAL_TRUST_STAGING_MODE: dry-run
+      GLOBAL_TRUST_STAGING_PROVIDER: "null"
+      GLOBAL_TRUST_STAGING_EGRESS: blocked
+      GLOBAL_TRUST_SOURCE_SHA: ${{ github.event.pull_request.head.sha || github.sha }}
+
+    steps:
+      - name: Checkout pinned revision
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+
+      - name: Set up Node.js from pinned action
+        uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020
+        with:
+          node-version: "22"
+
+      - name: Link local security dependencies
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          mkdir -p "$GITHUB_WORKSPACE/apps/api-gateway/node_modules/@apidevelopers"
+          ln -sfn "$GITHUB_WORKSPACE/packages/contracts"             "$GITHUB_WORKSPACE/apps/api-gateway/node_modules/@apidevelopers/contracts"
+          ln -sfn "$GITHUB_WORKSPACE/packages/auth-core"             "$GITHUB_WORKSPACE/apps/api-gateway/node_modules/@apidevelopers/auth-core"
+          ln -sfn "$GITHUB_WORKSPACE/packages/apikey-core"             "$GITHUB_WORKSPACE/apps/api-gateway/node_modules/@apidevelopers/apikey-core"
+          ln -sfn "$GITHUB_WORKSPACE/packages/persistence-core"             "$GITHUB_WORKSPACE/apps/api-gateway/node_modules/@apidevelopers/persistence-core"
+
+          mkdir -p "$GITHUB_WORKSPACE/packages/auth-core/node_modules/@apidevelopers"
+          ln -sfn "$GITHUB_WORKSPACE/packages/apikey-core"             "$GITHUB_WORKSPACE/packages/auth-core/node_modules/@apidevelopers/apikey-core"
+
+          mkdir -p "$GITHUB_WORKSPACE/packages/apikey-core/node_modules/@apidevelopers"
+          ln -sfn "$GITHUB_WORKSPACE/packages/persistence-core"             "$GITHUB_WORKSPACE/packages/apikey-core/node_modules/@apidevelopers/persistence-core"
+
+      - name: Validate fail-closed environment contract
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$GLOBAL_TRUST_STAGING_MODE" = "dry-run"
+          test "$GLOBAL_TRUST_STAGING_PROVIDER" = "null"
+          test "$GLOBAL_TRUST_STAGING_EGRESS" = "blocked"
+          [[ "$GLOBAL_TRUST_SOURCE_SHA" =~ ^[0-9a-f]{40}$ ]]
+
+      - name: Validate operational bindings syntax
+        run: |
+          node --check src/global-trust-staging-operational-fixtures.mjs
+          node --check src/global-trust-staging-operational-bindings.mjs
+          node --check src/global-trust-staging-operational-adapter.mjs
+          node --check test/global-trust-staging-operational-bindings.test.mjs
+
+      - name: Execute operational bindings without deploy
+        shell: bash
+        run: |
+          set +e
+          node --test --test-reporter=spec test/global-trust-staging-operational-bindings.test.mjs 2>&1 | tee /tmp/global-trust-operational-bindings-test.log
+          status=${PIPESTATUS[0]}
+          set -e
+          if [ "$status" -ne 0 ]; then
+            detail="$(tail -n 60 /tmp/global-trust-operational-bindings-test.log | tr '\n' ' ' | sed 's/%/%25/g; s/\r/%0D/g; s/\n/%0A/g' | cut -c1-3500)"
+            echo "::error title=Operational bindings test failure::$detail"
+            exit "$status"
+          fi
