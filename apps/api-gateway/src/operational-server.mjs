@@ -11,11 +11,15 @@ function writeLog(logger, payload) {
   }
 }
 
-export function isDirectExecution({
-  moduleUrl = import.meta.url,
-  argvPath = process.argv[1],
-} = {}) {
-  if (!argvPath) return false;
+export function isDirectExecution(options = {}) {
+  const moduleUrl = Object.hasOwn(options, "moduleUrl")
+    ? options.moduleUrl
+    : import.meta.url;
+  const argvPath = Object.hasOwn(options, "argvPath")
+    ? options.argvPath
+    : process.argv[1];
+
+  if (!moduleUrl || !argvPath) return false;
 
   try {
     return (
