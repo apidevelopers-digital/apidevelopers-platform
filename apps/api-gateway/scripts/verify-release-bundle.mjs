@@ -212,8 +212,9 @@ export async function smokeReleaseBundle({
     assert.equal(unauthorized.response.status, 401);
     assert.equal(unauthorized.body.error, "unauthorized");
 
+    const exitPromise = waitForExit(child);
     child.kill("SIGTERM");
-    const exited = await waitForExit(child);
+    const exited = await exitPromise;
     assert.equal(exited.code, 0);
 
     return Object.freeze({
