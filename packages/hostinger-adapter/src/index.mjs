@@ -12,7 +12,9 @@ function normalizeBaseUrl(value) {
 }
 
 function normalizeDomain(value) {
-  return requireNonEmptyString(value, "domain").trim().toLowerCase().replace(/\.$/, "");
+  return requireNonEmptyString(value, "domain")
+    .toLowerCase()
+    .replace(/\.$/, "");
 }
 
 function appendQuery(path, entries) {
@@ -32,26 +34,38 @@ function extractCollection(payload) {
   if (payload && typeof payload === "object" && Array.isArray(payload.data)) {
     return Object.freeze({
       data: payload.data,
-      meta: payload.meta && typeof payload.meta === "object" ? payload.meta : null,
+      meta:
+        payload.meta && typeof payload.meta === "object" ? payload.meta : null,
     });
   }
 
-  throw new HostingerAdapterError("Hostinger response did not contain a collection", {
-    code: "invalid_collection_response",
-  });
+  throw new HostingerAdapterError(
+    "Hostinger response did not contain a collection",
+    { code: "invalid_collection_response" },
+  );
 }
 
 function websiteDomains(website) {
   const values = new Set();
 
-  if (typeof website?.domain === "string") values.add(normalizeDomain(website.domain));
-  if (typeof website?.fqdn === "string") values.add(normalizeDomain(website.fqdn));
+  if (typeof website?.domain === "string") {
+    values.add(normalizeDomain(website.domain));
+  }
+  if (typeof website?.fqdn === "string") {
+    values.add(normalizeDomain(website.fqdn));
+  }
 
   if (Array.isArray(website?.domains)) {
     for (const entry of website.domains) {
-      if (typeof entry === "string") values.add(normalizeDomain(entry));
-      if (typeof entry?.fqdn === "string") values.add(normalizeDomain(entry.fqdn));
-      if (typeof entry?.domain === "string") values.add(normalizeDomain(entry.domain));
+      if (typeof entry === "string") {
+        values.add(normalizeDomain(entry));
+      }
+      if (typeof entry?.fqdn === "string") {
+        values.add(normalizeDomain(entry.fqdn));
+      }
+      if (typeof entry?.domain === "string") {
+        values.add(normalizeDomain(entry.domain));
+      }
     }
   }
 
@@ -73,7 +87,9 @@ function installationDomain(installation) {
     try {
       return normalizeDomain(new URL(candidate).hostname);
     } catch {
-      return normalizeDomain(candidate.replace(/^https?:\/\//, "").split("/")[0]);
+      return normalizeDomain(
+        candidate.replace(/^https?:\/\//, "").split("/")[0],
+      );
     }
   }
   return null;
@@ -83,17 +99,24 @@ function sanitizeWebsite(website) {
   return Object.freeze({
     uid: website?.uid ?? website?.id ?? null,
     username: website?.username ?? website?.user?.username ?? null,
-    enabled: website?.is_enabled ?? website?.enabled ?? website?.state === "active",
+    enabled:
+      website?.is_enabled ??
+      website?.enabled ??
+      website?.state === "active",
     state: website?.state ?? null,
-    type: website?.type ?? null,
+    type: website?.type ?? website?.vhost_type ?? null,
     flavor: website?.flavor ?? null,
     domains: Object.freeze(websiteDomains(website)),
     wordpress: website?.wordpress
       ? Object.freeze({
           domain: website.wordpress.domain ?? null,
-          title: website.wordpress.title ?? null,
-          language: website.wordpress.language ?? null,
-          createdAt: website.wordpress.created_at ?? null,
+          title: website.wordpress.title ?? website.wordpress.site_title ?? null,
+          language:
+            website.wordpress.language ?? website.wordpress.locale ?? null,
+          createdAt:
+            website.wordpress.created_at ??
+            website.wordpress.createdAt ??
+            null,
         })
       : null,
   });
@@ -102,10 +125,12 @@ function sanitizeWebsite(website) {
 function sanitizeInstallation(installation) {
   return Object.freeze({
     id: installation?.id ?? installation?.software ?? null,
-    username: installation?.username ?? installation?.account_username ?? null,
+    username:
+      installation?.username ?? installation?.account_username ?? null,
     domain: installationDomain(installation),
     path: installation?.path ?? installation?.directory ?? null,
-    version: installation?.version ?? installation?.core_version ?? null,
+    version:
+      installation?.version ?? installation?.core_version ?? null,
     language: installation?.language ?? installation?.locale ?? null,
     title: installation?.title ?? installation?.site_title ?? null,
     valid: installation?.valid ?? installation?.is_valid ?? null,
@@ -117,8 +142,22 @@ function sanitizeInstallation(installation) {
   });
 }
 
+function optionalPositiveInteger(value) {
+  if (value === undefined || value === null || value === "") return null;
+  const parsed = Number(value);
+  return Number.isInteger(parsed) && parsed > 0 ? parsed : null;
+}
+
 export class HostingerAdapterError extends Error {
-  constructor(message, { code = "hostinger_error", status = null, correlationId = null, cause } = {}) {
+  constructor(
+    message,
+    {
+      code = "hostinger_error",
+      status = null,
+      correlationId = null,
+      cause,
+    } = {},
+  ) {
     super(message, { cause });
     this.name = "HostingerAdapterError";
     this.code = code;
@@ -143,12 +182,12 @@ export class HostingerReadOnlyAdapter {
     this.#token = requireNonEmptyString(token, "token");
 
     if (typeof fetchImpl !== "function") {
-      throw new TypeError("fetchImpl must be a function");
+      throw new TypeError(FfetchImpl must be a function`);
     }
     this.#fetch = fetchImpl;
 
     if (!Number.isInteger(timeoutMs) || timeoutMs <= 0) {
-      throw new TypeError("timeoutMs must be a positive integer");
+      throw new TypeError(FtimeoutMs must be a positive integer`);
     }
     this.#timeoutMs = timeoutMs;
   }
@@ -178,12 +217,15 @@ export class HostingerReadOnlyAdapter {
         try {
           payload = JSON.parse(raw);
         } catch (cause) {
-          throw new HostingerAdapterError("Hostinger returned invalid JSON", {
-            code: "invalid_json",
-            status: response.status,
-            correlationId,
-            cause,
-          });
+          throw new HostingerAdapterError(
+            "Hostinger returned invalid JSON",
+            {
+              code: "invalid_json",
+              status: response.status,
+              correlationId,
+              cause,
+            },
+          );
         }
       }
 
@@ -193,6 +235,7 @@ export class HostingerReadOnlyAdapter {
           payload?.message ??
           payload?.error ??
           `Hostinger request failed with status ${response.status}`;
+
         throw new HostingerAdapterError(String(message), {
           code: "http_error",
           status: response.status,
@@ -243,7 +286,11 @@ export class HostingerReadOnlyAdapter {
     });
   }
 
-  async listWordPressInstallations({ username, domain, ownership } = {}) {
+  async listWordPressInstallations({
+    username,
+    domain,
+    ownership,
+  } = {}) {
     const payload = await this.#get(
       appendQuery("/api/hosting/v1/wordpress/installations", {
         username,
@@ -259,23 +306,35 @@ export class HostingerReadOnlyAdapter {
   }
 
   async getWordPressInstallationJwtToken({ username, software }) {
-    const account = encodeURIComponent(requireNonEmptyString(username, "username"));
-    const installation = encodeURIComponent(requireNonEmptyString(software, "software"));
+    const account = encodeURIComponent(
+      requireNonEmptyString(username, "username"),
+    );
+    const installation = encodeURIComponent(
+      requireNonEmptyString(software, "software"),
+    );
     const payload = await this.#get(
       `/api/hosting/v1/accounts/${account}/wordpress/${installation}/jwt-token`,
     );
 
-    const token = payload?.token ?? payload?.jwt ?? payload?.access_token;
+    const token =
+      payload?.token ?? payload?.jwt ?? payload?.access_token;
     if (typeof token !== "string" || token.trim() === "") {
-      throw new HostingerAdapterError("Hostinger did not return a WordPress JWT token", {
-        code: "missing_wordpress_jwt",
-      });
+      throw new HostingerAdapterError(
+        "Hostinger did not return a WordPress JWT token",
+        { code: "missing_wordpress_jwt" },
+      );
     }
 
     return Object.freeze({
       token,
-      expiresAt: payload?.expires_at ?? payload?.expiration ?? null,
-      endpoint: payload?.endpoint ?? payload?.mcp_endpoint ?? null,
+      expiresIn: optionalPositiveInteger(payload?.expires_in),
+      expiresAt:
+        payload?.expires_at ?? payload?.expiration ?? null,
+      mcpUrl:
+        payload?.mcp_url ??
+        payload?.endpoint ??
+        payload?.mcp_endpoint ??
+        null,
     });
   }
 
@@ -297,7 +356,9 @@ export class HostingerReadOnlyAdapter {
       domain: normalized,
       websites: Object.freeze(matchingWebsites),
       wordpressInstallations: Object.freeze(matchingInstallations),
-      found: matchingWebsites.length > 0 || matchingInstallations.length > 0,
+      found:
+        matchingWebsites.length > 0 ||
+        matchingInstallations.length > 0,
       wordpressReady: matchingInstallations.some(
         (installation) => installation.valid !== false,
       ),
