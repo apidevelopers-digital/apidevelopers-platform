@@ -1,0 +1,67 @@
+name: Site Factory CI
+
+on:
+  push:
+    branches:
+      - main
+      - "feat/site-factory-api-foundation-20260729"
+    paths:
+      - "apps/site-factory/**"
+      - "packages/hostinger-adapter/**"
+      - "packages/wordpress-adapter/**"
+      - ".github/workflows/site-factory-ci.yml"
+  pull_request:
+    branches:
+      - main
+    paths:
+      - "apps/site-factory/**"
+      - "packages/hostinger-adapter/**"
+      - "packages/wordpress-adapter/**"
+      - ".github/workflows/site-factory-ci.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  validate:
+    runs-on:
+      group: organization-macos-ci
+      labels: [self-hosted, macOS, X64]
+    timeout-minutes: 10
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+
+      - name: Test Hostinger read-only adapter
+        run: npm run check --prefix packages/hostinger-adapter
+
+      - name: Test WordPress read-only adapter
+        run: npm run check --prefix packages/wordpress-adapter
+
+      - name: Install local Site Factory dependencies
+        run: npm install --ignore-scripts --no-audit --no-fund --prefix apps/site-factory
+
+      - name: Validate Site Factory
+        run: npm run check --prefix apps/site-factory
+
+      - name: Generate manifest-only dry-run report
+        run: |
+          node apps/site-factory/src/cli.mjs \
+            --manifest apps/site-factory/manifests/apidevelopers-institution.json \
+            --manifest-only \
+            --output "$RUNNER_TEMP/site-factory-manifest-report.json"
+
+      - name: Upload dry-run report
+        uses: actions/upload-artifact@v4
+        with:
+          name: site-factory-manifest-${{ github.sha }}
+          path: ${{ runner.temp }}/site-factory-manifest-report.json
+          if-no-files-found: error
+          retention-days: 7
