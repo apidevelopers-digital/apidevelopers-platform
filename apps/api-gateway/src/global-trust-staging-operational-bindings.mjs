@@ -287,10 +287,10 @@ export function buildGlobalTrustStagingOperationalBindings({
         await gateway.store.transaction((tx) => {
           const match = tx
             .list(SAFETY_SIMULATION_INTEGRITY_COLLECTION)
-            .find(({ id, value }) =>
+            .find((value) =>
               value?.tenantId === tenantId
               && value?.recordId === simulationId
-              && id,
+              && value?.proofId,
             );
           if (!match) {
             const error = new Error(
@@ -299,8 +299,8 @@ export function buildGlobalTrustStagingOperationalBindings({
             error.code = "INTEGRITY_PROBE_PROOF_NOT_FOUND";
             throw error;
           }
-          proofId = match.id;
-          originalProof = match.value;
+          proofId = match.proofId;
+          originalProof = match;
           tx.put(
             SAFETY_SIMULATION_INTEGRITY_COLLECTION,
             proofId,
