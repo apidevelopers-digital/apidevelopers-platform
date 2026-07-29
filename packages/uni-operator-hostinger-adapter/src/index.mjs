@@ -82,7 +82,7 @@ export function createUniOperatorHostingerSnapshot({
     ? Boolean(website.is_enabled ?? website.enabled ?? website.state === "active")
     : false;
   const valid = installation
-    ? Boolean(installation.is_valid ?? installation.valid ?? true)
+    ? Boolean(installation.is_valid ?? installation.valid ?? false)
     : false;
 
   return freeze({
@@ -135,7 +135,7 @@ export function assertUniOperatorHostingerSnapshot(snapshot) {
     throw new TypeError(`snapshot.source must be ${SOURCE}`);
   }
   if (snapshot.mode !== "read-only") {
-    throw new TypeError(Fsnapshot.mode must be read-only`);
+    throw new TypeError("snapshot.mode must be read-only");
   }
 
   const normalizedDomain = normalizeDomain(snapshot.domain);
