@@ -1,0 +1,64 @@
+name: Site Factory Live Dry-Run
+on:
+  push:
+    branches: [ops/site-factory-live-dry-run-20260729]
+    paths:
+      - "apps/site-factory/**"
+      - "packages/hostinger-adapter/**"
+      - "packages/wordpress-adapter/**"
+      - ".github/workflows/site-factory-live-dry-run.yml"
+  workflow_dispatch:
+    inputs:
+      mode:
+        type: choice
+        options: [public, authenticated]
+        default: public
+permissions:
+  contents: read
+jobs:
+  public-probe:
+    runs-on:
+      group: organization-macos-ci
+      labels: [self-hosted, macOS, X64]
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with: {node-version: "22"}
+      - name: Test adapters and planner
+        run: |
+          npm run check --prefix packages/hostinger-adapter
+          npm run check --prefix packages/wordpress-adapter
+          npm install --ignore-scripts --no-audit --no-fund --prefix apps/site-factory
+          npm run check --prefix apps/site-factory
+      - name: Probe public WordPress REST API
+        run: |
+          node apps/site-factory/src/cli.mjs             --manifest apps/site-factory/manifests/apidevelopers-institution.json             --public-only             --output "$RUNNER_TEMP/site-factory-public.json"
+      - uses: actions/upload-artifact@v4
+        with:
+          name: site-factory-public-${{ github.sha }}
+          path: ${{ runner.temp }}/site-factory-public.json
+          retention-days: 7
+  authenticated-dry-run:
+    if: github.event_name == 'workflow_dispatch' && inputs.mode == 'authenticated'
+    environment: site-factory-readonly
+    runs-on:
+      group: organization-macos-ci
+      labels: [self-hosted, macOS, X64]
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with: {node-version: "22"}
+      - run: npm install --ignore-scripts --no-audit --no-fund --prefix apps/site-factory
+      - name: Generate authenticated redacted dry-run
+        env:
+          HOSTINGER_API_TOKEN: ${{ secrets.HOSTINGER_API_TOKEN }}
+        run: |
+          test -n "$HOSTINGER_API_TOKEN"
+          node apps/site-factory/src/cli.mjs             --manifest apps/site-factory/manifests/apidevelopers-institution.json             --output "$RUNNER_TEMP/site-factory-authenticated.json"
+      - uses: actions/upload-artifact@v4
+        with:
+          name: site-factory-authenticated-${{ github.sha }}
+          path: ${{ runner.temp }}/site-factory-authenticated.json
+          retention-days: 7
