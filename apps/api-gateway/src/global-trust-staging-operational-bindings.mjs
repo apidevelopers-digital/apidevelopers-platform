@@ -1,5 +1,6 @@
 import {
   SAFETY_SIMULATION_COLLECTION,
+  SAFETY_SIMULATION_INTEGRITY_COLLECTION,
 } from "./global-trust-safety-simulation-integrity.mjs";
 import {
   IDS,
@@ -276,44 +277,57 @@ export function buildGlobalTrustStagingOperationalBindings({
             correlationId: `corr_${scenarioId}_tamper_probe`,
           }),
         );
-        const simulationId = decisionId(simulation, scenarioId);
-        let original;
+        const simulationId = required(
+          simulation.simulationId,
+          "simulation.simulationId",
+        );
+        let originalProof;
+        let proofId;
 
         await gateway.store.transaction((tx) => {
-          original = tx.get(
-            SAFETY_SIMULATION_COLLECTION,
-            simulationId,
-          );
-          if (!original) {
-            throw new Error(
-              "integrity probe simulation not found",
+          const match = tx
+            .list(SAFETY_SIMULATION_INTEGRITY_COLLECTION)
+            .find(({ id, value }) =>
+              value?.tenantId === tenantId
+              && value?.recordId === simulationId
+              && id,
             );
+          if (!match) {
+            const error = new Error(
+              "integrity probe proof not found",
+            );
+            error.code = "INTEGRITY_PROBE_PROOF_NOT_FOUND";
+            throw error;
           }
+          proofId = match.id;
+          originalProof = match.value;
           tx.put(
-            SAFETY_SIMULATION_COLLECTION,
-            simulationId,
+            SAFETY_SIMULATION_INTEGRITY_COLLECTION,
+            proofId,
             {
-              ...original,
-              outcome:
-                original.outcome === "allow"
-                  ? "deny"
-                  : "allow",
+              ...originalProof,
+              proofHash: "f".repeat(64),
             },
           );
         });
 
-        const verification =
-          await gateway.safetySimulationIntegrity.verifyTenant({
-            tenantId,
-          });
-
-        await gateway.store.transaction((tx) => {
-          tx.put(
-            SAFETY_SIMULATION_COLLECTION,
-            simulationId,
-            original,
-          );
-        });
+        let verification;
+        try {
+          verification =
+            await gateway.safetySimulationIntegrity.verifyTenant({
+              tenantId,
+            });
+        } finally {
+          if (proofId && originalProof) {
+            await gateway.store.transaction((tx) => {
+              tx.put(
+                SAFETY_SIMULATION_INTEGRITY_COLLECTION,
+                proofId,
+                originalProof,
+              );
+            });
+          }
+        }
 
         const restored =
           await gateway.safetySimulationIntegrity.verifyTenant({
@@ -328,18 +342,18 @@ export function buildGlobalTrustStagingOperationalBindings({
         }
 
         return bindingResult(
-          verification.valid === false
+          verification?.valid === false
             ? "invalid_integrity"
             : "valid_integrity",
           {
             contractType:
-              verification.contractType
+              verification?.contractType
               ?? "GlobalTrustSafetySimulationIntegrityVerification",
             operation: "verifyTenant",
             recordId: `integrity:${simulationId}`,
             evidenceRefs: [`integrity:${simulationId}`],
           },
-         );
+        );
       },
     },
 
@@ -457,7 +471,7 @@ export async function verifyGlobalTrustStagingOperationalIntegrity(
   for (const service of verifiers) {
     verifications.push(
       await service.verifyTenant({ tenantId }),
-    );
+   );
   }
 
   return Object.freeze({
