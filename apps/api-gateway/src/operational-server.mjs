@@ -1,4 +1,6 @@
-import { pathToFileURL } from "node:url";
+import { realpathSync } from "node:fs";
+import { resolve } from "node:path";
+import { fileURLToPath } from "node:url";
 
 import { createOperationalRuntime } from "./operational-runtime.mjs";
 import { startServer } from "./server.mjs";
@@ -6,6 +8,26 @@ import { startServer } from "./server.mjs";
 function writeLog(logger, payload) {
   if (typeof logger?.log === "function") {
     logger.log(JSON.stringify(payload));
+  }
+}
+
+export function isDirectExecution(options = {}) {
+  const moduleUrl = Object.hasOwn(options, "moduleUrl")
+    ? options.moduleUrl
+    : import.meta.url;
+  const argvPath = Object.hasOwn(options, "argvPath")
+    ? options.argvPath
+    : process.argv[1];
+
+  if (!moduleUrl || !argvPath) return false;
+
+  try {
+    return (
+      realpathSync(fileURLToPath(moduleUrl)) ===
+      realpathSync(resolve(argvPath))
+    );
+  } catch {
+    return false;
   }
 }
 
@@ -67,10 +89,7 @@ async function main() {
   registerOperationalShutdown({ server });
 }
 
-if (
-  process.argv[1] &&
-  import.meta.url === pathToFileURL(process.argv[1]).href
-) {
+if (isDirectExecution()) {
   main().catch((error) => {
     console.error(
       JSON.stringify({

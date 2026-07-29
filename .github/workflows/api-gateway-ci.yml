@@ -67,7 +67,59 @@ jobs:
           ln -sfn "$GITHUB_WORKSPACE/packages/persistence-core"             "$GITHUB_WORKSPACE/packages/apikey-core/node_modules/@apidevelopers/persistence-core"
 
       - name: Validate API Gateway
-        run: npm run check
+        id: validate
+        shell: bash
+        continue-on-error: true
+        run: |
+          set -o pipefail
+          npm run check 2>&1 | tee "$RUNNER_TEMP/api-gateway-check.log"
+
+      - name: Report API Gateway validation failure
+        if: steps.validate.outcome == 'failure'
+        shell: bash
+        run: |
+          {
+            echo "## API Gateway validation failure"
+            echo '```text'
+            tail -n 120 "$RUNNER_TEMP/api-gateway-check.log"
+            echo '```'
+          } >> "$GITHUB_STEP_SUMMARY"
+          summary="$(
+            awk '
+              /^not ok / { last_not_ok = $0 }
+              /error:/ { last_error = $0 }
+              /code:/ { last_code = $0 }
+              END {
+                printf "%s", last_not_ok
+                if (last_error != "") printf " | %s", last_error
+                if (last_code != "") printf " | %s", last_code
+              }
+            ' "$RUNNER_TEMP/api-gateway-check.log"
+          )"
+
+          if [[ -z "$summary" ]]; then
+            summary="$(tail -n 1 "$RUNNER_TEMP/api-gateway-check.log")"
+          fi
+
+          summary="${summary//%/%25}"
+          summary="${summary//$'\r'/%0D}"
+          summary="${summary//$'\n'/%0A}"
+          echo "::error title=API Gateway validation failure::$summary"
+          exit 1
 
       - name: Operational runtime smoke
         run: node scripts/operational-smoke.mjs
+
+      - name: Build operational release bundle
+        run: npm run release:bundle
+
+      - name: Verify operational release bundle
+        run: npm run release:verify
+
+      - name: Upload operational release bundle
+        uses: actions/upload-artifact@v4
+        with:
+          name: api-gateway-release-${{ github.sha }}
+          path: apps/api-gateway/dist/api-gateway
+          if-no-files-found: error
+          retention-days: 7
