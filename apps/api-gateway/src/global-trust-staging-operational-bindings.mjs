@@ -261,7 +261,7 @@ export function buildGlobalTrustStagingOperationalBindings({
             enabled.contractType ?? "GlobalTrustKillSwitchState",
           operation: "setTenant",
           recordId: id,
-          evidenceRefs: [`killswitch:${id}`],
+          evidenceRefs: [`killswitch:${scenarioId}`],
         });
       },
     },
@@ -339,7 +339,7 @@ export function buildGlobalTrustStagingOperationalBindings({
             recordId: `integrity:${simulationId}`,
             evidenceRefs: [`integrity:${simulationId}`],
           },
-        );
+         );
       },
     },
 
@@ -382,12 +382,7 @@ export function buildGlobalTrustStagingOperationalBindings({
             evidenceRefs: [`provider:${scenarioId}`],
           });
         } catch (error) {
-          if (
-            error?.code
-            !== "NULL_PROVIDER_EXECUTION_BLOCKED"
-          ) {
-            throw error;
-          }
+          if (error?.code !== "NULL_PROVIDER_EXECUTION_BLOCKED") throw error;
           return bindingResult("fail_closed", {
             contractType: "GlobalTrustNullProvider",
             operation: "infer",
@@ -405,48 +400,32 @@ export function buildGlobalTrustStagingOperationalBindings({
         const input = simulationInput(tenantId, {
           correlationId: `corr_${scenarioId}_a`,
         });
-        const first =
-          await gateway.safetySimulation.run(input);
-        const second =
-          await gateway.safetySimulation.run({
-            ...input,
-            correlationId: `corr_${scenarioId}_b`,
-          });
+        const first = await gateway.safetySimulation.run(input);
+        const second = await gateway.safetySimulation.run({
+          ...input,
+          correlationId: `corr_${scenarioId}_b`,
+        });
         const deterministic =
-          first.scenarioFingerprint
-            === second.scenarioFingerprint
+          first.scenarioFingerprint === second.scenarioFingerprint
           && first.outcome === second.outcome;
-        return bindingResult(
-          deterministic
-            ? "deterministic"
-            : "non_deterministic",
-          {
-            contractType: first.contractType,
-            operation: "run",
-            recordId: decisionId(first, scenarioId),
-            evidenceRefs: [
-              `simulation:${decisionId(
-                first,
-                scenarioId,
-              )}`,
-              `simulation:${decisionId(
-                second,
-                scenarioId,
-              )}`,
-            ],
-          },
-        );
+        return bindingResult(deterministic ? "deterministic" : "non_deterministic", {
+          contractType: first.contractType,
+          operation: "run",
+          recordId: decisionId(first, scenarioId),
+          evidenceRefs: [
+            `simulation:${decisionId(first, scenarioId)}`,
+            `simulation:${decisionId(second, scenarioId)}`,
+          ],
+        });
       },
     },
 
     cleanup: {
-      contractType:
-        "GlobalTrustStagingCleanupReadiness",
+      contractType: "GlobalTrustStagingCleanupReadiness",
       operation: "inspect",
       async execute({ scenarioId }) {
         return bindingResult("cleanup_ready", {
-          contractType:
-            "GlobalTrustStagingCleanupReadiness",
+          contractType: "GlobalTrustStagingCleanupReadiness",
           operation: "inspect",
           recordId: `cleanup:${scenarioId}`,
           evidenceRefs: [`cleanup:${scenarioId}`],
