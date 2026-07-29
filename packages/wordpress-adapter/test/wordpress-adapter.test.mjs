@@ -34,7 +34,7 @@ test("discover reads the public REST index without authentication", async () => 
   const result = await adapter.discover();
 
   assert.equal(result.hasWpV2, true);
-  assert.equal(resu["xasPagesRoute"], true);
+  assert.equal(result.hasPagesRoute, true);
   assert.equal(requests[0].options.method, "GET");
   assert.equal(requests[0].options.headers.authorization, undefined);
 });
@@ -116,7 +116,7 @@ test("planPages generates create, update and noop operations without writes", ()
         id: 6,
         slug: "inicio",
         title: "Início",
-       status: "draft",
+        status: "draft",
         content: "",
         template: null,
         menuOrder: 0,
