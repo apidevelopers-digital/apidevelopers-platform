@@ -84,8 +84,27 @@ jobs:
             tail -n 120 "$RUNNER_TEMP/api-gateway-check.log"
             echo '```'
           } >> "$GITHUB_STEP_SUMMARY"
-          message="$(tail -n 80 "$RUNNER_TEMP/api-gateway-check.log" | sed ':a;N;$!ba;s/%/%25/g;s/\r/%0D/g;s/\n/%0A/g')"
-          echo "::error title=API Gateway validation failure::$message"
+          summary="$(
+            awk '
+              /^not ok / { last_not_ok = $0 }
+              /error:/ { last_error = $0 }
+              /code:/ { last_code = $0 }
+              END {
+                printf "%s", last_not_ok
+                if (last_error != "") printf " | %s", last_error
+                if (last_code != "") printf " | %s", last_code
+              }
+            ' "$RUNNER_TEMP/api-gateway-check.log"
+          )"
+
+          if [[ -z "$summary" ]]; then
+            summary="$(tail -n 1 "$RUNNER_TEMP/api-gateway-check.log")"
+          fi
+
+          summary="${summary//%/%25}"
+          summary="${summary//$'\r'/%0D}"
+          summary="${summary//$'\n'/%0A}"
+          echo "::error title=API Gateway validation failure::$summary"
           exit 1
 
       - name: Operational runtime smoke
