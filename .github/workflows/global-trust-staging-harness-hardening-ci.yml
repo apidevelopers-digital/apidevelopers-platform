@@ -1,0 +1,74 @@
+name: Global Trust Staging Harness Hardening CI
+
+on:
+  push:
+    branches:
+      - main
+      - "fix/api-gateway-staging-harness-high-findings-20260729"
+    paths:
+      - "apps/api-gateway/src/global-trust-staging-control-adapter.mjs"
+      - "apps/api-gateway/src/global-trust-staging-evidence.mjs"
+      - "apps/api-gateway/src/global-trust-staging-harness-v2.mjs"
+      - "apps/api-gateway/src/global-trust-staging-network-guard.mjs"
+      - "apps/api-gateway/src/global-trust-staging-telemetry.mjs"
+      - "apps/api-gateway/test/global-trust-staging-harness-v2.test.mjs"
+      - ".github/workflows/global-trust-staging-harness-hardening-ci.yml"
+  pull_request:
+    branches:
+      - main
+    paths:
+      - "apps/api-gateway/src/global-trust-staging-control-adapter.mjs"
+      - "apps/api-gateway/src/global-trust-staging-evidence.mjs"
+      - "apps/api-gateway/src/global-trust-staging-harness-v2.mjs"
+      - "apps/api-gateway/src/global-trust-staging-network-guard.mjs"
+      - "apps/api-gateway/src/global-trust-staging-telemetry.mjs"
+      - "apps/api-gateway/test/global-trust-staging-harness-v2.test.mjs"
+      - ".github/workflows/global-trust-staging-harness-hardening-ci.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  validate:
+    runs-on:
+      group: organization-macos-ci
+      labels: [self-hosted, macOS, X64]
+    timeout-minutes: 10
+    defaults:
+      run:
+        working-directory: apps/api-gateway
+    env:
+      GLOBAL_TRUST_STAGING_MODE: dry-run
+      GLOBAL_TRUST_STAGING_PROVIDER: "null"
+      GLOBAL_TRUST_STAGING_EGRESS: blocked
+
+    steps:
+      - name: Checkout pinned revision
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+
+      - name: Set up Node.js from pinned action
+        uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020
+        with:
+          node-version: "22"
+
+      - name: Validate fail-closed environment contract
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$GLOBAL_TRUST_STAGING_MODE" = "dry-run"
+          test "$GLOBAL_TRUST_STAGING_PROVIDER" = "null"
+          test "$GLOBAL_TRUST_STAGING_EGRESS" = "blocked"
+          test -n "$GITHUB_SHA"
+
+      - name: Validate hardened harness syntax
+        run: |
+          node --check src/global-trust-staging-control-adapter.mjs
+          node --check src/global-trust-staging-evidence.mjs
+          node --check src/global-trust-staging-harness-v2.mjs
+          node --check src/global-trust-staging-network-guard.mjs
+          node --check src/global-trust-staging-telemetry.mjs
+          node --check test/global-trust-staging-harness-v2.test.mjs
+
+      - name: Execute hardened no-deploy harness contract
+        run: node --test test/global-trust-staging-harness-v2.test.mjs
