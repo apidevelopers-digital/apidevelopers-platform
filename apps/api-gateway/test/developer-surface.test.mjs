@@ -14,6 +14,7 @@ test("OpenAPI document exposes only the current gateway surface", () => {
   assert.deepEqual(Object.keys(document.paths).sort(), [
     "/health",
     "/openapi.json",
+    "/ready",
     "/v1/whoami",
   ]);
   assert.equal(
@@ -21,6 +22,7 @@ test("OpenAPI document exposes only the current gateway surface", () => {
     0,
   );
   assert.deepEqual(document.paths["/health"].get.security, []);
+  assert.deepEqual(document.paths["/ready"].get.security, []);
 });
 
 test("route manifest is immutable across callers", () => {
@@ -38,7 +40,7 @@ test("OpenAPI document is immutable across callers", () => {
 
   const second = getOpenApiDocument();
   assert.equal(second.info.title, "API Developers.digital Gateway API");
-  assert.equal(second.paths["/health"].get.summary, "Gateway health");
+  assert.equal(second.paths["/health"].get.summary, "Gateway liveness");
 });
 
 test("GET /openapi.json returns the machine-readable contract", async () => {
@@ -55,10 +57,11 @@ test("GET /openapi.json returns the machine-readable contract", async () => {
     "application/json; charset=utf-8",
   );
   assert.equal(document.openapi, "3.1.0");
+  assert.ok(document.paths["/ready"]);
   assert.ok(document.paths["/v1/whoami"]);
 });
 
-test("HTTP server exposes the OpenAPI document", async (t) => {
+test("HTTP server exposes the current OpenAPI document", async (t) => {
   const server = await startServer({ port: 0, host: "127.0.0.1" });
   t.after(() => new Promise((resolve, reject) => {
     server.close((error) => (error ? reject(error) : resolve()));
@@ -73,5 +76,6 @@ test("HTTP server exposes the OpenAPI document", async (t) => {
   const document = await response.json();
 
   assert.equal(response.status, 200);
-  assert.equal(document.info.version, "0.6.0");
+  assert.equal(document.info.version, "0.7.0");
+  assert.ok(document.paths["/ready"]);
 });
