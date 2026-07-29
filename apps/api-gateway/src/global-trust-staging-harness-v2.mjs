@@ -33,7 +33,7 @@ function exactBoolean(value, expected, name) {
 
 function safeErrorCode(error) {
   const candidate = String(error?.code ?? "STAGING_HARNESS_ERROR").trim();
-  return /^[A-Z0-9_::-]{1,80}$/.test(candidate)
+  return /^[A-Z0-9_:-]{1,80}$/.test(candidate)
     ? candidate
     : "STAGING_HARNESS_ERROR";
 }
@@ -59,7 +59,9 @@ function validateManifest(manifest) {
   exactBoolean(provider.contactEnabled, false, "manifest.provider.contactEnabled");
 
   const network = objectValue(source.network, "manifest.network");
-  if (network.egress !== "blocked") throw new TypeError("manifest.network.egress must be blocked");
+  if (network.egress !== "blocked") {
+    throw new TypeError("manifest.network.egress must be blocked");
+  }
 
   const execution = objectValue(source.execution, "manifest.execution");
   for (const key of [
@@ -86,7 +88,10 @@ function validateManifest(manifest) {
       id: required(value.id, `manifest.scenarios[${index}].id`),
       name: required(value.name, `manifest.scenarios[${index}].name`),
       action: required(value.action, `manifest.scenarios[${index}].action`),
-      expectedResult: required(value.expectedResult, `manifest.scenarios[${index}].expectedResult`),
+      expectedResult: required(
+        value.expectedResult,
+        `manifest.scenarios[${index}].expectedResult`,
+      ),
     });
     if (normalized.id !== EXPECTED_IDS[index]) {
       throw new TypeError("manifest.scenarios must contain STG-01 through STG-18 in order");
@@ -128,7 +133,9 @@ function requireAdapter(adapter) {
     "verifyIntegrity",
     "cleanup",
   ]) {
-    if (typeof value[method] !== "function") throw new TypeError(`adapter.${method} must be a function`);
+    if (typeof value[method] !== "function") {
+      throw new TypeError(`adapter.${method} must be a function`);
+    }
   }
   return value;
 }
@@ -175,9 +182,13 @@ export function createGlobalTrustStagingHarnessV2({
 } = {}) {
   const normalizedManifest = validateManifest(manifest);
   const normalizedAdapter = requireAdapter(adapter);
-  if (typeof telemetryFactory !== "function") throw new TypeError("telemetryFactory must be a function");
-  if (typeof networkGuardFactory !== "function") throw new TypeError"(networkGuardFactory must be a function");
-  if (typeof runIdFactory !== "function") throw new TypeError "runIdFactory must be a function");
+  if (typeof telemetryFactory !== "function") {
+    throw new TypeError("telemetryFactory must be a function");
+  }
+  if (typeof networkGuardFactory !== "function") {
+    throw new TypeError("networkGuardFactory must be a function");
+  }
+  if (typeof runIdFactory !== "function") throw new TypeError("runIdFactory must be a function");
   if (typeof now !== "function") throw new TypeError("now must be a function");
   if (
     nullProvider?.mode !== "null"
@@ -185,7 +196,7 @@ export function createGlobalTrustStagingHarnessV2({
     || typeof nullProvider?.infer !== "function"
     || typeof nullProvider?.invokeTool !== "function"
   ) {
-    throw new TypeError "nullProvider must be a non-contacting null provider");
+    throw new TypeError("nullProvider must be a non-contacting null provider");
   }
 
   return Object.freeze({
@@ -331,12 +342,12 @@ export function createGlobalTrustStagingHarnessV2({
         scenarioCount: scenarioResults.length,
         passedScenarioCount: scenarioResults.filter(({ passed: value }) => value).length,
         scenarios: scenarioResults,
-        integrity: integrity ?
-          {
-            valid: integrity.valid === true,
-            proofCount: Number(integrity.proofCount ?? 0),
-            protectedRecordCount: Number(integrity.protectedRecordCount ?? 0),
-          }
+        integrity: integrity
+          ? {
+              valid: integrity.valid === true,
+              proofCount: Number(integrity.proofCount ?? 0),
+              protectedRecordCount: Number(integrity.protectedRecordCount ?? 0),
+            }
           : { valid: false, proofCount: 0, protectedRecordCount: 0 },
         cleanup,
         telemetry: telemetrySnapshot,
