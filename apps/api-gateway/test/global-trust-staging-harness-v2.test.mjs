@@ -92,7 +92,7 @@ function makeBindings({ mutate } = {}) {
         },
       },
     ]),
-   );
+  );
 }
 
 function makeAdapter(options = {}) {
@@ -244,11 +244,11 @@ test("sanitizer uses an allow-list and rejects malformed evidence references", a
       index === 0
         ? { ...scenario, evidenceRefs: ["not a canonical ref"] }
         : scenario
-     )),
+    )),
   };
   assert.throws(
     () => sanitizeGlobalTrustStagingReport(malformed),
-    /evidenceRefs[0\] has an invalid format/,
+    /evidenceRefs\[0\] has an invalid format/,
   );
 });
 
