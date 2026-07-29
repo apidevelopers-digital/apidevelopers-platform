@@ -146,6 +146,25 @@ test(
         ?? FALLBACK_SHA;
       const report = await harness.run({ sourceSha });
 
+      if (report.status !== "passed") {
+        console.error("STAGING_OPERATIONAL_DIAGNOSTIC", JSON.stringify({
+          status: report.status,
+          fatalErrorCode: report.fatalErrorCode,
+          passedScenarioCount: report.passedScenarioCount,
+          integrity: report.integrity,
+          cleanup: report.cleanup,
+          executionFlags: report.executionFlags,
+          failedScenarios: report.scenarios
+            .filter(({ passed }) => !passed)
+            .map(({ scenarioId, expectedResult, actualResult, errorCode }) => ({
+              scenarioId,
+              expectedResult,
+              actualResult,
+              errorCode,
+            })),
+        }));
+      }
+
       assert.equal(report.status, "passed");
       assert.equal(report.fatalErrorCode, null);
       assert.equal(report.sourceSha, sourceSha);
@@ -159,7 +178,7 @@ test(
       assert.equal(
         report.networkGuard.installedDuringExecution,
         true,
-      );
+     );
       assert.equal(report.networkGuard.mode, "deny-all");
 
       assert.deepEqual(
