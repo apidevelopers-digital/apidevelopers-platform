@@ -68,3 +68,6 @@ jobs:
 
       - name: Validate API Gateway
         run: npm run check
+
+      - name: Operational runtime smoke
+        run: node scripts/operational-smoke.mjs
