@@ -3,14 +3,39 @@ const ROUTES = Object.freeze([
     method: "get",
     path: "/health",
     operationId: "getGatewayHealth",
-    summary: "Gateway health",
+    summary: "Gateway liveness",
     security: [],
     responses: {
       200: {
-        description: "Gateway available",
+        description: "Gateway process is available",
         content: {
           "application/json": {
             schema: { $ref: "#/components/schemas/HealthResponse" },
+          },
+        },
+      },
+    },
+  }),
+  Object.freeze({
+    method: "get",
+    path: "/ready",
+    operationId: "getGatewayReadiness",
+    summary: "Gateway dependency readiness",
+    security: [],
+    responses: {
+      200: {
+        description: "Gateway is ready to receive traffic",
+        content: {
+          "application/json": {
+            schema: { $ref: "#/components/schemas/ReadinessResponse" },
+          },
+        },
+      },
+      503: {
+        description: "Gateway is degraded or unavailable",
+        content: {
+          "application/json": {
+            schema: { $ref: "#/components/schemas/ReadinessResponse" },
           },
         },
       },
@@ -96,9 +121,9 @@ const OPEN_API_DOCUMENT = Object.freeze({
   openapi: "3.1.0",
   info: Object.freeze({
     title: "API Developers.digital Gateway API",
-    version: "0.6.0",
+    version: "0.7.0",
     description:
-      "Current public developer surface of the institutional API gateway.",
+      "Current public developer and operational surface of the institutional API gateway.",
   }),
   servers: Object.freeze([
     Object.freeze({
@@ -122,6 +147,34 @@ const OPEN_API_DOCUMENT = Object.freeze({
         properties: {
           service: { type: "string", const: "api-gateway" },
           status: { type: "string", const: "ok" },
+        },
+        additionalProperties: false,
+      }),
+      ReadinessCheck: Object.freeze({
+        type: "object",
+        required: ["name", "critical", "status"],
+        properties: {
+          name: { type: "string" },
+          critical: { type: "boolean" },
+          status: { type: "string", enum: ["ok", "error"] },
+          code: { type: "string" },
+        },
+        additionalProperties: false,
+      }),
+      ReadinessResponse: Object.freeze({
+        type: "object",
+        required: ["service", "status", "checkedAt", "checks"],
+        properties: {
+          service: { type: "string", const: "api-gateway" },
+          status: {
+            type: "string",
+            enum: ["ready", "degraded", "unavailable"],
+          },
+          checkedAt: { type: "string", format: "date-time" },
+          checks: {
+            type: "array",
+            items: { $ref: "#/components/schemas/ReadinessCheck" },
+          },
         },
         additionalProperties: false,
       }),
