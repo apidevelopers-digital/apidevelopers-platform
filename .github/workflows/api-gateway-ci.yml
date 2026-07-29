@@ -123,3 +123,35 @@ jobs:
           path: apps/api-gateway/dist/api-gateway
           if-no-files-found: error
           retention-days: 7
+
+      - name: Build managed-hosting artifact
+        run: npm run release:managed:build
+
+      - name: Verify managed-hosting artifact
+        run: npm run release:managed:verify
+
+      - name: Package managed-hosting ZIP
+        shell: bash
+        run: |
+          set -euo pipefail
+          rm -f dist/api-gateway-managed.zip dist/api-gateway-managed.zip.sha256
+          (
+            cd dist/api-gateway-managed
+            /usr/bin/zip -q -r ../api-gateway-managed.zip .
+          )
+          /usr/bin/unzip -l dist/api-gateway-managed.zip | grep -q "package.json"
+          if /usr/bin/unzip -l dist/api-gateway-managed.zip | grep -Eq "/node_modules/"; then
+            echo "::error title=Managed artifact contains node_modules::ZIP must rely on vendored file dependencies"
+            exit 1
+          fi
+          shasum -a 256 dist/api-gateway-managed.zip > dist/api-gateway-managed.zip.sha256
+
+      - name: Upload managed-hosting artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: api-gateway-managed-${{ github.sha }}
+          path: |
+            apps/api-gateway/dist/api-gateway-managed.zip
+            apps/api-gateway/dist/api-gateway-managed.zip.sha256
+          if-no-files-found: error
+          retention-days: 7
