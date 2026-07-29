@@ -4,6 +4,7 @@ import { pathToFileURL } from "node:url";
 import { createGatewayGlobalTrustAudit } from "./global-trust-audit.mjs";
 import { createGatewayGlobalTrustTenantContext } from "./global-trust-context.mjs";
 import { getOpenApiDocument } from "./openapi.mjs";
+import { createReadinessService } from "./readiness.mjs";
 
 const JSON_HEADERS = Object.freeze({
   "content-type": "application/json; charset=utf-8",
@@ -48,6 +49,7 @@ function toGatewayTenantContext(identity, headers) {
 export function createApp({
   authenticator,
   audit = createGatewayGlobalTrustAudit(),
+  readiness = createReadinessService(),
 } = {}) {
   if (
     authenticator !== undefined &&
@@ -57,6 +59,9 @@ export function createApp({
   }
   if (typeof audit?.recordTenantContextIssued !== "function") {
     throw new TypeError("audit.recordTenantContextIssued must be a function");
+  }
+  if (typeof readiness?.check !== "function") {
+    throw new TypeError("readiness.check must be a function");
   }
 
   return {
@@ -72,6 +77,11 @@ export function createApp({
           service: "api-gateway",
           status: "ok",
         });
+      }
+
+      if (normalizedMethod === "GET" && url === "/ready") {
+        const report = await readiness.check();
+        return jsonResponse(report.status === "ready" ? 200 : 503, report);
       }
 
       if (normalizedMethod === "GET" && url === "/openapi.json") {
@@ -104,7 +114,8 @@ export function createApp({
           tenantContext,
           method: normalizedMethod,
           url,
-          correlationId: headers["x-correlation-id"] ?? headers["x-request-id"],
+          correlationId:
+            headers["x-correlation-id"] ?? headers["x-request-id"],
         });
 
         return jsonResponse(200, {
