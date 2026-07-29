@@ -3,6 +3,7 @@ import { pathToFileURL } from "node:url";
 
 import { createGatewayGlobalTrustAudit } from "./global-trust-audit.mjs";
 import { createGatewayGlobalTrustTenantContext } from "./global-trust-context.mjs";
+import { getOpenApiDocument } from "./openapi.mjs";
 
 const JSON_HEADERS = Object.freeze({
   "content-type": "application/json; charset=utf-8",
@@ -71,6 +72,10 @@ export function createApp({
           service: "api-gateway",
           status: "ok",
         });
+      }
+
+      if (normalizedMethod === "GET" && url === "/openapi.json") {
+        return jsonResponse(200, getOpenApiDocument());
       }
 
       if (normalizedMethod === "GET" && url === "/v1/whoami") {
