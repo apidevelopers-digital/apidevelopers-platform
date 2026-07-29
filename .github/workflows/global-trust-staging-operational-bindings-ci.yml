@@ -66,4 +66,14 @@ jobs:
           node --check test/global-trust-staging-operational-bindings.test.mjs
 
       - name: Execute operational bindings without deploy
-        run: node --test test/global-trust-staging-operational-bindings.test.mjs
+        shell: bash
+        run: |
+          set +e
+          node --test --test-reporter=spec test/global-trust-staging-operational-bindings.test.mjs 2>&1 | tee /tmp/global-trust-operational-bindings-test.log
+          status=${PIPESTATUS[0]}
+          set -e
+          if [ "$status" -ne 0 ]; then
+            detail="$(tail -n 60 /tmp/global-trust-operational-bindings-test.log | tr '\n' ' ' | sed 's/%/%25/g; s/\r/%0D/g; s/\n/%0A/g' | cut -c1-3500)"
+            echo "::error title=Operational bindings test failure::$detail"
+            exit "$status"
+          fi
