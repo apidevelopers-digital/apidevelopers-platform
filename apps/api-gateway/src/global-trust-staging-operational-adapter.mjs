@@ -18,6 +18,28 @@ function required(value, name) {
   return normalized;
 }
 
+
+function normalizeIntegrityBinding(bindings) {
+  const integrity = bindings.integrity;
+  return Object.freeze({
+    ...bindings,
+    integrity: Object.freeze({
+      ...integrity,
+      async execute(context) {
+        const output = await integrity.execute(context);
+        return Object.freeze({
+          ...output,
+          controlProof: Object.freeze({
+            ...output.controlProof,
+            contractType: integrity.contractType,
+            operation: integrity.operation,
+          }),
+        });
+      },
+    }),
+  });
+}
+
 export function createGlobalTrustStagingOperationalAdapter({
   gateway,
   workspacePath,
@@ -53,12 +75,13 @@ export function createGlobalTrustStagingOperationalAdapter({
 
   let seeded = false;
   const adapter = createGlobalTrustStagingControlAdapter({
-    bindings:
+    bindings: normalizeIntegrityBinding(
       buildGlobalTrustStagingOperationalBindings({
         gateway,
         tenantId: normalizedTenantId,
         nullProvider,
       }),
+    ),
 
     async assertEnvironment({
       manifest,
