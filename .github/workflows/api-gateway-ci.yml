@@ -63,8 +63,8 @@ jobs:
           mkdir -p "$GITHUB_WORKSPACE/packages/auth-core/node_modules/@apidevelopers"
           ln -sfn "$GITHUB_WORKSPACE/packages/apikey-core"             "$GITHUB_WORKSPACE/packages/auth-core/node_modules/@apidevelopers/apikey-core"
 
-          mkdir -p "$GITHUB_WORKSPACE/packages/apikey-core/noe_modules/@apidevelopers"
-          ln -sfn "$GITHUB_WORKSPACE/packages/persistence-core"             "$GITHUB_WORKSPACE/packages/apikey-core/noe_modules/@apidevelopers/persistence-core"
+          mkdir -p "$GITHUB_WORKSPACE/packages/apikey-core/node_modules/@apidevelopers"
+          ln -sfn "$GITHUB_WORKSPACE/packages/persistence-core"             "$GITHUB_WORKSPACE/packages/apikey-core/node_modules/@apidevelopers/persistence-core"
 
       - name: Validate API Gateway
         id: validate
@@ -72,7 +72,7 @@ jobs:
         continue-on-error: true
         run: |
           set -o pipefail
-          npm run check 2>&1 | tee "$RUNNER_TMP/api-gateway-check.log"
+          npm run check 2>&1 | tee "$RUNNER_TEMP/api-gateway-check.log"
 
       - name: Report API Gateway validation failure
         if: steps.validate.outcome == 'failure'
@@ -81,7 +81,7 @@ jobs:
           {
             echo "## API Gateway validation failure"
             echo '```text'
-            tail -n 120 "$RUNNER_TMP/api-gateway-check.log"
+            tail -n 120 "$RUNNER_TEMP/api-gateway-check.log"
             echo '```'
           } >> "$GITHUB_STEP_SUMMARY"
           summary="$(
@@ -94,7 +94,7 @@ jobs:
                 if (last_error != "") printf " | %s", last_error
                 if (last_code != "") printf " | %s", last_code
               }
-            ' "$RUNNER_TMP/api-gateway-check.log"
+            ' "$RUNNER_TEMP/api-gateway-check.log"
           )"
 
           if [[ -z "$summary" ]]; then
