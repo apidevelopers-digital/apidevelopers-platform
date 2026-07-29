@@ -140,3 +140,5 @@ export function createGlobalTrustStagingOperationalAdapter({
     adapter,
   });
 }
+
+// Safe integrity binding revision is part of the operational contract.
