@@ -71,3 +71,17 @@ jobs:
 
       - name: Operational runtime smoke
         run: node scripts/operational-smoke.mjs
+
+      - name: Build operational release bundle
+        run: npm run release:bundle
+
+      - name: Verify operational release bundle
+        run: npm run release:verify
+
+      - name: Upload operational release bundle
+        uses: actions/upload-artifact@v4
+        with:
+          name: api-gateway-release-${{ github.sha }}
+          path: apps/api-gateway/dist/api-gateway
+          if-no-files-found: error
+          retention-days: 7
