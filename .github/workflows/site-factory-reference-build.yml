@@ -1,0 +1,130 @@
+name: Site Factory Reference Build
+
+on:
+  pull_request:
+    branches:
+      - main
+    paths:
+      - "apps/site-factory/**"
+      - ".github/workflows/site-factory-reference-build.yml"
+  workflow_dispatch: {}
+
+permissions:
+  contents: read
+
+jobs:
+  reference-build:
+    name: Generate and build reference project
+    runs-on:
+      - self-hosted
+      - macOS
+      - X64
+    timeout-minutes: 15
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+
+      - name: Prepare isolated output directory
+        shell: bash
+        run: |
+          set -euo pipefail
+          OUTPUT_ROOT="$RUNNER_TEMP/site-factory-reference-${GITHUB_RUN_ID}"
+          echo "OUTPUT_ROOT=$OUTPUT_ROOT" >> "$GITHUB_ENV"
+          mkdir -p "$OUTPUT_ROOT"
+
+      - name: Generate institutional reference project
+        shell: bash
+        run: |
+          set -euo pipefail
+          cd apps/site-factory
+          npm run project:generate -- \
+            --app apidevelopers-institutional-preview \
+            --domain preview.apidevelopers.digital \
+            --title "API Developers.digital" \
+            --output "$OUTPUT_ROOT"
+
+      - name: Verify generated contract
+        shell: bash
+        run: |
+          set -euo pipefail
+          PROJECT_DIR="$OUTPUT_ROOT/apidevelopers-institutional-preview"
+          test -f "$PROJECT_DIR/publishing-manifest.json"
+          test -f "$PROJECT_DIR/package.json"
+          test -f "$PROJECT_DIR/src/App.jsx"
+          node -e "
+            const fs = require('node:fs');
+            const path = process.argv[1];
+            const manifest = JSON.parse(fs.readFileSync(path, 'utf8'));
+            if (manifest.runtime !== 'react-vite') throw new Error('unexpected runtime');
+            if (manifest.approvalPolicy !== 'explicit-igor-approval') throw new Error('approval policy missing');
+            if (manifest.preview?.required !== true) throw new Error('preview must be required');
+            if (manifest.release?.rollbackByCommit !== true) throw new Error('rollback by commit missing');
+            console.log('publishing manifest verified');
+          " "$PROJECT_DIR/publishing-manifest.json"
+
+      - name: Install generated project dependencies
+        shell: bash
+        run: |
+          set -euo pipefail
+          cd "$OUTPUT_ROOT/apidevelopers-institutional-preview"
+          npm install --no-audit --no-fund
+
+      - name: Run generated project tests
+        shell: bash
+        run: |
+          set -euo pipefail
+          cd "$OUTPUT_ROOT/apidevelopers-institutional-preview"
+          npm test
+
+      - name: Build generated project
+        shell: bash
+        run: |
+          set -euo pipefail
+          cd "$OUTPUT_ROOT/apidevelopers-institutional-preview"
+          npm run build
+          test -f dist/index.html
+
+      - name: Create build evidence
+        shell: bash
+        run: |
+          set -euo pipefail
+          PROJECT_DIR="$OUTPUT_ROOT/apidevelopers-institutional-preview"
+          node -e "
+            const fs = require('node:fs');
+            const path = require('node:path');
+            const root = process.argv[1];
+            const evidence = {
+              schemaVersion: '1.0',
+              app: 'apidevelopers-institutional-preview',
+              sourceRepository: process.env.GITHUB_REPOSITORY,
+              sourceRef: process.env.GITHUB_REF,
+              sourceSha: process.env.GITHUB_SHA,
+              workflowRunId: process.env.GITHUB_RUN_ID,
+              generated: true,
+              testsPassed: true,
+              buildPassed: true,
+              artifactPath: 'dist',
+              writesToProduction: false,
+              deployExecuted: false
+            };
+            fs.writeFileSync(
+              path.join(root, 'reference-build-evidence.json'),
+              JSON.stringify(evidence, null, 2) + '\n'
+            );
+          " project_dir"
+      - name: Upload reference build artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: site-factory-reference-${{ github.sha }}
+          path: |
+            ${{ env.OUTPUT_ROOT }}/apidevelopers-institutional-preview/dist
+            ${{ env.OUTPUT_ROOT }}/apidevelopers-institutional-preview/publishing-manifest.json
+            ${{ env.OUTPUT_ROOT }}/apidevelopers-institutional-preview/reference-build-evidence.json
+          if-no-files-found: error
+          retention-days: 7
