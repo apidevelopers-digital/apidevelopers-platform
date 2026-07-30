@@ -1,0 +1,139 @@
+name: Site Factory Preview Provisioning Packet
+
+on:
+  pull_request:
+    branches:
+      - main
+    paths:
+      - "apps/site-factory/**"
+      - ".github/workflows/site-factory-preview-provisioning-packet.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  packet:
+    name: Generate evidence-only provisioning packet
+    runs-on:
+      - self-hosted
+      - macOS
+      - X64
+    timeout-minutes: 20
+    env:
+      SOURCE_SHA: ${{ github.event.pull_request.head.sha || github.sha }}
+      SOURCE_REPOSITORY: ${{ github.repository }}
+      SOURCE_REF: ${{ github.head_ref || github.ref }}
+      WORKFLOW_NAME: Site Factory Preview Provisioning Packet
+      SNAPSHOT_PATH: apps/site-factory/evidence/hostinger-preview-snapshot-2026-07-30.json
+      MANIFEST_PATH: apps/site-factory/manifests/apidevelopers-digital.github-first.json
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Configure Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+
+      - name: Validate Site Factory
+        working-directory: apps/site-factory
+        run: |
+          npm install --no-audit --no-fund
+          npm run check
+
+      - name: Generate and build isolated reference application
+        shell: bash
+        run: |
+          set -euo pipefail
+          PROJECT_DIR="$RUNNER_TEMP/apidevelopers-institutional-preview"
+          rm -rf "$PROJECT_DIR"
+
+          node apps/site-factory/src/generate-project-cli.mjs \
+            --app apidevelopers-institutional-preview \
+            --domain preview-apidevelopers.apidevelopers.digital \
+            --title "API Developers.digital Preview" \
+            --output "$PROJECT_DIR" \
+            --apply
+
+          (
+            cd "$PROJECT_DIR"
+            npm install --no-audit --no-fund
+            npm test
+            npm run build
+          )
+
+          test -f "$PROJECT_DIR/dist/index.html"
+
+      - name: Generate canonical provisioning packet
+        id: packet
+        shell: bash
+        run: |
+          set -euo pipefail
+          SHORT_SHA="${SOURCE_SHA:0:12}"
+          ARTIFACT_NAME="site-factory-preview-provisioning-${SHORT_SHA}"
+          PACKET_DIR="$RUNNER_TEMP/site-factory-preview-provisioning-packet"
+          GENERATED_AT="$(date -u +"%Y-%m-%dT%H:%M:%S.000Z")"
+
+          rm -rf "$PACKET_DIR"
+
+          node apps/site-factory/src/generate-preview-provisioning-packet.mjs \
+            --manifest "$MANIFEST_PATH" \
+            --snapshot "$SNAPSHOT_PATH" \
+            --output "$PACKET_DIR" \
+            --source-sha "$SOURCE_SHA" \
+            --repository "$SOURCE_REPOSITORY" \
+            --artifact-name "$ARTIFACT_NAME" \
+            --application-name apidevelopers-institutional-preview \
+            --workflow-name "$WORKFLOW_NAME" \
+            --run-id "$GITHUB_RUN_ID" \
+            --run-attempt "$GITHUB_RUN_ATTEMPT" \
+            --ref "$SOURCE_REF" \
+            --generated-at "$GENERATED_AT" \
+            | tee "$PACKET_DIR/summary.json"
+
+          echo "artifact_name=$ARTIFACT_NAME" >> "$GITHUB_OUTPUT"
+          echo "packet_dir=$PACKET_DIR" >> "$GITHUB_OUTPUT"
+
+      - name: Assert non-executable security invariants
+        shell: bash
+        run: |
+          set -euo pipefail
+          PACKET="${{ steps.packet.outputs.packet_dir }}/provisioning-packet.json"
+
+          node --input-type=module - "$PACKET" <<'NODE'
+          import fs from "node:fs";
+
+          const packet = JSON.parse(fs.readFileSync(process.argv[2], "utf8"));
+          const valid =
+            packet.mode === "evidence-only" &&
+            packet.executable === false &&
+            packet.approvalRequired === true &&
+            packet.requestedAction?.executable === false &&
+            packet.requestedAction?.connectsRepository === false &&
+            packet.requestedAction?.configuresDns === false &&
+            packet.requestedAction?.deploysArtifact === false &&
+            packet.invariants?.packetDoesNotCreateHostingResource === true &&
+            packet.invariants?.packetDoesNotConfigureDns === true &&
+            packet.invariants?.packetDoesNotDeployArtifact === true;
+
+          if (!valid) {
+            throw new Error("unsafe_preview_provisioning_packet");
+          }
+          NODE
+
+      - name: Upload reference build and provisioning evidence
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ steps.packet.outputs.artifact_name }}
+          retention-days: 7
+          if-no-files-found: error
+          path: |
+            ${{ runner.temp }}/apidevelopers-institutional-preview/dist
+            ${{ runner.temp }}/apidevelopers-institutional-preview/site-factory.manifest.json
+            ${{ steps.packet.outputs.packet_dir }}/promotion-plan.json
+            ${{ steps.packet.outputs.packet_dir }}/readiness-report.json
+            ${{ steps.packet.outputs.packet_dir }}/provisioning-request.json
+            ${{ steps.packet.outputs.packet_dir }}/provisioning-packet.json
+            ${{ steps.packet.outputs.packet_dir }}/summary.json
