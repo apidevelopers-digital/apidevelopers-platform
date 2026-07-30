@@ -29,8 +29,10 @@ jobs:
       MANIFEST_PATH: apps/site-factory/manifests/apidevelopers-digital.github-first.json
 
     steps:
-      - name: Checkout
+      - name: Checkout exact source SHA
         uses: actions/checkout@v4
+        with:
+          ref: ${{ env.SOURCE_SHA }}
 
       - name: Configure Node.js
         uses: actions/setup-node@v4
@@ -92,7 +94,7 @@ jobs:
             --run-attempt "$GITHUB_RUN_ATTEMPT" \
             --ref "$SOURCE_REF" \
             --generated-at "$GENERATED_AT" \
-            | tee "$PACKET_DIR/summary.json"
+            | tee "$PACKET_DIR/summary.json
 
           echo "artifact_name=$ARTIFACT_NAME" >> "$GITHUB_OUTPUT"
           echo "packet_dir=$PACKET_DIR" >> "$GITHUB_OUTPUT"
@@ -113,7 +115,7 @@ jobs:
             packet.approvalRequired === true &&
             packet.requestedAction?.executable === false &&
             packet.requestedAction?.connectsRepository === false &&
-            packet.requestedAction?.configuresDns === false &&
+            packet.requestedAction?.configures.Dns === false &&
             packet.requestedAction?.deploysArtifact === false &&
             packet.invariants?.packetDoesNotCreateHostingResource === true &&
             packet.invariants?.packetDoesNotConfigureDns === true &&
