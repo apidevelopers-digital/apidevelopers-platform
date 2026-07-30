@@ -115,7 +115,7 @@ jobs:
             packet.approvalRequired === true &&
             packet.requestedAction?.executable === false &&
             packet.requestedAction?.connectsRepository === false &&
-            packet.requestedAction?.configures.Dns === false &&
+            packet.requestedAction?.configuresDns === false &&
             packet.requestedAction?.deploysArtifact === false &&
             packet.invariants?.packetDoesNotCreateHostingResource === true &&
             packet.invariants?.packetDoesNotConfigureDns === true &&
