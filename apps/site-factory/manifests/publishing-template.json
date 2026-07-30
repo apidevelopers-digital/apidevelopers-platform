@@ -1,0 +1,26 @@
+{
+  "schemaVersion": "1.0",
+  "app": "replace-me",
+  "domain": "preview.example.com",
+  "runtime": "react-vite",
+  "branch": "main",
+  "hosting": "hostinger",
+  "build": "npm run build",
+  "output": "dist",
+  "healthcheck": "/",
+  "approvalPolicy": "explicit-igor-approval",
+  "preview": {
+    "required": true,
+    "domainPattern": "preview-{app}.apidevelopers.digital"
+  },
+  "release": {
+    "byCommit": true,
+    "rollbackByCommit": true
+  },
+  "requiredChecks": [
+    "build",
+    "test",
+    "healthcheck"
+  ],
+  "requiredSecrets": []
+}
