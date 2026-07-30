@@ -1,0 +1,35 @@
+name: Site Factory WordPress Auth Probe
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  wordpress-auth-probe:
+    name: WordPress authenticated read-only probe
+    runs-on:
+      - self-hosted
+      - macOS
+      - X64
+    timeout-minutes: 10
+    env:
+      WORDPRESS_URL: ${{ secrets.WORDPRESS_URL }}
+      WORDPRESS_USERNAME: ${{ secrets.WORDPRESS_USERNAME }}
+      WORDPRESS_APP_PASSWORD: ${{ secrets.WORDPRESS_APP_PASSWORD }}
+    steps:
+      - name: Checkout
+        uses: actions/checkoutv4
+
+      - name: Validate required secrets
+        shell: bash
+        run: |
+          set -euo pipefail
+          test -n "${WORDPRESS_URL:-}"
+          test -n "${WORDPRESS_USERNAME:-}"
+          test -n "${WORDPRESS_APP_PASSWORD:-}"
+
+      - name: Run authenticated read-only probe
+        shell: bash
+        run: node scripts/wordpress-auth-probe.mjs
