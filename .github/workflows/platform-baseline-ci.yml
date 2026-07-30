@@ -81,3 +81,9 @@ jobs:
         run: |
           set -euo pipefail
           node --input-type=module -e "import('./scripts/lib/planning-engine.mjs').then((m) => { if (typeof m.createPlanningEngine !== 'function') throw new Error('missing createPlanningEngine export'); const engine = m.createPlanningEngine({ clock: () => '2026-07-25T00:00:00.000Z' }); const plan = engine.plan({ reflectionId: 'platform-baseline-ci', findings: [] }); if (plan.mode !== 'advisory') throw new Error('non-advisory plan'); console.log('platform baseline smoke ok'); })"
+
+      - name: WordPress probe read-only regression test
+        shell: bash
+        run: |
+          set -euo pipefail
+          node --test tests/wordpress-auth-probe-read-only.test.mjs
