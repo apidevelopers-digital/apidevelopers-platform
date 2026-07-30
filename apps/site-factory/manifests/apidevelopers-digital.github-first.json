@@ -1,0 +1,26 @@
+{
+  "schemaVersion": "1.0",
+  "app": "apidevelopers-institutional-site",
+  "domain": "apidevelopers.digital",
+  "runtime": "react-vite",
+  "branch": "main",
+  "hosting": "hostinger",
+  "build": "npm run build",
+  "output": "dist",
+  "healthcheck": "/",
+  "approvalPolicy": "explicit-igor-approval",
+  "preview": {
+    "required": true,
+    "domainPattern": "preview-apidevelopers.apidevelopers.digital"
+  },
+  "release": {
+    "byCommit": true,
+    "rollbackByCommit": true
+  },
+  "requiredChecks": [
+    "build",
+    "test",
+    "healthcheck"
+  ],
+  "requiredSecrets": []
+}
