@@ -87,3 +87,9 @@ jobs:
         run: |
           set -euo pipefail
           node --test tests/wordpress-auth-probe-read-only.test.mjs
+
+      - name: Site Factory publishing manifest contract test
+        shell: bash
+        run: |
+          set -euo pipefail
+          node --test apps/site-factory/test/publishing-manifest.test.mjs
