@@ -14,10 +14,6 @@ jobs:
       - macOS
       - X64
     timeout-minutes: 10
-    env:
-      HOSTINGER_API_TOKEN: ${{ secrets.HOSTINGER_API_TOKEN }}
-      HOSTINGER_AGENCY_ORDER_ID: ${{ secrets.HOSTINGER_AGENCY_ORDER_ID }}
-      PREFLIGHT_OUTPUT_PATH: ${{ runner.temp }}/hostinger-agency-preview-preflight.json
 
     steps:
       - name: Checkout exact source SHA
@@ -36,14 +32,26 @@ jobs:
           npm install --no-audit --no-fund
           npm run check
 
+      - name: Prepare sanitized output path
+        shell: bash
+        run: |
+          set -euo pipefail
+          echo "PREFLIGHT_OUTPUT_PATH=$RUNNER_TEMP/hostinger-agency-preview-preflight.json" >> "$GITHUB_ENV"
+
       - name: Assert required GitHub Actions secrets are available
         shell: bash
+        env:
+          HOSTINGER_API_TOKEN: ${{ secrets.HOSTINGER_API_TOKEN }}
+          HOSTINGER_AGENCY_ORDER_ID: ${{ secrets.HOSTINGER_AGENCY_ORDER_ID }}
         run: |
           set -euo pipefail
           test -n "$HOSTINGER_API_TOKEN"
           test -n "$HOSTINGER_AGENCY_ORDER_ID"
 
       - name: Run Hostinger Agency API read-only preflight
+        env:
+          HOSTINGER_API_TOKEN: ${{ secrets.HOSTINGER_API_TOKEN }}
+          HOSTINGER_AGENCY_ORDER_ID: ${{ secrets.HOSTINGER_AGENCY_ORDER_ID }}
         run: node apps/site-factory/src/run-hostinger-agency-preflight.mjs
 
       - name: Assert report is non-executable
@@ -80,4 +88,4 @@ jobs:
           name: hostinger-agency-preview-preflight-${{ github.sha }}
           retention-days: 7
           if-no-files-found: error
-          path: ${{ env.PREFLIGHT_OUTPUT_PATH }}
+          path: ${{ runner.temp }}/hostinger-agency-preview-preflight.json
