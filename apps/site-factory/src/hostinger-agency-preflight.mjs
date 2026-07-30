@@ -20,9 +20,18 @@ function normalizeDatacenters(payload) {
 
   return items.map((item) => ({
     code: requiredString("datacenter.code", item?.code),
-    name: String(item?.name ?? item?.city ?? item?.location ?? "").trim() || null,
-    country: String(item?.country ?? item?.country_code ?? "").trim() || null,
-    pingUrl: String(item?.pinger_url ?? item?.ping_url ?? "").trim() || null,
+    title:
+      String(
+        item?.title ??
+          item?.name ??
+          item?.city ??
+          item?.location ??
+          "",
+      ).trim() || null,
+    country:
+      String(item?.country ?? item?.country_code ?? "").trim() || null,
+    pingerUrl:
+      String(item?.pinger_url ?? item?.ping_url ?? "").trim() || null,
   }));
 }
 
@@ -31,7 +40,10 @@ export function createHostingerAgencyPreflightReport({
   datacentersPayload,
   checkedAt = new Date().toISOString(),
 }) {
-  const orderRef = requiredString("orderReference", String(orderReference ?? ""));
+  const orderRef = requiredString(
+    "orderReference",
+    String(orderReference ?? ""),
+  );
   const datacenters = normalizeDatacenters(datacentersPayload);
 
   if (datacenters.length === 0) {
@@ -92,9 +104,12 @@ export async function runHostingerAgencyPreflight({
   checkedAt = new Date().toISOString(),
 }) {
   const bearer = requiredString("HOSTINGER_API_TOKEN", token);
-  const order = requiredString("HOSTINGER_AGENCY_ORDER_ID", String(orderId ?? ""));
+  const order = requiredString(
+    "HOSTINGER_AGENCY_ORDER_ID",
+    String(orderId ?? ""),
+  );
   const url = new URL(
-    `/api/agency-hosting/v1/orders/${encodeURIComponent(order)}/datacenters ,
+    `/api/agency-hosting/v1/orders/${encodeURIComponent(order)}/datacenters`,
     baseUrl,
   );
 
@@ -102,6 +117,7 @@ export async function runHostingerAgencyPreflight({
     method: "GET",
     headers: {
       accept: "application/json",
+      "content-type": "application/json",
       authorization: `Bearer ${bearer}`,
     },
   });
