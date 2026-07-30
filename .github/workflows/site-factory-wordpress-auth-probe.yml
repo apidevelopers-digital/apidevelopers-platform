@@ -20,7 +20,7 @@ jobs:
       WORDPRESS_APP_PASSWORD: ${{ secrets.WORDPRESS_APP_PASSWORD }}
     steps:
       - name: Checkout
-        uses: actions/checkoutv4
+        uses: actions/checkout@v4
 
       - name: Validate required secrets
         shell: bash
