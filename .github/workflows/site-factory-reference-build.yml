@@ -117,7 +117,7 @@ jobs:
               path.join(root, 'reference-build-evidence.json'),
               JSON.stringify(evidence, null, 2) + '\n'
             );
-          " project_dir"
+          " "$PROJECT_DIR"
       - name: Upload reference build artifact
         uses: actions/upload-artifact@v4
         with:
