@@ -6,19 +6,18 @@ import {
   runHostingerAgencyPreflight,
 } from "../src/hostinger-agency-preflight.mjs";
 
-test("creates a deterministic read-only preflight report", () => {
+test("creates a deterministic read-only preflight report from the official datacenter model", () => {
   const input = {
     orderReference: "order-***0581",
-    datacentersPayload: {
-      data: [
-        {
-          code: "br-1",
-          name: "Brazil",
-          country_code: "BR",
-          pinger_url: "https://example.invalid/ping",
-        },
-      ],
-    },
+    datacentersPayload: [
+      {
+        code: "br-1",
+        title: "Brazil",
+        country: "BR",
+        coordinates: { latitude: -23.55, longitude: -46.63 },
+        pinger_url: "https://example.invalid/ping",
+      },
+    ],
     checkedAt: "2026-07-30T23:00:00.000Z",
   };
 
@@ -33,11 +32,17 @@ test("creates a deterministic read-only preflight report", () => {
   assert.equal(first.deployEnabled, false);
   assert.equal(first.intendedProvisioning.type, "node-static");
   assert.equal(first.intendedProvisioning.domain, null);
+  assert.deepEqual(first.datacenters[0], {
+    code: "br-1",
+    title: "Brazil",
+    country: "BR",
+    pingerUrl: "https://example.invalid/ping",
+  });
   assert.equal(first.fingerprint, second.fingerprint);
   assert.match(first.fingerprint, /^[a-f0-9]{64}$/);
 });
 
-test("uses GET only and never sends the token to output", async () => {
+test("uses GET only and never exposes the token in the report", async () => {
   const calls = [];
   const report = await runHostingerAgencyPreflight({
     token: "secret-token",
@@ -50,9 +55,14 @@ test("uses GET only and never sends the token to output", async () => {
         status: 200,
         statusText: "OK",
         text: async () =>
-          JSON.stringify({
-            data: [{ code: "br-1", name: "Brazil", country_code: "BR" }],
-          }),
+          JSON.stringify([
+            {
+              code: "br-1",
+              title: "Brazil",
+              country: "BR",
+              pinger_url: "https://example.invalid/ping",
+            },
+          ]),
       };
     },
   });
@@ -62,6 +72,10 @@ test("uses GET only and never sends the token to output", async () => {
   assert.equal(
     calls[0].options.headers.authorization,
     "Bearer secret-token",
+  );
+  assert.match(
+    calls[0].url,
+    /\/api\/agency-hosting\/v1\/orders\/1009450581\/datacenters$/,
   );
   assert.equal(report.orderReference, "order-***0581");
   assert.doesNotMatch(JSON.stringify(report), /secret-token/);
@@ -86,7 +100,7 @@ test("rejects empty datacenter capacity", () => {
     () =>
       createHostingerAgencyPreflightReport({
         orderReference: "order-***0581",
-        datacentersPayload: { data: [] },
+        datacentersPayload: [],
       }),
     /hostinger_agency_datacenters_unavailable/,
   );
