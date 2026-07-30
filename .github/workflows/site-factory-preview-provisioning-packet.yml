@@ -45,19 +45,33 @@ jobs:
           npm install --no-audit --no-fund
           npm run check
 
+      - name: Prepare isolated output directory
+        shell: bash
+        run: |
+          set -euo pipefail
+          OUTPUT_ROOT="$RUNNER_TEMP/site-factory-preview-provisioning-${GITHUB_RUN_ID}"
+          PROJECT_DIR="$OUTPUT_ROOT/apidevelopers-institutional-preview"
+
+          rm -rf "$OUTPUT_ROOT"
+          mkdir -p "$OUTPUT_ROOT"
+
+          echo "OUTPUT_ROOT=$OUTPUT_ROOT" >> "$GITHUB_ENV"
+          echo "PROJECT_DIR=$PROJECT_DIR" >> "$GITHUB_ENV"
+
       - name: Generate and build isolated reference application
         shell: bash
         run: |
           set -euo pipefail
-          PROJECT_DIR="$RUNNER_TEMP/apidevelopers-institutional-preview"
-          rm -rf "$PROJECT_DIR"
 
           node apps/site-factory/src/generate-project-cli.mjs \
             --app apidevelopers-institutional-preview \
             --domain preview-apidevelopers.apidevelopers.digital \
             --title "API Developers.digital Preview" \
-            --output "$PROJECT_DIR" \
+            --output "$OUTPUT_ROOT" \
             --apply
+
+          test -f "$PROJECT_DIR/package.json"
+          test -f "$PROJECT_DIR/publishing-manifest.json"
 
           (
             cd "$PROJECT_DIR"
@@ -133,10 +147,10 @@ jobs:
           retention-days: 7
           if-no-files-found: error
           path: |
-            ${{ runner.temp }}/apidevelopers-institutional-preview/dist
-            ${{ runner.temp }}/apidevelopers-institutional-preview/site-factory.manifest.json
+            ${{ runner.temp }}/site-factory-preview-provisioning-${{ github.run_id }}/apidevelopers-institutional-preview/dist
+            ${{ runner.temp }}/site-factory-preview-provisioning-${{ github.run_id }}/apidevelopers-institutional-preview/publishing-manifest.json
             ${{ steps.packet.outputs.packet_dir }}/promotion-plan.json
             ${{ steps.packet.outputs.packet_dir }}/readiness-report.json
             ${{ steps.packet.outputs.packet_dir }}/provisioning-request.json
-            ${{ steps.packet.outputs.packet_dir }}/provisioning-packet.json
+            ${{ steps.packket.outputs.packet_dir }}/provisioning-packet.json
             ${{ steps.packet.outputs.packet_dir }}/summary.json
