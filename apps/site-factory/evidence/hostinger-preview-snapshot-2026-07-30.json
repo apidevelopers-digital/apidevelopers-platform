@@ -1,0 +1,40 @@
+{
+  "schemaVersion": "1.0",
+  "capturedAt": "2026-07-30T22:23:00.000Z",
+  "provider": "hostinger",
+  "orderRef": "order-***0581",
+  "accountRef": "u***1810",
+  "plan": "hostinger_business_v3",
+  "websites": [
+    {
+      "domain": "apidevelopers.digital",
+      "status": "active",
+      "is_enabled": true
+    },
+    {
+      "domain": "unico.sitedauni.com",
+      "status": "active",
+      "is_enabled": true
+    },
+    {
+      "domain": "api.sitedauni.com",
+      "status": "active",
+      "is_enabled": true
+    },
+    {
+      "domain": "sitedauni.com",
+      "status": "active",
+      "is_enabled": true
+    }
+  ],
+  "dns": {
+    "zone": "apidevelopers.digital",
+    "previewRecordExists": false,
+    "wildcardExists": false,
+    "recordsInspected": true
+  },
+  "sanitization": {
+    "containsSecrets": false,
+    "identifiersMasked": true
+  }
+}
