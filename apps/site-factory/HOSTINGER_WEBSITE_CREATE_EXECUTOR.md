@@ -40,7 +40,7 @@ draft path:
 apps/site-factory/evidence/hostinger-website-create-draft-latest.json
 
 approval ref:
-02705d29aa5a56d7c21528a14cbb544608614635
+1987a754c75ef495a395af356117779b6452ec71
 
 approval path:
 apps/site-factory/evidence/hostinger-website-create-approval.json
