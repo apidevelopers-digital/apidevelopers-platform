@@ -2,54 +2,59 @@ import test from "node:test";
 import assert from "node:assert/strict";
 
 import {
-  createHostingerAgencyPreflightReport,
-  runHostingerAgencyPreflight,
+  createHostingerHostingPreflightReport,
+  runHostingerHostingPreflight,
 } from "../src/hostinger-agency-preflight.mjs";
 
-test("creates a deterministic read-only preflight report from the official datacenter model", () => {
+test("creates a deterministic read-only report from the official Business Hosting datacenter model", () => {
   const input = {
     orderReference: "order-***0581",
     datacentersPayload: [
       {
         code: "br-1",
         title: "Brazil",
-        country: "BR",
         coordinates: { latitude: -23.55, longitude: -46.63 },
-        pinger_url: "https://example.invalid/ping",
       },
     ],
-    checkedAt: "2026-07-30T23:00:00.000Z",
+    checkedAt: "2026-07-31T00:40:00.000Z",
   };
 
-  const first = createHostingerAgencyPreflightReport(input);
-  const second = createHostingerAgencyPreflightReport(input);
+  const first = createHostingerHostingPreflightReport(input);
+  const second = createHostingerHostingPreflightReport(input);
 
+  assert.equal(first.kind, "hostinger-business-hosting-preview-preflight");
+  assert.equal(first.product, "business-web-hosting");
   assert.equal(first.mode, "read-only");
   assert.equal(first.executable, false);
   assert.equal(first.writesEnabled, false);
   assert.equal(first.provisioningEnabled, false);
   assert.equal(first.dnsEnabled, false);
   assert.equal(first.deployEnabled, false);
-  assert.equal(first.intendedProvisioning.type, "node-static");
-  assert.equal(first.intendedProvisioning.domain, null);
+  assert.equal(first.intendedProvisioning.createsWebsite, false);
+  assert.equal(first.intendedProvisioning.uploadsArchive, false);
+  assert.equal(
+    first.endpoints.datacenters,
+    "/api/hosting/v1/datacenters?order_id={order_id}",
+  );
   assert.deepEqual(first.datacenters[0], {
     code: "br-1",
     title: "Brazil",
-    country: "BR",
-    pingerUrl: "https://example.invalid/ping",
+    coordinates: { latitude: -23.55, longitude: -46.63 },
   });
   assert.equal(first.fingerprint, second.fingerprint);
   assert.match(first.fingerprint, /^[a-f0-9]{64}$/);
 });
 
-test("uses GET only and never exposes the token in the report", async () => {
+test("uses only GET on the Business Hosting datacenters endpoint and never exposes the token", async () => {
   const calls = [];
-  const report = await runHostingerAgencyPreflight({
+
+  const report = await runHostingerHostingPreflight({
     token: "secret-token",
     orderId: "1009450581",
-    checkedAt: "2026-07-30T23:00:00.000Z",
+    checkedAt: "2026-07-31T00:40:00.000Z",
     fetchImpl: async (url, options) => {
       calls.push({ url: String(url), options });
+
       return {
         ok: true,
         status: 200,
@@ -59,8 +64,7 @@ test("uses GET only and never exposes the token in the report", async () => {
             {
               code: "br-1",
               title: "Brazil",
-              country: "BR",
-              pinger_url: "https://example.invalid/ping",
+              coordinates: { latitude: -23.55, longitude: -46.63 },
             },
           ]),
       };
@@ -70,12 +74,12 @@ test("uses GET only and never exposes the token in the report", async () => {
   assert.equal(calls.length, 1);
   assert.equal(calls[0].options.method, "GET");
   assert.equal(
+    calls[0].url,
+    "https://developers.hostinger.com/api/hosting/v1/datacenters?order_id=1009450581",
+  );
+  assert.equal(
     calls[0].options.headers.authorization,
     "Bearer secret-token",
-  );
-  assert.match(
-    calls[0].url,
-    /\/api\/agency-hosting\/v1\/orders\/1009450581\/datacenters$/,
   );
   assert.equal(report.orderReference, "order-***0581");
   assert.doesNotMatch(JSON.stringify(report), /secret-token/);
@@ -84,7 +88,7 @@ test("uses GET only and never exposes the token in the report", async () => {
 test("rejects missing credentials before any API call", async () => {
   await assert.rejects(
     () =>
-      runHostingerAgencyPreflight({
+      runHostingerHostingPreflight({
         token: "",
         orderId: "1009450581",
         fetchImpl: async () => {
@@ -98,10 +102,10 @@ test("rejects missing credentials before any API call", async () => {
 test("rejects empty datacenter capacity", () => {
   assert.throws(
     () =>
-      createHostingerAgencyPreflightReport({
+      createHostingerHostingPreflightReport({
         orderReference: "order-***0581",
         datacentersPayload: [],
       }),
-    /hostinger_agency_datacenters_unavailable/,
+    /hostinger_hosting_datacenters_unavailable/,
   );
 });
