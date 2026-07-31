@@ -1,0 +1,34 @@
+{
+  "schemaVersion": "1.0",
+  "kind": "hostinger-business-hosting-website-create-execution-lock",
+  "status": "claimed",
+  "singleUse": true,
+  "executable": false,
+  "claimedAt": "2026-07-31T06:31:00.000Z",
+  "source": {
+    "repository": "apidevelopers-digital/apidevelopers-platform",
+    "sourceSha": "e0afc1884febb4f060c658086e04b2259a19086c",
+    "workflowRunId": "api-claim-20260731T063100Z",
+    "draftFingerprint": "33d5b094f12cbb9a1b5513853d69755ba4f05dced90d8f13fc950ca869c5a1c6",
+    "approvalFingerprint": "7fbaad1e65356f8cfcd86bca1c6121e2ba74021f5f45184d07cf87bdf09427b1"
+  },
+  "target": {
+    "domain": "preview-apidevelopers.apidevelopers.digital",
+    "datacenterCode": "ascenty",
+    "orderReference": "order-****0581"
+  },
+  "hostinger": {
+    "postEndpoint": "/api/hosting/v1/websites",
+    "postExecuted": false
+  },
+  "constraints": {
+    "connectRepository": false,
+    "configureDns": false,
+    "uploadArchive": false,
+    "startNodeBuild": false,
+    "deployArtifact": false,
+    "productionWrites": false,
+    "wordpressChanges": false
+  },
+  "fingerprint": "51f43b21945f04866b3e2a74d2fdb9fe84b09a82228825538ccf28fd6b3a8a45"
+}
