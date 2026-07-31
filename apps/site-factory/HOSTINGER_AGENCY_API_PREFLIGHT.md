@@ -1,25 +1,50 @@
-# Hostinger Agency API preflight — API-only
+# Hostinger Business Web Hosting API preflight — API-only
 
-Esta etapa pertence à **Onda 13** e substitui qualquer necessidade de operação por navegador ou uni.desk.
+Esta etapa pertence à **Onda 13** e usa apenas GitHub Actions e a API oficial da Hostinger. Não utiliza navegador operacional nem uni.desk.
+
+## Correção de compatibilidade
+
+Os runs `30593724760` e `30593738181` falharam porque o pedido `1009450581` é do produto **Business Web Hosting**, enquanto o workflow utilizava a família de endpoints `Agency Hosting`.
+
+O contrato correto para o pedido vigente é:
+
+```text
+GET /api/hosting/v1/datacenters?order_id={order_id}
+```
+
+A resposta oficial contém:
+
+```text
+title
+code
+coordinates
+```
 
 ## Objetivo
 
-Validar, pela API oficial da Hostinger e em modo somente leitura:
+Validar em modo somente leitura:
 
 - a autenticação do token;
-- o acesso ao pedido Agency Hosting;
+- o acesso ao pedido de Business Web Hosting;
 - os datacenters atualmente disponíveis;
-- a prontidão para um futuro provisionamento isolado.
+- a prontidão para preparar uma futura criação isolada.
 
-## Endpoints oficiais usados ou preparados
+## Endpoints oficiais relacionados
+
+Usado pelo workflow atual:
 
 ```text
-GET  /api/agency-hosting/v1/orders/{order_id}/datacenters
-POST /api/agency-hosting/v1/orders/{order_id}/websites/setups
-GET  /api/agency-hosting/v1/orders/{order_id}/websites/setups/{setup_uuid}
+GET  /api/hosting/v1/datacenters?order_id={order_id}
 ```
 
-O workflow desta etapa chama somente o primeiro endpoint com `GET`.
+Preparados apenas como referência para etapas futuras e separadas:
+
+```text
+POST /api/hosting/v1/websites
+POST /api/hosting/v1/accounts/{username}/websites/{domain}/nodejs/builds/from-archive
+```
+
+O workflow desta etapa chama somente o endpoint `GET`.
 
 ## GitHub Actions
 
@@ -28,6 +53,8 @@ Workflow:
 ```text
 .github/workflows/site-factory-hostinger-agency-preflight.yml
 ```
+
+O nome físico do arquivo foi preservado para evitar exclusão e manter a rastreabilidade do PR #99. O nome exibido no GitHub Actions passa a ser `Site Factory Hostinger Business Preflight`.
 
 Runner:
 
@@ -38,10 +65,12 @@ runs-on:
   - X64
 ```
 
-Credenciais exigidas no GitHub, nunca no repositório ou no chat:
+Secrets usados:
 
-- secret `HOSTINGER_API_TOKEN`;
-- secret `HOSTINGER_AGENCY_ORDER_ID`.
+- `HOSTINGER_API_TOKEN`;
+- `HOSTINGER_AGENCY_ORDER_ID`.
+
+O segundo nome é legado. O valor é utilizado como `HOSTINGER_HOSTING_ORDER_ID` dentro do workflow, sem exigir que o usuário revele ou cadastre novamente o ID do pedido.
 
 ## Segurança
 
@@ -56,16 +85,6 @@ dnsEnabled: false
 deployEnabled: false
 ```
 
-O preflight não cria website, não conecta repositório, não configura DNS e não executa deploy.
+O preflight não cria website, não conecta repositório, não configura DNS, não envia arquivo, não inicia build e não executa deploy.
 
-## Provisionamento futuro
-
-O contrato futuro deverá permanecer separado e exigir nova aprovação explícita. Para um preview isolado, o payload previsto usa:
-
-```text
-flavor: php-fpm
-type: node-static
-domain: null
-```
-
-A omissão do domínio permite que a Hostinger gere um subdomínio temporário próprio. O datacenter deve ser selecionado apenas a partir da resposta atual do endpoint de datacenters.
+Qualquer chamada `POST` permanece bloqueada e exige aprovação explícita separada.
