@@ -6,6 +6,9 @@ import {
   claimExecutionLock,
 } from "./hostinger-website-create-lock.mjs";
 import {
+  validateExistingExecutionLock,
+} from "./hostinger-website-create-lock-validation.mjs";
+import {
   readGitHubJson,
 } from "./hostinger-website-create-github.mjs";
 
@@ -64,9 +67,26 @@ const claimed = await claimExecutionLock({
 });
 
 if (!claimed.claimed) {
-  throw new Error(
-    `execution_lock_exists:${claimed.reason}:${lock.source.draftFingerprint}`,
+  const resumed = validateExistingExecutionLock({
+    lock: claimed.existing,
+    authorization,
+    repository,
+  });
+
+  process.stdout.write(
+    `${JSON.stringify({
+      status: "resumed_from_existing_lock",
+      executable: false,
+      domain: lock.target.domain,
+      datacenterCode: lock.target.datacenterCode,
+      orderReference: lock.target.orderReference,
+      draftFingerprint: lock.source.draftFingerprint,
+      lockFingerprint: resumed.fingerprint,
+      originalWorkflowRunId: resumed.workflowRunId,
+      ...claimed,
+    })}\n`,
   );
+  process.exit(0);
 }
 
 process.stdout.write(
