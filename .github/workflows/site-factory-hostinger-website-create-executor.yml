@@ -50,6 +50,11 @@ jobs:
           set -euo pipefail
           test -n "$HOSTINGER_API_TOKEN"
 
+      - name: Claim immutable single-use execution lock
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+        run: node apps/site-factory/src/run-hostinger-website-create-claim.mjs
+
       - name: Execute approved single-use website creation
         env:
           GITHUB_TOKEN: ${{ github.token }}
