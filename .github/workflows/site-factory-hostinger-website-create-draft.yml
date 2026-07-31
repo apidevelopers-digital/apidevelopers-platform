@@ -1,0 +1,114 @@
+name: Site Factory Hostinger Website Create Draft
+
+on:
+  workflow_dispatch:
+    inputs:
+      datacenter_code:
+        description: "Código retornado pelo preflight Business Hosting"
+        required: true
+        type: string
+
+permissions:
+  contents: read
+
+jobs:
+  draft:
+    name: Generate API-only website create draft
+    runs-on:
+      - self-hosted
+      - macOS
+      - X64
+    timeout-minutes: 15
+
+    steps:
+      - name: Checkout exact source SHA
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.sha }}
+
+      - name: Configure Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+
+      - name: Validate Site Factory
+        working-directory: apps/site-factory
+        run: |
+          npm install --no-audit --no-fund
+          npm run check
+
+      - name: Prepare sanitized output paths
+        shell: bash
+        run: |
+          set -euo pipefail
+          echo "PREFLIGHT_OUTPUT_PATH=$RUNNER_TEMP/hostinger-business-preview-preflight.json" >> "$GITHUB_ENV"
+          echo "DRAFT_OUTPUT_PATH=$RUNNER_TEMP/hostinger-website-create-draft.json" >> "$GITHUB_ENV"
+
+      - name: Run live Hostinger Business API preflight
+        env:
+          HOSTINGER_API_TOKEN: ${{ secrets.HOSTINGER_API_TOKEN }}
+          HOSTINGER_HOSTING_ORDER_ID: ${{ secrets.HOSTINGER_AGENCY_ORDER_ID }}
+        run: node apps/site-factory/src/run-hostinger-agency-preflight.mjs
+
+      - name: Generate non-executable website create draft
+        env:
+          ORDER_ID: ${{ secrets.HOSTINGER_AGENCY_ORDER_ID }}
+          DATACENTER_CODE: ${{ inputs.datacenter_code }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          test -n "$ORDER_ID"
+          test -n "$DATACENTER_CODE"
+
+          node apps/site-factory/src/run-hostinger-website-create-draft.mjs \
+            --manifest apps/site-factory/manifests/apidevelopers-digital.github-first.json \
+            --preflight "$PREFLIGHT_OUTPUT_PATH" \
+            --output "$DRAFT_OUTPUT_PATH" \
+            --order-id "$ORDER_ID" \
+            --datacenter-code "$DATACENTER_CODE" \
+            --repository "$GITHUB_REPOSITORY" \
+            --source-sha "$GITHUB_SHA"
+
+      - name: Assert draft cannot execute or expand scope
+        shell: bash
+        run: |
+          set -euo pipefail
+          node --input-type=module - "$DRAFT_OUTPUT_PATH" <<'NODE'
+          import fs from "node:fs";
+
+          const draft = JSON.parse(
+            fs.readFileSync(process.argv[2], "utf8"),
+          );
+
+          const safe =
+            draft.mode === "approval-draft" &&
+            draft.executable === false &&
+            draft.approvalRequired === true &&
+            draft.writesEnabled === false &&
+            draft.provisioningEnabled === false &&
+            draft.dnsEnabled === false &&
+            draft.deployEnabled === false &&
+            draft.request?.method === "POST" &&
+            draft.request?.endpoint === "/api/hosting/v1/websites" &&
+            draft.request?.execute === false &&
+            draft.invariants?.connectRepository === false &&
+            draft.invariants?.configureDns === false &&
+            draft.invariants?.uploadArchive === false &&
+            draft.invariants?.startNodeBuild === false &&
+            draft.invariants?.deployArtifact === false &&
+            draft.invariants?.productionWrites === false;
+
+          if (!safe) {
+            throw new Error("unsafe_hostinger_website_create_draft");
+          }
+          NODE
+
+      - name: Upload sanitized API evidence
+        uses: actions/upload-artifact@v4
+        with:
+          name: hostinger-website-create-draft-${{ github.sha }}
+          retention-days: 7
+          if-no-files-found: error
+          path: |
+            ${{ env.PREFLIGHT_OUTPUT_PATH }}
+            ${{ env.DRAFT_OUTPUT_PATH }}
