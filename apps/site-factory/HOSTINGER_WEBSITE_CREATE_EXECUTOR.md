@@ -40,7 +40,7 @@ draft path:
 apps/site-factory/evidence/hostinger-website-create-draft-latest.json
 
 approval ref:
-d90c170f85ebb931beae9e1fc275eb45971ac5d3
+02705d29aa5a56d7c21528a14cbb544608614635
 
 approval path:
 apps/site-factory/evidence/hostinger-website-create-approval.json
@@ -62,7 +62,7 @@ Antes do `POST`, o executor:
 7. evita o `POST` quando o domínio já existe;
 8. bloqueia reexecuções quando já existe evidência de execução para o mesmo draft.
 
-Após a execuwão, publica evidência sanitizada pela GitHub REST API em:
+Após a execução, publica evidência sanitizada pela GitHub REST API em:
 
 ```text
 branch:
@@ -78,9 +78,9 @@ O fluxo realiza no máximo um `POST`.
 
 Em reexecuções:
 
-- se o dominio já existir, retorna `already_exists` sem novo `POST`;
+- se o domínio já existir, retorna `already_exists` sem novo `POST`;
 - se a evidência de execução já existir, retorna `already_recorded`;
-- se o `POST` tiver resposta ambí�ua mas o dominio aparecer no `GET`, registra
+- se o `POST` tiver resposta ambígua mas o domínio aparecer no `GET`, registra
   `created_after_ambiguous_response`;
 - não há retry automático do `POST`.
 
