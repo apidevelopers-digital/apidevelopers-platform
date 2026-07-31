@@ -1,0 +1,33 @@
+{
+  "schemaVersion": "1.0",
+  "kind": "hostinger-business-hosting-website-create-approval",
+  "status": "approved",
+  "singleUse": true,
+  "consumed": false,
+  "scope": "create-isolated-preview-website-only",
+  "approvedBy": "Igir",
+  "approvedAt": "2026-07-31T03:41:00.000Z",
+  "expiresAt": "2026-07-31T09:41:00.000Z",
+  "source": {
+    "repository": "apidevelopers-digital/apidevelopers-platform",
+    "draftBranch": "evidence/hostinger-website-create-draft",
+    "draftCommit": "b13fa5992344663b94c8f64dfea5ff448341ec55",
+    "draftPath": "apps/site-factory/evidence/hostinger-website-create-draft-latest.json",
+    "draftContentSha": "1b90e0ed7e09ded0d3f35e8ef7c842b389f43e55"
+  },
+  "approvedFingerprint": "33d5b094f12cbb9a1b5513853d69755ba4f05dced90d8f13fc950ca869c5a1c6",
+  "approvalTokenDigest": "a92d26744f5df0acc89f08e27f6b9819f039e72b53e468d613e2809f930afa29",
+  "constraints": {
+    "domain": "preview-apidevelopers.apidevelopers.digital",
+    "orderReference": "order-****0581",
+    "datacenterCode": "ascenty",
+    "connectRepository": false,
+    "configureDns": false,
+    "uploadArchive": false,
+    "startNodeBuild": false,
+    "deployArtifact": false,
+    "productionWrites": false,
+    "wordpressChanges": false
+  },
+  "fingerprint": "7fbaad1e65356f8cfcd86bca1c6121e2ba74021f5f45184d07cf87bdf09427b1"
+}
