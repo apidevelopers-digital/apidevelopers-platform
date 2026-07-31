@@ -100,7 +100,7 @@ O workflow não:
 ## Workflow
 
 ```text
-.github/workflows/site-factory-hostinger-website-create.yml
+.github/workflows/site-factory-hostinger-website-create-executor.yml
 ```
 
 Runner institucional:
