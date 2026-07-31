@@ -1,4 +1,3 @@
-
 import test from "node:test";
 import assert from "node:assert/strict";
 
@@ -15,7 +14,7 @@ import {
 
 test("reads pinned JSON content through GitHub API", async () => {
   const expected = { kind: "draft" };
-  const result = await readGithubJson, {
+  const result = await readGithubJson({
     token: "github-token",
     repository,
     ref: sourceSha,
@@ -66,7 +65,7 @@ test("creates branch and publishes execution evidence", async () => {
       if (String(url).includes("/git/ref/heads/")) {
         return new Response("", { status: 404 });
       }
-      if (String(url).endsWith("/git/refs") {
+      if (String(url).endsWith("/git/refs")) {
         return json({}, 201);
       }
       if (options.method === "GET") {
