@@ -1,0 +1,62 @@
+name: Site Factory Hostinger Website Create Executor
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: site-factory-hostinger-website-create
+  cancel-in-progress: false
+
+jobs:
+  create-preview-website:
+    name: Create isolated Hostinger preview website
+    runs-on:
+      - self-hosted
+      - macOS
+      - X64
+    timeout-minutes: 20
+
+    steps:
+      - name: Assert dispatch is anchored to main
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$GITHUB_REF" = "refs/heads/main"
+
+      - name: Checkout exact source SHA
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.sha }}
+
+      - name: Configure Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+
+      - name: Validate Site Factory
+        working-directory: apps/site-factory
+        run: |
+          npm install --no-audit --no-fund
+          npm run check
+
+      - name: Assert required Hostinger secret is available
+        shell: bash
+        env:
+          HOSTINGER_API_TOKEN: ${{ secrets.HOSTINGER_API_TOKEN }}
+        run: |
+          set -euo pipefail
+          test -n "$HOSTINGER_API_TOKEN"
+
+      - name: Claim immutable single-use execution lock
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+        run: node apps/site-factory/src/run-hostinger-website-create-claim.mjs
+
+      - name: Execute approved single-use website creation
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+          HOSTINGER_API_TOKEN: ${{ secrets.HOSTINGER_API_TOKEN }}
+        run: node apps/site-factory/src/run-hostinger-website-create-executor.mjs
