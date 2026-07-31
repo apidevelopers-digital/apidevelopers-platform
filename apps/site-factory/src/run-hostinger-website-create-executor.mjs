@@ -1,4 +1,3 @@
-
 import {
   buildExecutionEvidence,
 } from "./hostinger-website-create-contract.mjs";
@@ -10,6 +9,9 @@ import {
   readExecutionEvidence,
   readGithubJson,
 } from "./hostinger-website-create-github.mjs";
+import {
+  readExecutionLock,
+} from "./hostinger-website-create-lock.mjs";
 
 const DRAFT_REF = "b13fa5992344663b94c8f64dfea5ff448341ec55";
 const DRAFT_PATH =
@@ -19,6 +21,7 @@ const APPROVAL_PATH =
   "apps/site-factory/evidence/hostinger-website-create-approval.json";
 const EXPECTED_FINGERPRINT =
   "33d5b094f12cbb9a1b5513853d69755ba4f05dced90d8f13fc950ca869c5a1c6";
+const MAX_DRAFT_AGE_MS = 6 * 60 * 60 * 1000;
 
 function env(name) {
   const value = process.env[name];
@@ -53,6 +56,22 @@ if (currentEvidence) {
   process.exit(0);
 }
 
+const lock = await readExecutionLock({
+  token: githubToken,
+  repository,
+});
+
+if (
+  !lock ||
+  lock.status !== "claimed" ||
+  lock.singleUse !== true ||
+  lock.executable !== false ||
+  lock.hostinger?.postExecuted !== false ||
+  lock.source?.draftFingerprint !== EXPECTED_FINGERPRINT
+) {
+  throw new Error("execution_lock_invalid_or_missing");
+}
+
 const draft = await readGithubJson({
   token: githubToken,
   repository,
@@ -72,6 +91,7 @@ const result = await executeApprovedWebsiteCreation({
   approval,
   expectedFingerprint: EXPECTED_FINGERPRINT,
   expectedRepository: repository,
+  maxDraftAgeMs: MAX_DRAFT_AGE_MS,
 });
 
 const evidence = buildExecutionEvidence({
@@ -99,6 +119,7 @@ process.stdout.write(
     approvalConsumed: evidence.approval.consumed,
     draftFingerprint: evidence.source.draftFingerprint,
     evidenceFingerprint: evidence.fingerprint,
+    lockFingerprint: lock.fingerprint,
     ...published,
   })}\n`,
 );
