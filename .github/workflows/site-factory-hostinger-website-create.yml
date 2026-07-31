@@ -1,0 +1,106 @@
+
+name: Site Factory Hostinger Website Create
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: site-factory-hostinger-website-create
+  cancel-in-progress: false
+
+jobs:
+  create-preview-website:
+    name: Execute approved isolated Hostinger website creation
+    runs-on:
+      - self-hosted
+      - macOS
+      - X64
+    timeout-minutes: 20
+
+    steps:
+      - name: Assert dispatch is anchored to main
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$GITHUB_REF" = "refs/heads/main"
+
+      - name: Checkout exact source SHA
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.sha }}
+
+      - name: Configure Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+
+      - name: Validate Site Factory
+        working-directory: apps/site-factory
+        run: |
+          npm install --no-audit --no-fund
+          npm run check
+
+      - name: Assert required API credentials are available
+        shell: bash
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+          HOSTINGER_API_TOKEN: ${{ secrets.HOSTINGER_API_TOKEN }}
+        run: |
+          set -euo pipefail
+          test -n "$GITHUB_TOKEN"
+          test -n "$HOSTINGER_API_TOKEN"
+
+      - name: Execute single-use approved Hostinger website creation
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+          HOSTINGER_API_TOKEN: ${{ secrets.HOSTINGER_API_TOKEN }}
+        run: node apps/site-factory/src/run-hostinger-website-create-executor.mjs
+
+      - name: Verify API-root execution evidence
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          node --input-type=module <<'NODE'
+          import {
+            readExecutionEvidence,
+          } from "./apps/site-factory/src/hostinger-website-create-executor.mjs";
+
+          const evidence = await readExecutionEvidence({
+            token: process.env.GITHUB_TOKEN,
+            repository: process.env.GITHUB_REPOSITORY,
+          });
+
+          const safe =
+            evidence?.kind ===
+              "hostinger-business-hosting-website-create-execution-evidence" &&
+            evidence?.source?.draftFingerprint ===
+              "33d5b094f12cbb9a1b5513853d69755ba4f05dced90d8f13fc950ca869c5a1c6" &&
+            evidence?.approval?.consumed === true &&
+            evidence?.approval?.singleUse === true &&
+            evidence?.constraints?.connectRepositoryExecuted === false &&
+            evidence?.constraints?.dnsChanged === false &&
+            evidence?.constraints?.archiveUploaded === false &&
+            evidence?.constraints?.nodeBuildStarted === false &&
+            evidence?.constraints?.deployExecuted === false &&
+            evidence?.constraints?.productionChanged === false &&
+            evidence?.constraints?.wordpressChanged === false;
+
+          if (!safe) {
+            throw new Error("unsafe_or_missing_hostinger_execution_evidence");
+          }
+
+          process.stdout.write(
+            `${JSON.stringify({
+              outcome: evidence.outcome,
+              domain: evidence.hostinger.domain,
+              datacenterCode: evidence.hostinger.datacenterCode,
+              orderReference: evidence.hostinger.orderReference,
+              evidenceFingerprint: evidence.fingerprint,
+            })}\n`,
+          );
+          NODE
