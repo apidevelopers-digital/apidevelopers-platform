@@ -1,0 +1,66 @@
+{
+  "schemaVersion": "1.0",
+  "kind": "hostinger-business-hosting-website-create-draft",
+  "mode": "approval-draft",
+  "executable": false,
+  "approvalRequired": true,
+  "approvalScope": "create-isolated-preview-website-only",
+  "writesEnabled": false,
+  "provisioningEnabled": false,
+  "dnsEnabled": false,
+  "deployEnabled": false,
+  "generatedAt": "2026-07-31T03:25:55.256Z",
+  "provider": "hostinger",
+  "product": "business-web-hosting",
+  "source": {
+    "repository": "apidevelopers-digital/apidevelopers-platform",
+    "sha": "1b775697244245f1b6bb79801244c0a67f5c286a"
+  },
+  "request": {
+    "method": "POST",
+    "endpoint": "/api/hosting/v1/websites",
+    "execute": false,
+    "payload": {
+      "domain": "preview-apidevelopers.apidevelopers.digital",
+      "order_id": "1009450581",
+      "datacenter_code": "ascenty"
+    }
+  },
+  "selectedDatacenter": {
+    "code": "ascenty",
+    "title": "South America (Brazil)",
+    "coordinates": {
+      "latitude": -23.4777584,
+      "longitude": -46.773201
+    }
+  },
+  "evidence": {
+    "preflightKind": "hostinger-business-hosting-preview-preflight",
+    "preflightFingerprint": "39e38af94a871c187823d38c3893b24b8572bccf4c8a6a2b90824c36c107bc87",
+    "orderReference": "order-****0581",
+    "checkedAt": "2026-07-31T03:19:06.136Z"
+  },
+  "invariants": {
+    "preservePrimaryDomain": true,
+    "preserveCurrentWordPress": true,
+    "createOnlyIsolatedPreviewWebsite": true,
+    "connectRepository": false,
+    "configureDns": false,
+    "uploadArchive": false,
+    "startNodeBuild": false,
+    "deployArtifact": false,
+    "productionWrites": false
+  },
+  "deferredActions": [
+    "execute_create_website_post",
+    "inspect_created_website_by_api",
+    "upload_exact_sha_archive",
+    "start_node_static_build",
+    "configure_preview_dns",
+    "validate_ssl_and_healthcheck",
+    "register_preview_release",
+    "prove_rollback_by_commit"
+  ],
+  "fingerprint": "33d5b094f12cbb9a1b5513853d69755ba4f05dced90d8f13fc950ca869c5a1c6",
+  "approvalToken": "IGOR_APROVA_CRIACAO_WEBSITE_PREVIEW_33D5B094F12C"
+}
