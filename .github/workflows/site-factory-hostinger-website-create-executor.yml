@@ -37,12 +37,14 @@ jobs:
           node-version: "22"
 
       - name: Validate Site Factory
+        id: validate
         working-directory: apps/site-factory
         run: |
           npm install --no-audit --no-fund
           npm run check
 
       - name: Assert required Hostinger secret is available
+        id: secret
         shell: bash
         env:
           HOSTINGER_API_TOKEN: ${{ secrets.HOSTINGER_API_TOKEN }}
@@ -51,12 +53,24 @@ jobs:
           test -n "$HOSTINGER_API_TOKEN"
 
       - name: Claim immutable single-use execution lock
+        id: claim
         env:
           GITHUB_TOKEN: ${{ github.token }}
         run: node apps/site-factory/src/run-hostinger-website-create-claim.mjs
 
       - name: Execute approved single-use website creation
+        id: execute
         env:
           GITHUB_TOKEN: ${{ github.token }}
           HOSTINGER_API_TOKEN: ${{ secrets.HOSTINGER_API_TOKEN }}
         run: node apps/site-factory/src/run-hostinger-website-create-executor.mjs
+
+      - name: Publish sanitized step diagnostic through GitHub API
+        if: ${{ always() }}
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+          VALIDATE_OUTCOME: ${{ steps.validate.outcome }}
+          SECRET_OUTCOME: ${{ steps.secret.outcome }}
+          CLAIM_OUTCOME: ${{ steps.claim.outcome }}
+          EXECUTE_OUTCOME: ${{ steps.execute.outcome }}
+        run: node apps/site-factory/src/run-publish-hostinger-website-create-diagnostic.mjs
