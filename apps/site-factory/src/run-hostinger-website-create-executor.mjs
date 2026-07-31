@@ -1,5 +1,6 @@
 import {
   buildExecutionEvidence,
+  validateCreateAuthorization,
 } from "./hostinger-website-create-contract.mjs";
 import {
   executeApprovedWebsiteCreation,
@@ -12,6 +13,9 @@ import {
 import {
   readExecutionLock,
 } from "./hostinger-website-create-lock.mjs";
+import {
+  validateExistingExecutionLock,
+} from "./hostinger-website-create-lock-validation.mjs";
 
 const DRAFT_REF = "b13fa5992344663b94c8f64dfea5ff448341ec55";
 const DRAFT_PATH =
@@ -39,7 +43,9 @@ const currentEvidence = await readExecutionEvidence({
 });
 
 if (currentEvidence) {
-  if (currentEvidence.source?.draftFingerprint !== EXPECTED_FINGERPRINT) {
+  if (
+    currentEvidence.source?.draftFingerprint !== EXPECTED_FINGERPRINT
+  ) {
     throw new Error("execution_evidence_conflict");
   }
 
@@ -56,22 +62,6 @@ if (currentEvidence) {
   process.exit(0);
 }
 
-const lock = await readExecutionLock({
-  token: githubToken,
-  repository,
-});
-
-if (
-  !lock ||
-  lock.status !== "claimed" ||
-  lock.singleUse !== true ||
-  lock.executable !== false ||
-  lock.hostinger?.postExecuted !== false ||
-  lock.source?.draftFingerprint !== EXPECTED_FINGERPRINT
-) {
-  throw new Error("execution_lock_invalid_or_missing");
-}
-
 const draft = await readGithubJson({
   token: githubToken,
   repository,
@@ -83,6 +73,24 @@ const approval = await readGithubJson({
   repository,
   ref: APPROVAL_REF,
   path: APPROVAL_PATH,
+});
+
+const authorization = validateCreateAuthorization({
+  draft,
+  approval,
+  expectedFingerprint: EXPECTED_FINGERPRINT,
+  expectedRepository: repository,
+  maxDraftAgeMs: MAX_DRAFT_AGE_MS,
+});
+
+const lock = await readExecutionLock({
+  token: githubToken,
+  repository,
+});
+const lockInfo = validateExistingExecutionLock({
+  lock,
+  authorization,
+  repository,
 });
 
 const result = await executeApprovedWebsiteCreation({
@@ -119,7 +127,7 @@ process.stdout.write(
     approvalConsumed: evidence.approval.consumed,
     draftFingerprint: evidence.source.draftFingerprint,
     evidenceFingerprint: evidence.fingerprint,
-    lockFingerprint: lock.fingerprint,
+    lockFingerprint: lockInfo.fingerprint,
     ...published,
   })}\n`,
 );
