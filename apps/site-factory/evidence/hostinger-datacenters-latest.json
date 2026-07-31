@@ -1,0 +1,144 @@
+{
+  "schemaVersion": "1.0",
+  "kind": "hostinger-business-hosting-datacenter-evidence",
+  "mode": "api-root-evidence",
+  "executable": false,
+  "hostingerWrites": false,
+  "githubEvidenceWrite": true,
+  "generatedAt": "2026-07-31T03:19:12.260Z",
+  "provider": "hostinger",
+  "product": "business-web-hosting",
+  "source": {
+    "repository": "apidevelopers-digital/apidevelopers-platform",
+    "sha": "1b775697244245f1b6bb79801244c0a67f5c286a",
+    "workflowRunId": "30601263522",
+    "preflightFingerprint": "39e38af94a871c187823d38c3893b24b8572bccf4c8a6a2b90824c36c107bc87",
+    "checkedAt": "2026-07-31T03:19:06.136Z",
+    "orderReference": "order-****0581"
+  },
+  "datacenters": [
+    {
+      "code": "ascenty",
+      "title": "South America (Brazil)",
+      "coordinates": {
+        "latitude": -23.4777584,
+        "longitude": -46.773201
+      }
+    },
+    {
+      "code": "baltneta",
+      "title": "Europe (Lithuania)",
+      "coordinates": {
+        "latitude": 54.6723938,
+        "longitude": 25.3098965
+      }
+    },
+    {
+      "code": "boston",
+      "title": "North America (USA, MA)",
+      "coordinates": {
+        "latitude": 42.3012199,
+        "longitude": -71.2190399
+      }
+    },
+    {
+      "code": "dci-indonesia",
+      "title": "Asia (Indonesia)",
+      "coordinates": {
+        "latitude": -6.3043542,
+        "longitude": 107.092041
+      }
+    },
+    {
+      "code": "dusseldorf",
+      "title": "Europe (Germany, Dusseldorf)",
+      "coordinates": {
+        "latitude": 51.2333336,
+        "longitude": 6.7833328
+      }
+    },
+    {
+      "code": "frankfurt",
+      "title": "Europe (Germany, Frankfurt)",
+      "coordinates": {
+        "latitude": 50.1182098,
+        "longitude": 8.73279
+      }
+    },
+    {
+      "code": "interxion",
+      "title": "Europe (France)",
+      "coordinates": {
+        "latitude": 48.9285469,
+        "longitude": 2.3950951
+      }
+    },
+    {
+      "code": "kualalumpur",
+      "title": "Asia (Malaysia)",
+      "coordinates": {
+        "latitude": 2.9046335,
+        "longitude": 101.6509247
+      }
+    },
+    {
+      "code": "mumbai",
+      "title": "Asia (India)",
+      "coordinates": {
+        "latitude": 19.1676846,
+        "longitude": 73.0101395
+      }
+    },
+    {
+      "code": "netriplex",
+      "title": "North America (USA, NC)",
+      "coordinates": {
+        "latitude": 36.2722664,
+        "longitude": -82.4254456
+      }
+    },
+    {
+      "code": "newmediaexpress",
+      "title": "Asia (Singapore)",
+      "coordinates": {
+        "latitude": 1.8857824,
+        "longitude": 103.8484192
+      }
+    },
+    {
+      "code": "phoenix",
+      "title": "North America (USA, AZ)",
+      "coordinates": {
+        "latitude": 34.2632103,
+        "longitude": -112.0006409
+      }
+    },
+    {
+      "code": "serverius",
+      "title": "Europe (Netherlands)",
+      "coordinates": {
+        "latitude": 53.1173668,
+        "longitude": 5.7884755
+      }
+    },
+    {
+      "code": "ukfast",
+      "title": "Europe (United Kingdom)",
+      "coordinates": {
+        "latitude": 53.4629211,
+        "longitude": -2.2463672
+      }
+    }
+  ],
+  "constraints": {
+    "sourceMethod": "GET",
+    "sourceEndpoint": "/api/hosting/v1/datacenters?order_id={order_id}",
+    "createWebsiteExecuted": false,
+    "dnsChanged": false,
+    "buildStarted": false,
+    "deployExecuted": false,
+    "productionChanged": false,
+    "wordpressChanged": false
+  },
+  "fingerprint": "707df6d5956e3159fae21bf678c854f2e25805a8267a4e6668b1c6ecc4dfd38b"
+}
