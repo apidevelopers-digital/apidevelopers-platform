@@ -1,4 +1,4 @@
-name: Site Factory Hostinger Agency Preflight
+name: Site Factory Hostinger Business Preflight
 
 on:
   workflow_dispatch:
@@ -8,7 +8,7 @@ permissions:
 
 jobs:
   preflight:
-    name: Hostinger API read-only preflight
+    name: Hostinger Business API read-only preflight
     runs-on:
       - self-hosted
       - macOS
@@ -36,22 +36,23 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          echo "PREFLIGHT_OUTPUT_PATH=$RUNNER_TEMP/hostinger-agency-preview-preflight.json" >> "$GITHUB_ENV"
+          echo "PREFLIGHT_OUTPUT_PATH=$RUNNER_TEMP/hostinger-business-preview-preflight.json" >> "$GITHUB_ENV"
 
       - name: Assert required GitHub Actions secrets are available
         shell: bash
         env:
           HOSTINGER_API_TOKEN: ${{ secrets.HOSTINGER_API_TOKEN }}
-          HOSTINGER_AGENCY_ORDER_ID: ${{ secrets.HOSTINGER_AGENCY_ORDER_ID }}
+          # Legacy secret name retained to avoid exposing or re-entering the order ID.
+          HOSTINGER_HOSTING_ORDER_ID: ${{ secrets.HOSTINGER_AGENCY_ORDER_ID }}
         run: |
           set -euo pipefail
           test -n "$HOSTINGER_API_TOKEN"
-          test -n "$HOSTINGER_AGENCY_ORDER_ID"
+          test -n "$HOSTINGER_HOSTING_ORDER_ID"
 
-      - name: Run Hostinger Agency API read-only preflight
+      - name: Run Hostinger Business API read-only preflight
         env:
           HOSTINGER_API_TOKEN: ${{ secrets.HOSTINGER_API_TOKEN }}
-          HOSTINGER_AGENCY_ORDER_ID: ${{ secrets.HOSTINGER_AGENCY_ORDER_ID }}
+          HOSTINGER_HOSTING_ORDER_ID: ${{ secrets.HOSTINGER_AGENCY_ORDER_ID }}
         run: node apps/site-factory/src/run-hostinger-agency-preflight.mjs
 
       - name: Assert report is non-executable
@@ -66,6 +67,8 @@ jobs:
           );
 
           const safe =
+            report.kind === "hostinger-business-hosting-preview-preflight" &&
+            report.product === "business-web-hosting" &&
             report.mode === "read-only" &&
             report.executable === false &&
             report.writesEnabled === false &&
@@ -75,17 +78,18 @@ jobs:
             report.intendedProvisioning?.createsWebsite === false &&
             report.intendedProvisioning?.connectsRepository === false &&
             report.intendedProvisioning?.configuresDns === false &&
-            report.intendedProvisioning?.deploysArtifact === false;
+            report.intendedProvisioning?.deploysArtifact === false &&
+            report.intendedProvisioning?.uploadsArchive === false;
 
           if (!safe) {
-            throw new Error("unsafe_hostinger_agency_preflight_report");
+            throw new Error("unsafe_hostinger_business_preflight_report");
           }
           NODE
 
       - name: Upload sanitized preflight evidence
         uses: actions/upload-artifact@v4
         with:
-          name: hostinger-agency-preview-preflight-${{ github.sha }}
+          name: hostinger-business-preview-preflight-${{ github.sha }}
           retention-days: 7
           if-no-files-found: error
-          path: ${{ runner.temp }}/hostinger-agency-preview-preflight.json
+          path: ${{ runner.temp }}/hostinger-business-preview-preflight.json
