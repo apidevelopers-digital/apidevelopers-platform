@@ -14,7 +14,7 @@ import {
 const DRAFT_REF = "b13fa5992344663b94c8f64dfea5ff448341ec55";
 const DRAFT_PATH =
   "apps/site-factory/evidence/hostinger-website-create-draft-latest.json";
-const APPROVAL_REF = "02705d29aa5a56d7c21528a14cbb544608614635";
+const APPROVAL_REF = "1987a754c75ef495a395af356117779b6452ec71";
 const APPROVAL_PATH =
   "apps/site-factory/evidence/hostinger-website-create-approval.json";
 const EXPECTED_FINGERPRINT =
