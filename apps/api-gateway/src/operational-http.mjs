@@ -1,5 +1,9 @@
-import { createOperationalGateway } from "./operational-composition.mjs";
-import { startServer } from "./server.mjs";
+import {
+  createOperationalGatewayWithHostingerStructure,
+} from "./operator-hostinger-structure-composition.mjs";
+import {
+  startOperatorGatewayHttpServer,
+} from "./operator-hostinger-structure-server.mjs";
 
 async function closeServer(server) {
   if (!server?.listening) return;
@@ -17,9 +21,8 @@ function normalizeAddress(address) {
     throw new Error("operational gateway did not expose a TCP address");
   }
 
-  const hostname = address.family === "IPv6"
-    ? `[${address.address}]`
-    : address.address;
+  const hostname =
+    address.family === "IPv6" ? `[${address.address}]` : address.address;
 
   return Object.freeze({
     address: address.address,
@@ -32,13 +35,16 @@ function normalizeAddress(address) {
 export async function startOperationalGatewayServer({
   port = 0,
   host = "127.0.0.1",
+  maxBodyBytes,
   ...compositionOptions
 } = {}) {
-  const composition = createOperationalGateway(compositionOptions);
-  const server = await startServer({
+  const composition =
+    createOperationalGatewayWithHostingerStructure(compositionOptions);
+  const server = await startOperatorGatewayHttpServer({
     port,
     host,
     app: composition.app,
+    maxBodyBytes,
   });
   const address = normalizeAddress(server.address());
 
