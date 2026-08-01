@@ -1,5 +1,8 @@
-
 import { createFixedWindowRateLimiter } from "./operational-protection.mjs";
+import {
+  createOperationalReadinessService,
+  createReadinessHttpApp,
+} from "./operational-readiness-composition.mjs";
 import {
   createOperationalGatewayWithHostingerStructure,
 } from "./operator-hostinger-structure-composition.mjs";
@@ -14,6 +17,8 @@ export function createOperationalGatewayWithReadonlyOperator({
   operatorReadonlyNow,
   operatorReadonlyMaxBodyBytes,
   operatorReadonlyRateLimiter,
+  readinessChecks = [],
+  readinessNow,
   ...operationalOptions
 } = {}) {
   const sharedRateLimiter =
@@ -33,14 +38,17 @@ export function createOperationalGatewayWithReadonlyOperator({
     ...operationalOptions,
     protection,
   });
+
   const adapters =
     operatorReadonlyAdapters ?? createUnavailableOperatorReadonlyAdapters();
+
   const operatorReadonlyCore = createOperatorReadonlyCore({
     adapters,
     auditRecorder: base.audit,
     ...(operatorReadonlyNow ? { now: operatorReadonlyNow } : {}),
   });
-  const app = createOperatorReadonlyHttpApp({
+
+  const readonlyApp = createOperatorReadonlyHttpApp({
     app: base.app,
     authenticator: base.authenticator,
     authorization: base.authorization,
@@ -52,11 +60,23 @@ export function createOperationalGatewayWithReadonlyOperator({
       : {}),
   });
 
+  const readiness = createOperationalReadinessService({
+    store: base.store,
+    checks: readinessChecks,
+    ...(readinessNow ? { now: readinessNow } : {}),
+  });
+
+  const app = createReadinessHttpApp({
+    app: readonlyApp,
+    readiness,
+  });
+
   return Object.freeze({
     ...base,
     operatorReadonlyAdapters: adapters,
     operatorReadonlyCore,
     operatorReadonlyRateLimiter: sharedRateLimiter,
+    readiness,
     app,
   });
 }
