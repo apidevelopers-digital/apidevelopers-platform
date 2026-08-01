@@ -72,8 +72,6 @@ export function createOperationalRuntime({
       mode: "operational",
       stateStore: "json-file",
       adminKeyConfigured: Boolean(config.adminKey),
-      readonlyOperatorConfigured: true,
-      externalAdaptersConfigured: false,
     }),
   });
 }
