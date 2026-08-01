@@ -6,6 +6,12 @@ function defaultNow() {
   return new Date().toISOString();
 }
 
+function requireText(value, name) {
+  const normalized = String(value ?? "").trim();
+  if (!normalized) throw new TypeError(`${name} is required`);
+  return normalized;
+}
+
 export function createGatewayGlobalTrustAudit({
   sink = async () => {},
   now = defaultNow,
@@ -21,6 +27,32 @@ export function createGatewayGlobalTrustAudit({
     throw new TypeError("idFactory must be a function");
   }
 
+  async function persist({
+    identity,
+    tenantId,
+    action,
+    resource,
+    outcome,
+    correlationId,
+    metadata,
+  }) {
+    const actorId = requireText(identity?.principal?.id, "identity.principal.id");
+    const event = createAuditEvent({
+      eventId: idFactory(),
+      tenantId: requireText(tenantId, "tenantId"),
+      actorId,
+      action: requireText(action, "action"),
+      resource: requireText(resource, "resource"),
+      outcome: requireText(outcome, "outcome"),
+      correlationId: requireText(correlationId || idFactory(), "correlationId"),
+      occurredAt: now(),
+      metadata,
+    });
+
+    await sink(event);
+    return event;
+  }
+
   return Object.freeze({
     async recordTenantContextIssued({
       identity,
@@ -29,28 +61,43 @@ export function createGatewayGlobalTrustAudit({
       url,
       correlationId,
     } = {}) {
-      const actorId = identity?.principal?.id;
-      const effectiveCorrelationId = correlationId || idFactory();
-      const event = createAuditEvent({
-        eventId: idFactory(),
+      return persist({
+        identity,
         tenantId: tenantContext?.tenantId,
-        actorId,
         action: "gateway.tenant_context.issued",
         resource: `${String(method || "GET").toUpperCase()} ${url || "/"}`,
         outcome: "success",
-        correlationId: effectiveCorrelationId,
-        occurredAt: now(),
+        correlationId,
         metadata: {
           route: url || "/",
           method: String(method || "GET").toUpperCase(),
           region: tenantContext?.region,
           isolationMode: tenantContext?.isolationMode,
-          scopeCount: Array.isArray(tenantContext?.scopes) ? tenantContext.scopes.length : 0,
+          scopeCount: Array.isArray(tenantContext?.scopes)
+            ? tenantContext.scopes.length
+            : 0,
         },
       });
+    },
 
-      await sink(event);
-      return event;
+    async recordOperatorCapabilityResult({
+      identity,
+      tenantId,
+      action,
+      resource,
+      outcome,
+      correlationId,
+      metadata = {},
+    } = {}) {
+      return persist({
+        identity,
+        tenantId,
+        action,
+        resource,
+        outcome,
+        correlationId,
+        metadata,
+      });
     },
   });
 }
