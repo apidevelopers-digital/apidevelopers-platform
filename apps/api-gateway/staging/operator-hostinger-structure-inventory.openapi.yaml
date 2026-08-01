@@ -1,0 +1,210 @@
+openapi: 3.1.0
+info:
+  title: API Developers Operator Gateway - Hostinger Structure Inventory
+  version: 0.1.0
+  description: >
+    Read-only institutional contract for inventorying allowlisted Hostinger
+    filesystem metadata. This contract never returns file content, secrets,
+    business rows, database values or unrestricted paths.
+servers:
+  - url: https://operator.apidevelopers.digital
+    description: Planned institutional gateway; not deployed by this change.
+paths:
+  /v1/operator/hostinger/structure/inventory:
+    post:
+      operationId: operatorHostingerStructureInventory
+      summary: Inventory allowlisted Hostinger structure metadata
+      description: >
+        L0 read operation. The provider adapter may return relative paths,
+        MIME, size, modification timestamp and SHA-256 only.
+      security:
+        - ApiKeyAuth: []
+      x-risk-level: L0
+      x-execution-mode: read-only
+      x-production-write: false
+      x-content-access: forbidden
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/HostingerStructureInventoryRequest"
+      responses:
+        "200":
+          description: Sanitized metadata inventory
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/HostingerStructureInventoryResponse"
+        "400":
+          description: Request rejected by the deny-by-default policy
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "401":
+          description: Authentication rejected
+        "403":
+          description: Tenant, host, path or capability not authorized
+        "503":
+          description: Hostinger metadata adapter unavailable
+components:
+  securitySchemes:
+    ApiKeyAuth:
+      type: apiKey
+      in: header
+      name: x-api-key
+  schemas:
+    HostingerStructureInventoryRequest:
+      type: object
+      additionalProperties: false
+      required:
+        - institution
+        - tenant
+        - operator
+        - correlationId
+        - host
+        - mode
+        - includeContent
+        - paths
+        - extensions
+      properties:
+        institution:
+          type: string
+          const: API Developers.digital
+        tenant:
+          type: string
+        operator:
+          type: string
+        correlationId:
+          type: string
+          minLength: 1
+          maxLength: 128
+        host:
+          type: string
+          enum:
+            - apidevelopers.digital
+            - sitedauni.com
+            - api.sitedauni.com
+            - unico.sitedauni.com
+        mode:
+          type: string
+          const: metadata-only
+        includeContent:
+          type: boolean
+          const: false
+        paths:
+          type: array
+          minItems: 1
+          maxItems: 50
+          uniqueItems: true
+          items:
+            type: string
+            pattern: "^(includes|area-cliente/api|database|migrations)(/[^./\\\\][^/\\\\]*)*$"
+        extensions:
+          type: array
+          minItems: 1
+          uniqueItems: true
+          items:
+            type: string
+            enum: [php, sql, json, md]
+    HostingerStructureInventoryItem:
+      type: object
+      additionalProperties: false
+      required:
+        - path
+        - extension
+        - sizeBytes
+        - modifiedAt
+        - mime
+        - sha256
+      properties:
+        path:
+          type: string
+        extension:
+          type: string
+          enum: [php, sql, json, md]
+        sizeBytes:
+          type: integer
+          minimum: 0
+        modifiedAt:
+          type: string
+          format: date-time
+        mime:
+          type: string
+        sha256:
+          type: string
+          pattern: "^[a-f0-9]{64}$"
+    BlockedInventoryItem:
+      type: object
+      additionalProperties: false
+      required: [path, reason]
+      properties:
+        path:
+          type: string
+        reason:
+          type: string
+    HostingerStructureInventoryResponse:
+      type: object
+      additionalProperties: false
+      required:
+        - operationId
+        - institution
+        - tenant
+        - operator
+        - correlationId
+        - host
+        - mode
+        - generatedAt
+        - productionChanged
+        - contentReturned
+        - count
+        - items
+        - blocked
+      properties:
+        operationId:
+          type: string
+          const: operatorHostingerStructureInventory
+        institution:
+          type: string
+        tenant:
+          type: string
+        operator:
+          type: string
+        correlationId:
+          type: string
+        host:
+          type: string
+        mode:
+          type: string
+          const: metadata-only
+        generatedAt:
+          type: string
+          format: date-time
+        productionChanged:
+          type: boolean
+          const: false
+        contentReturned:
+          type: boolean
+          const: false
+        count:
+          type: integer
+          minimum: 0
+        items:
+          type: array
+          items:
+            $ref: "#/components/schemas/HostingerStructureInventoryItem"
+        blocked:
+          type: array
+          items:
+            $ref: "#/components/schemas/BlockedInventoryItem"
+    ErrorResponse:
+      type: object
+      required: [error]
+      properties:
+        error:
+          type: string
+        message:
+          type: string
+        correlationId:
+          type: string
