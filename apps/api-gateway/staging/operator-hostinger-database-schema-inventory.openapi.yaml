@@ -1,0 +1,249 @@
+openapi: 3.1.0
+info:
+  title: API Developers Operator Gateway - Hostinger Database Schema Inventory
+  version: 0.1.0
+  description: >
+    Read-only, schema-only inventory contract. Tenant and operator are derived from the
+    authenticated principal. Business rows, values, credentials and arbitrary SQL are forbidden.
+servers:
+  - url: https://operator.apidevelopers.digital
+    description: Planned institutional gateway; not deployed by this change.
+paths:
+  /v1/operator/hostinger/database/schema/inventory:
+    post:
+      operationId: operatorHostingerDatabaseSchemaInventory
+      summary: Inventory allowlisted database schema metadata
+      security:
+        - ApiKeyAuth: []
+      x-risk-level: L0
+      x-required-scope: operator:hostinger:database:schema:read
+      x-schema-only: true
+      x-row-access: forbidden
+      x-value-access: forbidden
+      x-production-write: false
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/Request"
+      responses:
+        "200":
+          description: Sanitized schema metadata
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Response"
+        "400":
+          description: Invalid request
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "401":
+          description: Authentication rejected
+        "403":
+          description: Scope or schema-only policy rejected
+        "405":
+          description: Only POST is accepted
+        "502":
+          description: Provider violated the schema-only contract
+        "503":
+          description: Adapter or audit persistence unavailable
+components:
+  securitySchemes:
+    ApiKeyAuth:
+      type: apiKey
+      in: header
+      name: x-api-key
+  schemas:
+    Request:
+      type: object
+      additionalProperties: false
+      required:
+        - correlationId
+        - host
+        - logicalDatabaseId
+        - engine
+        - schemaOnly
+        - includeRows
+        - includeValues
+      properties:
+        correlationId:
+          type: string
+          minLength: 3
+          maxLength: 128
+          pattern: "^[A-Za-z0-9._:-]+$"
+        host:
+          type: string
+          enum:
+            - apidevelopers.digital
+            - sitedauni.com
+            - api.sitedauni.com
+            - unico.sitedauni.com
+        logicalDatabaseId:
+          type: string
+          minLength: 2
+          maxLength: 128
+        engine:
+          type: string
+          enum: [mysql, postgresql]
+        schemaOnly:
+          type: boolean
+          const: true
+        includeRows:
+          type: boolean
+          const: false
+        includeValues:
+          type: boolean
+          const: false
+        schemas:
+          type: array
+          maxItems: 50
+          uniqueItems: true
+          items:
+            type: string
+            minLength: 1
+            maxLength: 128
+            pattern: "^[A-Za-z0-9_$.-]+$"
+    Column:
+      type: object
+      additionalProperties: false
+      required: [name, dataType, nullable, ordinal]
+      properties:
+        name: { type: string }
+        dataType: { type: string }
+        nullable: { type: boolean }
+        ordinal: { type: integer, minimum: 1 }
+    Index:
+      type: object
+      additionalProperties: false
+      required: [name, unique, columns]
+      properties:
+        name: { type: string }
+        unique: { type: boolean }
+        columns:
+          type: array
+          items: { type: string }
+    Constraint:
+      type: object
+      additionalProperties: false
+      required: [name, type, columns]
+      properties:
+        name: { type: string }
+        type:
+          type: string
+          enum: [primary_key, unique, foreign_key, check]
+        columns:
+          type: array
+          items: { type: string }
+        referencedSchema: { type: string }
+        referencedObject: { type: string }
+        referencedColumns:
+          type: array
+          items: { type: string }
+    SchemaObject:
+      type: object
+      additionalProperties: false
+      required: [kind, schema, name, columns, indexes, constraints]
+      properties:
+        kind:
+          type: string
+          enum: [table, view, trigger, procedure]
+        schema: { type: string }
+        name: { type: string }
+        columns:
+          type: array
+          items:
+            $ref: "#/components/schemas/Column"
+        indexes:
+          type: array
+          items:
+            $ref: "#/components/schemas/Index"
+        constraints:
+          type: array
+          items:
+            $ref: "#/components/schemas/Constraint"
+    Response:
+      type: object
+      additionalProperties: false
+      required:
+        - operationId
+        - institution
+        - tenant
+        - operator
+        - correlationId
+        - host
+        - logicalDatabaseId
+        - engine
+        - generatedAt
+        - schemaOnly
+        - rowsReturned
+        - valuesReturned
+        - productionChanged
+        - objectCount
+        - objects
+        - authorizationDecision
+      properties:
+        operationId:
+          type: string
+          const: operatorHostingerDatabaseSchemaInventory
+        institution:
+          type: string
+          const: API Developers.digital
+        tenant: { type: string }
+        operator: { type: string }
+        correlationId: { type: string }
+        host: { type: string }
+        logicalDatabaseId: { type: string }
+        engine:
+          type: string
+          enum: [mysql, postgresql]
+        generatedAt:
+          type: string
+          format: date-time
+        schemaOnly:
+          type: boolean
+          const: true
+        rowsReturned:
+          type: boolean
+          const: false
+        valuesReturned:
+          type: boolean
+          const: false
+        productionChanged:
+          type: boolean
+          const: false
+        objectCount:
+          type: integer
+          minimum: 0
+        objects:
+          type: array
+          items:
+            $ref: "#/components/schemas/SchemaObject"
+        authorizationDecision:
+          type: object
+          additionalProperties: false
+          required: [decisionId, effect, policyVersion]
+          properties:
+            decisionId: { type: string }
+            effect:
+              type: string
+              enum: [allow, deny]
+            policyVersion: { type: string }
+    Error:
+      type: object
+      additionalProperties: true
+      required: [error, productionChanged, rowsReturned, valuesReturned]
+      properties:
+        error: { type: string }
+        correlationId: { type: string }
+        productionChanged:
+          type: boolean
+          const: false
+        rowsReturned:
+          type: boolean
+          const: false
+        valuesReturned:
+          type: boolean
+          const: false
