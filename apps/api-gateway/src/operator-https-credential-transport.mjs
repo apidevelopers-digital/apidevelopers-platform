@@ -55,7 +55,11 @@ function normalizeCredential(credential) {
   const token = bytes.toString("utf8").trim();
   bytes.fill(0);
 
-  if (!token || /[\r\n\0]/.test(token) || Buffer.byteLength(token) > MAX_CREDENTIAL_BYTES) {
+  if (
+    !token ||
+    /[\r\n\0]/.test(token) ||
+    Buffer.byteLength(token) > MAX_CREDENTIAL_BYTES
+  ) {
     fail("credential_invalid", "credential value is invalid", 500);
   }
   return token;
@@ -64,20 +68,27 @@ function normalizeCredential(credential) {
 function responseHeaderEntries(headers) {
   if (!headers) return [];
   if (typeof headers.entries === "function") return [...headers.entries()];
-  if (typeof headers === "object" && !Array.isArray(headers)) return Object.entries(headers);
+  if (typeof headers === "object" && !Array.isArray(headers)) {
+    return Object.entries(headers);
+  }
   return [];
 }
 
 function sanitizeResponseHeaders(headers) {
   const allowed = new Set(RESPONSE_HEADERS);
   const result = {};
+
   for (const [rawName, rawValue] of responseHeaderEntries(headers)) {
     const name = String(rawName).toLowerCase();
     if (!allowed.has(name)) continue;
+
     const value = String(rawValue ?? "").trim();
-    if (!value || /[\r\n]/.test(value) || Buffer.byteLength(value) > 4096) continue;
+    if (!value || /[\r\n]/.test(value) || Buffer.byteLength(value) > 4096) {
+      continue;
+    }
     result[name] = value;
   }
+
   return Object.freeze(result);
 }
 
@@ -88,27 +99,43 @@ async function readBoundedResponseBody(response, maxResponseBytes) {
     declaredLength >= 0 &&
     declaredLength > maxResponseBytes
   ) {
-    fail("response_too_large", "upstream response exceeded the allowed size", 502);
+    fail(
+      "response_too_large",
+      "upstream response exceeded the allowed size",
+      502,
+    );
   }
 
   if (response.body?.getReader) {
     const reader = response.body.getReader();
     const chunks = [];
+    let combined;
     let total = 0;
+
     try {
       while (true) {
         const { done, value } = await reader.read();
         if (done) break;
+
         const chunk = Buffer.from(value);
         total += chunk.byteLength;
         if (total > maxResponseBytes) {
+          chunk.fill(0);
           await reader.cancel().catch(() => {});
-          fail("response_too_large", "upstream response exceeded the allowed size", 502);
+          fail(
+            "response_too_large",
+            "upstream response exceeded the allowed size",
+            502,
+          );
         }
-        chunks.push(buffer);
+        chunks.push(chunk);
       }
-      return Buffer.concat(chunks).toString("utf8");
+
+      combined = Buffer.concat(chunks);
+      return combined.toString("utf8");
     } finally {
+      combined?.fill(0);
+      for (const chunk of chunks) chunk.fill(0);
       reader.releaseLock?.();
     }
   }
@@ -116,11 +143,17 @@ async function readBoundedResponseBody(response, maxResponseBytes) {
   if (typeof response.arrayBuffer !== "function") {
     fail("response_invalid", "upstream response body is unavailable", 502);
   }
+
   const buffer = Buffer.from(await response.arrayBuffer());
   if (buffer.byteLength > maxResponseBytes) {
     buffer.fill(0);
-    fail("response_too_large", "upstream response exceeded the allowed size", 502);
+    fail(
+      "response_too_large",
+      "upstream response exceeded the allowed size",
+      502,
+    );
   }
+
   const text = buffer.toString("utf8");
   buffer.fill(0);
   return text;
@@ -129,7 +162,11 @@ async function readBoundedResponseBody(response, maxResponseBytes) {
 export function createUnavailableOperatorHttpsCredentialTransport() {
   return Object.freeze({
     async requestWithCredential() {
-      fail("https_transport_unavailable", "HTTPs transport is unavailable", 503);
+      fail(
+        "https_transport_unavailable",
+        "HTTPS transport is unavailable",
+        503,
+      );
     },
   });
 }
@@ -140,6 +177,7 @@ export function createOperatorHttpsCredentialTransport({
   maxResponseBytes = MAX_RESPONSE_BYTES,
 } = {}) {
   const resolvedFetch = requireFetch(fetchImpl);
+
   if (typeof policy?.authorize !== "function") {
     throw new TypeError("policy.authorize must be a function");
   }
@@ -148,7 +186,9 @@ export function createOperatorHttpsCredentialTransport({
     maxResponseBytes < 1024 ||
     maxResponseBytes > MAX_RESPONSE_BYTES
   ) {
-    throw new TypeError("maxResponseBytes must be an integer between 1024 and 1048576");
+    throw new TypeError(
+      "maxResponseBytes must be an integer between 1024 and 1048576",
+    );
   }
 
   return Object.freeze({
@@ -170,7 +210,10 @@ export function createOperatorHttpsCredentialTransport({
 
       let token = normalizeCredential(credential);
       const controller = new AbortController();
-      const timeout = setTimeout(() => controller.abort(), authorized.timeoutMs);
+      const timeout = setTimeout(
+        () => controller.abort(),
+        authorized.timeoutMs,
+      );
       timeout.unref?.();
 
       try {
@@ -190,23 +233,46 @@ export function createOperatorHttpsCredentialTransport({
           });
         } catch (error) {
           if (error?.name === "AbortError") {
-            fail("https_transport_timeout", "HTTPS request timed out", 504);
+            fail(
+              "https_transport_timeout",
+              "HTTPS request timed out",
+              504,
+            );
           }
-          fail("https_transport_unavailable", "HTTPs transport is unavailable", 503);
+          fail(
+            "https_transport_unavailable",
+            "HTTPS transport is unavailable",
+            503,
+          );
         }
 
         const status = Number(response?.status);
-        if (!Number.isSafeInteger(status) || status < 100 || status > 599) {
-          fail("response_invalid", "upstream response status is invalid", 502);
+        if (
+          !Number.isSafeInteger(status) ||
+          status < 100 ||
+          status > 599
+        ) {
+          fail(
+            "response_invalid",
+            "upstream response status is invalid",
+            502,
+          );
         }
         if (status >= 300 && status <= 399) {
-          fail("redirect_denied", "upstream redirect is not allowed", 502);
+          fail(
+            "redirect_denied",
+            "upstream redirect is not allowed",
+            502,
+          );
         }
 
         return Object.freeze({
           status,
           headers: sanitizeResponseHeaders(response.headers),
-          body: await readBoundedResponseBody(response, maxResponseBytes),
+          body: await readBoundedResponseBody(
+            response,
+            maxResponseBytes,
+          ),
         });
       } finally {
         clearTimeout(timeout);
