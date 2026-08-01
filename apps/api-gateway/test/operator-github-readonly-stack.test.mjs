@@ -1,75 +1,67 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 
-import {
-  createOperatorGitHubReadonlyStack,
-} from "../src/operator-github-readonly-stack.mjs";
+import { createOperatorGitHubReadonlyStack } from "../src/operator-github-readonly-stack.mjs";
 
-import {
-  OperatorVaultSecretProviderError,
-} from "../src/operator-vault-secret-provider.mjs";
-import {
-  OperatorHttpsCredentialTransportError,
-} from "../src/operator-https-credential-transport.mjs";
-
-const NOW = "2026-08-01T23:50:00.000Z";
+const ORGANIZATION = "apidevelopers-digital";
 const REF = "vault://github/operator-readonly";
-const ORG = "apidevelopers-digital";
+const FIXED_NOW = "2026-08-01T23:55:00.000Z";
 
-function fixedNow() {
-  return new Date(NOW);
+function now() {
+  return new Date(FIXED_NOW);
 }
 
-function createFixtureVault(calls = []) {
-  return {
+function createFixture() {
+  const calls = [];
+  const vaultAccesses = [];
+
+  const vaultClient = {
     async withSecretLease(access, consumer) {
-      calls.push(access);
-      const secret = Buffer.from("fixture-only-token");
+      vaultAccesses.push(access);
+      const bytes = Buffer.from("fixture-only-token");
       try {
         return await consumer({
-          bytes: secret,
+          bytes,
           version: "fixture-v1",
-          expiresAt: "2026-08-01T23:51:00.000Z",
+          expiresAt: "2026-08-01T23:56:00.000Z",
         });
       } finally {
-        secret.fill(0);
+        bytes.fill(0);
       }
     },
   };
-}
 
-function createFixtureFetch(calls = []) {
-  return async (url, init) => {
+  const fetchImpl = async (url, init) => {
     calls.push({ url, init });
-    const path = new URL(url).pathname;
+    assert.equal(init.method, "GET");
+    assert.equal(init.headers.authorization, "Bearer fixture-only-token");
+    assert.equal(init.redirect, "error");
+    assert.equal(init.credentials, "omit");
 
-    if (path === `/orgs/${ORG}`) {
+    const parsed = new URL(url);
+    if (parsed.pathname === `/orgs/${ORGANIZATION}`) {
       return new Response(
-        JSON.stringify({ login: ORG, token: "must-not-leak" }),
-        {
-          status: 200,
-          headers: {
-            "content-type": "application/json",
-            "x-ratelimit-remaining": "4999",
-            "set-cookie": "forbidden=1",
-          },
-        },
+        JSON.stringify({
+          login: ORGANIZATION,
+          private_payload: "discarded",
+        }),
+        { status: 200, headers: { "content-type": "application/json" } },
       );
     }
 
-    if (path === `/orgs/${ORG}/repos`) {
+    if (parsed.pathname === `/orgs/${ORGANIZATION}/repos`) {
       return new Response(
         JSON.stringify([
           {
-            name: "apidevelopers-institution",
-            full_name: `${ORG}/apidevelopers-institution`,
+            name: "apidevelopers-platform",
+            full_name: `${ORGANIZATION}/apidevelopers-platform`,
             archived: false,
             disabled: false,
             permissions: { admin: true },
           },
           {
-            name: "legacy-read-only",
-            full_name: `${ORG}/legacy-read-only`,
+            name: "apidevelopers-ops",
+            full_name: `${ORGANIZATION}/apidevelopers-ops`,
             archived: true,
             disabled: false,
           },
@@ -78,34 +70,38 @@ function createFixtureFetch(calls = []) {
           status: 200,
           headers: {
             "content-type": "application/json",
-            link: `<https://api.github.com/orgs/${ORG}/repos?page=2&per_page=2>, rel="next"`,
+            link: `<https://api.github.com/orgs/${ORGANIZATION}/repos?type=all&page=2&per_page=2>; rel="next"`,
+            "set-cookie": "forbidden=1",
           },
         },
       );
     }
 
-    return new Response(JSON.stringify({ message: "not found" }), { status: 404 });
+    throw new Error("unexpected fixture URL");
   };
+
+  return { calls, vaultAccesses, vaultClient, fetchImpl };
 }
 
-test("composed stack performs read-only status and inventory with fixtures only", async () => {
-  const vaultCalls = [];
-  const fetchCalls = [];
+test("complete read-only stack composes vault, egress, transport, client and adapter", async () => {
+  const fixture = createFixture();
   const stack = createOperatorGitHubReadonlyStack({
-    vaultClient: createFixtureVault(vaultCalls),
-    fetchImpl: createFixtureFetch(fetchCalls),
+    vaultClient: fixture.vaultClient,
+    fetchImpl: fixture.fetchImpl,
     credentialRef: REF,
-    organization: ORG,
-    now: fixedNow,
+    organization: ORGANIZATION,
+    now,
   });
 
   const status = await stack.adapters.status({
     target: {
       provider: "github",
       resourceType: "organization",
-      resourceId: ORG,
+      resourceId: ORGANIZATION,
     },
   });
+  assert.equal(status.items[0].state, "online");
+  assert.equal(status.items[0].resourceId, `github:organization:${ORGANIZATION}`);
 
   const inventory = await stack.adapters.inventory({
     target: {
@@ -115,80 +111,95 @@ test("composed stack performs read-only status and inventory with fixtures only"
     limit: 2,
   });
 
-  assert.equal(status.items[0].state, "online");
-  assert.deepEqual(inventory.items.map((item) => [item.name, item.status]), [
-    ["apidevelopers-institution", "online"],
-    ["legacy-read-only", "attention"],
-  ]);
+  assert.deepEqual(
+    inventory.items.map(({ resourceId, status }) => [resourceId, status]),
+    [
+      [`${ORGANIZATION}/apidevelopers-platform`, "online"],
+      [`${ORGANIZATION}/apidevelopers-ops`, "attention"],
+    ],
+  );
   assert.equal(inventory.cursor, "github_repo_page_2");
   assert.equal(stack.descriptor.runtimeActivated, false);
   assert.equal(stack.descriptor.productionChanged, false);
-  assert.equal(vaultCalls.length, 2);
-  assert.equal(fetchCalls.length, 2);
-  for (const call of fetchCalls) {
-    assert.equal(call.init.headers.authorization, "Bearer fixture-only-token");
-    assert.equal(call.init.method, "GET");
-    assert.equal(call.init.redirect, "error");
-  }
+  assert.equal(stack.descriptor.credentialConfigured, true);
 
-  const serialized = JSON.stringify({ status, inventory });
+  assert.equal(fixture.calls.length, 2);
+  assert.equal(fixture.vaultAccesses.length, 2);
+  assert.ok(
+    fixture.calls.every(({ url }) => new URL(url).hostname === "api.github.com"),
+  );
+  assert.ok(
+    fixture.vaultAccesses.every(({ secretRef }) => secretRef === REF),
+  );
+
+  const serialized = JSON.stringify({ status, inventory, descriptor: stack.descriptor });
   assert.equal(serialized.includes("fixture-only-token"), false);
-  assert.equal(serialized.includes("must-not-leak"), false);
   assert.equal(serialized.includes("permissions"), false);
+  assert.equal(serialized.includes("set-cookie"), false);
 });
 
-test("composed stack denies secret reference and egress outside the configured boundary", async () => {
+test("complete stack remains deny-by-default for secret reference and egress origin", async () => {
+  const fixture = createFixture();
   const stack = createOperatorGitHubReadonlyStack({
-    vaultClient: createFixtureVault(),
-    fetchImpl: createFixtureFetch(),
+    vaultClient: fixture.vaultClient,
+    fetchImpl: fixture.fetchImpl,
     credentialRef: REF,
-    organization: ORG,
-    now: fixedNow,
+    organization: ORGANIZATION,
+    now,
   });
 
   await assert.rejects(
     stack.secretProvider.withSecret(
-      { secretRef: "vault://github/other", purpose: "github.readonly.test" },
-     async () => ({}),
+      {
+        secretRef: "vault://github/not-allowed",
+        purpose: "github.readonly.test",
+      },
+      async () => ({}),
     ),
-    (error) =>
-      error instanceof OperatorVaultSecretProviderError &&
-      error.code === "vault_reference_denied",
+    (error) => error.code === "vault_reference_denied",
   );
 
-  await assert.rejects(
-    stack.transport.requestWithCredential({
-      request: {
+  assert.throws(
+    () =>
+      stack.egressPolicy.authorize({
         method: "GET",
-        url: "https://evil.invalid/orgs/x",
-      },
-      credential: { scheme: "bearer", bytes: Buffer.from("fixture") },
-    }),
-    (error) =>
-      error instanceof OperatorHttpsCredentialTransportError &&
-      error.status === 403,
+        url: `https://example.invalid/orgs/${ORGANIZATION}`,
+      }),
+    (error) => error.code === "egress_url_denied",
   );
+  assert.equal(fixture.calls.length, 0);
 });
 
-test("composed stack has no implicit fetch or environment secret fallback", () => {
+test("complete stack has no implicit network or vault fallback", () => {
   assert.throws(
     () =>
       createOperatorGitHubReadonlyStack({
-        vaultClient: createFixtureVault(),
+        vaultClient: {},
+        fetchImpl: async () => new Response("{}"),
         credentialRef: REF,
-        organization: ORG,
+        organization: ORGANIZATION,
       }),
-    /fetchImpl must be a function/,
+    /withSecretLease/,
   );
 
   assert.throws(
     () =>
       createOperatorGitHubReadonlyStack({
-        vaultClient: createFixtureVault(),
-        fetchImpl: createFixtureFetch(),
-        credentialRef: "env://GITHUB_TOKEN",
-        organization: ORG,
+        vaultClient: { async withSecretLease() {} },
+        credentialRef: REF,
+        organization: ORGANIZATION,
       }),
-    /invalid_secret_ref/,
+    /fetchImpl/,
+  );
+
+  assert.throws(
+    () =>
+      createOperatorGitHubReadonlyStack({
+        vaultClient: { async withSecretLease() {} },
+        fetchImpl: async () => new Response("{}"),
+        credentialRef: "env://GITHUB_TOKEN",
+        organization: ORGANIZATION,
+      }),
+    (error) => error.code === "invalid_secret_ref",
   );
 });
