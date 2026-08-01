@@ -37,6 +37,10 @@ export function createGatewayGlobalTrustAudit({
     metadata,
   }) {
     const actorId = requireText(identity?.principal?.id, "identity.principal.id");
+    const resolvedCorrelationId = requireText(
+      correlationId || idFactory(),
+      "correlationId",
+    );
     const event = createAuditEvent({
       eventId: idFactory(),
       tenantId: requireText(tenantId, "tenantId"),
@@ -44,7 +48,7 @@ export function createGatewayGlobalTrustAudit({
       action: requireText(action, "action"),
       resource: requireText(resource, "resource"),
       outcome: requireText(outcome, "outcome"),
-      correlationId: requireText(correlationId || idFactory(), "correlationId"),
+      correlationId: resolvedCorrelationId,
       occurredAt: now(),
       metadata,
     });
