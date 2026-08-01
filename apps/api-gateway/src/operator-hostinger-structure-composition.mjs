@@ -6,6 +6,15 @@ import {
 import {
   createHostingerStructureInventoryHttpApp,
 } from "./operator-hostinger-structure-http.mjs";
+import {
+  HostingerDatabaseSchemaInventoryError,
+} from "./operator-hostinger-database-schema-policy.mjs";
+import {
+  createHostingerDatabaseSchemaInventoryService,
+} from "./operator-hostinger-database-schema-inventory.mjs";
+import {
+  createHostingerDatabaseSchemaInventoryHttpApp,
+} from "./operator-hostinger-database-schema-http.mjs";
 
 export function createUnavailableHostingerStructureInventoryAdapter() {
   return Object.freeze({
@@ -18,23 +27,38 @@ export function createUnavailableHostingerStructureInventoryAdapter() {
   });
 }
 
+export function createUnavailableHostingerDatabaseSchemaInventoryAdapter() {
+  return Object.freeze({
+    async inspectSchema() {
+      throw new HostingerDatabaseSchemaInventoryError(
+        "adapter_unavailable",
+        "Hostinger database schema adapter is unavailable",
+      );
+    },
+  });
+}
+
 export function createOperationalGatewayWithHostingerStructure({
   hostingerStructureInventoryAdapter,
   hostingerStructureInventoryNow,
+  hostingerDatabaseSchemaInventoryAdapter,
+  hostingerDatabaseSchemaInventoryNow,
   ...operationalOptions
 } = {}) {
   const base = createOperationalGateway(operationalOptions);
-  const adapter =
+
+  const structureAdapter =
     hostingerStructureInventoryAdapter ??
     createUnavailableHostingerStructureInventoryAdapter();
   const hostingerStructureInventory =
     createHostingerStructureInventoryService({
-      inventoryAdapter: adapter,
+      inventoryAdapter: structureAdapter,
       ...(hostingerStructureInventoryNow
         ? { now: hostingerStructureInventoryNow }
         : {}),
     });
-  const app = createHostingerStructureInventoryHttpApp({
+
+  const structureApp = createHostingerStructureInventoryHttpApp({
     app: base.app,
     authenticator: base.authenticator,
     authorization: base.authorization,
@@ -42,10 +66,31 @@ export function createOperationalGatewayWithHostingerStructure({
     audit: base.audit,
   });
 
+  const databaseSchemaAdapter =
+    hostingerDatabaseSchemaInventoryAdapter ??
+    createUnavailableHostingerDatabaseSchemaInventoryAdapter();
+  const hostingerDatabaseSchemaInventory =
+    createHostingerDatabaseSchemaInventoryService({
+      schemaAdapter: databaseSchemaAdapter,
+      ...(hostingerDatabaseSchemaInventoryNow
+        ? { now: hostingerDatabaseSchemaInventoryNow }
+        : {}),
+    });
+
+  const app = createHostingerDatabaseSchemaInventoryHttpApp({
+    app: structureApp,
+    authenticator: base.authenticator,
+    authorization: base.authorization,
+    inventory: hostingerDatabaseSchemaInventory,
+    audit: base.audit,
+  });
+
   return Object.freeze({
     ...base,
     hostingerStructureInventory,
-    hostingerStructureInventoryAdapter: adapter,
+    hostingerStructureInventoryAdapter: structureAdapter,
+    hostingerDatabaseSchemaInventory,
+    hostingerDatabaseSchemaInventoryAdapter: databaseSchemaAdapter,
     app,
   });
 }
