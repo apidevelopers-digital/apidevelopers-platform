@@ -25,7 +25,10 @@ test("runtime uses the read-only gateway factory contract", () => {
 
   assert.equal(options.stateFilePath, "/tmp/operator-wave1/state.json");
   assert.equal(options.adminKey, "test-only-key");
-  assert.equal(runtime.descriptor.readonlyOperatorConfigured, true);
-  assert.equal(runtime.descriptor.externalAdaptersConfigured, false);
+  assert.deepEqual(runtime.descriptor, {
+    mode: "operational",
+    stateStore: "json-file",
+    adminKeyConfigured: true,
+  });
   assert.equal(JSON.stringify(runtime.descriptor).includes("test-only-key"), false);
 });
