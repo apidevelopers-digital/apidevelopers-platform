@@ -1,6 +1,8 @@
 import { resolve } from "node:path";
 
-import { createOperationalGatewayWithReadiness } from "./operational-readiness-composition.mjs";
+import {
+  createOperationalGatewayWithReadonlyOperator,
+} from "./operator-readonly-composition.mjs";
 
 function requireText(value, name) {
   const normalized = String(value ?? "").trim();
@@ -43,7 +45,7 @@ export function resolveOperationalRuntimeConfig({
 export function createOperationalRuntime({
   env = process.env,
   cwd = process.cwd(),
-  gatewayFactory = createOperationalGatewayWithReadiness,
+  gatewayFactory = createOperationalGatewayWithReadonlyOperator,
 } = {}) {
   if (typeof gatewayFactory !== "function") {
     throw new TypeError("gatewayFactory must be a function");
@@ -70,6 +72,8 @@ export function createOperationalRuntime({
       mode: "operational",
       stateStore: "json-file",
       adminKeyConfigured: Boolean(config.adminKey),
+      readonlyOperatorConfigured: true,
+      externalAdaptersConfigured: false,
     }),
   });
 }
