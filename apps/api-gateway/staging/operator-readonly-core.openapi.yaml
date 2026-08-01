@@ -1,12 +1,8 @@
 openapi: 3.1.0
 info:
-  title: API Developers Operator Gateway - Read-only Core
-  version: 0.1.0
-  description: >
-    Wave 1 L0 contracts for operatorStatus, operatorInventory, operatorRead and
-    operatorAudit. All operations are authenticated, tenant-bound, audited,
-    deny-by-default and incapable of returning file content, database rows,
-    arbitrary values, credentials or secrets.
+  title: API Developers Operator Gateway - Read-only HTTP
+  version: 0.2.0
+  description: Wave 1 L0 authenticated, tenant-bound, rate-limited and audited read-only routes. No file content, database rows, arbitrary values, credentials or secrets.
 servers:
   - url: https://operator.apidevelopers.digital
     description: Planned institutional gateway; not deployed by this change.
@@ -14,9 +10,6 @@ paths:
   /v1/operator/status:
     post:
       operationId: operatorStatus
-      summary: Read sanitized status metadata
-      security:
-        - ApiKeyAuth: []
       x-required-scope: operator:status:read
       x-risk-level: L0
       x-production-write: false
@@ -25,23 +18,11 @@ paths:
         required: true
         content:
           application/json:
-            schema:
-              $ref: "#/components/schemas/CollectionRequest"
-      responses:
-        "200":
-          description: Sanitized status metadata
-        "401":
-          description: Authentication rejected
-        "403":
-          description: Scope or tenant rejected
-        "503":
-          description: Adapter or audit unavailable
+            schema: {$ref: '#/components/schemas/CollectionRequest'}
+      responses: {$ref: '#/components/responses/Standard'}
   /v1/operator/inventory:
     post:
       operationId: operatorInventory
-      summary: Read sanitized resource inventory
-      security:
-        - ApiKeyAuth: []
       x-required-scope: operator:inventory:read
       x-risk-level: L0
       x-production-write: false
@@ -50,23 +31,11 @@ paths:
         required: true
         content:
           application/json:
-            schema:
-              $ref: "#/components/schemas/CollectionRequest"
-      responses:
-        "200":
-          description: Sanitized resource descriptors
-        "401":
-          description: Authentication rejected
-        "403":
-          description: Scope or tenant rejected
-        "503":
-          description: Adapter or audit unavailable
+            schema: {$ref: '#/components/schemas/CollectionRequest'}
+      responses: {$ref: '#/components/responses/Standard'}
   /v1/operator/read:
     post:
       operationId: operatorRead
-      summary: Read an allowlisted primitive projection of one resource
-      security:
-        - ApiKeyAuth: []
       x-required-scope: operator:resource:read
       x-risk-level: L0
       x-production-write: false
@@ -75,23 +44,11 @@ paths:
         required: true
         content:
           application/json:
-            schema:
-              $ref: "#/components/schemas/ReadRequest"
-      responses:
-        "200":
-          description: Allowlisted primitive projection
-        "401":
-          description: Authentication rejected
-        "403":
-          description: Scope, field or tenant rejected
-        "503":
-          description: Adapter or audit unavailable
+            schema: {$ref: '#/components/schemas/ReadRequest'}
+      responses: {$ref: '#/components/responses/Standard'}
   /v1/operator/audit:
     post:
       operationId: operatorAudit
-      summary: Read sanitized audit event envelopes
-      security:
-        - ApiKeyAuth: []
       x-required-scope: operator:audit:read
       x-risk-level: L0
       x-production-write: false
@@ -100,71 +57,62 @@ paths:
         required: true
         content:
           application/json:
-            schema:
-              $ref: "#/components/schemas/AuditRequest"
-      responses:
-        "200":
-          description: Sanitized audit event envelopes without metadata or payload
-        "401":
-          description: Authentication rejected
-        "403":
-          description: Scope or tenant rejected
-        "503":
-          description: Adapter or audit unavailable
+            schema: {$ref: '#/components/schemas/AuditRequest'}
+      responses: {$ref: '#/components/responses/Standard'}
 components:
   securitySchemes:
     ApiKeyAuth:
       type: apiKey
       in: header
       name: x-api-key
+  responses:
+    Standard:
+      '200': {$ref: '#/components/responses/Success'}
+      '400': {$ref: '#/components/responses/Error'}
+      '401': {$ref: '#/components/responses/Error'}
+      '403': {$ref: '#/components/responses/Error'}
+      '405': {$ref: '#/components/responses/Error'}
+      '413': {$ref: '#/components/responses/Error'}
+      '429': {$ref: '#/components/responses/Error'}
+      '502': {$ref: '#/components/responses/Error'}
+      '503': {$ref: '#/components/responses/Error'}
+    Success:
+      description: Sanitized read-only response
+      content:
+        application/json:
+          schema: {$ref: '#/components/schemas/SuccessEnvelope'}
+    Error:
+      description: Sanitized error response
+      content:
+        application/json:
+          schema: {$ref: '#/components/schemas/ErrorEnvelope'}
   schemas:
     Target:
       type: object
       additionalProperties: false
       required: [provider, resourceType]
       properties:
-        provider:
-          type: string
-          minLength: 1
-          maxLength: 128
-        resourceType:
-          type: string
-          minLength: 1
-          maxLength: 128
-        resourceId:
-          type: string
-          minLength: 1
-          maxLength: 128
+        provider: {type: string, minLength: 1, maxLength: 128}
+        resourceType: {type: string, minLength: 1, maxLength: 128}
+        resourceId: {type: string, minLength: 1, maxLength: 128}
     CollectionRequest:
       type: object
       additionalProperties: false
       required: [correlationId, target]
       properties:
-        correlationId:
-          type: string
-          minLength: 3
-          maxLength: 128
-        target:
-          $ref: "#/components/schemas/Target"
-        limit:
-          type: integer
-          minimum: 1
-          maximum: 200
-        cursor:
-          type: string
-          maxLength: 128
+        correlationId: {type: string, minLength: 3, maxLength: 128}
+        target: {$ref: '#/components/schemas/Target'}
+        limit: {type: integer, minimum: 1, maximum: 200}
+        cursor: {type: string, maxLength: 128}
     ReadRequest:
       type: object
       additionalProperties: false
       required: [correlationId, target, fields]
       properties:
-        correlationId:
-          type: string
-          minLength: 3
-          maxLength: 128
+        correlationId: {type: string, minLength: 3, maxLength: 128}
         target:
           allOf:
-            - $ref: "#/components/schemas/Target"
+            - {$ref: '#/components/schemas/Target'}
             - type: object
               required: [resourceId]
         fields:
@@ -173,23 +121,47 @@ components:
           uniqueItems: true
           items:
             type: string
-            enum:
-              - id
-              - kind
-              - name
-              - status
-              - version
-              - updatedAt
-              - owner
-              - region
-              - environment
-              - repository
-              - branch
+            enum: [id, kind, name, status, version, updatedAt, owner, region, environment, repository, branch]
     AuditRequest:
       allOf:
-        - $ref: "#/components/schemas/CollectionRequest"
+        - {$ref: '#/components/schemas/CollectionRequest'}
         - type: object
           properties:
             outcome:
               type: string
               enum: [success, failure, denied, blocked]
+    AuthorizationDecision:
+      type: object
+      additionalProperties: false
+      required: [decisionId, effect, policyVersion]
+      properties:
+        decisionId: {type: string}
+        effect: {type: string, enum: [allow, deny]}
+        policyVersion: {type: string}
+    SuccessEnvelope:
+      type: object
+      additionalProperties: true
+      required: [operationId, correlationId, productionChanged, contentReturned, rowsReturned, valuesReturned, authorizationDecision]
+      properties:
+        operationId:
+          type: string
+          enum: [operatorStatus, operatorInventory, operatorRead, operatorAudit]
+        correlationId: {type: string}
+        productionChanged: {type: boolean, const: false}
+        contentReturned: {type: boolean, const: false}
+        rowsReturned: {type: boolean, const: false}
+        valuesReturned: {type: boolean, const: false}
+        authorizationDecision: {$ref: '#/components/schemas/AuthorizationDecision'}
+    ErrorEnvelope:
+      type: object
+      additionalProperties: true
+      required: [error, productionChanged, contentReturned, rowsReturned, valuesReturned]
+      properties:
+        error: {type: string}
+        correlationId: {type: string}
+        productionChanged: {type: boolean, const: false}
+        contentReturned: {type: boolean, const: false}
+        rowsReturned: {type: boolean, const: false}
+        valuesReturned: {type: boolean, const: false}
+security:
+  - ApiKeyAuth: []
