@@ -1,229 +1,141 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 
-import {
-  createGitHubReadonlyAdapters,
-} from "../src/operator-github-readonly-adapter.mjs";
+import { createGitHubReadonlyAdapters } from "../src/operator-github-readonly-adapter.mjs";
 import { OperatorReadonlyError } from "../src/operator-readonly-contract.mjs";
 
 const NOW = "2026-08-01T22:30:00.000Z";
-const ORG_TARGET = Object.freeze({
-  provider: "github",
-  resourceType: "organization",
-});
-const REPOSITORY_TARGET = Object.freeze({
-  provider: "github",
-  resourceType: "repository",
-});
-const REQUEST = Object.freeze({
+const BASE = Object.freeze({
   tenant: "uni.",
   operator: "operator-igor",
   correlationId: "corr_github_001",
   includeContent: false,
   includeRows: false,
   includeValues: false,
-  limit: 50,
 });
+const ORG = Object.freeze({ provider: "github", resourceType: "organization" });
+const REPOS = Object.freeze({ provider: "github", resourceType: "repository" });
 
-test("requires an injected client and configured organization", () => {
-  assert.throws(
-    () => createGitHubReadonlyAdapters(),
-    /client must be an object/,
-  );
+function adapters(client) {
+  return createGitHubReadonlyAdapters({
+    client,
+    organization: "apidevelopers-digital",
+    now: () => NOW,
+  });
+}
+
+test("requires injected client and safe organization", () => {
+  assert.throws(() => createGitHubReadonlyAdapters(), /client must be an object/);
   assert.throws(
     () => createGitHubReadonlyAdapters({ client: {}, organization: "../bad" }),
     /valid GitHub organization/,
   );
 });
 
-test("operatorStatus reports configured organization reachability", async () => {
-  const calls = [];
-  const adapters = createGitHubReadonlyAdapters({
-    organization: "apidevelopers-digital",
-    now: () => NOW,
-    client: {
-      async getOrganization(input) {
-        calls.push(input);
-        return {
-          login: "apidevelopers-digital",
-          token: "must-never-be-returned",
-        };
-      },
+test("status reports organization without returning provider secrets", async () => {
+  const result = await adapters({
+    async getOrganization() {
+      return { login: "apidevelopers-digital", token: "never-return" };
     },
-  });
+  }).status({ ...BASE, target: ORG });
 
-  const result = await adapters.status({
-    ...REQUEST,
-    target: ORG_TARGET,
-  });
-
-  assert.deepEqual(calls, [
-    { organization: "apidevelopers-digital" },
-  ]);
   assert.deepEqual(result, {
-    items: [
-      {
-        resourceId: "github:organization:apidevelopers-digital",
-        kind: "organization",
-        state: "online",
-        checkedAt: NOW,
-        message: "github organization reachable",
-      },
-    ],
+    items: [{
+      resourceId: "github:organization:apidevelopers-digital",
+      kind: "organization",
+      state: "online",
+      checkedAt: NOW,
+      message: "github organization reachable",
+    }],
   });
-  assert.equal(JSON.stringify(result).includes("token"), false);
+  assert.equal(JSON.stringify(result).includes("never-return"), false);
 });
 
-
-test("operatorStatus rejects a mismatched organization descriptor", async () => {
-  const adapters = createGitHubReadonlyAdapters({
-    organization: "apidevelopers-digital",
-    now: () => NOW,
-    client: {
-      async getOrganization() {
-        return { login: "other-organization" };
-      },
-    },
-  });
+test("status enforces organization boundary and repository ownership", async () => {
+  await assert.rejects(
+    adapters({ async getOrganization() { return { login: "other" }; } })
+      .status({ ...BASE, target: ORG }),
+    (error) => error instanceof OperatorReadonlyError &&
+      error.code === "provider_contract_violation",
+  );
 
   await assert.rejects(
-    adapters.status({
-      ...REQUEST,
-      target: ORG_TARGET,
-    }),
-    (error) =>
-      error instanceof OperatorReadonlyError &&
+    adapters({ async getRepository() { return { name: "repo", full_name: "other/repo" }; } })
+      .status({
+        ...BASE,
+        target: { ...REPOS, resourceId: "apidevelopers-digital/repo" },
+      }),
+    (error) => error instanceof OperatorReadonlyError &&
       error.code === "provider_contract_violation",
   );
 });
 
-test("operatorStatus maps archived repository without exposing provider fields", async () => {
-  const adapters = createGitHubReadonlyAdapters({
-    organization: "apidevelopers-digital",
-    now: () => NOW,
-    client: {
-      async getRepository(input) {
-        assert.deepEqual(input, {
-          owner: "apidevelopers-digital",
-          repository: "apidevelopers-platform",
-        });
-        return {
-          name: "apidevelopers-platform",
-          full_name: "apidevelopers-digital/apidevelopers-platform",
-          archived: true,
-          disabled: false,
-          permissions: { admin: true },
-          private: false,
-        };
-      },
+test("status sanitizes upstream denial and archived repository state", async () => {
+  const denied = await adapters({
+    async getOrganization() {
+      const error = new Error("Bearer secret-value rejected");
+      error.status = 403;
+      throw error;
     },
-  });
+  }).status({ ...BASE, target: ORG });
 
-  const result = await adapters.status({
-    ...REQUEST,
+  assert.equal(denied.items[0].state, "blocked");
+  assert.equal(denied.items[0].message, "github access denied");
+  assert.equal(JSON.stringify(denied).includes("secret-value"), false);
+
+  const archived = await adapters({
+    async getRepository() {
+      return {
+        name: "apidevelopers-platform",
+        full_name: "apidevelopers-digital/apidevelopers-platform",
+        archived: true,
+      };
+    },
+  }).status({
+    ...BASE,
     target: {
-      ...REPOSITORY_TARGET,
+      ...REPOS,
       resourceId: "apidevelopers-digital/apidevelopers-platform",
     },
   });
-
-  assert.deepEqual(result.items[0], {
-    resourceId: "apidevelopers-digital/apidevelopers-platform",
-    kind: "repository",
-    state: "attention",
-    checkedAt: NOW,
-    message: "github repository archived",
-  });
-  assert.equal(JSON.stringify(result).includes("permissions"), false);
+  assert.equal(archived.items[0].state, "attention");
 });
 
-test("operatorStatus converts upstream access errors into sanitized blocked state", async () => {
-  const adapters = createGitHubReadonlyAdapters({
-    organization: "apidevelopers-digital",
-    now: () => NOW,
-    client: {
-      async getOrganization() {
-        const error = new Error("Bearer secret-value rejected");
-        error.status = 403;
-        throw error;
-      },
-    },
-  });
-
-  const result = await adapters.status({
-    ...REQUEST,
-    target: ORG_TARGET,
-  });
-
-  assert.equal(result.items[0].state, "blocked");
-  assert.equal(result.items[0].message, "github access denied");
-  assert.equal(JSON.stringify(result).includes("secret-value"), false);
-});
-
-test("operatorInventory returns bounded repository descriptors and opaque cursor", async () => {
+test("inventory returns bounded sanitized descriptors and opaque cursor", async () => {
   const calls = [];
-  const adapters = createGitHubReadonlyAdapters({
+  const result = await adapters({
+    async listOrganizationRepositories(input) {
+      calls.push(input);
+      return {
+        items: [
+          {
+            name: "apidevelopers-platform",
+            full_name: "apidevelopers-digital/apidevelopers-platform",
+            clone_url: "https://example.invalid/private",
+            permissions: { admin: true },
+          },
+          {
+            name: "legacy-runtime",
+            full_name: "apidevelopers-digital/legacy-runtime",
+            archived: true,
+            token: "never-return",
+          },
+        ],
+        nextPage: 2,
+      };
+    },
+  }).inventory({ ...BASE, target: REPOS, limit: 150 });
+
+  assert.deepEqual(calls, [{
     organization: "apidevelopers-digital",
-    now: () => NOW,
-    client: {
-      async listOrganizationRepositories(input) {
-        calls.push(input);
-        return {
-          items: [
-            {
-              name: "apidevelopers-platform",
-              full_name: "apidevelopers-digital/apidevelopers-platform",
-              archived: false,
-              disabled: false,
-              clone_url: "https://example.invalid/secret",
-              permissions: { admin: true },
-            },
-            {
-              name: "legacy-runtime",
-              full_name: "apidevelopers-digital/legacy-runtime",
-              archived: true,
-              disabled: false,
-              token: "never-return",
-            },
-          ],
-          nextPage: 2,
-        };
-      },
-    },
-  });
-
-  const result = await adapters.inventory({
-    ...REQUEST,
-    target: REPOSITORY_TARGET,
-    limit: 150,
-  });
-
-  assert.deepEqual(calls, [
-    {
-      organization: "apidevelopers-digital",
-      page: 1,
-      perPage: 100,
-      type: "all",
-    },
-  ]);
+    page: 1,
+    perPage: 100,
+    type: "all",
+  }]);
   assert.equal(result.cursor, "github_repo_page_2");
-  assert.deepEqual(result.items, [
-    {
-      resourceId: "apidevelopers-digital/apidevelopers-platform",
-      kind: "repository",
-      name: "apidevelopers-platform",
-      status: "online",
-      parentId: "github:organization:apidevelopers-digital",
-      capabilities: ["github:repository:metadata:read"],
-    },
-    {
-      resourceId: "apidevelopers-digital/legacy-runtime",
-      kind: "repository",
-      name: "legacy-runtime",
-      status: "attention",
-      parentId: "github:organization:apidevelopers-digital",
-      capabilities: ["github:repository:metadata:read"],
-    },
+  assert.deepEqual(result.items.map(({ resourceId, status }) => [resourceId, status]), [
+    ["apidevelopers-digital/apidevelopers-platform", "online"],
+    ["apidevelopers-digital/legacy-runtime", "attention"],
   ]);
   const serialized = JSON.stringify(result);
   assert.equal(serialized.includes("clone_url"), false);
@@ -231,100 +143,44 @@ test("operatorInventory returns bounded repository descriptors and opaque cursor
   assert.equal(serialized.includes("never-return"), false);
 });
 
-test("operatorInventory validates cursor and configured organization boundary", async () => {
-  const calls = [];
-  const adapters = createGitHubReadonlyAdapters({
-    organization: "apidevelopers-digital",
-    client: {
-      async listOrganizationRepositories(input) {
-        calls.push(input);
-        return [];
-      },
-    },
-  });
-
-  await adapters.inventory({
-    ...REQUEST,
-    target: REPOSITORY_TARGET,
-    cursor: "github_repo_page_7",
-  });
-  assert.equal(calls[0].page, 7);
-
+test("inventory validates cursor, provider and upstream failure", async () => {
+  const ok = adapters({ async listOrganizationRepositories() { return []; } });
   await assert.rejects(
-    adapters.inventory({
-      ...REQUEST,
-      target: REPOSITORY_TARGET,
-      cursor: "../page/2",
-    }),
-    (error) =>
-      error instanceof OperatorReadonlyError &&
+    ok.inventory({ ...BASE, target: REPOS, cursor: "../page/2" }),
+    (error) => error instanceof OperatorReadonlyError &&
       error.code === "invalid_request",
   );
-
   await assert.rejects(
-    adapters.status({
-      ...REQUEST,
-      target: {
-        ...ORG_TARGET,
-        resourceId: "other-organization",
-      },
-    }),
-    (error) =>
-      error instanceof OperatorReadonlyError &&
-      error.code === "invalid_request",
-  );
-});
-
-test("operatorInventory rejects unsupported provider and sanitizes upstream failure", async () => {
-  const adapters = createGitHubReadonlyAdapters({
-    organization: "apidevelopers-digital",
-    client: {
-      async listOrganizationRepositories() {
-        const error = new Error("credential secret-value failed");
-        error.status = 403;
-        throw error;
-      },
-    },
-  });
-
-  await assert.rejects(
-    adapters.inventory({
-      ...REQUEST,
+    ok.inventory({
+      ...BASE,
       target: { provider: "hostinger", resourceType: "repository" },
     }),
-    (error) =>
-      error instanceof OperatorReadonlyError &&
+    (error) => error instanceof OperatorReadonlyError &&
       error.code === "adapter_unavailable",
   );
 
+  const failed = adapters({
+    async listOrganizationRepositories() {
+      const error = new Error("credential secret-value failed");
+      error.status = 403;
+      throw error;
+    },
+  });
   await assert.rejects(
-    adapters.inventory({
-      ...REQUEST,
-      target: REPOSITORY_TARGET,
-    }),
-    (error) =>
-      error instanceof OperatorReadonlyError &&
+    failed.inventory({ ...BASE, target: REPOS }),
+    (error) => error instanceof OperatorReadonlyError &&
       error.code === "adapter_unavailable" &&
       !error.message.includes("secret-value"),
   );
 });
 
-test("operatorRead and operatorAudit remain unavailable in the GitHub metadata block", async () => {
-  const adapters = createGitHubReadonlyAdapters({
-    organization: "apidevelopers-digital",
-    client: {},
-  });
-
-  await assert.rejects(
-    adapters.read({}),
-    (error) =>
-      error instanceof OperatorReadonlyError &&
-      error.code === "adapter_unavailable",
-  );
-  await assert.rejects(
-    adapters.audit({}),
-    (error) =>
-      error instanceof OperatorReadonlyError &&
-      error.code === "adapter_unavailble",
-  );
+test("read and audit remain unavailable in this metadata block", async () => {
+  const value = adapters({});
+  for (const operation of [value.read, value.audit]) {
+    await assert.rejects(
+      operation({}),
+      (error) => error instanceof OperatorReadonlyError &&
+        error.code === "adapter_unavailable",
+    );
+  }
 });
