@@ -11,12 +11,16 @@ import {
   createUnavailableOperatorReadonlyAdapters,
 } from "./operator-readonly-core.mjs";
 import { createOperatorReadonlyHttpApp } from "./operator-readonly-http.mjs";
+import { createGitHubReadonlyAdapters } from "./operator-github-readonly-adapter.mjs";
 
 export function createOperationalGatewayWithReadonlyOperator({
   operatorReadonlyAdapters,
   operatorReadonlyNow,
   operatorReadonlyMaxBodyBytes,
   operatorReadonlyRateLimiter,
+  githubReadonlyClient,
+  githubReadonlyOrganization,
+  githubReadonlyNow,
   readinessChecks = [],
   readinessNow,
   ...operationalOptions
@@ -40,7 +44,14 @@ export function createOperationalGatewayWithReadonlyOperator({
   });
 
   const adapters =
-    operatorReadonlyAdapters ?? createUnavailableOperatorReadonlyAdapters();
+    operatorReadonlyAdapters ??
+    (githubReadonlyClient
+      ? createGitHubReadonlyAdapters({
+          client: githubReadonlyClient,
+          organization: githubReadonlyOrganization,
+          ...(githubReadonlyNow ? { now: githubReadonlyNow } : {}),
+        })
+      : createUnavailableOperatorReadonlyAdapters());
 
   const operatorReadonlyCore = createOperatorReadonlyCore({
     adapters,
