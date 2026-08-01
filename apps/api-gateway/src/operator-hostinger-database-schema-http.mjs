@@ -3,7 +3,7 @@ import {
 } from "./operator-hostinger-database-schema-policy.mjs";
 
 const ROUTE = "/v1/operator/hostinger/database/schema/inventory";
-const REQUIRED_SCOPE = "operator:hostingerdatabase:schema:read";
+const REQUIRED_SCOPE = "operator:hostinger:database:schema:read";
 const SAFE_REFERENCE = /^[A-Za-z0-9._:-]{3,128}$/;
 const SAFE_HOST = /^[a-z0-9.-]{1,253}$/;
 const SAFE_LOGICAL_ID = /^[A-Za-z0-9 ._:-]{2,128}$/;
@@ -325,7 +325,7 @@ export function createHostingerDatabaseSchemaInventoryHttpApp({
             outcome: "failure",
             metadata: auditMetadata({
               body,
-              errorCode: inventoryError.code,
+              errorCode: inventoryError.cod,
               authorizationDecision,
             }),
           });
