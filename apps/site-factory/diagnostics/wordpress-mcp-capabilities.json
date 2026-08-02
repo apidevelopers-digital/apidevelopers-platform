@@ -1,0 +1,54 @@
+{
+  "schemaVersion": "1.0",
+  "kind": "site-factory-wordpress-mcp-capabilities",
+  "generatedAt": "2026-08-02T11:27:32.452Z",
+  "source": {
+    "repository": "apidevelopers-digital/apidevelopers-platform",
+    "branch": "diag/wordpress-mcp-capabilities-apidevelopers-20260802",
+    "sha": "f9f68c7d9e5f7a4d8563f081ae75166af76977d2",
+    "runId": "30745774055"
+  },
+  "target": {
+    "username": "u242521810",
+    "domain": "apidevelopers.digital",
+    "softwareId": "29782684"
+  },
+  "writeExecuted": false,
+  "wordpressDeleted": false,
+  "dnsChanged": false,
+  "status": "error",
+  "error": {
+    "message": "mcp_initialize_failed",
+    "evidence": {
+      "attempts": [
+        {
+          "protocolVersion": "2025-06-18",
+          "status": 401,
+          "ok": false,
+          "contentType": "application/json; charset=UTF-8",
+          "bodySha256": "9a50d94c4480dac296539b3ccb3e2b65ef679f92a6cbb87fe8c359434da8f77f",
+          "error": null,
+          "serverProtocolVersion": null
+        },
+        {
+          "protocolVersion": "2025-03-26",
+          "status": 401,
+          "ok": false,
+          "contentType": "application/json; charset=UTF-8",
+          "bodySha256": "9a50d94c4480dac296539b3ccb3e2b65ef679f92a6cbb87fe8c359434da8f77f",
+          "error": null,
+          "serverProtocolVersion": null
+        },
+        {
+          "protocolVersion": "2024-11-05",
+          "status": 401,
+          "ok": false,
+          "contentType": "application/json; charset=UTF-8",
+          "bodySha256": "9a50d94c4480dac296539b3ccb3e2b65ef679f92a6cbb87fe8c359434da8f77f",
+          "error": null,
+          "serverProtocolVersion": null
+        }
+      ]
+    }
+  }
+}
