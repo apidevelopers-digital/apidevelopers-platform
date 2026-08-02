@@ -1,0 +1,134 @@
+name: Site Factory Hostinger Static MCP Diagnostic
+
+on:
+  pull_request:
+    branches:
+      - main
+    paths:
+      - ".github/workflows/site-factory-hostinger-static-preflight-diagnostic.yml"
+      - "apps/site-factory/src/run-hostinger-static-deploy-mcp.mjs"
+
+permissions:
+  contents: read
+
+concurrency:
+  group: site-factory-hostinger-static-mcp-diagnostic
+  cancel-in-progress: false
+
+jobs:
+  diagnose:
+    name: Verify official Hostinger MCP client contract
+    runs-on:
+      - self-hosted
+      - macOS
+      - X64
+    timeout-minutes: 10
+
+    steps:
+      - name: Checkout exact source SHA
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "24"
+
+      - name: Install pinned official MCP package and SDK
+        shell: bash
+        run: |
+          set -euo pipefail
+          WORKDIR="$RUNNER_TEMP/hostinger-static-mcp-diagnostic-${GITHUB_RUN_ID}"
+          rm -rf "$WORKDIR"
+          mkdir -p "$WORKDIR"
+          cd "$WORKDIR"
+          npm init -y >/dev/null
+          npm install --no-audit --no-fund -ignore-scripts \
+            hostinger-api-mcp@1.26.0 \
+            @modelcontextprotocol/sdk@1.10.0
+          test -x node_modules/.bin/hostinger-hosting-mcp
+          echo "MCP_WORKDIR=$WORKDIR" >> "$GITHUB_ENV"
+
+      - name: Connect and discover static deployment tool
+        shell: bash
+        run: |
+          set -euo pipefail
+          cd "$MCP_WORKDIR"
+          cat > diagnostic.mjs <<'NODE'
+          import path from "node:path";
+          import { Client } from "@modelcontextprotocol/sdk/client/index.js";
+          import { StdioClientTransport } from "@modelcontextprotocol/sdk/client/stdio.js";
+
+          const binary = path.join(
+            process.cwd(),
+            "node_modules",
+            ".bin",
+            process.platform === "win32"
+              ? "hostinger-hosting-mcp.cmd"
+              : "hostinger-hosting-mcp",
+          );
+
+          let client;
+          try {
+            const transport = new StdioClientTransport({
+              command: binary,
+              args: [],
+              env: {
+                ...process.env,
+                DEBUG: "false",
+                APITOKEN: "preflight-nonsecret-placeholder",
+              },
+              stderr: "pipe",
+            });
+
+            client = new Client(
+              {
+                name: "apidevelopers-static-mcp-diagnostic",
+                version: "1.0.0",
+              },
+              { capabilities: {} },
+            );
+
+            await client.connect(transport);
+            const listed = await client.listTools();
+            const tool = listed.tools.find(
+              (item) => item.name === "hostinger_deployStaticWebsite",
+            );
+
+            if (!tool) {
+              throw new Error(
+                `required_tool_missing:available=${listed.tools
+                  .map((item) => item.name)
+                  .join(",")}`,
+              );
+            }
+
+            console.log(
+              JSON.stringify({
+                status: "success",
+                package: "hostinger-api-mcp@1.26.0",
+                binary,
+                tool: tool.name,
+                required: tool.inputSchema?.required ?? [],
+                properties: Object.keys(tool.inputSchema?.properties ?? {}),
+              }),
+            );
+          } catch (error) {
+            const message =
+              error instanceof Error ? error.message : String(error);
+            console.error(
+              `::error title=Hostinger MCP diagnostic::${message.replaceAll(
+                "\n",
+                " ",
+              )}`,
+            );
+            throw error;
+          } finally {
+            if (client) {
+              try {
+                await client.close();
+              } catch {}
+            }
+          }
+          NODE
+          node --check diagnostic.mjs
+          node diagnostic.mjs
