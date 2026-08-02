@@ -20,6 +20,13 @@ on:
         required: false
         type: string
 
+  pull_request:
+    branches:
+      - main
+    paths:
+      - ".github/workflows/site-factory-hostinger-static-production.yml"
+      - "apps/site-factory/**"
+
 permissions:
   contents: read
 
@@ -36,6 +43,7 @@ jobs:
       - X64
     timeout-minutes: 30
     env:
+      RUN_MODE: ${{ github.event_name == 'workflow_dispatch' && inputs.mode || 'preflight' }}
       TARGET_DOMAIN: apidevelopers.digital
       EXPECTED_TEXT: API Developers.digital
 
@@ -44,7 +52,7 @@ jobs:
         uses: actions/checkout@v4
 
       - name: Validate explicit production apply authorization
-        if: ${{ inputs.mode == 'apply' }}
+        if: ${{ github.event_name == 'workflow_dispatch' && inputs.mode == 'apply' }}
         shell: bash
         env:
           HOSTINGER_API_TOKEN: ${{ secrets.HOSTINGER_API_TOKEN }}
@@ -135,11 +143,11 @@ jobs:
         continue-on-error: true
         shell: bash
         env:
-          HOSTINGER_API_TOKEN: ${{ inputs.mode == 'apply' && secrets.HOSTINGER_API_TOKEN || '' }}
+          HOSTINGER_API_TOKEN: ${{ github.event_name == 'workflow_dispatch' && inputs.mode == 'apply' && secrets.HOSTINGER_API_TOKEN || '' }}
         run: |
           set -euo pipefail
           node "$MCP_CLIENT" \
-            --mode "${{ inputs.mode }}" \
+            --mode "$RUN_MODE" \
             --domain "$TARGET_DOMAIN" \
             --archive "$ARCHIVE_PATH" \
             --expected-text "$EXPECTED_TEXT" \
