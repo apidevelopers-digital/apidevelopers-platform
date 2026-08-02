@@ -1,0 +1,47 @@
+{
+  "schemaVersion": "1.0",
+  "kind": "hostinger-business-hosting-website-create-execution-evidence",
+  "mode": "api-root-evidence",
+  "executable": false,
+  "executedAt": "2026-08-02T06:12:10.468Z",
+  "provider": "hostinger",
+  "product": "business-web-hosting",
+  "source": {
+    "repository": "apidevelopers-digital/apidevelopers-platform",
+    "executionSha": "8626c794df4b6db38d060c3ff68cd228b66b552a",
+    "workflowRunId": "30735466841",
+    "draftFingerprint": "e905a96390d3ba98e6d2f2064cd3877f8bf3e7ed1065c73e420351bb7bb28e5a",
+    "approvalFingerprint": "df4056a24cc69d12876f7c5dd6a61ccc91381f2a65fe94a7ff806fc55695ab26"
+  },
+  "outcome": "created",
+  "hostinger": {
+    "postExecuted": true,
+    "postEndpoint": "/api/hosting/v1/websites",
+    "postStatus": 200,
+    "domain": "preview-apidevelopers.apidevelopers.digital",
+    "datacenterCode": "ascenty",
+    "orderReference": "order-****0581",
+    "website": {
+      "domain": "preview-apidevelopers.apidevelopers.digital",
+      "username": "u242521810",
+      "orderId": "1009450581",
+      "isEnabled": true
+    }
+  },
+  "approval": {
+    "consumed": true,
+    "singleUse": true,
+    "approvedAt": "2026-08-02T04:27:24.242Z",
+    "expiresAt": "2026-08-02T10:27:24.242Z"
+  },
+  "constraints": {
+    "connectRepositoryExecuted": false,
+    "dnsChanged": false,
+    "archiveUploaded": false,
+    "nodeBuildStarted": false,
+    "deployExecuted": false,
+    "productionChanged": false,
+    "wordpressChanged": false
+  },
+  "fingerprint": "563f50b417ff17d92372db0067189fb3791e8c2e117e0fa44b02510920331607"
+}
