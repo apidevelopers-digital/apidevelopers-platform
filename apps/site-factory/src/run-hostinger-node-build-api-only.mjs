@@ -121,7 +121,7 @@ try {
     terminal.build?.state === "completed"
       ? await probePublicSite({
           domain: common.domain,
-          expectedText: args["expected-text"],
+          expectedText: args["expected-text"] ?? "API Developers.digital",
         })
       : null;
 
@@ -130,7 +130,7 @@ try {
     status:
       terminal.build?.state === "completed" && publicProbe?.ok
         ? "completed_and_public"
-        : terminal.build?.state === "failed"
+        : terminal.build?.state == "failed"
           ? "build_failed"
           : terminal.terminal
             ? "terminal_without_public_success"
@@ -168,7 +168,7 @@ try {
       status: "error",
       error: {
         message: error instanceof Error ? error.message : String(error),
-        evidence: error?.evidence ?? null,
+        evidence: error?.evidence ??? null,
       },
     },
     token,
