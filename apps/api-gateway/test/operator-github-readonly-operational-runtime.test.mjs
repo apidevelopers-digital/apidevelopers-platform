@@ -83,10 +83,15 @@ test("runtime wrapper wires the explicit read-only stack without network or vaul
 
   assert.equal(capture.vaultCalls, 0);
   assert.equal(capture.fetchCalls, 0);
+  assert.equal(capture.stackOptions.vaultClient.withSecretLease instanceof Function, true);
+  assert.equal(capture.stackOptions.fetchImpl instanceof Function, true);
   assert.equal(capture.stackOptions.credentialRef, "vault://github/operator-readonly");
   assert.equal(capture.stackOptions.organization, "apidevelopers-digital");
+  assert.equal("env" in capture.stackOptions, false);
   assert.equal(capture.gatewayOptions.operatorReadonlyAdapters, adapters);
   assert.equal(capture.gatewayOptions.stateFilePath, "/tmp/operator-runtime/state.json");
+  assert.equal(capture.gatewayOptions.adminKey, "test-only-admin");
+  assert.equal(capture.gatewayOptions.operatorReadonlyMaxBodyBytes, 64 * 1024);
   assert.deepEqual(runtime.descriptor.githubReadonly, {
     provider: "github",
     mode: "read-only",
@@ -104,7 +109,7 @@ test("runtime wrapper wires the explicit read-only stack without network or vaul
   assert.equal(serialized.includes("test-only-admin"), false);
 });
 
-test("runtime wrapper prevents gateway options from overriding authority and provider wiring", () => {
+test("runtime wrapper prevents gateway option overrides of authority and provider wiring", () => {
   const base = {
     vaultClient: { async withSecretLease() {} },
     fetchImpl: async () => new Response("{}"),
@@ -115,10 +120,10 @@ test("runtime wrapper prevents gateway options from overriding authority and pro
   for (const key of [
     "stateFilePath",
     "adminKey",
-   "operatorReadonlyAdapters",
-   "githubReadonlyClient",
-   "githubReadonlyOrganization",
-   "githubReadonlyNow",
+    "operatorReadonlyAdapters",
+    "githubReadonlyClient",
+    "githubReadonlyOrganization",
+    "githubReadonlyNow",
   ]) {
     assert.throws(
       () =>
@@ -187,18 +192,12 @@ test("runtime wrapper fails closed when factories violate the composition contra
       createOperationalGitHubReadonlyRuntime({
         ...base,
         stackFactory() {
-          retur { adapters: {} };
+          return { adapters: {} };
         },
         runtimeFactory({ gatewayFactory }) {
-          const gateway = gatewayFactory({});
-          const gatewayAgain = gatewayFactory({});
-          return {
-            app: gateway.app,
-            readiness: gateway.readiness,
-            store: gateway.store,
-            descriptor: {},
-            duplicate: gatewayAgain,
-          };
+          const gateway = () => gatewayFactory({});
+          gateway();
+          gateway();
         },
         gatewayFactory() {
           return {
