@@ -1,0 +1,31 @@
+{
+  "schemaVersion": "1.0",
+  "kind": "hostinger-business-hosting-website-create-diagnostic",
+  "mode": "api-root-diagnostic",
+  "executable": false,
+  "generatedAt": "2026-08-02T04:38:32.543Z",
+  "source": {
+    "repository": "apidevelopers-digital/apidevelopers-platform",
+    "sha": "af320abea446687a35855c3c44a3efac9bca0d34",
+    "workflowRunId": "30732717716",
+    "workflowRunAttempt": "1",
+    "eventName": "workflow_dispatch"
+  },
+  "steps": {
+    "validate": "success",
+    "secret": "success",
+    "claim": "failure",
+    "execute": "skipped"
+  },
+  "failedPhase": "claim",
+  "constraints": {
+    "hostingerPostExecutedByDiagnostic": false,
+    "hostingerWritesByDiagnostic": false,
+    "dnsChanged": false,
+    "buildStarted": false,
+    "deployExecuted": false,
+    "productionChanged": false,
+    "wordpressChanged": false
+  },
+  "fingerprint": "c5e513839e97567d11744fecbe2d4c300ef6cc91762454e3c7825e3ac88a1a99"
+}
