@@ -38,7 +38,7 @@ function requireText(value, name) {
 function normalizeGatewayOptions(value) {
   if (value === undefined) return Object.freeze({});
   const options = requireObject(value, "gatewayOptions");
-  for (const key of FORBIDEEN_GATEWAY_OPTION_KEYS) {
+  for (const key of FORBIDDEN_GATEWAY_OPTION_KEYS) {
     if (Object.hasOwn(options, key)) {
       throw new TypeError(`gatewayOptions.${key} is managed by the runtime wrapper`);
     }
