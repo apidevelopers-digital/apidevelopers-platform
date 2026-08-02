@@ -200,7 +200,7 @@ async function main() {
   const mode = args.mode ?? "preflight";
   const domain = required("domain", args.domain ?? "apidevelopers.digital");
   const archive = inspectArchive(args.archive);
-  const evidencePath =
+ const evidencePath =
     args.evidence ?? "hostinger-static-deploy-evidence.json";
   const expectedText =
     args["expected-text"] ?? "API Developers.digital";
@@ -218,7 +218,7 @@ async function main() {
       ref: process.env.GITHUB_REF_NAME ?? null,
       sha: process.env.GITHUB_SHA ?? null,
       runId: process.env.GITHUB_RUN_ID ?? null,
-      runAttempt: process.env.GITHUB_RUN_ATTEMPT ?? null,
+      runAttempt: process.env.GITHUB_RUN_ATTEMPT?? null,
     },
     target: {
       domain,
@@ -260,7 +260,7 @@ async function main() {
       env: {
         ...process.env,
         DEBUG: "false",
-        HOSTINGER_API_TOKEN: token,
+        APITOKEN: token || "preflight-nonsecret-placeholder",
       },
       stderr: "pipe",
     });
