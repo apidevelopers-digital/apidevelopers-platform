@@ -110,7 +110,7 @@ export function createHostingerNodeBuildExecutorPreflight({
     blockReason: "official_contract_server_validation_conflict",
     unblockRequirements: [
       "official_openapi_contract_changes_or_transport_is_independently_verified",
-      "upstream_issue_resolved_or_indepent_success_evidence_recorded",
+      "upstream_issue_resolved_or_independent_success_evidence_recorded",
       "new_executor_pull_request",
       "green_ci_and_security_review",
       "fresh_single_use_approval_bound_to_exact_sha_archive_and_contract_snapshot",
