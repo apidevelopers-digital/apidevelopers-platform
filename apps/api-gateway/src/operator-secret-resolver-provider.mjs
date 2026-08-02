@@ -20,7 +20,7 @@ function boundedInteger(value, fallback, maximum, field) {
   if (value === undefined || value === null || value === "") return fallback;
   const parsed = Number(value);
   if (!Number.isSafeInteger(parsed) || parsed < 1 || parsed > maximum) {
-    throw new TypeError($`{field} must be an integer between 1 and ${maximum}`);
+    throw new TypeError(`${field} must be an integer between 1 and ${maximum}`);
   }
   return parsed;
 }
