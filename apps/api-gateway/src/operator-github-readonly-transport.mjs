@@ -1,9 +1,4 @@
-const DEFAULT_ALLOWED_ORIGINS = Object.freeze(["https://api.github.com"]);
-const DEFAULT_MAX_RESPONSE_BYTES = 1024 * 1024;
-const MAX_RESPONSE_BYTES = 8 * 1024 * 1024;
-const MAX_CREDENTIAL_BYTES = 8 * 1024;
-const MAX_TIMEOUT_MS = 60_000;
-
+const DEFAULT_ORIGINS = Object.freeze(["https://api.github.com"]);
 const SAFE_RESPONSE_HEADERS = Object.freeze([
   "content-type",
   "link",
@@ -15,8 +10,7 @@ const SAFE_RESPONSE_HEADERS = Object.freeze([
   "x-ratelimit-resource",
   "x-ratelimit-used",
 ]);
-
-const FORBIDDEN_REQUEST_HEADERS = new Set([
+const FORBIDDEN_HEADERS = new Set([
   "authorization",
   "proxy-authorization",
   "cookie",
@@ -25,6 +19,9 @@ const FORBIDDEN_REQUEST_HEADERS = new Set([
   "content-length",
   "transfer-encoding",
 ]);
+const MAX_CREDENTIAL_BYTES = 8 * 1024;
+const MAX_RESPONSE_BYTES = 8 * 1024 * 1024;
+const MAX_TIMEOUT_MS = 60_000;
 
 export class OperatorGitHubReadonlyTransportError extends Error {
   constructor(code, message, status = 502) {
@@ -35,24 +32,19 @@ export class OperatorGitHubReadonlyTransportError extends Error {
   }
 }
 
-function positiveInteger(value, field, fallback, maximum) {
+function boundedInteger(value, fallback, maximum, field) {
   if (value === undefined || value === null || value === "") return fallback;
-  const normalized = Number(value);
-  if (
-    !Number.isSafeInteger(normalized) ||
-    normalized < 1 ||
-    normalized > maximum
-  ) {
+  const parsed = Number(value);
+  if (!Number.isSafeInteger(parsed) || parsed < 1 || parsed > maximum) {
     throw new TypeError(`${field} must be an integer between 1 and ${maximum}`);
   }
-  return normalized;
+  return parsed;
 }
 
-function normalizeAllowedOrigins(values) {
+function normalizeOrigins(values) {
   if (!Array.isArray(values) || values.length === 0) {
     throw new TypeError("allowedOrigins must be a non-empty array");
   }
-
   return Object.freeze(
     values.map((value) => {
       const url = new URL(String(value));
@@ -60,23 +52,25 @@ function normalizeAllowedOrigins(values) {
         url.protocol !== "https:" ||
         url.username ||
         url.password ||
+        url.pathname !== "/" ||
         url.search ||
-        url.hash ||
-        url.pathname !== "/"
+        url.hash
       ) {
-        throw new TypeError(
-          "allowedOrigins entries must be HTTPS origins without path, credentials, query or fragment",
-        );
+        throw new TypeError("allowedOrigins entries must be plain HTTPS origins");
       }
       return url.origin;
     }),
   );
 }
 
-function normalizeHeaders(value) {
-  if (value === undefined) return Object.freeze({});
-  if (!value || typeof value !== "object" || Array.isArray(value)) {
-    throw new OperatorGitHubReadonlyTransportError(
+function transportError(code, message, status) {
+  return new OperatorGitHubReadonlyTransportError(code, message, status);
+}
+
+function normalizeHeaders(headers) {
+  if (headers === undefined) return Object.freeze({});
+  if (!headers || typeof headers !== "object" || Array.isArray(headers)) {
+    throw transportError(
       "invalid_github_transport_request",
       "request headers are invalid",
       400,
@@ -84,56 +78,63 @@ function normalizeHeaders(value) {
   }
 
   const output = {};
-  for (const [rawName, rawValue] of Object.entries(value)) {
+  for (const [rawName, rawValue] of Object.entries(headers)) {
     const name = String(rawName).trim().toLowerCase();
-    if (!name || FORBIDDEN_REQUEST_HEADERS.has(name)) {
-      throw new OperatorGitHubReadonlyTransportError(
+    const value = String(rawValue);
+    if (!name || FORBIDDEN_HEADERS.has(name)) {
+      throw transportError(
         "forbidden_github_transport_header",
         "request contains a forbidden header",
         400,
       );
     }
-
-    const normalizedValue = String(rawValue);
-    if (/[\r\n\0]/.test(normalizedValue)) {
-      throw new OperatorGitHubReadonlyTransportError(
+    if (/[\r\n\0]/.test(value)) {
+      throw transportError(
         "invalid_github_transport_request",
         "request header value is invalid",
         400,
       );
     }
-    output[name] = normalizedValue;
+    output[name] = value;
   }
-
   return Object.freeze(output);
 }
 
-function normalizeRequest(request, allowedOrigins) {
+function normalizeRequest(request, origins) {
   if (!request || typeof request !== "object" || Array.isArray(request)) {
-    throw new OperatorGitHubReadonlyTransportError(
+    throw transportError(
       "invalid_github_transport_request",
       "request is invalid",
       400,
     );
   }
-
   if (String(request.method ?? "").toUpperCase() !== "GET") {
-    throw new OperatorGitHubReadonlyTransportError(
+    throw transportError(
       "github_transport_method_forbidden",
       "GitHub readonly transport only permits GET",
       405,
     );
   }
 
-  const url = new URL(String(request.url ?? ""));
+  let url;
+  try {
+    url = new URL(String(request.url ?? ""));
+  } catch {
+    throw transportError(
+      "github_transport_destination_forbidden",
+      "GitHub transport destination is not allowed",
+      403,
+    );
+  }
+
   if (
     url.protocol !== "https:" ||
     url.username ||
     url.password ||
     url.hash ||
-    !allowedOrigins.includes(url.origin)
+    !origins.includes(url.origin)
   ) {
-    throw new OperatorGithubReadonlyTransportError(
+    throw transportError(
       "github_transport_destination_forbidden",
       "GitHub transport destination is not allowed",
       403,
@@ -141,88 +142,63 @@ function normalizeRequest(request, allowedOrigins) {
   }
 
   return Object.freeze({
-    method: "GET",
     url: url.toString(),
     headers: normalizeHeaders(request.headers),
-    timeoutMs: positiveInteger(
+    timeoutMs: boundedInteger(
       request.timeoutMs,
-      "request.timeoutMs",
       10_000,
       MAX_TIMEOUT_MS,
+      "request.timeoutMs",
     ),
   });
 }
 
-function normalizeCredential(credential) {
-  if (!credential || typeof credential !== "object" || Array.isArray(credential)) {
-    throw new OperatorGitHubReadonlyTransportError(
+function credentialText(credential) {
+  if (
+    !credential ||
+    typeof credential !== "object" ||
+    Array.isArray(credential) ||
+    String(credential.scheme ?? "").toLowerCase() !== "bearer" ||
+    !(credential.bytes instanceof Uint8Array) ||
+    credential.bytes.byteLength < 1 ||
+    credential.bytes.byteLength > MAX_CREDENTIAL_BYTES
+  ) {
+    throw transportError(
       "invalid_github_transport_credential",
       "credential is invalid",
       500,
     );
   }
 
-  if (String(credential.scheme ?? "").toLowerCase() !== "bearer") {
-    throw new OperatorGitHubReadonlyTransportError(
-      "invalid_github_transport_credential",
-      "credential scheme is invalid",
-      500,
-    );
-  }
-
-  if (!(credential.bytes instanceof Uint8Array)) {
-    throw new OperatorGithubReadonlyTransportError(
-      "invalid_github_transport_credential",
-      "credential bytes are invalid",
-      500,
-    );
-  }
-
-  if (
-    credential.bytes.byteLength < 1 ||
-    credential.bytes.byteLength > MAX_CREDENTIAL_BYTES
-  ) {
-    throw new OperatorGitHubReadonlyTransportError(
-      "invalid_github_transport_credential",
-      "credential size is invalid",
-      500,
-    );
-  }
-
-  return credential.bytes;
-}
-
-function credentialText(bytes) {
-  const copy = Buffer.from(bytes);
+  const copy = Buffer.from(credential.bytes);
   try {
-    const value = new TextDecoder("utf-8", { fatal: true }).decode(copy);
-    if (!/^[\x21-\x7e]+$/.test(value)) {
-      throw new OperatorGitHubReadonlyTransportError(
+    const token = new TextDecoder("utf-8", { fatal: true }).decode(copy);
+    if (!/^[\x21-\x7e]+$/.test(token)) {
+      throw transportError(
         "invalid_github_transport_credential",
         "credential contains invalid bytes",
         500,
       );
     }
-    return value;
+    return token;
   } catch (error) {
     if (error instanceof OperatorGitHubReadonlyTransportError) throw error;
-    throw new OperatorGithubReadonlyTransportError(
+    throw transportError(
       "invalid_github_transport_credential",
       "credential encoding is invalid",
       500,
-   );
+    );
   } finally {
     copy.fill(0);
   }
 }
 
-function headerValue(headers, name) {
+function getHeader(headers, name) {
   if (!headers) return undefined;
   if (typeof headers.get === "function") {
     const value = headers.get(name);
     return value === null ? undefined : String(value);
   }
-
   const wanted = name.toLowerCase();
   for (const [key, value] of Object.entries(headers)) {
     if (String(key).toLowerCase() === wanted) return String(value);
@@ -230,23 +206,19 @@ function headerValue(headers, name) {
   return undefined;
 }
 
-function sanitizeResponseHeaders(headers) {
+function safeHeaders(headers) {
   const output = {};
   for (const name of SAFE_RESPONSE_HEADERS) {
-    const value = headerValue(headers, name);
+    const value = getHeader(headers, name);
     if (value !== undefined && !/[\r\n\0]/.test(value)) output[name] = value;
   }
   return Object.freeze(output);
 }
 
-async function readBoundedBody(response, maximum) {
-  const declaredLength = Number(headerValue(response.headers, "content-length"));
-  if (
-    Number.isFinite(declaredLength) &&
-    declaredLength >= 0 &&
-    declaredLength > maximum
-  ) {
-    throw new OperatorGitHubReadonlyTransportError(
+async function boundedBody(response, maximum) {
+  const declared = Number(getHeader(response.headers, "content-length"));
+  if (Number.isFinite(declared) && declared >= 0 && declared > maximum) {
+    throw transportError(
       "github_transport_response_too_large",
       "GitHub response exceeded the allowed size",
       502,
@@ -257,7 +229,6 @@ async function readBoundedBody(response, maximum) {
     const reader = response.body.getReader();
     const chunks = [];
     let total = 0;
-
     try {
       while (true) {
         const { done, value } = await reader.read();
@@ -266,7 +237,7 @@ async function readBoundedBody(response, maximum) {
         total += chunk.byteLength;
         if (total > maximum) {
           await reader.cancel();
-          throw new OperatorGitHubReadonlyTransportError(
+          throw transportError(
             "github_transport_response_too_large",
             "GitHub response exceeded the allowed size",
             502,
@@ -281,7 +252,7 @@ async function readBoundedBody(response, maximum) {
   }
 
   if (typeof response.arrayBuffer !== "function") {
-    throw new OperatorGithubReadonlyTransportError(
+    throw transportError(
       "github_transport_contract_violation",
       "GitHub transport received an invalid response body",
       502,
@@ -291,11 +262,11 @@ async function readBoundedBody(response, maximum) {
   const bytes = Buffer.from(await response.arrayBuffer());
   try {
     if (bytes.byteLength > maximum) {
-      throw new OperatorGitHubReadonlyTransportError(
+      throw transportError(
         "github_transport_response_too_large",
         "GitHub response exceeded the allowed size",
         502,
-     );
+      );
     }
     return bytes.toString("utf8");
   } finally {
@@ -305,51 +276,50 @@ async function readBoundedBody(response, maximum) {
 
 export function createOperatorGitHubReadonlyTransport({
   fetchImpl = globalThis.fetch,
-  allowedOrigins = DEFAULT_ALLOWED_ORIGINS,
-  maxResponseBytes = DEFAULT_MAX_RESPONSE_BYTES,
+  allowedOrigins = DEFAULT_ORIGINS,
+  maxResponseBytes = 1024 * 1024,
 } = {}) {
   if (typeof fetchImpl !== "function") {
     throw new TypeError("fetchImpl must be a function");
   }
 
-  const resolvedOrigins = normalizeAllowedOrigins(allowedOrigins);
-  const resolvedMaximum = positiveInteger(
+  const origins = normalizeOrigins(allowedOrigins);
+  const maximum = boundedInteger(
     maxResponseBytes,
-    "maxResponseBytes",
-    DEFAULT_MAX_RESPONSE_BYTES,
+    1024 * 1024,
     MAX_RESPONSE_BYTES,
+    "maxResponseBytes",
   );
 
   return Object.freeze({
     descriptor: Object.freeze({
       mode: "readonly",
-      allowedOrigins: resolvedOrigins,
-      maxResponseBytes: resolvedMaximum,
+      allowedOrigins: origins,
+      maxResponseBytes: maximum,
       credentialMaterialPersisted: false,
       rawResponseHeadersReturned: false,
       productionChanged: false,
     }),
 
     async requestWithCredential({ request, credential } = {}) {
-      const resolvedRequest = normalizeRequest(request, resolvedOrigins);
-      const bytes = normalizeCredential(credential);
-      const token = credentialText(bytes);
+      const normalized = normalizeRequest(request, origins);
+      const token = credentialText(credential);
       const controller = new AbortController();
-      const timer = setTimeout(() => controller.abort(), resolvedRequest.timeoutMs);
+      const timer = setTimeout(() => controller.abort(), normalized.timeoutMs);
 
       let response;
       try {
-        response = await fetchImpl(resolvedRequest.url, {
+        response = await fetchImpl(normalized.url, {
           method: "GET",
           headers: {
-            ...resolvedRequest.headers,
+            ...normalized.headers,
             authorization: `Bearer ${token}`,
           },
           redirect: "error",
           signal: controller.signal,
         });
       } catch {
-        throw new OperatorGitHubReadonlyTransportError(
+        throw transportError(
           "github_transport_unavailable",
           "GitHub transport is unavailable",
           503,
@@ -363,7 +333,7 @@ export function createOperatorGitHubReadonlyTransport({
         typeof response !== "object" ||
         !Number.isSafeInteger(Number(response.status))
       ) {
-        throw new OperatorGitHubReadonlyTransportError(
+        throw transportError(
           "github_transport_contract_violation",
           "GitHub transport received an invalid response",
           502,
@@ -372,8 +342,8 @@ export function createOperatorGitHubReadonlyTransport({
 
       return Object.freeze({
         status: Number(response.status),
-        headers: sanitizeResponseHeaders(response.headers),
-        body: await readBoundedBody(response, resolvedMaximum),
+        headers: safeHeaders(response.headers),
+        body: await boundedBody(response, maximum),
       });
     },
   });
