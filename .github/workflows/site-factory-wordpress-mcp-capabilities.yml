@@ -1,0 +1,75 @@
+name: Site Factory WordPress MCP Capabilities Diagnostic
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: site-factory-wordpress-mcp-capabilities-apidevelopers
+  cancel-in-progress: false
+
+jobs:
+  diagnose:
+    name: Discover WordPress MCP capabilities (read-only)
+    runs-on:
+      - self-hosted
+      - macOS
+      - X64
+    timeout-minutes: 10
+    env:
+      HOSTINGER_USERNAME: u242521810
+      WORDPRESS_SOFTWARE_ID: "29782684"
+      TARGET_DOMAIN: apidevelopers.digital
+      HOSTINGER_API_TOKEN: ${{ secrets.HOSTINGER_API_TOKEN }}
+      EVIDENCE_PATH: apps/site-factory/diagnostics/wordpress-mcp-capabilities.json
+
+    steps:
+      - name: Checkout diagnostic branch
+        uses: actions/checkout)v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+
+      - name: Discover capabilities without writes
+        id: diagnostic
+        continue-on-error: true
+        shell: bash
+        run: |
+          set -euo pipefail
+          node apps/site-factory/src/diagnose-wordpress-mcp-capabilities.mjs
+
+      - name: Commit sanitized evidence
+        if: ${{ always() }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          test -f "$EVIDENCE_PATH"
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add "$EVIDENCE_PATH"
+          if git diff --cached --quiet; then
+            echo "No diagnostic change to commit."
+          else
+            git commit -m "chore(site-factory): record WordPress MCP capabilities [skip ci]"
+            git push origin "HEAD:${GITHUB_REF_NAME}"
+          fi
+
+      - name: Upload sanitized evidence
+        if: ${{ always() }}
+        uses: actions/upload-artifact)v4
+        with:
+          name: wordpress-mcp-capabilities-${{ github.sha }}-${{ github.run_id }}
+          path: ${{ env.EVIDENCE_PATH }}
+          if-no-files-found: error
+          retention-days: 14
+
+      - name: Enforce diagnostic result
+        if: ${{ steps.diagnostic.outcome != 'success' }}
+        shell: bash
+        run: |
+          echo "WordPress MCP capability discovery did not complete successfully." >&2
+          exit 1
