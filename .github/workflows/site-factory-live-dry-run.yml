@@ -54,9 +54,9 @@ jobs:
           EXPECTED_TEXT: API Developers.digital
           REPORT_PATH: ${{ runner.temp }}/site-factory-public.json
         run: |
-          node <<'NODE'
-          const fs = require("node:fs");
-          const crypto = require("node:crypto");
+          node --input-type=module <<'NODE'
+          import fs from "node:fs";
+          import crypto from "node:crypto";
           const report = {
             schemaVersion: "2.0",
             kind: "site-factory-static-public-probe",
