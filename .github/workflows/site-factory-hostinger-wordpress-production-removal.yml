@@ -30,9 +30,9 @@ jobs:
           EXPECTED_TEXT: API Developers.digital
           EVIDENCE_PATH: ${{ runner.temp }}/wordpress-removal-evidence.json
         run: |
-          node <<'NODE'
-          const fs = require("node:fs");
-          const crypto = require("node:crypto");
+          node --input-type=module <<'NODE'
+          import fs from "node:fs";
+          import crypto from "node:crypto";
           const sha = (value) => crypto.createHash("sha256").update(value).digest("hex");
           const report = {
             schemaVersion: "2.0",
@@ -70,12 +70,15 @@ jobs:
             if (!Array.isArray(items)) throw new Error("unexpected_installation_list_shape");
             const matches = items.filter((item) =>
               String(item.id) === process.env.SOFTWARE_ID &&
-              item.username === process.env.USERNAMEAM &&
+              item.username === process.env.USERNAME &&
               item.domain === process.env.DOMAIN
             );
             const publicResponse = await fetch(`https://${process.env.DOMAIN}/`, {
               redirect: "follow",
-              headers: { accept: "text/html,application/xhtml+xml", "cache-control": "no-cache" }
+              headers: {
+                accept: "text/html,application/xhtml+xml",
+                "cache-control": "no-cache"
+              }
             });
             const publicBody = await publicResponse.text();
             const expectedTextMatched = publicBody.toLowerCase().includes(process.env.EXPECTED_TEXT.toLowerCase());
