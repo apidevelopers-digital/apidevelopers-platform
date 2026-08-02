@@ -1,0 +1,118 @@
+name: API Gateway Wave 5 Diagnostics
+
+on:
+  pull_request:
+    branches:
+      - main
+    paths:
+      - "apps/api-gateway/**"
+      - ".github/workflows/api-gateway-wave5-diagnostics.yml"
+
+permissions:
+  contents: write
+
+jobs:
+  diagnose:
+    if: github.event.pull_request.number == 132
+    runs-on:
+      - self-hosted
+      - macOS
+      - X64
+    timeout-minutes: 10
+    defaults:
+      run:
+        shell: bash
+        working-directory: apps/api-gateway
+
+    steps:
+      - name: Checkout PR branch
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.head_ref }}
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+
+      - name: Link local security dependencies
+        run: |
+          set -euo pipefail
+          mkdir -p "$GITHUB_WORKSPACE/apps/api-gateway/node_modules/@apidevelopers"
+          ln -sfn "$GITHUB_WORKSPACE/packages/contracts" "$GITHUB_WORKSPACE/apps/api-gateway/node_modules/@apidevelopers/contracts"
+          ln -sfn "$GITHUB_WORKSPACE/packages/auth-core" "$GITHUB_WORKSPACE/apps/api-gateway/node_modules/@apidevelopers/auth-core"
+          ln -sfn "$GITHUB_WORKSPACE/packages/apikey-core" "$GITHUB_WORKSPACE/apps/api-gateway/node_modules/@apidevelopers/apikey-core"
+          ln -sfn "$GITHUB_WORKSPACE/packages/persistence-core" "$GITHUB_WORKSPACE/apps/api-gateway/node_modules/@apidevelopers/persistence-core"
+          mkdir -p "$GITHUB_WORKSPACE/packages/auth-core/node_modules/@apidevelopers"
+          ln -sfn "$GITHUB_WORKSPACE/packages/apikey-core" "$GITHUB_WORKSPACE/packages/auth-core/node_modules/@apidevelopers/apikey-core"
+          mkdir -p "$GITHUB_WORKSPACE/packages/apikey-core/node_modules/@apidevelopers"
+          ln -sfn "$GITHUB_WORKSPACE/packages/persistence-core" "$GITHUB_WORKSPAACE/packages/apikey-core/node_modules/@apidevelopers/persistence-core"
+
+      - name: Reproduce API Gateway CI and persist sanitized evidence
+        env:
+          DIAGNOSTIC_PATH: diagnostics/api-gateway-wave5.log
+        run: |
+          set +e
+          rm -rf diagnostics
+          mkdir -p diagnostics
+          log="$DIAGNOSTIC_PATH"
+
+          run_stage() {
+            stage="$1"
+            shift
+            {
+              echo "===== STAGE: $stage ====="
+              "$@"
+              code=$?
+              echo "===== EXIT: $code ====="
+              return "$code"
+            } >> "$log" 2>&1
+          }
+
+          failed_stage=""
+          run_stage "npm-run-check" npm run check || failed_stage="npm-run-check"
+
+          if [[ -z "$failed_stage" ]]; then
+            run_stage "operational-smoke" node scripts/operational-smoke.mjs || failed_stage="operational-smoke"
+          fi
+          if [[ -z "$failed_stage" ]]; then
+            run_stage "release-bundle" npm run release:bundle || failed_stage="release-bundle"
+          fi
+          if [[ -z "$failed_stage" ]]; then
+            run_stage "release-verify" npm run release:verify || failed_stage="release-verify"
+          fi
+          if [[ -z "$failed_stage" ]]; then
+            run_stage "managed-build" npm run release:managed:build || failed_stage="managed-build"
+          fi
+          if [[ -z "$failed_stage" ]]; then
+            run_stage "managed-verify" npm run release:managed:verify || failed_stage="managed-verify"
+          fi
+
+          {
+            echo "===== RESULT ====="
+            echo "failed_stage=${failed_stage:-none}"
+            echo "head_sha=$GITHUB_SHA"
+          } >> "$log"
+
+          python3 - "$log" <<'PY'
+          import pathlib, re, sys
+          path = pathlib.Path(sys.argv[1])
+          text = path.read_text(errors="replace")
+          patterns = [
+            r"gh[pousr]_[A-Za-z0-9_]{20,}",
+            r"Bearer\s+[A-Za-z0-9._-]{12,}",
+            r"(?:secret|vault)://[^\s\"']+",
+          ]
+          for pattern in patterns:
+            text = re.sub(pattern, "[REDACTED]", text, flags=re.IGNORECASE)
+          lines = text.splitlines()[-240:]
+          path.write_text("\n".join(lines) + "\n")
+          PY
+
+          git config user.name "api-developers-diagnostics"
+          git config user.email "diagnostics@apidevelopers.digital"
+          git add "$log"
+          git commit -m "chore(diagnostics): persist Wave 5 CI failure evidence" || true
+          git push origin "HEAD:${GITHUB_HEAD_REF}"
+
+          [[ -z "$failed_stage" ]]
