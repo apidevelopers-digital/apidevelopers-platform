@@ -19,7 +19,6 @@ on:
         description: "Required for apply: IGOR_APROVA_HOSTINGER_STATIC_PRODUCTION_DEPLOY"
         required: false
         type: string
-
   pull_request:
     branches:
       - main
@@ -32,7 +31,7 @@ permissions:
 
 concurrency:
   group: site-factory-hostinger-static-production-apidevelopers
-  cancel-in-progress: false
+  cancel-in-progress: true
 
 jobs:
   build-and-deploy:
@@ -49,17 +48,19 @@ jobs:
 
     steps:
       - name: Checkout exact source SHA
-        uses: actions/checkout@v4
+        uses: actions/checkout4
 
       - name: Validate explicit production apply authorization
         if: ${{ github.event_name == 'workflow_dispatch' && inputs.mode == 'apply' }}
         shell: bash
         env:
           HOSTINGER_API_TOKEN: ${{ secrets.HOSTINGER_API_TOKEN }}
+          APPROVED_SHA: ${{ inputs.approved_sha }}
+          APPROVAL: ${{ inputs.approval }}
         run: |
           set -euo pipefail
-          test "${{ inputs.approved_sha }}" = "$GITHUB_SHA"
-          test "${{ inputs.approval }}" = "IGOR_APROVA_HOSTINGER_STATIC_PRODUCTION_DEPLOY"
+          test "$APPROVED_SHA" = "$GITHUB_SHA"
+          test "$APPROVAL" = "IGOR_APROVA_HOSTINGER_STATIC_PRODUCTION_DEPLOY"
           test -n "$HOSTINGER_API_TOKEN"
 
       - name: Set up Node.js
@@ -79,7 +80,8 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          OUTPUT_ROOT="$RUNNER_TEMP/site-factory-static-${GITHUB_RUN_ID}-${GITHUB_RUN_ATTEMPT}"
+
+          OUTPUT_ROOT="$RUNNER_TEMP/site-factory-static-${GITHUB_RUN_ID}-${GITHUB_RUN_ATTEMP}"
           PROJECT_DIR="$OUTPUT_ROOT/apidevelopers"
           ARCHIVE_PATH="$RUNNER_TEMP/apidevelopers-static-${GITHUB_SHA}.zip"
           EVIDENCE_PATH="$RUNNER_TEMP/hostinger-static-deploy-evidence-${GITHUB_RUN_ID}.json"
@@ -113,6 +115,19 @@ jobs:
           test -s "$ARCHIVE_PATH"
           unzip -Z1 "$ARCHIVE_PATH" | grep -qx "index.html"
 
+          cat > "$EVIDENCE_PATH" <<JSON
+          {
+            "schemaVersion": "1.0",
+            "kind": "site-factory-hostinger-static-deployment-bootstrap",
+            "status": "executor_not_started",
+            "mode": "$RUN_MODE",
+            "sourceSha": "$GITHUB_SHA",
+            "runId": "$GITHUB_RUN_ID",
+            "targetDomain": "$TARGET_DOMAIN",
+            "writeExecuted": false
+          }
+          JSON
+
           echo "ARCHIVE_PATH=$ARCHIVE_PATH" >> "$GITHUB_ENV"
           echo "EVIDENCE_PATH=$EVIDENCE_PATH" >> "$GITHUB_ENV"
 
@@ -120,8 +135,8 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          MCP_WORKDIR="$RUNNER_TEMP/hostinger-mcp-1.26.0-${GITHUB_RUN_ID}"
 
+          MCP_WORKDIR="$RUNNER_TEMP/hostinger-mcp-1.26.0-${GITHUB_RUN_ID}"
           rm -rf "$MCP_WORKDIR"
           mkdir -p "$MCP_WORKDIR"
           cp apps/site-factory/src/run-hostinger-static-deploy-mcp.mjs "$MCP_WORKDIR/client.mjs"
@@ -132,7 +147,6 @@ jobs:
             npm install \
               --no-audit \
               --no-fund \
-              --ignore-scripts \
               hostinger-api-mcp@1.26.0 \
               @modelcontextprotocol/sdk@1.10.0
             test -x node_modules/.bin/hostinger-hosting-mcp
@@ -141,44 +155,41 @@ jobs:
 
           echo "MCP_CLIENT=$MCP_WORKDIR/client.mjs" >> "$GITHUB_ENV"
 
-      - name: Run preflight or production apply
-        id: hostinger
+      - name: Run safe preflight
+        if: ${{ github.event_name != 'workflow_dispatch' || inputs.mode == 'preflight' }}
+        id: preflight
         continue-on-error: true
         shell: bash
         env:
-          HOSTINGER_API_TOKEN: ${{ github.event_name == 'workflow_dispatch' && inputs.mode == 'apply' && secrets.HOSTINGER_API_TOKEN || '' }}
+          HOSTINGER_API_TOKEN: preflight-nonsecret-placeholder
         run: |
           set -euo pipefail
-
-          cat > "$EVIDENCE_PATH" <<JSON
-          {
-            "schemaVersion": "1.0",
-            "kind": "site-factory-hostinger-static-deployment-bootstrap",
-            "status": "executor_starting",
-            "mode": "$RUN_MODE",
-            "sourceSha": "$GITHUB_SHA",
-            "runId": "$GITHUB_RUN_ID",
-            "targetDomain": "$TARGET_DOMAIN",
-            "writeExecuted": false
-          }
-          JSON
-
-          args=(
-            --mode "$RUN_MODE"
-            --domain "$TARGET_DOMAIN"
-            --archive "$ARCHIVE_PATH"
-            --expected-text "$EXPECTED_TEXT"
+          node "$MCP_CLIENT" \
+            --mode preflight \
+            --domain "$TARGET_DOMAIN" \
+            --archive "$ARCHIVE_PATH" \
+            --expected-text "$EXPECTED_TEXT" \
             --evidence "$EVIDENCE_PATH"
-          )
 
-          if [[ "$RUN_MODE" == "apply" ]]; then
-            args+=(
-              --approved-sha "${{ inputs.approved_sha }}"
-              --approval "${{ inputs.approval }}"
-            )
-          fi
-
-          node "$MCP_CLIENT" "${args[@]}"
+      - name: Run authorized production apply
+        if: ${{ github.event_name == 'workflow_dispatch' && inputs.mode == 'apply' }}
+        id: apply
+        continue-on-error: true
+        shell: bash
+        env:
+          HOSTINGER_API_TOKKEN: ${{ secrets.HOSTINGER_API_TOKEN }}
+          APPROVED_SHA: ${{ inputs.approved_sha }}
+          APPROVAL: ${{ inputs.approval }}
+        run: |
+          set -euo pipefail
+          node "$MCP_CLIENT" \
+            --mode apply \
+            --domain "$TARGET_DOMAIN" \
+            --archive "$ARCHIVE_PATH" \
+            --expected-text "$EXPECTED_TEXT" \
+            --approved-sha "$APPROVED_SHA" \
+            --approval "$APPROVAL" \
+            --evidence "$EVIDENCE_PATH"
 
       - name: Upload sanitized deployment evidence
         if: ${{ always() }}
@@ -189,9 +200,16 @@ jobs:
           if-no-files-found: error
           retention-days: 30
 
-      - name: Enforce deployment result
-        if: ${{ steps.hostinger.outcome != 'success' }}
+      - name: Enforce preflight result
+        if: ${{ (github.event_name != 'workflow_dispatch' || inputs.mode == 'preflight') && steps.preflight.outcome != 'success' }}
         shell: bash
         run: |
-          echo "Hostinger static deployment workflow did not complete successfully." >&2
+          echo "Hostinger static preflight did not complete successfully." >&2
+          exit 1
+
+      - name: Enforce production apply result
+        if: ${{ github.event_name == 'workflow_dispatch' && inputs.mode == 'apply' && steps.apply.outcome != 'success' }}
+        shell: bash
+        run: |
+          echo "Hostinger static production deployment did not complete successfully." >&2
           exit 1
