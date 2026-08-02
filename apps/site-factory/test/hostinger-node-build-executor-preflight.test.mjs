@@ -3,18 +3,25 @@ import assert from "node:assert/strict";
 
 import {
   createHostingerNodeBuildExecutorPreflight,
-  SOURCE_ARTIFACT_NAME,
+  HOSTINGER_API_VERSION,
+  HOSTINGER_ENDPOINT,
+  HOSTINGER_OPENAPI_VERSION,
+  HOSTINGER_REQUEST_MEDIA_TYPE,
+  HOSTINGER_REQUEST_SCHEMA,
   SOURCE_RUN_ID,
   SOURCE_SHA,
-  SOURCE_ZIP_NAME,
   TARGET_DOMAIN,
 } from "../src/hostinger-node-build-executor-preflight.mjs";
 
-const generatedAt = "2026-08-02T07:50:00.000Z";
+const generatedAt = "2026-08-02T08:05:00.000Z";
+
+function createPreflight() {
+  return createHostingerNodeBuildExecutorPreflight({ generatedAt });
+}
 
 test("creates a deterministic blocked single-use preflight", () => {
-  const first = createHostingerNodeBuildExecutorPreflight({ generatedAt });
-  const second = createHostingerNodeBuildExecutorPreflight({ generatedAt });
+  const first = createPreflight();
+  const second = createPreflight();
 
   assert.equal(first.status, "blocked");
   assert.equal(first.mode, "dry-run");
@@ -23,41 +30,87 @@ test("creates a deterministic blocked single-use preflight", () => {
   assert.equal(first.singleUse, true);
   assert.equal(first.source.sha, SOURCE_SHA);
   assert.equal(first.source.workflowRunId, SOURCE_RUN_ID);
-  assert.equal(first.source.artifactName, SOURCE_ARTIFACT_NAME);
-  assert.equal(first.source.archiveName, SOURCE_ZIP_NAME);
   assert.equal(first.target.domain, TARGET_DOMAIN);
   assert.equal(first.fingerprint, second.fingerprint);
 });
 
-test("keeps every remote write and execution barrier disabled", () => {
-  const preflight = createHostingerNodeBuildExecutorPreflight({ generatedAt });
+test("pins the official OpenAPI snapshot without claiming executable transport", () => {
+  const snapshot = createPreflight().officialContractSnapshot;
 
-  assert.equal(preflight.officialApi.transportContractVerified, false);
-  assert.equal(preflight.officialApi.contentType, null);
-  assert.equal(preflight.officialApi.archiveFieldEncoding, null);
-  assert.equal(preflight.officialApi.upstreamBlocker.issueNumber, 56);
-  assert.equal(preflight.barriers.requestPrepared, false);
-  assert.equal(preflight.barriers.lockClaimEnabled, false);
-  assert.equal(preflight.barriers.hostingerPostEnabled, false);
-  assert.equal(preflight.barriers.buildPollingEnabled, false);
-  assert.equal(preflight.barriers.deployEnabled, false);
-  assert.equal(preflight.barriers.dnsEnabled, false);
-  assert.deepEqual(preflight.barriers.secretsRequired, []);
-  assert.equal(preflight.barriers.hostingerTokenUsed, false);
+  assert.equal(snapshot.repository, "hostinger/api");
+  assert.equal(snapshot.path, "openapi.json");
+  assert.equal(snapshot.openapiVersion, HOSTINGER_OPENAPI_VERSION);
+  assert.equal(snapshot.apiVersion, HOSTINGER_API_VERSION);
+  assert.equal(snapshot.endpoint, HOSTINGER_ENDPOINT);
+  assert.equal(snapshot.operationId, "hosting_createNodeJSBuildFromArchiveV1");
+  assert.equal(snapshot.requestMediaType, HOSTINGER_REQUEST_MEDIA_TYPE);
+  assert.equal(snapshot.requestSchema, HOSTINGER_REQUEST_SCHEMA);
+  assert.deepEqual(snapshot.archiveField, {
+    required: true,
+    type: "string",
+    format: null,
+    maximumBytes: 50 * 1024 * 1024,
+  });
+  assert.equal(snapshot.documentationSnapshotVerified, true);
+  assert.equal(snapshot.executableTransportVerified, false);
 });
 
-test("requires a new reviewed implementation before any real execution", () => {
-  const preflight = createHostingerNodeBuildExecutorPreflight({ generatedAt });
+test("records the server conflict and disables every external action", () => {
+  const preflight = createPreflight();
+  const conflict = preflight.serverContractConflict;
+  const barriers = preflight.barriers;
 
-  assert.match(
+  assert.equal(conflict.issueNumber, 56);
+  assert.equal(conflict.issueStateAtSnapshot, "open");
+  assert.equal(
+    conflict.documentedJsonStringResult,
+    "reported_422_archive_must_be_file",
+  );
+  assert.equal(
+    conflict.documentedJsonBase64Result,
+    "reported_422_archive_must_be_file_and_51200_character_limit",
+  );
+  assert.equal(
+    conflict.multipartFileResult,
+    "reported_403_cloudflare_managed_challenge_before_api",
+  );
+  assert.equal(conflict.independentSuccessfulRequestVerified, false);
+
+  assert.deepEqual(barriers, {
+    requestPrepared: false,
+    lockClaimEnabled: false,
+    hostingerPostEnabled: false,
+    buildPollingEnabled: false,
+    deployEnabled: false,
+    dnsEnabled: false,
+    secretsRequired: [],
+    hostingerTokenUsed: false,
+  });
+});
+
+test("cannot be unlocked by a manual flag or runtime override", () => {
+  const preflight = createPreflight();
+  const guard = preflight.releaseGuard;
+
+  assert.equal(guard.officialContractChangeRequired, true);
+  assert.equal(guard.issueResolutionOrIndependentVerificationRequired, true);
+  assert.equal(guard.manualFlagUnlockAllowed, false);
+  assert.equal(guard.runtimeOverrideAllowed, false);
+  assert.equal(guard.requestBuilderPresent, false);
+  assert.equal(guard.executorPresent, false);
+  assert.equal(
     preflight.blockReason,
-    /official_archive_transport_contract_unverified/,
+    "official_contract_server_validation_conflict",
   );
   assert.ok(
-    preflight.unblockRequirements.includes("new_executor_pull_request"),
+    preflight.unblockRequirements.includes(
+      "upstream_issue_resolved_or_independent_success_evidence_recorded",
+    ),
   );
   assert.ok(
-    preflight.unblockRequirements.includes("fresh_single_use_approval"),
+    preflight.unblockRequirements.includes(
+      "fresh_single_use_approval_bound_to_exact_sha_archive_and_contract_snapshot",
+    ),
   );
 });
 
