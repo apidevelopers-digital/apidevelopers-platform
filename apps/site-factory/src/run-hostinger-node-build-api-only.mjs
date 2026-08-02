@@ -168,11 +168,11 @@ try {
       status: "error",
       error: {
         message: error instanceof Error ? error.message : String(error),
-        evidence: error?.evidence ??? null,
+        evidence: error?.evidence ?? null,
       },
     },
     token,
-  );
+   );
   await writeEvidence(evidencePath, failure);
   console.error(JSON.stringify(failure));
   process.exitCode = 1;
