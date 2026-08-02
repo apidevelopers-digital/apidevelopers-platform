@@ -9,7 +9,7 @@ import {
   validateExistingExecutionLock,
 } from "./hostinger-website-create-lock-validation.mjs";
 import {
-  readGitHubJson,
+  readGithubJson,
 } from "./hostinger-website-create-github.mjs";
 
 const DRAFT_REF = "b13fa5992344663b94c8f64dfea5ff448341ec55";

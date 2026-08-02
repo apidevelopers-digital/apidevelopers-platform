@@ -1,0 +1,202 @@
+name: Site Factory Hostinger Node Archive
+
+on:
+  pull_request:
+    branches:
+      - main
+    paths:
+      - "apps/site-factory/**"
+      - ".github/workflows/site-factory-hostinger-node-archive.yml"
+  workflow_dispatch: {}
+
+permissions:
+  contents: read
+
+jobs:
+  build-node-archive:
+    name: Build and validate Hostinger Node.js source archive
+    runs-on:
+      - self-hosted
+      - macOS
+      - X64
+    timeout-minutes: 20
+
+    steps:
+      - name: Checkout exact source SHA
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+
+      - name: Install and validate Site Factory
+        working-directory: apps/site-factory
+        run: |
+          set -euo pipefail
+          npm install --no-audit --no-fund
+          npm run check
+
+      - name: Prepare isolated archive workspace
+        shell: bash
+        run: |
+          set -euo pipefail
+          OUTPUT_ROOT="$RUNNER_TEMP/site-factory-hostinger-node-${GITHUB_RUN_ID}"
+          PROJECT_DIR="$OUTPUT_ROOT/apidevelopers"
+          ARCHIVE_DIR="$RUNNER_TEMP/site-factory-hostinger-node-artifact-${GITHUB_RUN_ID}"
+          ARCHIVE_NAME="site-factory-hostinger-node-source-${GITHUB_SHA}.zip"
+          ARCHIVE_PATH="$ARCHIVE_DIR/$ARCHIVE_NAME"
+          PLAN_PATH="$ARCHIVE_DIR/hostinger-node-archive-plan.json"
+          FILES_PATH="$ARCHIVE_DIR/archive-files.txt"
+
+          mkdir -p "$OUTPUT_ROOT" "$ARCHIVE_DIR"
+
+          {
+            echo "OUTPUT_ROOT=$OUTPUT_ROOT"
+            echo "PROJECT_DIR=$PROJECT_DIR"
+            echo "ARCHIVE_DIR=$ARCHIVE_DIR"
+            echo "ARCHIVE_NAME=$ARCHIVE_NAME"
+            echo "ARCHIVE_PATH=$ARCHIVE_PATH"
+            echo "PLAN_PATH=$PLAN_PATH"
+            echo "FILES_PATH=$FILES_PATH"
+          } >> "$GITHUB_ENV"
+
+      - name: Generate exact preview project
+        working-directory: apps/site-factory
+        shell: bash
+        run: |
+          set -euo pipefail
+          npm run project:generate -- \
+            --app apidevelopers \
+            --domain apidevelopers.digital \
+            --title "API Developers.digital" \
+            --output "$OUTPUT_ROOT"
+
+      - name: Install, test and build generated project
+        shell: bash
+        run: |
+          set -euo pipefail
+          cd "$PROJECT_DIR"
+          npm install --no-audit --no-fund
+          npm test
+          npm run build
+          test -f dist/index.html
+          test -f package-lock.json
+
+      - name: Create source-only archive
+        shell: bash
+        run: |
+          set -euo pipefail
+          rm -rf "$PROJECT_DIR/node_modules" "$PROJECT_DIR/dist"
+
+          if find "$PROJECT_DIR" -type f \( \
+            -name ".env" -o \
+            -name ".env.*" -o \
+            -name "*.pem" -o \
+            -name "*.key" -o \
+            -name "id_rsa" -o \
+            -name "id_ed25519" \
+          \) | grep -q .; then
+            echo "Forbidden sensitive file found in generated project" >&2
+            exit 1
+          fi
+
+          (
+            cd "$PROJECT_DIR"
+            zip -q -r "$ARCHIVE_PATH" . \
+              -x "node_modules/*" \
+              -x "dist/*" \
+              -x "build/*" \
+              -x ".next/*" \
+              -x ".git/*" \
+              -x ".env" \
+              -x ".env.*" \
+              -x "*.pem" \
+              -x "*.key"
+          )
+
+          unzip -Z1 "$ARCHIVE_PATH" \
+            | sed 's#^\./##' \
+            | grep -v '/$' \
+            | LC_ALL=C sort > "$FILES_PATH"
+
+          if grep -E '(^|/)(node_modules|dist|build|\.next|\.git)(/|$)' "$FILES_PATH"; then
+            echo "Forbidden dependency or build path found in archive" >&2
+            exit 1
+          fi
+
+          if grep -E '(^|/)\.env($|\.)|(\.pem|\.key)$|(^|/)(id_rsa|id_ed25519)$' "$FILES_PATH"; then
+            echo "Forbidden sensitive path found in archive" >&2
+            exit 1
+          fi
+
+          ARCHIVE_BYTES="$(stat -f%z "$ARCHIVE_PATH")"
+          ARCHIVE_SHA256="$(shasum -a 256 "$ARCHIVE_PATH" | awk '{print $1}')"
+
+          test "$ARCHIVE_BYTES" -gt 0
+          test "$ARCHIVE_BYTES" -le 52428800
+
+          {
+            echo "ARCHIVE_BYTES=$ARCHIVE_BYTES"
+            echo "ARCHIVE_SHA256=$ARCHIVE_SHA256"
+          } >> "$GITHUB_ENV"
+
+      - name: Generate immutable dry-run archive plan
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          node --input-type=module <<'NODE'
+          import fs from "node:fs";
+          import { createHostingerNodeArchivePlan } from "./apps/site-factory/src/hostinger-node-archive.mjs";
+
+          const archiveFiles = fs
+            .readFileSync(process.env.FILES_PATH, "utf8")
+            .split(/\r?\n/)
+            .map((value) => value.trim())
+            .filter(Boolean);
+
+          const plan = createHostingerNodeArchivePlan({
+            sourceRepository: process.env.GITHUB_REPOSITORY,
+            sourceSha: process.env.GITHUB_SHA,
+            sourceRunId: process.env.GITHUB_RUN_ID,
+            archiveName: process.env.ARCHIVE_NAME,
+            archiveSha256: process.env.ARCHIVE_SHA256,
+            archiveBytes: Number(process.env.ARCHIVE_BYTES),
+            archiveFiles,
+            targetDomain: "preview-apidevelopers.apidevelopers.digital",
+          });
+
+          fs.writeFileSync(
+            process.env.PLAN_PATH,
+            `${JSON.stringify(plan, null, 2)}\n`,
+          );
+          NODE
+
+      - name: Verify write barriers
+        shell: bash
+        run: |
+          set -euo pipefail
+          node -e "
+            const fs = require('node:fs');
+            const plan = JSON.parse(fs.readFileSync(process.env.PLAN_PATH, 'utf8'));
+            if (plan.mode !== 'dry-run') throw new Error('mode_not_dry_run');
+            if (plan.readyForApply !== false) throw new Error('ready_for_apply_not_false');
+            if (plan.writesEnabled !== false) throw new Error('writes_not_blocked');
+            if (plan.deployEnabled !== false) throw new Error('deploy_not_blocked');
+            if (plan.dnsEnabled !== false) throw new Error('dns_not_blocked');
+            if (plan.hostingerWriteExecuted !== false) throw new Error('hostinger_write_not_false');
+            if (plan.futureApiContract.requestPrepared !== false) throw new Error('request_prepared');
+            if (plan.futureApiContract.buildStarted !== false) throw new Error('build_started');
+          "
+
+      - name: Upload validated source archive
+        uses: actions/upload-artifact@v4
+        with:
+          name: site-factory-hostinger-node-archive-${{ github.sha }}
+          path: |
+            ${{ env.ARCHIVE_PATH }}
+            ${{ env.PLAN_PATH }}
+            ${{ env.FILES_PATH }}
+          if-no-files-found: error
+          retention-days: 7

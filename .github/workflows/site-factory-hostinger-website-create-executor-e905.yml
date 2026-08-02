@@ -1,0 +1,104 @@
+name: Site Factory Hostinger Website Create Executor E905
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: site-factory-hostinger-website-create
+  cancel-in-progress: false
+
+jobs:
+  create-preview-website:
+    runs-on: [self-hosted, macOS, X64]
+    timeout-minutes: 20
+    steps:
+      - name: Assert main
+        run: test "$GITHUB_REF" = "refs/heads/main"
+
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.sha }}
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+
+      - name: Patch single-use evidence references in runner workspace
+        shell: bash
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+
+          replacements = {
+              "apps/site-factory/src/run-hostinger-website-create-claim.mjs": [
+                  ("b13fa5992344663b94c8f64dfea5ff448341ec55", "950ca8656ee9ece3d48e224676a3dbcf037d0d80"),
+                  ("1987a754c75ef495a395af356117779b6452ec71", "b5a10e2e192d8413d74c24c4518f1bebe200c9a6"),
+                  ("33d5b094f12cbb9a1b5513853d69755ba4f05dced90d8f13fc950ca869c5a1c6", "e905a96390d3ba98e6d2f2064cd3877f8bf3e7ed1065c73e420351bb7bb28e5a"),
+              ],
+              "apps/site-factory/src/run-hostinger-website-create-executor.mjs": [
+                  ("b13fa5992344663b94c8f64dfea5ff448341ec55", "950ca8656ee9ece3d48e224676a3dbcf037d0d80"),
+                  ("1987a754c75ef495a395af356117779b6452ec71", "b5a10e2e192d8413d74c24c4518f1bebe200c9a6"),
+                  ("33d5b094f12cbb9a1b5513853d69755ba4f05dced90d8f13fc950ca869c5a1c6", "e905a96390d3ba98e6d2f2064cd3877f8bf3e7ed1065c73e420351bb7bb28e5a"),
+              ],
+              "apps/site-factory/src/hostinger-website-create-lock.mjs": [
+                  (
+                      'export const EXECUTION_BRANCH =\n  "evidence/hostinger-website-create-execution";',
+                      'export const EXECUTION_BRANCH =\n  "evidence/hostinger-website-create-execution-e905a96390d3";',
+                  ),
+              ],
+              "apps/site-factory/src/hostinger-website-create-github.mjs": [
+                  (
+                      'const EXECUTION_BRANCH = "evidence/hostinger-website-create-execution";',
+                      'const EXECUTION_BRANCH = "evidence/hostinger-website-create-execution-e905a96390d3";',
+                  ),
+              ],
+          }
+
+          for filename, pairs in replacements.items():
+              path = Path(filename)
+              text = path.read_text(encoding="utf-8")
+              for old, new in pairs:
+                  count = text.count(old)
+                  if count != 1:
+                      raise SystemExit(f"replacement_count:{filename}:{old[:12]}:{count}")
+                  text = text.replace(old, new)
+              path.write_text(text, encoding="utf-8")
+              print(f"patched:{filename}")
+          PY
+
+      - name: Validate Site Factory
+        id: validate
+        working-directory: apps/site-factory
+        run: npm install --no-audit --no-fund && npm run check
+
+      - name: Assert Hostinger secret
+        id: secret
+        env:
+          HOSTINGER_API_TOKEN: ${{ secrets.HOSTINGER_API_TOKEN }}
+        run: test -n "$HOSTINGER_API_TOKEN"
+
+      - name: Claim execution lock
+        id: claim
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+        run: node apps/site-factory/src/run-hostinger-website-create-claim.mjs
+
+      - name: Execute approved creation
+        id: execute
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+          HOSTINGER_API_TOKEN: ${{ secrets.HOSTINGER_API_TOKEN }}
+        run: node apps/site-factory/src/run-hostinger-website-create-executor.mjs
+
+      - name: Publish sanitized diagnostic
+        if: ${{ always() }}
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+          VALIDATE_OUTCOME: ${{ steps.validate.outcome }}
+          SECRET_OUTCOME: ${{ steps.secret.outcome }}
+          CLAIM_OUTCOME: ${{ steps.claim.outcome }}
+          EXECUTE_OUTCOME: ${{ steps.execute.outcome }}
+        run: node apps/site-factory/src/run-publish-hostinger-website-create-diagnostic.mjs

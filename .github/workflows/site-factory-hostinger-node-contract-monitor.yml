@@ -1,0 +1,110 @@
+name: Site Factory Hostinger Node Contract Monitor
+
+on:
+  pull_request:
+    branches:
+      - main
+    paths:
+      - "apps/site-factory/**"
+      - ".github/workflows/site-factory-hostinger-node-contract-monitor.yml"
+  schedule:
+    - cron: "17 8 * * *"
+  workflow_dispatch: {}
+
+permissions:
+  contents: read
+
+concurrency:
+  group: site-factory-hostinger-node-contract-monitor
+  cancel-in-progress: false
+
+jobs:
+  monitor-contract:
+    name: Monitor official Hostinger Node archive contract
+    runs-on:
+      - self-hosted
+      - macOS
+      - X64
+    timeout-minutes: 15
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+
+      - name: Install and validate Site Factory
+        working-directory: apps/site-factory
+        run: |
+          set -euo pipefail
+          npm install --no-audit --no-fund
+          npm run check
+
+      - name: Prepare monitor workspace
+        shell: bash
+        run: |
+          set -euo pipefail
+          MONITOR_DIR="$RUNNER_TEMP/site-factory-hostinger-node-contract-monitor"
+          mkdir -p "$MONITOR_DIR"
+          {
+            echo "MONITOR_DIR=$MONITOR_DIR"
+            echo "OPENAPI_PATH=$MONITOR_DIR/openapi.json"
+            echo "ISSUE_PATH=$MONITOR_DIR/issue-56.json"
+            echo "REPORT_PATH=$MONITOR_DIR/hostinger-node-contract-monitor-report.json"
+          } >> "$GITHUB_ENV"
+
+      - name: Fetch official OpenAPI and upstream issue
+        shell: bash
+        run: |
+          set -euo pipefail
+          curl --fail --location --silent --show-error --retry 3 \
+            --header "User-Agent: apidevelopers-platform-contract-monitor" \
+            "https://raw.githubusercontent.com/hostinger/api/main/openapi.json" \
+            --output "$OPENAPI_PATH"
+
+          curl --fail --location --silent --show-error --retry 3 \
+            --header "Accept: application/vnd.github+json" \
+            --header "User-Agent: apidevelopers-platform-contract-monitor" \
+            "https://api.github.com/repos/hostinger/api/issues/56" \
+            --output "$ISSUE_PATH"
+
+      - name: Evaluate official contract snapshot
+        id: monitor
+        shell: bash
+        run: |
+          set -u
+          set +e
+          node apps/site-factory/src/run-hostinger-node-contract-monitor.mjs \
+            --openapi "$OPENAPI_PATH" \
+            --issue "$ISSUE_PATH" \
+            --output "$REPORT_PATH"
+          exit_code=$?
+          echo "exit_code=$exit_code" >> "$GITHUB_OUTPUT"
+          exit 0
+
+      - name: Upload sanitized monitor report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: site-factory-hostinger-node-contract-monitor-${{ github.sha }}
+          path: ${{ env.REPORT_PATH }}
+          if-no-files-found: error
+          retention-days: 14
+
+      - name: Enforce fail-closed review gate
+        if: always()
+        shell: bash
+        run: |
+          set -euo pipefail
+          exit_code="${{ steps.monitor.outputs.exit_code }}"
+          if [[ -z "$exit_code" ]]; then
+            echo "Monitor did not publish an exit code." >&2
+            exit 3
+          fi
+          if [[ "$exit_code" != "0" ]]; then
+            echo "Official Hostinger contract or upstream issue changed. Manual review is required." >&2
+            exit "$exit_code"
+          fi

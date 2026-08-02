@@ -6,6 +6,7 @@ on:
       - main
       - "feat/site-factory-*"
       - "ops/site-factory-*"
+      - "fix/site-factory-*"
     paths:
       - "apps/site-factory/**"
       - "packages/hostinger-adapter/**"
@@ -20,10 +21,10 @@ permissions:
 jobs:
   public-probe:
     runs-on:
-      group: organization-macos-ci
-      labels: [self-hosted, macOS, X64]
+      - self-hosted
+      - macOS
+      - X64
     timeout-minutes: 10
-
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -31,7 +32,7 @@ jobs:
       - name: Set up Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: "22"
+          node-version: "24"
 
       - name: Test read-only adapters
         run: |
@@ -45,17 +46,78 @@ jobs:
       - name: Validate Site Factory
         run: npm run check --prefix apps/site-factory
 
-      - name: Probe public WordPress REST API
+      - name: Probe public static production site
+        id: probe
+        continue-on-error: true
+        env:
+          TARGET_URL: https://apidevelopers.digital/
+          EXPECTED_TEXT: API Developers.digital
+          REPORT_PATH: ${{ runner.temp }}/site-factory-public.json
         run: |
-          node apps/site-factory/src/cli.mjs \
-            --manifest apps/site-factory/manifests/apidevelopers-institution.json \
-            --public-only \
-            --output "$RUNNER_TEMP/site-factory-public.json"
+          node --input-type=module <<'NODE'
+          import fs from "node:fs";
+          import crypto from "node:crypto";
+          const report = {
+            schemaVersion: "2.0",
+            kind: "site-factory-static-public-probe",
+            generatedAt: new Date().toISOString(),
+            source: {
+              repository: process.env.GITHUB_REPOSITORY,
+              ref: process.env.GITHUB_REF_NAME,
+              sha: process.env.GITHUB_SHA,
+              runId: process.env.GITHUB_RUN_ID
+            },
+            target: {
+              url: process.env.TARGET_URL,
+              expectedText: process.env.EXPECTED_TEXT,
+              deploymentClass: "static-react-vite"
+            },
+            writeExecuted: false
+          };
+          try {
+            const response = await fetch(process.env.TARGET_URL, {
+              redirect: "follow",
+              headers: {
+                accept: "text/html,application/xhtml+xml",
+                "cache-control": "no-cache",
+                "user-agent": "apidevelopers-platform/site-factory-static-public-probe"
+              }
+            });
+            const body = await response.text();
+            const expectedTextMatched = body.toLowerCase().includes(process.env.EXPECTED_TEXT.toLowerCase());
+            const htmlLike = (response.headers.get("content-type") ?? "").toLowerCase().includes("text/html");
+            const ok = response.ok && expectedTextMatched && htmlLike;
+            Object.assign(report, {
+              status: ok ? "success" : "failed",
+              response: {
+                httpStatus: response.status,
+                finalUrl: response.url,
+                contentType: response.headers.get("content-type"),
+                bodyBytes: Buffer.byteLength(body),
+                bodySha256: crypto.createHash("sha256").update(body).digest("hex"),
+                expectedTextMatched,
+                htmlLike
+              }
+            });
+            fs.writeFileSync(process.env.REPORT_PATH, JSON.stringify(report, null, 2) + "\n", { mode: 0o600 });
+            if (!ok) process.exit(1);
+          } catch (error) {
+            report.status = "error";
+            report.error = { message: error instanceof Error ? error.message : String(error) };
+            fs.writeFileSync(process.env.REPORT_PATH, JSON.stringify(report, null, 2) + "\n", { mode: 0o600 });
+            process.exit(1);
+          }
+          NODE
 
-      - name: Upload redacted public report
+      - name: Upload public probe evidence
+        if: ${{ always() }}
         uses: actions/upload-artifact@v4
         with:
-          name: site-factory-public-${{ github.sha }}
+          name: site-factory-public-${{ github.sha }}-${{ github.run_id }}
           path: ${{ runner.temp }}/site-factory-public.json
           if-no-files-found: error
           retention-days: 7
+
+      - name: Enforce public probe result
+        if: ${{ steps.probe.outcome != 'success' }}
+        run: exit 1
