@@ -3,21 +3,21 @@
   "kind": "hostinger-business-hosting-website-create-diagnostic",
   "mode": "api-root-diagnostic",
   "executable": false,
-  "generatedAt": "2026-08-02T05:37:26.435Z",
+  "generatedAt": "2026-08-02T06:12:12.325Z",
   "source": {
     "repository": "apidevelopers-digital/apidevelopers-platform",
-    "sha": "cf1ccb2bf483c97ada5a2a9a9a1fe225cb87586c",
-    "workflowRunId": "30734443190",
+    "sha": "8626c794df4b6db38d060c3ff68cd228b66b552a",
+    "workflowRunId": "30735466841",
     "workflowRunAttempt": "1",
     "eventName": "workflow_dispatch"
   },
   "steps": {
     "validate": "success",
     "secret": "success",
-    "claim": "failure",
-    "execute": "skipped"
+    "claim": "success",
+    "execute": "success"
   },
-  "failedPhase": "claim",
+  "failedPhase": null,
   "constraints": {
     "hostingerPostExecutedByDiagnostic": false,
     "hostingerWritesByDiagnostic": false,
@@ -27,5 +27,5 @@
     "productionChanged": false,
     "wordpressChanged": false
   },
-  "fingerprint": "69213e97aa694b2b57ffa503867f45861439c0a46b6870256f073eebe31ebe18"
+  "fingerprint": "963e771e7b209051b5f31fdfcc6f0d8c7bbe559d3016a92b543c113228407203"
 }
