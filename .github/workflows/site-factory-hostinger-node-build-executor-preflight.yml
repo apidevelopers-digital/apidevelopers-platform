@@ -1,0 +1,88 @@
+name: Site Factory Hostinger Node Build Executor Preflight
+
+on:
+  pull_request:
+    branches:
+      - main
+    paths:
+      - "apps/site-factory/**"
+      - ".github/workflows/site-factory-hostinger-node-build-executor-preflight.yml"
+  workflow_dispatch: {}
+
+permissions:
+  contents: read
+
+jobs:
+  generate-blocked-preflight:
+    name: Generate fail-closed executor preflight
+    runs-on:
+      - self-hosted
+      - macOS
+      - X64
+    timeout-minutes: 15
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+
+      - name: Install and validate Site Factory
+        working-directory: apps/site-factory
+        run: |
+          set -euo pipefail
+          npm install --no-audit --no-fund
+          npm run check
+
+      - name: Generate blocked single-use preflight
+        shell: bash
+        run: |
+          set -euo pipefail
+          OUTPUT_DIR="$RUNNER_TEMP/site-factory-hostinger-node-build-executor-preflight"
+          OUTPUT_PATH="$OUTPUT_DIR/hostinger-node-build-executor-preflight.json"
+          mkdir -p "$OUTPUT_DIR"
+
+          node --input-type=module <<'NODE'
+          import fs from "node:fs";
+          import { createHostingerNodeBuildExecutorPreflight } from "./apps/site-factory/src/hostinger-node-build-executor-preflight.mjs";
+
+          const outputPath = `${process.env.RUNNER_TEMP}/site-factory-hostinger-node-build-executor-preflight/hostinger-node-build-executor-preflight.json`;
+          const preflight = createHostingerNodeBuildExecutorPreflight();
+          fs.writeFileSync(outputPath, `${JSON.stringify(preflight, null, 2)}\n`);
+          NODE
+
+          echo "OUTPUT_PATH=$OUTPUT_PATH" >> "$GITHUB_ENV"
+
+      - name: Verify fail-closed barriers
+        shell: bash
+        run: |
+          set -euo pipefail
+          node -e "
+            const fs = require('node:fs');
+            const plan = JSON.parse(fs.readFileSync(process.env.OUTPUT_PATH, 'utf8'));
+            if (plan.status !== 'blocked') throw new Error('status_not_blocked');
+            if (plan.mode !== 'dry-run') throw new Error('mode_not_dry_run');
+            if (plan.readyForApply !== false) throw new Error('ready_for_apply_not_false');
+            if (plan.officialApi.transportContractVerified !== false) throw new Error('transport_marked_verified');
+            if (plan.barriers.requestPrepared !== false) throw new Error('request_prepared');
+            if (plan.barriers.lockClaimEnabled !== false) throw new Error('lock_claim_enabled');
+            if (plan.barriers.hostingerPostEnabled !== false) throw new Error('hostinger_post_enabled');
+            if (plan.barriers.buildPollingEnabled !== false) throw new Error('build_polling_enabled');
+            if (plan.barriers.deployEnabled !== false) throw new Error('deploy_enabled');
+            if (plan.barriers.dnsEnabled !== false) throw new Error('dns_enabled');
+            if (plan.barriers.hostingerTokenUsed !== false) throw new Error('hostinger_token_used');
+            if (!Array.isArray(plan.barriers.secretsRequired) || plan.barriers.secretsRequired.length !== 0) {
+              throw new Error('unexpected_secrets_required');
+            }
+          "
+
+      - name: Upload blocked preflight artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: site-factory-hostinger-node-build-executor-preflight-${{ github.sha }}
+          path: ${{ env.OUTPUT_PATH }}
+          if-no-files-found: error
+          retention-days: 7
