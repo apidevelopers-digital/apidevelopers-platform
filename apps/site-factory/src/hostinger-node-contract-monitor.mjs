@@ -1,52 +1,21 @@
 import crypto from "node:crypto";
 
-const EXPECTED_CONTRACT = Object.freeze({
-  repository: "hostinger/api",
+const EXPECTED = Object.freeze({
   issueNumber: 56,
   openapiVersion: "3.0.0",
   apiVersion: "1.23.0",
   endpoint:
     "/api/hosting/v1/accounts/{username}/websites/{domain}/nodejs/builds/from-archive",
-  method: "post",
   operationId: "hosting_createNodeJSBuildFromArchiveV1",
-  requestMediaType: "application/json",
-  requestSchemaRef:
-    "#/components/schemas/Hosting.V1.NodeJs.CreateFromArchiveRequest",
-  archiveField: "archive",
-  archiveType: "string",
-  archiveFormat: null,
+  mediaType: "application/json",
+  schemaName: "Hosting.V1.NodeJs.CreateFromArchiveRequest",
 });
 
-function requireObject(value, field) {
-  if (!value || typeof value !== "object" || Array.isArray(value)) {
-    throw new Error(`missing_or_invalid:${field}`);
-  }
-  return value;
+function valueOrNull(value) {
+  return typeof value === "string" && value.trim() ? value.trim() : null;
 }
 
-function resolveLocalRef(document, ref) {
-  if (typeof ref !== "string" || !ref.startsWith("#/")) {
-    throw new Error("unsupported_or_invalid_schema_ref");
-  }
-
-  return ref
-    .slice(2)
-    .split("/")
-    .map((segment) => segment.replaceAll("~1", "/").replaceAll("~0", "~"))
-    .reduce((current, segment) => {
-      const object = requireObject(current, `ref_segment:${segment}`);
-      if (!(segment in object)) {
-        throw new Error(`missing_ref_segment:${segment}`);
-      }
-      return object[segment];
-    }, document);
-}
-
-function normalizeNullableString(value) {
-  return typeof value === "string" && value.trim() !== "" ? value.trim() : null;
-}
-
-function stableFingerprint(value) {
+function digest(value) {
   return crypto.createHash("sha256").update(JSON.stringify(value)).digest("hex");
 }
 
@@ -55,75 +24,43 @@ export function createHostingerNodeContractMonitorReport({
   issue,
   observedAt = new Date().toISOString(),
 }) {
-  const document = requireObject(openapi, "openapi");
-  const issueObject = requireObject(issue, "issue");
-
-  if (typeof observedAt !== "string" || observedAt .trim() === "") {
-    throw new Error"missing_or_invalid:observedAt");
+  if (!openapi || typeof openapi !== "object") {
+    throw new Error("missing_or_invalid:openapi");
+  }
+  if (!issue || typeof issue !== "object") {
+    throw new Error("missing_or_invalid:issue");
+  }
+  if (!valueOrNull(observedAt)) {
+    throw new Error("missing_or_invalid:observedAt");
   }
 
-  const pathItem = document.paths?.[EXPECTED_CONTRACT.endpoint] ?? null;
-  const operation = pathItem?.[EXPECTED_CONTRACT.method] ?? null;
-  const requestContent = operation?.requestBody?.content ?? {};
-  const mediaTypes = Object.keys(requestContent).sort();
-  const jsonSchema = requestContent[EXPECTED_CONTRACT.requestMediaType]?.schema ?? null;
-  const requestSchemaRef = normalizeNullableString(jsonSchema?.$ref);
-  const resolvedSchema = requestSchemaRef
-    ? resolveLocalRef(document, requestSchemaRef)
-    : jsonSchema;
-  const archiveField = resolvedSchema?.properties?.[EXPECTED_CONTRACT.archiveField] ?? null;
-  const requiredFields = Array.isArray(resolvedSchema?.required)
-    ? [...resolvedSchema.required].sort()
-    : [];
-
-  const contractSnapshot = {
-    openapiVersion: normalizeNullableString(document.openapi),
-    apiVersion: normalizeNullableString(document.info?.version),
-    endpointPresent: Boolean(pathItem),
-    methodPresent: Boolean(operation),
-    operationId: normalizeNullableString(operation?.operationId),
-    requestMediaTypes: mediaTypes,
-    requestSchemaRef,
-    archiveRequired: requiredFields.includes(EXPECTED_CONTRACT.archiveField),
-    archiveType: normalizeNullableString(archiveField?.type),
-    archiveFormat: normalizeNullableString(archiveField?.format),
-  };
-
-  const issueSnapshot = {
-    repository: EXPECTED_CONTRACT.repository,
-    number: Number(issueObject.number),
-    state: normalizeNullableString(issueObject.state),
-    title: normalizeNullableString(issueObject.title),
-    updatedAt: normalizeNullableString(issueObject.updated_at),
-    htmlUrl: normalizeNullableString(issueObject.html_url),
-  };
+  const operation = openapi.paths?.[EXPECTED.endpoint]?.post ?? null;
+  const mediaTypes = Object.keys(operation?.requestBody?.content ?? {}).sort();
+  const requestSchemaRef =
+    operation?.requestBody?.content?.[EXPECTED.mediaType]?.schema?.$ref ?? null;
+  const schema = openapi.components?.schemas?.[EXPECTED.schemaName] ?? null;
+  const required = Array.isArray(schema?.required) ? schema.required : [];
+  const archive = schema?.properties?.archive ?? null;
 
   const checks = {
-    openapiVersionMatches:
-      contractSnapshot.openapiVersion === EXPECTED_CONTRACT.openapiVersion,
-    apiVersionMatches:
-      contractSnapshot.apiVersion === EXPECTED_CONTRACT.apiVersion,
-    endpointPresent: contractSnapshot.endpointPresent,
-    methodPresent: contractSnapshot.methodPresent,
-    operationIdMatches:
-      contractSnapshot.operationId === EXPECTED_CONTRACT.operationId,
+    openapiVersionMatches: openapi.openapi === EXPECTED.openapiVersion,
+    apiVersionMatches: openapi.info?.version === EXPECTED.apiVersion,
+    endpointPresent: Boolean(openapi.paths?.[EXPECTED.endpoint]),
+    operationIdMatches: operation?.operationId === EXPECTED.operationId,
     mediaTypeMatches:
-      contractSnapshot.requestMediaTypes.length === 1 &&
-      contractSnapshot.requestMediaTypes[0] === EXPECTED_CONTRACT.requestMediaType,
-    requestSchemaRefMatches:
-      contractSnapshot.requestSchemaRef === EXPECTED_CONTRACT.requestSchemaRef,
-    archiveRequired: contractSnapshot.archiveRequired,
-    archiveTypeMatches:
-      contractSnapshot.rchiveType === EXPECTED_CONTRACT.archiveType,
-    archiveFormatMatches:
-      contractSnapshot.archiveFormat === EXPECTED_CONTRACT.archiveFormat,
-    issueNumberMatches: issueSnapshot.number === EXPECTED_CONTRACT.issueNumber,
-    issueStillOpen: issueSnapshot.state === "open",
+      mediaTypes.length === 1 && mediaTypes[0] === EXPECTED.mediaType,
+    schemaRefMatches:
+      requestSchemaRef === `#/components/schemas/${EXPECTED.schemaName}`,
+    archiveRequired: required.includes("archive"),
+    archiveTypeMatches: archive?.type === "string",
+    archiveFormatAbsent: archive?.format == null,
+    issueNumberMatches: Number(issue.number) === EXPECTED.issueNumber,
+    issueStillOpen: issue.state === "open",
   };
 
-  const contractChanged = !Object.entries(checks)
+  const contractChanged = Object.entries(checks)
     .filter(([name]) => !name.startsWith("issue"))
-    .every(([, value]) => value === true);
+    .some(([, passed]) => passed !== true);
   const issueChanged =
     checks.issueNumberMatches !== true || checks.issueStillOpen !== true;
   const reviewRequired = contractChanged || issueChanged;
@@ -133,14 +70,26 @@ export function createHostingerNodeContractMonitorReport({
     kind: "site-factory-hostinger-node-contract-monitor",
     status: reviewRequired ? "review-required" : "unchanged-blocked",
     reviewRequired,
-    expectedContract: EXPECTED_CONTRACT,
-    observedContract: contractSnapshot,
-    observedIssue: issueSnapshot,
+    expected: EXPECTED,
+    observed: {
+      openapiVersion: valueOrNull(openapi.openapi),
+      apiVersion: valueOrNull(openapi.info?.version),
+      operationId: valueOrNull(operation?.operationId),
+      mediaTypes,
+      requestSchemaRef: valueOrNull(requestSchemaRef),
+      archiveRequired: required.includes("archive"),
+      archiveType: valueOrNull(archive?.type),
+      archiveFormat: valueOrNull(archive?.format),
+      issueNumber: Number(issue.number),
+      issueState: valueOrNull(issue.state),
+      issueUpdatedAt: valueOrNull(issue.updated_at),
+      issueUrl: valueOrNull(issue.html_url),
+    },
     checks,
     changeSignals: {
       contractChanged,
       issueChanged,
-      officialIssueClosed: issueSnapshot.state === "closed",
+      officialIssueClosed: issue.state === "closed",
     },
     barriers: {
       hostingerTokenUsed: false,
@@ -156,10 +105,7 @@ export function createHostingerNodeContractMonitorReport({
     observedAt: observedAt.trim(),
   };
 
-  return Object.freeu({
-    ...report,
-    fingerprint: stableFingerprint(report),
-  });
+  return Object.freeze({ ...report, fingerprint: digest(report) });
 }
 
-export { EXPECTED_CONTRACT };
+export { EXPECTED };
