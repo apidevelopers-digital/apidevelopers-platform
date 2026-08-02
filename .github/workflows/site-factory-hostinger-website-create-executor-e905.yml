@@ -44,10 +44,16 @@ jobs:
                   ("33d5b094f12cbb9a1b5513853d69755ba4f05dced90d8f13fc950ca869c5a1c6", "e905a96390d3ba98e6d2f2064cd3877f8bf3e7ed1065c73e420351bb7bb28e5a"),
               ],
               "apps/site-factory/src/hostinger-website-create-lock.mjs": [
-                  ("evidence/hostinger-website-create-execution", "evidence/hostinger-website-create-execution-e905a96390d3"),
+                  (
+                      'export const EXECUTION_BRANCH =\n  "evidence/hostinger-website-create-execution";',
+                      'export const EXECUTION_BRANCH =\n  "evidence/hostinger-website-create-execution-e905a96390d3";',
+                  ),
               ],
               "apps/site-factory/src/hostinger-website-create-github.mjs": [
-                  ("evidence/hostinger-website-create-execution", "evidence/hostinger-website-create-execution-e905a96390d3"),
+                  (
+                      'const EXECUTION_BRANCH = "evidence/hostinger-website-create-execution";',
+                      'const EXECUTION_BRANCH = "evidence/hostinger-website-create-execution-e905a96390d3";',
+                  ),
               ],
           }
 
@@ -95,4 +101,4 @@ jobs:
           SECRET_OUTCOME: ${{ steps.secret.outcome }}
           CLAIM_OUTCOME: ${{ steps.claim.outcome }}
           EXECUTE_OUTCOME: ${{ steps.execute.outcome }}
-        run: node apps/site-factory/src/run-publish-hostinger-website-create-diagnostic.mjs"
+        run: node apps/site-factory/src/run-publish-hostinger-website-create-diagnostic.mjs
