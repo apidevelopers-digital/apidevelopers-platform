@@ -1,6 +1,9 @@
 import { resolve } from "node:path";
 
 import {
+  createOperatorGitHubRuntime,
+} from "./operator-github-runtime.mjs";
+import {
   createOperationalGatewayWithReadonlyOperator,
 } from "./operator-readonly-composition.mjs";
 
@@ -46,15 +49,33 @@ export function createOperationalRuntime({
   env = process.env,
   cwd = process.cwd(),
   gatewayFactory = createOperationalGatewayWithReadonlyOperator,
+  githubRuntimeFactory = createOperatorGitHubRuntime,
+  githubSecretProvider,
+  githubTransport,
 } = {}) {
   if (typeof gatewayFactory !== "function") {
     throw new TypeError("gatewayFactory must be a function");
   }
+  if (typeof githubRuntimeFactory !== "function") {
+    throw new TypeError("githubRuntimeFactory must be a function");
+  }
 
   const config = resolveOperationalRuntimeConfig({ env, cwd });
+  const githubRuntime = githubRuntimeFactory({
+    env,
+    secretProvider: githubSecretProvider,
+    transport: githubTransport,
+  });
+
   const gateway = gatewayFactory({
     stateFilePath: config.stateFilePath,
     ...(config.adminKey ? { adminKey: config.adminKey } : {}),
+    ...(githubRuntime.configured
+      ? {
+          githubReadonlyClient: githubRuntime.client,
+          githubReadonlyOrganization: githubRuntime.organization,
+        }
+      : {}),
   });
 
   if (typeof gateway?.app?.handleRequest !== "function") {
@@ -72,6 +93,7 @@ export function createOperationalRuntime({
       mode: "operational",
       stateStore: "json-file",
       adminKeyConfigured: Boolean(config.adminKey),
+      githubReadonly: githubRuntime.descriptor,
     }),
   });
 }

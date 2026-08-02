@@ -25,10 +25,18 @@ test("runtime uses the read-only gateway factory contract", () => {
 
   assert.equal(options.stateFilePath, "/tmp/operator-wave1/state.json");
   assert.equal(options.adminKey, "test-only-key");
+  assert.equal(Object.hasOwn(options, "githubReadonlyClient"), false);
+  assert.equal(Object.hasOwn(options, "githubReadonlyOrganization"), false);
   assert.deepEqual(runtime.descriptor, {
     mode: "operational",
     stateStore: "json-file",
     adminKeyConfigured: true,
+    githubReadonly: {
+      configured: false,
+      mode: "deny-by-default",
+      reason: "github_readonly_not_configured",
+      productionChanged: false,
+    },
   });
   assert.equal(JSON.stringify(runtime.descriptor).includes("test-only-key"), false);
 });

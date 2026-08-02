@@ -58,6 +58,12 @@ test("operational runtime resolves configuration without exposing secrets in its
     mode: "operational",
     stateStore: "json-file",
     adminKeyConfigured: true,
+    githubReadonly: {
+      configured: false,
+      mode: "deny-by-default",
+      reason: "github_readonly_not_configured",
+      productionChanged: false,
+    },
   });
   assert.equal(JSON.stringify(runtime.descriptor).includes("super-secret"), false);
   assert.equal(JSON.stringify(runtime.descriptor).includes("/tmp/runtime"), false);
