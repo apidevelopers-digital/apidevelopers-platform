@@ -1,0 +1,188 @@
+name: Site Factory Preview Promotion Packet
+
+on:
+  pull_request:
+    branches:
+      - main
+    paths:
+      - "apps/site-factory/**"
+      - ".github/workflows/site-factory-preview-promotion-packet.yml"
+  workflow_dispatch:
+    inputs:
+      source_run_id:
+        description: "Successful Site Factory Reference Build run ID"
+        required: true
+        type: string
+      source_sha:
+        description: "Exact 40-character source commit SHA"
+        required: true
+        type: string
+      artifact_name:
+        description: "Exact reference build artifact name"
+        required: true
+        type: string
+
+permissions:
+  actions: read
+  contents: read
+
+jobs:
+  validate-contract:
+    name: Validate promotion packet contract
+    runs-on:
+      - self-hosted
+      - macOS
+      - X64
+    timeout-minutes: 15
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+
+      - name: Install Site Factory dependencies
+        working-directory: apps/site-factory
+        run: npm install --no-audit --no-fund
+
+      - name: Run Site Factory checks
+        working-directory: apps/site-factory
+        run: npm run check
+
+  generate-packet:
+    name: Generate immutable promotion packet
+    if: github.event_name == 'workflow_dispatch'
+    needs: validate-contract
+    runs-on:
+      - self-hosted
+      - macOS
+      - X64
+    timeout-minutes:
+      15
+    env:
+      SOURCE_RUN_ID: ${{ inputs.source_run_id }}
+      SOURCE_SHA: ${{ inputs.source_sha }}
+      ARTIFACT_NAME: ${{ inputs.artifact_name }}
+    steps:
+      - name: Assert main and immutable inputs
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$GITHUB_REF" = "refs/heads/main"
+          [[ "$SOURCE_RUN_ID" =~ ^[0-9]+$ ]]
+          [[ "$SOURCE_SHA" =~ ^[0-9a-f]{40}$ ]]
+          test "$SOURCE_SHA" = "$GITHUB_SHA"
+          test "$ARTIFACT_NAME" = "site-factory-reference-$SOURCE_SHA"
+
+      - name: Checkout exact source SHA
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ inputs.source_sha }}
+
+      - name: Download exact reference build artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: ${{ inputs.artifact_name }}
+          path: ${{ runner.temp }}/site-factory-promotion-source
+          github-token: ${{ github.token }}
+          run-id: ${{ inputs.source_run_id }}
+
+      - name: Verify artifact evidence
+        shell: bash
+        env:
+          SOURCE_DIR: ${{ runner.temp }}/site-factory-promotion-source
+        run: |
+          set -euo pipefail
+          test -f "$SOURCE_DIR/dist/index.html"
+          test -f "$SOURCE_DIR/publishing-manifest.json"
+          test -f "$SOURCE_DIR/reference-build-evidence.json"
+
+          node --input-type=module <<'NODE'
+          import fs from "node:fs";
+          import path from "node:path";
+
+          const root = process.env.SOURCE_DIR;
+          const expectedSha = process.env.SOURCE_SHA;
+          const expectedRunId = process.env.SOURCE_RUN_ID;
+          const manifest = JSON.parse(
+            fs.readFileSync(path.join(root, "publishing-manifest.json"), "utf8"),
+          );
+          const evidence = JSON.parse(
+            fs.readFileSync(path.join(root, "reference-build-evidence.json"), "utf8"),
+          );
+
+          if (manifest.preview?.domainPattern !== "preview-apidevelopers.apidevelopers.digital") {
+            throw new Error("unexpected_preview_domain");
+          }
+          if (evidence.sourceSha !== expectedSha) {
+            throw new Error("evidence_sha_mismatch");
+          }
+          if (String(evidence.workflowRunId) !== expectedRunId) {
+            throw new Error("evidence_run_id_mismatch");
+          }
+          if (
+            evidence.generated !== true ||
+            evidence.testsPassed !== true ||
+            evidence.buildPassed !== true ||
+            evidence.writesToProduction !== false ||
+            evidence.deployExecuted !== false
+          ) {
+            throw new Error("unsafe_or_incomplete_build_evidence");
+          }
+          NODE
+
+      - name: Generate dry-run promotion packet
+        shell: bash
+        env:
+          SOURCE_DIR: ${{ runner.temp }}/site-factory-promotion-source
+          PACKET_DIR: ${{ runner.temp }}/site-factory-promotion-packet
+        run: |
+          set -euo pipefail
+          mkdir -p "$PACKET_DIR"
+
+          node --input-type=module <<'NODE'
+          import fs from "node:fs";
+          import path from "node:path";
+          import { createPreviewPromotionPlan } from "./apps/site-factory/src/preview-promotion.mjs";
+          import {
+            createPreviewPromotionPacket,
+            REQUIRED_ARTIFACT_FILES,
+          } from "./apps/site-factory/src/preview-promotion-packet.mjs";
+
+          const root = process.env.SOURCE_DIR;
+          const output = process.env.PACKET_DIR;
+          const manifest = JSON.parse(
+            fs.readFileSync(path.join(root, "publishing-manifest.json"), "utf8"),
+          );
+
+          const plan = createPreviewPromotionPlan({
+            manifest,
+            sourceRepository: process.env.GITHUB_REPOSITORY,
+            sourceSha: process.env.SOURCE_SHA,
+            artifactName: process.env.ARTIFACT_NAME,
+          });
+
+          const packet = createPreviewPromotionPacket({
+            plan,
+            sourceRepository: process.env.GITHUB_REPOSITORY,
+            sourceSha: process.env.SOURCE_SHA,
+            sourceRunId: process.env.SOURCE_RUN_ID,
+            artifactName: process.env.ARTIFACT_NAME,
+            artifactFiles: [...REQUIRED_ARTIFACT_FILES],
+          });
+
+          fs.writeFileSync(
+            path.join(output, "preview-promotion-packet.json"),
+            `${JSON.stringify(packet, null, 2)}\n`,
+          );
+          NODE
+
+      - name: Upload promotion packet
+        uses: actions/upload-artifact@v4
+        with:
+          name: site-factory-preview-promotion-packet-${{ inputs.source_sha }}
+          path: ${{ runner.temp }}/site-factory-promotion-packet/preview-promotion-packet.json
+          if-no-files-found: error
+          retention-days: 7
