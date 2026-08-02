@@ -77,7 +77,50 @@ jobs:
           npm run check
 
       - name: Generate, test and build production static site
-        shellè‰…Í (€€€€€€€ÉÕ¸èð(€€€€€€€€€Í•Ð€µ•Õ¼Á¥Á•™…¥°((€€€€€€€€€=UQAUQ}I==Pôˆ‘IU99I}Q5@½Í¥Ñ”µ™…Ñ½ÉäµÍÑ…Ñ¥Œ´‘í%Q!U	}IU9}%ô´‘í%Q!U	}IU9}QQ5AQôˆ(€€€€€€€€€AI=)Q}%Hôˆ‘=UQAUQ}I==P½…Á¥‘•Ù•±½Á•ÉÌˆ(€€€€€€€€€I!%Y}AQ ôˆ‘IU99I}Q5@½…Á¥‘•Ù•±½Á•ÉÌµÍÑ…Ñ¥Œ´‘í%Q!U	}M!ô¹é¥Àˆ(€€€€€€€€€Y%9}AQ ôˆ‘IU99I}Q5@½¡½ÍÑ¥¹•ÈµÍÑ…Ñ¥Œµ‘•Á±½äµ•Ù¥‘•¹”´‘í%Q!U	}IU9}%ô¹©Í½¸ˆ((€€€€€€€€€É´€µÉ˜€ˆ‘=UQAUQ}I==Pˆ(€€€€€€€€€É´€µ˜€ˆ‘I!%Y}AQ ˆ€ˆ‘Y%9}AQ ˆ(€€€€€€€€€µ­‘¥È€µÀ€ˆ‘=UQAUQ}I==Pˆ((€€€€€€€€€€ (€€€€€€€€€€€…ÁÁÌ½Í¥Ñ”µ™…Ñ½Éä(€€€€€€€€€€€¹Á´ÉÕ¸ÁÉ½©•Ðé•¹•É…Ñ”€´´p(€€€€€€€€€€€€€€´µ…ÁÀ…Á¥‘•Ù•±½Á•ÉÌp(€€€€€€€€€€€€€€´µ‘½µ…¥¸…Á¥‘•Ù•±½Á•ÉÌ¹‘¥¥Ñ…°p(€€€€€€€€€€€€€€´µÑ¥Ñ±”€‰A$•Ù•±½Á•ÉÌ¹‘¥¥Ñ…°ˆp(€€€€€€€€€€€€€€´µ½ÕÑÁÕÐ€ˆ‘=UQAUQ}I==Pˆ(€€€€€€€€€€¤((€€€€€€€€€€ (€€€€€€€€€€€€ˆ‘AI=)Q}%Hˆ(€€€€€€€€€€€¹Á´¥¹ÍÑ…±°€´µ¹¼µ…Õ‘¥Ð€´µ¹¼µ™Õ¹(€€€€€€€€€€€¹Á´Ñ•ÍÐ(€€€€€€€€€€€¹Á´ÉÕ¸‰Õ¥±(€€€€€€€€€€€Ñ•ÍÐ€µ˜‘¥ÍÐ½¥¹‘•à¹¡Ñµ°(€€€€€€€€€€€É•À€µÄ€‰A$•Ù•±½Á•ÉÌ¹‘¥¥Ñ…°ˆ‘¥ÍÐ½¥¹‘•à¹¡Ñµ°(€€€€€€€€€€€€ (€€€€€€€€€€€€€‘¥ÍÐ(€€€€€€€€€€€€€é¥À€µÄ€µÈ€ˆ‘I!%Y}AQ ˆ€¸(€€€€€€€€€€€€¤(€€€€€€€€€€¤((€€€€€€€€€Ñ•ÍÐ€µÌ€ˆ‘I!%Y}AQ ˆ(€€€€€€€€€Õ¹é¥À€µhÄ€ˆ‘I!%Y}AQ ˆðÉ•À€µÅà€‰¥¹‘•à¹¡Ñµ°ˆ((€€€€€€€€€…Ð€ø€ˆ‘Y%9}AQ ˆ€ðñ)M=8(€€€€€€€€€ì(€€€€€€€€€€€€‰Í¡•µ…Y•ÉÍ¥½¸ˆè€ˆÄ¸Àˆ°(€€€€€€€€€€€€‰­¥¹ˆè€‰Í¥Ñ”µ™…Ñ½Éäµ¡½ÍÑ¥¹•ÈµÍÑ…Ñ¥Œµ‘•Á±½åµ•¹Ðµ‰½½ÑÍÑÉ…Àˆ°(€€€€€€€€€€€€‰ÍÑ…ÑÕÌˆè€‰•á•ÕÑ½É}¹½Ñ}ÍÑ…ÉÑ•ˆ°(€€€€€€€€€€€€‰µ½‘”ˆè€ˆ‘IU9}5=E",
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          OUTPUT_ROOT="$RUNNER_TEMP/site-factory-static-${GITHUB_RUN_ID}-${GITHUB_RUN_ATTEMPT}"
+          PROJECT_DIR="$OUTPUT_ROOT/apidevelopers"
+          ARCHIVE_PATH="$RUNNER_TEMP/apidevelopers-static-${GITHUB_SHA}.zip"
+          EVIDENCE_PATH="$RUNNER_TEMP/hostinger-static-deploy-evidence-${GITHUB_RUN_ID}.json"
+
+          rm -rf "$OUTPUT_ROOT"
+          rm -f "$ARCHIVE_PATH" "$EVIDENCE_PATH"
+          mkdir -p "$OUTPUT_ROOT"
+
+          (
+            cd apps/site-factory
+            npm run project:generate -- \
+              --app apidevelopers \
+              --domain apidevelopers.digital \
+              --title "API Developers.digital" \
+              --output "$OUTPUT_ROOT"
+          )
+
+          (
+            cd "$PROJECT_DIR"
+            npm install --no-audit --no-fund
+            npm test
+            npm run build
+            test -f dist/index.html
+            grep -q "API Developers.digital" dist/index.html
+            (
+              cd dist
+              zip -q -r "$ARCHIVE_PATH" .
+            )
+          )
+
+          test -s "$ARCHIVE_PATH"
+          unzip -Z1 "$ARCHIVE_PATH" | grep -qx "index.html"
+
+          cat > "$EVIDENCE_PATH" <<JSON
+          {
+            "schemaVersion": "1.0",
+            "kind": "site-factory-hostinger-static-deployment-bootstrap",
+            "status": "executor_not_started",
+            "mode": "$RUN_MODE",
             "sourceSha": "$GITHUB_SHA",
             "runId": "$GITHUB_RUN_ID",
             "targetDomain": "$TARGET_DOMAIN",
@@ -134,13 +177,13 @@ jobs:
         continue-on-error: true
         shell: bash
         env:
-          HOSTINGER_API_TOKKEN: ${{ secrets.HOSTINGER_API_TOKEN }}
+          HOSTINGER_API_TOKEN: ${{ secrets.HOSTINGER_API_TOKEN }}
           APPROVED_SHA: ${{ inputs.approved_sha }}
           APPROVAL: ${{ inputs.approval }}
         run: |
           set -euo pipefail
           node "$MCP_CLIENT" \
-            --moe apply \
+            --mode apply \
             --domain "$TARGET_DOMAIN" \
             --archive "$ARCHIVE_PATH" \
             --expected-text "$EXPECTED_TEXT" \
