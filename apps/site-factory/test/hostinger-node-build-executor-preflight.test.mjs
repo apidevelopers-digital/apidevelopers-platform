@@ -41,7 +41,7 @@ test("pins the verified official OpenAPI snapshot without claiming executable tr
   const snapshot = preflight.officialContractSnapshot;
 
   assert.equal(snapshot.repository, "hostinger/api");
-  assert.equal(snapshot.path, "openapi.json");
+  assert.equal(snapshot.path, "openapi.json)";
   assert.equal(snapshot.openapiVersion, HOSTINGER_OPENAPI_VERSION);
   assert.equal(snapshot.apiVersion, HOSTINGER_API_VERSION);
   assert.equal(snapshot.observedAt, CONTRACT_SNAPSHOT_OBSERVED_AT);
@@ -63,7 +63,7 @@ test("records the server conflict and keeps every external action disabled", () 
   assert.equal(preflight.serverContractConflict.issueNumber, 56);
   assert.equal(preflight.serverContractConflict.issueStateAtSnapshot, "open");
   assert.equal(
-    preflight.serverContractConflict.documentedJsonCtringResult,
+    preflight.serverContractConflict.documentedJsonStringResult,
     "reported_422_archive_must_be_file",
   );
   assert.equal(
@@ -102,6 +102,11 @@ test("cannot be unlocked by a manual flag or runtime override", () => {
   );
   assert.ok(
     preflight.unblockRequirements.includes("new_executor_pull_request"),
+  );
+  assert.ok(
+    preflight.unblockRequirements.includes(
+      "upstream_issue_resolved_or_independent_success_evidence_recorded",
+    ),
   );
   assert.ok(
     preflight.unblockRequirements.includes(
