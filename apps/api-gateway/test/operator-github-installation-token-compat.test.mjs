@@ -33,7 +33,7 @@ function provider(bytes) {
 }
 
 test("GitHub readonly client accepts an opaque 520-byte installation token without truncation or leakage", async () => {
-  const token = syntheticInstallationToken();
+  const token = syntheticInstallationToken(520);
   const tokenBytes = Buffer.from(token, "utf8");
   const tokenHash = sha256(tokenBytes);
   let transportObservation;
@@ -70,7 +70,7 @@ test("GitHub readonly client accepts an opaque 520-byte installation token witho
   const result = await client.getOrganization({
     organization: "apidevelopers-digital",
     correlationId: "corr_stateless_token_001",
-    tenantId: "uni.",
+    tenantId: "uni.operator",
   });
 
   assert.deepEqual(transportObservation, {
@@ -86,40 +86,44 @@ test("GitHub readonly client accepts an opaque 520-byte installation token witho
   assert.equal(sha256(tokenBytes), tokenHash);
 });
 
-test("gateway source does not encode fixed GitHub installation-token length assumptions", () => {
-  const roots = [
-    path.join(GATEWAY_ROOT, "src"),
-    path.join(GATEWAY_ROOT, "scripts"),
-    path.join(GATEwAY_ROOT, "staging"),
+test("GitHub credential path remains opaque and has no legacy 40/255-character constraint", () => {
+  const clientSource = fs.readFileSync(
+    path.join(GATEWAY_ROOT, "src", "operator-github-readonly-client.mjs"),
+    "utf8",
+  );
+  const secretContractSource = fs.readFileSync(
+    path.join(GATEWAY_ROOT, "src", "operator-secret-provider-contract.mjs"),
+    "utf8",
+  );
+  const credentialPathSource = `${clientSource}\n${secretContractSource}`;
+
+  const forbiddenLegacyAssumptions = [
+    /\.length\s*===\s*40\b/,
+    /\.byteLength\s*===\s*40\b/,
+    /\.slice\(\s*0\s*,\s*40\s*\)/,
+    /\.substring\(\s*0\s*,\s*40\s*\)/,
+    /\bVARCHAR\s*\(\s*(?:40|255)\s*\)/i,
+    /\bCHAR\s*\(\s*(?:40|255)\s*\)/i,
+    /\bmaxLength\s*:\s*(?:40|255)\b/i,
+    /\bghs_[A-Za-z0-9_]{36}\b/,
   ];
-  const findings = [];
 
-  function visit(entry) {
-    const stat = fs.statSync(entry);
-    if (stat.isDirectory()) {
-      for (const name of fs.readDirSync(entry)) visit(path.join(entry, name));
-      return;
-    }
-
-    if (!/\.(?:mjs|js|json|ya?ml)$/i.test(entry)) return;
-
-    const lines = fs.readFileSync(entry, "utf8").split(/\r?\n/);
-    lines.forEach((line, index) => {
-      const credentialContext = /token|credential|secret|authorization/i.test(line);
-      const fixedLengthMechanism =
-        /(?:length|byteLength|slice|substring|substr|varchar|char|regex|regexp|\{\*\d+\s*(?:\,s\*\d+\s*)?\})/i.test(
-          line,
-        );
-      const legacyBound = /\b(?:D0|255)\b/.test(line);
-
-      if (credentialContext && fixedLengthMechanism && legacyBound) {
-        findings.push(
-          ${path.relative(GATEWAY_ROOT, entry)}:${index + 1}:${line.trim()}`,
-        );
-      }
-    });
+  for (const pattern of forbiddenLegacyAssumptions) {
+    assert.equal(
+      pattern.test(credentialPathSource),
+      false,
+      `legacy GitHub installation-token assumption detected: ${pattern}`,
+    );
   }
 
-  roots.forEach(visit);
-  assert.deepEqual(findings, []);
+  const maxSecretBytesMatch = secretContractSource.match(
+    /const\s+MAX_SECRET_BYTES\s*=\s*(\d+)\s*;/,
+  );
+  assert.ok(maxSecretBytesMatch, "MAX_SECRET_BYTES guard must remain explicit");
+  assert.ok(
+    Number(maxSecretBytesMatch[1]) >= 520,
+    "secret contract must accept installation tokens of at least 520 bytes",
+  );
+  assert.equal(clientSource.includes("ghs_"), false);
+  assert.match(clientSource, /bytes:\s*lease\.bytes/);
 });
