@@ -2,8 +2,8 @@ import { realpathSync } from "node:fs";
 import { resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 
+import { startOperationalHttpServer } from "./operational-http-transport.mjs";
 import { createOperationalRuntime } from "./operational-runtime.mjs";
-import { startServer } from "./server.mjs";
 
 function writeLog(logger, payload) {
   if (typeof logger?.log === "function") {
@@ -36,13 +36,17 @@ export async function startOperationalGateway({
   cwd = process.cwd(),
   logger = console,
   runtimeFactory = createOperationalRuntime,
+  serverFactory = startOperationalHttpServer,
 } = {}) {
   if (typeof runtimeFactory !== "function") {
     throw new TypeError("runtimeFactory must be a function");
   }
+  if (typeof serverFactory !== "function") {
+    throw new TypeError("serverFactory must be a function");
+  }
 
   const runtime = runtimeFactory({ env, cwd });
-  const server = await startServer({
+  const server = await serverFactory({
     app: runtime.app,
     host: runtime.host,
     port: runtime.port,
