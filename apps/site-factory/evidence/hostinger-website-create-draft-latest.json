@@ -9,12 +9,12 @@
   "provisioningEnabled": false,
   "dnsEnabled": false,
   "deployEnabled": false,
-  "generatedAt": "2026-07-31T03:25:55.256Z",
+  "generatedAt": "2026-08-02T04:26:39.789Z",
   "provider": "hostinger",
   "product": "business-web-hosting",
   "source": {
     "repository": "apidevelopers-digital/apidevelopers-platform",
-    "sha": "1b775697244245f1b6bb79801244c0a67f5c286a"
+    "sha": "af320abea446687a35855c3c44a3efac9bca0d34"
   },
   "request": {
     "method": "POST",
@@ -36,9 +36,9 @@
   },
   "evidence": {
     "preflightKind": "hostinger-business-hosting-preview-preflight",
-    "preflightFingerprint": "39e38af94a871c187823d38c3893b24b8572bccf4c8a6a2b90824c36c107bc87",
+    "preflightFingerprint": "795eb4b53b8dafbf06fa03218f402f068a80fade8660a4b976707df9f95aa5d0",
     "orderReference": "order-****0581",
-    "checkedAt": "2026-07-31T03:19:06.136Z"
+    "checkedAt": "2026-08-02T04:23:32.054Z"
   },
   "invariants": {
     "preservePrimaryDomain": true,
@@ -61,6 +61,6 @@
     "register_preview_release",
     "prove_rollback_by_commit"
   ],
-  "fingerprint": "33d5b094f12cbb9a1b5513853d69755ba4f05dced90d8f13fc950ca869c5a1c6",
-  "approvalToken": "IGOR_APROVA_CRIACAO_WEBSITE_PREVIEW_33D5B094F12C"
+  "fingerprint": "e905a96390d3ba98e6d2f2064cd3877f8bf3e7ed1065c73e420351bb7bb28e5a",
+  "approvalToken": "IGOR_APROVA_CRIACAO_WEBSITE_PREVIEW_E905A96390D3"
 }
