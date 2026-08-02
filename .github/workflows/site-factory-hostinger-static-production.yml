@@ -111,7 +111,6 @@ jobs:
           )
 
           test -s "$ARCHIVE_PATH"
-          test "$(unzip -Z1 "$ARCHIVE_PATH" | head -n 1 | sed 's#^\./##')" != ""
           unzip -Z1 "$ARCHIVE_PATH" | grep -qx "index.html"
 
           echo "ARCHIVE_PATH=$ARCHIVE_PATH" >> "$GITHUB_ENV"
@@ -122,9 +121,11 @@ jobs:
         run: |
           set -euo pipefail
           MCP_WORKDIR="$RUNNER_TEMP/hostinger-mcp-1.26.0-${GITHUB_RUN_ID}"
+
           rm -rf "$MCP_WORKDIR"
           mkdir -p "$MCP_WORKDIR"
           cp apps/site-factory/src/run-hostinger-static-deploy-mcp.mjs "$MCP_WORKDIR/client.mjs"
+
           (
             cd "$MCP_WORKDIR"
             npm init -y >/dev/null
@@ -135,7 +136,9 @@ jobs:
               hostinger-api-mcp@1.26.0 \
               @modelcontextprotocol/sdk@1.10.0
             test -x node_modules/.bin/hostinger-hosting-mcp
+            node --check client.mjs
           )
+
           echo "MCP_CLIENT=$MCP_WORKDIR/client.mjs" >> "$GITHUB_ENV"
 
       - name: Run preflight or production apply
@@ -146,14 +149,36 @@ jobs:
           HOSTINGER_API_TOKEN: ${{ github.event_name == 'workflow_dispatch' && inputs.mode == 'apply' && secrets.HOSTINGER_API_TOKEN || '' }}
         run: |
           set -euo pipefail
-          node "$MCP_CLIENT" \
-            --mode "$RUN_MODE" \
-            --domain "$TARGET_DOMAIN" \
-            --archive "$ARCHIVE_PATH" \
-            --expected-text "$EXPECTED_TEXT" \
-            --approved-sha "${{ inputs.approved_sha }}" \
-            --approval "${{ inputs.approval }}" \
+
+          cat > "$EVIDENCE_PATH" <<JSON
+          {
+            "schemaVersion": "1.0",
+            "kind": "site-factory-hostinger-static-deployment-bootstrap",
+            "status": "executor_starting",
+            "mode": "$RUN_MODE",
+            "sourceSha": "$GITHUB_SHA",
+            "runId": "$GITHUB_RUN_ID",
+            "targetDomain": "$TARGET_DOMAIN",
+            "writeExecuted": false
+          }
+          JSON
+
+          args=(
+            --mode "$RUN_MODE"
+            --domain "$TARGET_DOMAIN"
+            --archive "$ARCHIVE_PATH"
+            --expected-text "$EXPECTED_TEXT"
             --evidence "$EVIDENCE_PATH"
+          )
+
+          if [[ "$RUN_MODE" == "apply" ]]; then
+            args+=(
+              --approved-sha "${{ inputs.approved_sha }}"
+              --approval "${{ inputs.approval }}"
+            )
+          fi
+
+          node "$MCP_CLIENT" "${args[@]}"
 
       - name: Upload sanitized deployment evidence
         if: ${{ always() }}
