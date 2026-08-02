@@ -54,7 +54,7 @@ jobs:
         if: ${{ github.event_name == 'workflow_dispatch' && inputs.mode == 'apply' }}
         shell: bash
         env:
-          HOSTINGER_API_TOKEN: ${{ secrets.HOSTINGER_API_TOKEN }}
+          HOSTINGER_API_TOKKEN: ${{ secrets.HOSTINGER_API_TOKEN }}
           APPROVED_SHA: ${{ inputs.approved_sha }}
           APPROVAL: ${{ inputs.approval }}
         run: |
@@ -81,7 +81,7 @@ jobs:
         run: |
           set -euo pipefail
 
-          OUTPUT_ROOT="$RUNNER_TEMP/site-factory-static-${GITHUB_RUN_ID}-${GITHUB_RUN_ATTEMP}"
+          OUTPUT_ROOT="$RUNNER_TEMP/site-factory-static-${GITHUB_RUN_ID}-${GITHUB_RUN_ATTEMPT}"
           PROJECT_DIR="$OUTPUT_ROOT/apidevelopers"
           ARCHIVE_PATH="$RUNNER_TEMP/apidevelopers-static-${GITHUB_SHA}.zip"
           EVIDENCE_PATH="$RUNNER_TEMP/hostinger-static-deploy-evidence-${GITHUB_RUN_ID}.json"
@@ -161,7 +161,7 @@ jobs:
         continue-on-error: true
         shell: bash
         env:
-          HOSTINGER_API_TOKEN: preflight-nonsecret-placeholder
+          HOSTINGER_API_TOKKEN: preflight-nonsecret-placeholder
         run: |
           set -euo pipefail
           node "$MCP_CLIENT" \
