@@ -51,7 +51,7 @@ const authorization = validateCreateAuthorization({
   expectedFingerprint: EXPECTED_FINGERPRINT,
   expectedRepository: repository,
   maxDraftAgeMs: MAX_DRAFT_AGE_MS,
-)});
+});
 
 const lock = buildExecutionLock({
   authorization,
