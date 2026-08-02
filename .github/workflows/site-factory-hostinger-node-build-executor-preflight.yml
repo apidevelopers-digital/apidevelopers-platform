@@ -37,7 +37,7 @@ jobs:
           npm install --no-audit --no-fund
           npm run check
 
-      - name: Generate blocked single-use preflight
+      - name: Generate blocked contract snapshot preflight
         shell: bash
         run: |
           set -euo pipefail
@@ -56,17 +56,40 @@ jobs:
 
           echo "OUTPUT_PATH=$OUTPUT_PATH" >> "$GITHUB_ENV"
 
-      - name: Verify fail-closed barriers
+      - name: Verify official snapshot and fail-closed barriers
         shell: bash
         run: |
           set -euo pipefail
           node -e "
             const fs = require('node:fs');
             const plan = JSON.parse(fs.readFileSync(process.env.OUTPUT_PATH, 'utf8'));
+
             if (plan.status !== 'blocked') throw new Error('status_not_blocked');
             if (plan.mode !== 'dry-run') throw new Error('mode_not_dry_run');
             if (plan.readyForApply !== false) throw new Error('ready_for_apply_not_false');
-            if (plan.officialApi.transportContractVerified !== false) throw new Error('transport_marked_verified');
+
+            const snapshot = plan.officialContractSnapshot;
+            if (snapshot.repository !== 'hostinger/api') throw new Error('wrong_contract_repository');
+            if (snapshot.path !== 'openapi.json') throw new Error('wrong_contract_path');
+            if (snapshot.openapiVersion !== '3.0.0') throw new Error('wrong_openapi_version');
+            if (snapshot.apiVersion !== '1.23.0') throw new Error('wrong_api_version');
+            if (snapshot.requestMediaType !== 'application/json') throw new Error('wrong_request_media_type');
+            if (snapshot.requestSchema !== 'Hosting.V1.NodeJs.CreateFromArchiveRequest') throw new Error('wrong_request_schema');
+            if (snapshot.archiveField.required !== true) throw new Error('archive_not_required');
+            if (snapshot.archiveField.type !== 'string') throw new Error('wrong_archive_field_type');
+            if (snapshot.archiveField.format !== null) throw new Error('unexpected_archive_field_format');
+            if (snapshot.documentationSnapshotVerified !== true) throw new Error('documentation_snapshot_not_verified');
+            if (snapshot.executableTransportVerified !== false) throw new Error('transport_marked_verified');
+
+            if (plan.serverContractConflict.issueNumber !== 56) throw new Error('wrong_issue');
+            if (plan.serverContractConflict.issueStateAtSnapshot !== 'open') throw new Error('issue_not_open_in_snapshot');
+            if (plan.serverContractConflict.independentSuccessfulRequestVerified !== false) throw new Error('success_marked_verified');
+
+            if (plan.releaseGuard.manualFlagUnlockAllowed !== false) throw new Error('manual_unlock_allowed');
+            if (plan.releaseGuard.runtimeOverrideAllowed !== false) throw new Error('runtime_override_allowed');
+            if (plan.releaseGuard.requestBuilderPresent !== false) throw new Error('request_builder_present');
+            if (plan.releaseGuard.executorPresent !== false) throw new Error('executor_present');
+
             if (plan.barriers.requestPrepared !== false) throw new Error('request_prepared');
             if (plan.barriers.lockClaimEnabled !== false) throw new Error('lock_claim_enabled');
             if (plan.barriers.hostingerPostEnabled !== false) throw new Error('hostinger_post_enabled');
