@@ -4,6 +4,9 @@ import {
   createOperatorGitHubRuntime,
 } from "./operator-github-runtime.mjs";
 import {
+  createOperatorGitHubReadonlyTransport,
+} from "./operator-github-readonly-transport.mjs";
+import {
   createOperationalGatewayWithReadonlyOperator,
 } from "./operator-readonly-composition.mjs";
 
@@ -16,6 +19,13 @@ function requireText(value, name) {
 function optionalText(value) {
   const normalized = String(value ?? "").trim();
   return normalized || undefined;
+}
+
+function hasGitHubRuntimeConfiguration(env) {
+  return Boolean(
+    optionalText(env.OPERATOR_GITHUB_ORGANIZATION) &&
+      optionalText(env.OPERATOR_GITHUB_CREDENTIAL_REF),
+  );
 }
 
 function parsePort(value) {
@@ -50,6 +60,7 @@ export function createOperationalRuntime({
   cwd = process.cwd(),
   gatewayFactory = createOperationalGatewayWithReadonlyOperator,
   githubRuntimeFactory = createOperatorGitHubRuntime,
+  githubTransportFactory = createOperatorGitHubReadonlyTransport,
   githubSecretProvider,
   githubTransport,
 } = {}) {
@@ -61,10 +72,19 @@ export function createOperationalRuntime({
   }
 
   const config = resolveOperationalRuntimeConfig({ env, cwd });
+  let resolvedGitHubTransport = githubTransport;
+
+  if (!resolvedGitHubTransport && hasGitHubRuntimeConfiguration(env)) {
+    if (typeof githubTransportFactory !== "function") {
+      throw new TypeError("githubTransportFactory must be a function");
+    }
+    resolvedGitHubTransport = githubTransportFactory();
+  }
+
   const githubRuntime = githubRuntimeFactory({
     env,
     secretProvider: githubSecretProvider,
-    transport: githubTransport,
+    transport: resolvedGitHubTransport,
   });
 
   const gateway = gatewayFactory({
