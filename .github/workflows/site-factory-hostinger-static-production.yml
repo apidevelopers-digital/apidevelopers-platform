@@ -1,0 +1,164 @@
+name: Site Factory Hostinger Static Production Deployment
+
+on:
+  workflow_dispatch:
+    inputs:
+      mode:
+        description: "preflight validates only; apply overwrites production website files"
+        required: true
+        default: preflight
+        type: choice
+        options:
+          - preflight
+          - apply
+      approved_sha:
+        description: "Required for apply; must exactly match the workflow commit SHA"
+        required: false
+        type: string
+      approval:
+        description: "Required for apply: IGOR_APROVA_HOSTINGER_STATIC_PRODUCTION_DEPLOY"
+        required: false
+        type: string
+
+permissions:
+  contents: read
+
+concurrency:
+  group: site-factory-hostinger-static-production-apidevelopers
+  cancel-in-progress: false
+
+jobs:
+  build-and-deploy:
+    name: Build static output and call official Hostinger MCP
+    runs-on:
+      - self-hosted
+      - macOS
+      - X64
+    timeout-minutes: 30
+    env:
+      TARGET_DOMAIN: apidevelopers.digital
+      EXPECTED_TEXT: API Developers.digital
+
+    steps:
+      - name: Checkout exact source SHA
+        uses: actions/checkout@v4
+
+      - name: Validate explicit production apply authorization
+        if: ${{ inputs.mode == 'apply' }}
+        shell: bash
+        env:
+          HOSTINGER_API_TOKEN: ${{ secrets.HOSTINGER_API_TOKEN }}
+        run: |
+          set -euo pipefail
+          test "${{ inputs.approved_sha }}" = "$GITHUB_SHA"
+          test "${{ inputs.approval }}" = "IGOR_APROVA_HOSTINGER_STATIC_PRODUCTION_DEPLOY"
+          test -n "$HOSTINGER_API_TOKEN"
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "24"
+
+      - name: Validate Site Factory
+        working-directory: apps/site-factory
+        shell: bash
+        run: |
+          set -euo pipefail
+          npm install --no-audit --no-fund
+          npm run check
+
+      - name: Generate, test and build production static site
+        shell: bash
+        run: |
+          set -euo pipefail
+          OUTPUT_ROOT="$RUNNER_TEMP/site-factory-static-${GITHUB_RUN_ID}-${GITHUB_RUN_ATTEMPT}"
+          PROJECT_DIR="$OUTPUT_ROOT/apidevelopers"
+          ARCHIVE_PATH="$RUNNER_TEMP/apidevelopers-static-${GITHUB_SHA}.zip"
+          EVIDENCE_PATH="$RUNNER_TEMP/hostinger-static-deploy-evidence-${GITHUB_RUN_ID}.json"
+
+          rm -rf "$OUTPUT_ROOT"
+          rm -f "$ARCHIVE_PATH" "$EVIDENCE_PATH"
+          mkdir -p "$OUTPUT_ROOT"
+
+          (
+            cd apps/site-factory
+            npm run project:generate -- \
+              --app apidevelopers \
+              --domain apidevelopers.digital \
+              --title "API Developers.digital" \
+              --output "$OUTPUT_ROOT"
+          )
+
+          (
+            cd "$PROJECT_DIR"
+            npm install --no-audit --no-fund
+            npm test
+            npm run build
+            test -f dist/index.html
+            grep -q "API Developers.digital" dist/index.html
+            (
+              cd dist
+              zip -q -r "$ARCHIVE_PATH" .
+            )
+          )
+
+          test -s "$ARCHIVE_PATH"
+          test "$(unzip -Z1 "$ARCHIVE_PATH" | head -n 1 | sed 's#^\./##')" != ""
+          unzip -Z1 "$ARCHIVE_PATH" | grep -qx "index.html"
+
+          echo "ARCHIVE_PATH=$ARCHIVE_PATH" >> "$GITHUB_ENV"
+          echo "EVIDENCE_PATH=$EVIDENCE_PATH" >> "$GITHUB_ENV"
+
+      - name: Install pinned official Hostinger MCP client dependencies
+        shell: bash
+        run: |
+          set -euo pipefail
+          MCP_WORKDIR="$RUNNER_TEMP/hostinger-mcp-1.26.0-${GITHUB_RUN_ID}"
+          rm -rf "$MCP_WORKDIR"
+          mkdir -p "$MCP_WORKDIR"
+          cp apps/site-factory/src/run-hostinger-static-deploy-mcp.mjs "$MCP_WORKDIR/client.mjs"
+          (
+            cd "$MCP_WORKDIR"
+            npm init -y >/dev/null
+            npm install \
+              --no-audit \
+              --no-fund \
+              --ignore-scripts \
+              hostinger-api-mcp@1.26.0 \
+              @modelcontextprotocol/sdk@1.10.0
+            test -x node_modules/.bin/hostinger-hosting-mcp
+          )
+          echo "MCP_CLIENT=$MCP_WORKDIR/client.mjs" >> "$GITHUB_ENV"
+
+      - name: Run preflight or production apply
+        id: hostinger
+        continue-on-error: true
+        shell: bash
+        env:
+          HOSTINGER_API_TOKEN: ${{ inputs.mode == 'apply' && secrets.HOSTINGER_API_TOKEN || '' }}
+        run: |
+          set -euo pipefail
+          node "$MCP_CLIENT" \
+            --mode "${{ inputs.mode }}" \
+            --domain "$TARGET_DOMAIN" \
+            --archive "$ARCHIVE_PATH" \
+            --expected-text "$EXPECTED_TEXT" \
+            --approved-sha "${{ inputs.approved_sha }}" \
+            --approval "${{ inputs.approval }}" \
+            --evidence "$EVIDENCE_PATH"
+
+      - name: Upload sanitized deployment evidence
+        if: ${{ always() }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: hostinger-static-deployment-${{ github.sha }}-${{ github.run_id }}
+          path: ${{ env.EVIDENCE_PATH }}
+          if-no-files-found: error
+          retention-days: 30
+
+      - name: Enforce deployment result
+        if: ${{ steps.hostinger.outcome != 'success' }}
+        shell: bash
+        run: |
+          echo "Hostinger static deployment workflow did not complete successfully." >&2
+          exit 1
