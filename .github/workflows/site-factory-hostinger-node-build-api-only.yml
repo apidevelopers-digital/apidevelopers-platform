@@ -46,11 +46,16 @@ jobs:
     env:
       HOSTINGER_USERNAME: u242521810
       HOSTINGER_DOMAIN: preview-apidevelopers.apidevelopers.digital
-      EVIDENCE_PATH: ${{ runner.temp }}/hostinger-node-build-evidence.json
 
     steps:
       - name: Checkout exact source SHA
         uses: actions/checkout@v4
+
+      - name: Initialize runner paths
+        shell: bash
+        run: |
+          set -euo pipefail
+          echo "EVIDENCE_PATH=$RUNNER_TEMP/hostinger-node-build-evidence.json" >> "$GITHUB_ENV"
 
       - name: Validate explicit apply authorization
         if: ${{ inputs.mode == 'apply' }}
