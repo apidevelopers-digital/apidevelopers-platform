@@ -40,10 +40,10 @@ O workflow:
 - usa somente `contents: read`;
 - consulta apenas fontes públicas oficiais;
 - não usa `HOSTINGER_API_TOKEN`;
-- não prepara request Hostinger não;
+- não prepara request Hostinger ;
 - não executa POST;
 - não inicia build remoto;
 - não executa deploy;
 - não altera DNS.
 
-A execução dhária ocorre no runner institucional `self-hosted / macOS / X64`.
+A execução diária ocorre no runner institucional `self-hosted / macOS / X64`.
