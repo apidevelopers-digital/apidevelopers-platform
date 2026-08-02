@@ -40,7 +40,7 @@ O workflow:
 - usa somente `contents: read`;
 - consulta apenas fontes públicas oficiais;
 - não usa `HOSTINGER_API_TOKEN`;
-- não prepara request Hostinger ;
+- não prepara request Hostinger;
 - não executa POST;
 - não inicia build remoto;
 - não executa deploy;
