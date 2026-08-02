@@ -1,234 +1,120 @@
-name: Remove WordPress from API Developers production
+name: Verify WordPress removal from API Developers production
 
 on:
   workflow_dispatch:
-    inputs:
-      approved_sha:
-        description: "Must exactly match this workflow commit SHA"
-        required: true
-        type: string
-      approval:
-        description: "Must equal IGOR_APROVA_REMOVER_WORDPRESS_APIDEVELOPERS"
-        required: true
-        type: string
 
 permissions:
   contents: read
 
-concurrency:
-  group: remove-wordpress-apidevelopers-production
-  cancel-in-progress: false
-
 jobs:
-  remove:
+  verify:
     runs-on:
       - self-hosted
       - macOS
       - X64
-    timeout-minutes: 20
-
+    timeout-minutes: 10
     steps:
-      - name: Initialize evidence path
-        shell: bash
-        run: |
-          set -euo pipefail
-          echo "EVIDENCE_PATH=$RUNNER_TEMP/wordpress-removal-evidence.json" >> "$GITHUB_ENV"
-
       - name: Set up Node.js
         uses: actions/setup-node@v4
         with:
           node-version: "24"
 
-      - name: Remove WordPress registration and database, preserve static files
-        id: removal
+      - name: Verify removed installation and public static site
+        id: verify
         continue-on-error: true
-        shell: bash
         env:
           HOSTINGER_API_TOKEN: ${{ secrets.HOSTINGER_API_TOKEN }}
-          APPROVED_SHA: ${{ inputs.approved_sha }}
-          APPROVAL: ${{ inputs.approval }}
           USERNAME: u242521810
           DOMAIN: apidevelopers.digital
           SOFTWARE_ID: "29782684"
           EXPECTED_TEXT: API Developers.digital
+          EVIDENCE_PATH: ${{ runner.temp }}/wordpress-removal-evidence.json
         run: |
-          set -euo pipefail
-
-          test -n "$HOSTINGER_API_TOKEN"
-          test "$APPROVED_SHA" = "$GITHUB_SHA"
-          test "$APPROVAL" = "IGOR_APROVA_REMOVER_WORDPRESS_APIDEVELOPERS"
-
-          before_html="$RUNNER_TEMP/site-before.html"
-          curl --silent --show-error --location \
-            --output "$before_html" \
-            --header "accept: text/html,application/xhtml+xml" \
-            --user-agent "apidevelopers-platform/wordpress-removal-precheck" \
-            "https://$DOMAIN/"
-          grep -qi "$EXPECTED_TEXT" "$before_html"
-
-          before_json="$RUNNER_TEMP/installations-before.json"
-          before_status="$(
-            curl --silent --show-error --location \
-              --output "$before_json" \
-              --write-out "%{http_code}" \
-              --header "accept: application/json" \
-              --header "Authorization: Bearer $HOSTINGER_API_TOKEN" \
-              "https://developers.hostinger.com/api/hosting/v1/wordpress/installations?username=$USERNAME&domain=$DOMAIN"
-          )"
-          test "$before_status" = "200"
-
-          node - "$before_json" <<'NODE'
-          const fs = require("node:fs");
-          const payload = JSON.parse(fs.readFileSync(process.argv[2], "utf8"));
-          const items = Array.isArray(payload) ? payload : payload.data;
-          if (!Array.isArray(items)) throw new Error("unexpected_installation_list_shape");
-          const matches = items.filter((item) =>
-            String(item.id) === process.env.SOFTWARE_ID &&
-            item.username === process.env.USERNAME &&
-            item.domain === process.env.DOMAIN &&
-            (item.directory ?? "") === ""
-          );
-          if (matches.length !== 1) throw new Error(`exact_installation_match_count:${matches.length}`);
-          NODE
-
-          delete_json="$RUNNER_TEMP/delete-response.json"
-          delete_status="$(
-            curl --silent --show-error --location \
-              --request DELETE \
-              --output "$delete_json" \
-              --write-out "%{http_code}" \
-              --header "accept: application/json" \
-              --header "content-type: application/json" \
-              --header "Authorization: Bearer $HOSTINGER_API_TOKEN" \
-              --data '{"delete_files":false,"delete_database":true}' \
-              "https://developers.hostinger.com/api/hosting/v1/accounts/$USERNAME/wordpress/$SOFTWARE_ID"
-          )"
-          test "$delete_status" = "200"
-
-          final_count="-1"
-          for attempt in $(seq 1 24); do
-            after_json="$RUNNER_TEMP/installations-after-$attempt.json"
-            after_status="$(
-              curl --silent --show-error --location \
-                --output "$after_json" \
-                --write-out "%{http_code}" \
-                --header "accept: application/json" \
-                --header "Authorization: Bearer $HOSTINGER_API_TOKEN" \
-                "https://developers.hostinger.com/api/hosting/v1/wordpress/installations?username=$USERNAME&domain=$DOMAIN"
-            )"
-            test "$after_status" = "200"
-
-            final_count="$(
-              node - "$after_json" <<'NODE'
-              const fs = require("node:fs");
-              const payload = JSON.parse(fs.readFileSync(process.argv[2], "utf8"));
-              const items = Array.isArray(payload) ? payload : payload.data;
-              if (!Array.isArray(items)) throw new Error("unexpected_installation_list_shape");
-              const count = items.filter((item) =>
-                String(item.id) === process.env.SOFTWARE_ID &&
-                item.username === process.env.USERNAME &&
-                item.domain === process.env.DOMAIN
-              ).length;
-              process.stdout.write(String(count));
-              NODE
-            )"
-
-            if [ "$final_count" = "0" ]; then
-              break
-            fi
-            sleep 5
-          done
-          test "$final_count" = "0"
-
-          after_html="$RUNNER_TEMP/site-after.html"
-          public_status="$(
-            curl --silent --show-error --location \
-              --output "$after_html" \
-              --write-out "%{http_code}" \
-              --header "accept: text/html,application/xhtml+xml" \
-              --user-agent "apidevelopers-platform/wordpress-removal-postcheck" \
-              "https://$DOMAIN/"
-          )"
-          test "$public_status" -ge 200
-          test "$public_status" -lt 400
-          grep -qi "$EXPECTED_TEXT" "$after_html"
-
-          export DELETE_STATUS="$delete_status"
-          export FINAL_COUNT="$final_count"
-          export PUBLIC_STATUS="$public_status"
-          export DELETE_RESPONSE_PATH="$delete_json"
-          export PUBLIC_HTML_PATH="$after_html"
-
           node <<'NODE'
           const fs = require("node:fs");
           const crypto = require("node:crypto");
-          const read = (file) => fs.readFileSync(file);
           const sha = (value) => crypto.createHash("sha256").update(value).digest("hex");
-          const deleteRaw = read(process.env.DELETE_RESPONSE_PATH);
-          const publicRaw = read(process.env.PUBLIC_HTML_PATH);
-          let deletePayload = null;
-          if (deleteRaw.length > 0) {
-            try { deletePayload = JSON.parse(deleteRaw.toString("utf8")); }
-            catch { deletePayload = { rawPrefix: deleteRaw.toString("utf8").slice(0, 1000) }; }
-          }
-          const evidence = {
-            schemaVersion: "1.0",
-            kind: "hostinger-wordpress-production-removal",
+          const report = {
+            schemaVersion: "2.0",
+            kind: "hostinger-wordpress-removal-reconciliation",
             generatedAt: new Date().toISOString(),
             source: {
               repository: process.env.GITHUB_REPOSITORY,
               ref: process.env.GITHUB_REF_NAME,
               sha: process.env.GITHUB_SHA,
-              runId: process.env.GITHUB_RUN_ID,
-              runAttempt: process.env.GITHUB_RUN_ATTEMPT,
+              runId: process.env.GITHUB_RUN_ID
             },
             target: {
               username: process.env.USERNAME,
               domain: process.env.DOMAIN,
-              softwareId: process.env.SOFTWARE_ID,
-              directory: "",
+              softwareId: process.env.SOFTWARE_ID
             },
-            authorization: {
-              approvedSha: process.env.APPROVED_SHA,
-              shaMatched: true,
-              phraseMatched: true,
-              secretPresent: true,
-              secretValueIncluded: false,
-            },
-            deletion: {
-              installationRegistration: true,
-              database: true,
-              files: false,
-              httpStatus: Number(process.env.DELETE_STATUS),
-              responseSha256: sha(deleteRaw),
-              response: deletePayload,
-            },
-            verification: {
-              installationAbsent: Number(process.env.FINAL_COUNT) === 0,
-              finalMatchCount: Number(process.env.FINAL_COUNT),
-              staticSitePublic: true,
-              publicHttpStatus: Number(process.env.PUBLIC_STATUS),
-              expectedTextMatched: true,
-              publicBodySha256: sha(publicRaw),
-            },
-            dnsChanged: false,
-            status: "completed",
+            writeExecuted: false,
+            dnsChanged: false
           };
-          fs.writeFileSync(process.env.EVIDENCE_PATH, `${JSON.stringify(evidence, null, 2)}\n`, { mode: 0o600 });
+          try {
+            if (!process.env.HOSTINGER_API_TOKEN) throw new Error("missing_hostinger_api_token");
+            const url = new URL("/api/hosting/v1/wordpress/installations", "https://developers.hostinger.com");
+            url.searchParams.set("username", process.env.USERNAME);
+            url.searchParams.set("domain", process.env.DOMAIN);
+            const installationsResponse = await fetch(url, {
+              headers: {
+                accept: "application/json",
+                authorization: `Bearer ${process.env.HOSTINGER_API_TOKEN}`
+              }
+            });
+            const installationsRaw = await installationsResponse.text();
+            if (!installationsResponse.ok) throw new Error(`list_installations_failed:${installationsResponse.status}`);
+            const parsed = JSON.parse(installationsRaw);
+            const items = Array.isArray(parsed) ? parsed : parsed.data;
+            if (!Array.isArray(items)) throw new Error("unexpected_installation_list_shape");
+            const matches = items.filter((item) =>
+              String(item.id) === process.env.SOFTWARE_ID &&
+              item.username === process.env.USERNAMEAM &&
+              item.domain === process.env.DOMAIN
+            );
+            const publicResponse = await fetch(`https://${process.env.DOMAIN}/`, {
+              redirect: "follow",
+              headers: { accept: "text/html,application/xhtml+xml", "cache-control": "no-cache" }
+            });
+            const publicBody = await publicResponse.text();
+            const expectedTextMatched = publicBody.toLowerCase().includes(process.env.EXPECTED_TEXT.toLowerCase());
+            const htmlLike = (publicResponse.headers.get("content-type") ?? "").toLowerCase().includes("text/html");
+            const ok = matches.length === 0 && publicResponse.ok && expectedTextMatched && htmlLike;
+            Object.assign(report, {
+              status: ok ? "success" : "failed",
+              verification: {
+                installationAbsent: matches.length === 0,
+                exactMatchCount: matches.length,
+                installationListHttpStatus: installationsResponse.status,
+                installationListBodySha256: sha(installationsRaw),
+                staticSitePublic: publicResponse.ok && expectedTextMatched && htmlLike,
+                publicHttpStatus: publicResponse.status,
+                publicFinalUrl: publicResponse.url,
+                publicBodySha256: sha(publicBody),
+                expectedTextMatched,
+                htmlLike
+              }
+            });
+            fs.writeFileSync(process.env.EVIDENCE_PATH, JSON.stringify(report, null, 2) + "\n", { mode: 0o600 });
+            if (!ok) process.exit(1);
+          } catch (error) {
+            report.status = "error";
+            report.error = { message: error instanceof Error ? error.message : String(error) };
+            fs.writeFileSync(process.env.EVIDENCE_PATH, JSON.stringify(report, null, 2) + "\n", { mode: 0o600 });
+            process.exit(1);
+          }
           NODE
 
-      - name: Upload sanitized evidence
+      - name: Upload reconciliation evidence
         if: ${{ always() }}
         uses: actions/upload-artifact@v4
         with:
-          name: wordpress-removal-${{ github.sha }}-${{ github.run_id }}
-          path: ${{ env.EVIDENCE_PATH }}
+          name: wordpress-removal-reconciliation-${{ github.sha }}-${{ github.run_id }}
+          path: ${{ runner.temp }}/wordpress-removal-evidence.json
           if-no-files-found: error
           retention-days: 30
 
-      - name: Enforce removal result
-        if: ${{ steps.removal.outcome != 'success' }}
-        shell: bash
-        run: |
-          echo "WordPress production removal did not complete successfully." >&2
-          exit 1
+      - name: Enforce verification result
+        if: ${{ steps.verify.outcome != 'success' }}
+        run: exit 1
