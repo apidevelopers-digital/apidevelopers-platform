@@ -1,0 +1,37 @@
+{
+  "schemaVersion": "1.0",
+  "kind": "site-factory-preview-promotion-packet",
+  "mode": "dry-run",
+  "readyForApply": false,
+  "writesEnabled": false,
+  "deployEnabled": false,
+  "dnsEnabled": false,
+  "approvalRequired": true,
+  "source": {
+    "repository": "apidevelopers-digital/apidevelopers-platform",
+    "sha": "6c63689c3a5680719e69d758fe5ed2144a9b6b79",
+    "workflowRunId": "30736671758",
+    "artifactName": "site-factory-reference-6c63689c3a5680719e69d758fe5ed2144a9b6b79",
+    "requiredFiles": [
+      "dist/index.html",
+      "publishing-manifest.json",
+      "reference-build-evidence.json"
+    ]
+  },
+  "target": {
+    "environment": "preview",
+    "domain": "preview-apidevelopers.apidevelopers.digital",
+    "healthcheck": "/"
+  },
+  "checks": {
+    "sourceShaPinned": true,
+    "workflowRunPinned": true,
+    "artifactNamePinnedToSha": true,
+    "requiredFilesVerified": true,
+    "deploymentBlocked": true,
+    "dnsBlocked": true
+  },
+  "promotionPlanFingerprint": "f57b82aff3ae785a67586d020a43d5a4ec1c413c4934106791a4075206a76b5a",
+  "generatedAt": "2026-08-02T06:52:00.000Z",
+  "fingerprint": "dc8108381e8478e83bdc3de1b9e5a8fbe1f74a69b84c1fc3ffd6bd4ca711cf0a"
+}
