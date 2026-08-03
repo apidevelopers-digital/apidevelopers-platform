@@ -3,8 +3,8 @@ name: Operator Gateway Controlled Activation Dry Run
 on:
   workflow_dispatch:
     inputs:
-      approval:
-        description: Exact approval phrase for the synthetic dry-run
+      example:
+        description: API transport field; must contain the exact synthetic dry-run approval phrase
         required: true
         type: string
 
@@ -30,7 +30,7 @@ jobs:
     steps:
       - name: Validate explicit approval
         env:
-          APPROVAL: ${{ inputs.approval }}
+          APPROVAL: ${{ inputs.example }}
         run: |
           set -euo pipefail
           test "$APPROVAL" = "IGOR_APROVA_OPERATOR_GATEWAY_DRY_RUN"
@@ -63,7 +63,7 @@ jobs:
 
       - name: Execute synthetic controlled dry-run
         env:
-          OPERATOR_GATEWAY_DRY_RUN_APPROVAL: ${{ inputs.approval }}
+          OPERATOR_GATEWAY_DRY_RUN_APPROVAL: ${{ inputs.example }}
         run: |
           set -euo pipefail
           mkdir -p artifacts
