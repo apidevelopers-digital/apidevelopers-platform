@@ -1,4 +1,4 @@
-name: Operator Keychain Helper CI
+name: Operator Keychain Helper Test CI
 
 on:
   pull_request:
@@ -7,13 +7,14 @@ on:
     paths:
       - "apps/api-gateway/native/operator-keychain-helper/**"
       - ".github/workflows/operator-keychain-helper-ci.yml"
+      - ".github/workflows/operator-keychain-helper-build-ci.yml"
   workflow_dispatch:
 
 permissions:
   contents: read
 
 jobs:
-  validate:
+  test:
     runs-on:
       - self-hosted
       - macOS
@@ -24,17 +25,15 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Test native Keychain helper
+      - name: Confirm Swift toolchain
         shell: bash
         run: |
           set -euo pipefail
-          swift test --package-path apps/api-gateway/native/operator-keychain-helper
+          xcrun --find swift
+          xcrun swift --version
 
-      - name: Build fail-closed native Keychain helper
+      - name: Test fail-closed native Keychain helper
         shell: bash
         run: |
           set -euo pipefail
-          swift build \
-            --package-path apps/api-gateway/native/operator-keychain-helper \
-            --configuration release \
-            --product operator-keychain-helper
+          xcrun swift test --package-path apps/api-gateway/native/operator-keychain-helper
