@@ -1,0 +1,61 @@
+{
+  "schemaVersion": "operator-github-app-pilot/v2",
+  "mode": "pre-provisioning",
+  "status": "planned",
+  "organization": "apidevelopers-digital",
+  "app": {
+    "name": "API Developers Operator Gateway Pilot",
+    "slug": null,
+    "homepageUrl": "https://github.com/apidevelopers-digital",
+    "webhookActive": false,
+    "events": [],
+    "repositoryPermissions": {
+      "actions": "read",
+      "administration": "read",
+      "checks": "read",
+      "commit_statuses": "read",
+      "contents": "read",
+      "issues": "read",
+      "metadata": "read",
+      "pull_requests": "read"
+    },
+    "organizationPermissions": {},
+    "accountPermissions": {},
+    "enterprisePermissions": {}
+  },
+  "installation": {
+    "scope": "only-this-account",
+    "repositorySelection": "selected",
+    "repositories": [
+      ".github",
+      "apidevelopers-institution",
+      "apidevelopers-platform"
+    ]
+  },
+  "runner": {
+    "name": "igor-mac-runner",
+    "labels": [
+      "self-hosted",
+      "macOS",
+      "X64"
+    ]
+  },
+  "keychain": {
+    "service": "digital.apidevelopers.operator-gateway",
+    "account": "github-app-private-key",
+    "reference": "keychain://github/operator-gateway/app-private-key",
+    "itemExists": false
+  },
+  "authorizations": {
+    "configureGitHubAppPilot": false,
+    "storeKeyInKeychain": false,
+    "installGitHubAppPilot": false,
+    "executeReadonlyPilot": false
+  },
+  "evidence": {
+    "appId": null,
+    "appSlug": null,
+    "installationId": null,
+    "privateKeyFingerprintSha256": null
+  }
+}
