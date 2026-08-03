@@ -42,6 +42,7 @@ export function verifyControlledDryRunEvidence(evidence) {
   for (const name of [
     "referenceAllowlistMatched",
     "methodAllowed",
+    "originAllowed",
     "pathAllowed",
     "rawVaultBytesZeroed",
     "transportedBytesZeroed",
