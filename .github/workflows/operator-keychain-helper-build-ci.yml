@@ -1,6 +1,6 @@
 name: Operator Keychain Helper Build CI
 
-on:
+"on":
   pull_request:
     branches:
       - main
@@ -23,17 +23,62 @@ jobs:
 
     steps:
       - name: Checkout
-        uses: "actions/checkout\u0040v4"
+        uses: actions/checkout@v4
 
-      - name: Confirm Swift toolchain
+      - name: Resolve full Xcode developer directory
         shell: bash
         run: |
           set -euo pipefail
-          xcrun --find swift
-          xcrun swift --version
+          shopt -s nullglob
+
+          selected=""
+          candidates=(
+            "/Applications/Xcode.app/Contents/Developer"
+          )
+
+          for app in /Applications/Xcode*.app; do
+            candidates+=("$app/Contents/Developer")
+          done
+
+          for candidate in "${candidates[@]}"; do
+            if [[ -d "$candidate/Platforms/MacOSX.platform" ]]; then
+              selected="$candidate"
+              break
+            fi
+          done
+
+          if [[ -z "$selected" ]]; then
+            echo "::error title=Full Xcode unavailable::The runner only exposes CommandLineTools; SwiftPM cannot resolve MacOSX PlatformPath. Install/select a full Xcode bundle before validating the native helper."
+            exit 1
+          fi
+
+          echo "DEVELOPER_DIR=$selected" >> "$GITHUB_ENV"
+          echo "::notice title=Developer directory::$selected"
+          DEVELOPER_DIR="$selected" xcrun --sdk macosx --show-sdk-platform-path
+          DEVELOPER_DIR="$selected" xcrun swift --version
 
       - name: Build fail-closed native Keychain helper
         shell: bash
         run: |
           set -euo pipefail
-          xcrun swift build --package-path apps/api-gateway/native/operator-keychain-helper --configuration release --product operator-keychain-helper
+          log_file="$RUNNER_TEMP/operator-keychain-helper-build.log"
+
+          set +e
+          xcrun swift build \
+            --package-path apps/api-gateway/native/operator-keychain-helper \
+            --configuration release \
+            --product operator-keychain-helper \
+            >"$log_file" 2>&1
+          status=$?
+          set -e
+
+          if [[ "$status" -ne 0 ]]; then
+            summary="$(
+              tail -n 80 "$log_file" |
+                sed -e 's/%/%25/g' -e 's/\r/%0D/g' |
+                paste -sd ' ' - |
+                cut -c1-3500
+            )"
+            echo "::error title=Swift build failed::$summary"
+            exit "$status"
+          fi
