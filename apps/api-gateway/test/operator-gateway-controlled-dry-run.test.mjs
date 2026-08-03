@@ -27,6 +27,7 @@ test("controlled dry-run is synthetic, sanitized and network-free", async () => 
   assert.equal(evidence.controls.githubWriteExecuted, false);
   assert.equal(evidence.controls.realCredentialLoaded, false);
   assert.equal(evidence.controls.syntheticCredentialBytes, 520);
+  assert.equal(evidence.controls.originAllowed, true);
   assert.equal(evidence.controls.vaultLeaseCalls, 1);
   assert.equal(evidence.controls.leaseConsumerCalls, 1);
   assert.equal(evidence.controls.localTransportCalls, 1);
@@ -90,6 +91,7 @@ test("evidence verifier rejects leaked references and token-shaped material", ()
       realCredentialLoaded: false,
       syntheticCredentialBytes: 520,
       methodAllowed: true,
+      originAllowed: true,
       pathAllowed: true,
       callerAuthHeaderPresent: false,
       rawVaultBytesZeroed: true,
