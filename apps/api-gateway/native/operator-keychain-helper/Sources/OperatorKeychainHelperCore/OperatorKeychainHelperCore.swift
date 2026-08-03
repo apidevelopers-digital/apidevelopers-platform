@@ -111,13 +111,13 @@ public struct OperatorSecurityFrameworkKeychainStore: OperatorKeychainStoring {
     ) throws {
         #if OPERATOR_KEYCHAIN_REAL_STORAGE_ENABLED
         #if canImport(Security)
-        let attributes: [CFString: Any] = [
-            kSecClass: kSecClassGenericPassword,
-            kSecAttrService: service,
-            kSecAttrAccount: account,
-            kSecAttrAccessible: kSecAttrAccessibleAfterFirstUnlockThisDeviceOnly,
-            kSecValueData: secret,
-            kSecAttrSynchronizable: false,
+        let attributes: [String: Any] = [
+            kSecClass as String: kSecClassGenericPassword,
+            kSecAttrService as String: service,
+            kSecAttrAccount as String: account,
+            kSecAttrAccessible as String: kSecAttrAccessibleAfterFirstUnlockThisDeviceOnly,
+            kSecValueData as String: secret,
+            kSecAttrSynchronizable as String: false,
         ]
         let status = SecItemAdd(attributes as CFDictionary, nil)
         if status == errSecDuplicateItem {
