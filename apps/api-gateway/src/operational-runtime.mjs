@@ -7,6 +7,9 @@ import {
   createOperatorGitHubReadonlyTransport,
 } from "./operator-github-readonly-transport.mjs";
 import {
+  createOperatorSecretResolverProvider,
+} from "./operator-secret-resolver-provider.mjs";
+import {
   createOperationalGatewayWithReadonlyOperator,
 } from "./operator-readonly-composition.mjs";
 
@@ -61,6 +64,8 @@ export function createOperationalRuntime({
   gatewayFactory = createOperationalGatewayWithReadonlyOperator,
   githubRuntimeFactory = createOperatorGitHubRuntime,
   githubTransportFactory = createOperatorGitHubReadonlyTransport,
+  githubSecretProviderFactory = createOperatorSecretResolverProvider,
+  githubSecretResolver,
   githubSecretProvider,
   githubTransport,
 } = {}) {
@@ -72,18 +77,29 @@ export function createOperationalRuntime({
   }
 
   const config = resolveOperationalRuntimeConfig({ env, cwd });
+  const githubConfigured = hasGitHubRuntimeConfiguration(env);
   let resolvedGitHubTransport = githubTransport;
+  let resolvedGitHubSecretProvider = githubSecretProvider;
 
-  if (!resolvedGitHubTransport && hasGitHubRuntimeConfiguration(env)) {
+  if (!resolvedGitHubTransport && githubConfigured) {
     if (typeof githubTransportFactory !== "function") {
       throw new TypeError("githubTransportFactory must be a function");
     }
     resolvedGitHubTransport = githubTransportFactory();
   }
 
+  if (!resolvedGitHubSecretProvider && githubConfigured && githubSecretResolver) {
+    if (typeof githubSecretProviderFactory !== "function") {
+      throw new TypeError("githubSecretProviderFactory must be a function");
+    }
+    resolvedGitHubSecretProvider = githubSecretProviderFactory({
+      resolveSecret: githubSecretResolver,
+    });
+  }
+
   const githubRuntime = githubRuntimeFactory({
     env,
-    secretProvider: githubSecretProvider,
+    secretProvider: resolvedGitHubSecretProvider,
     transport: resolvedGitHubTransport,
   });
 
