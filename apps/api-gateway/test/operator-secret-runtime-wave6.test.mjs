@@ -3,14 +3,14 @@ import test from "node:test";
 
 import { createOperationalRuntime } from "../src/operational-runtime.mjs";
 
-const env = Object.freeze({
+const configuredEnv = Object.freeze({
   API_GATEWAY_STATE_FILE: "state.json",
   OPERATOR_GITHUB_ORGANIZATION: "apidevelopers-digital",
   OPERATOR_GITHUB_CREDENTIAL_REF:
     "vault://github/operator-readonly-installation-token",
 });
 
-function gateway(capture) {
+function gatewayCapture(capture) {
   return (options) => {
     capture.options = options;
     return {
@@ -21,19 +21,19 @@ function gateway(capture) {
   };
 }
 
-test("runtime composes resolver-backed provider for configured GitHub", async () => {
+test("runtime composes a resolver-backed provider for configured GitHub", async () => {
   const token = `ghs_${"A".repeat(516)}`;
   const capture = {};
   const resolverCalls = [];
 
   const runtime = createOperationalRuntime({
     cwd: "/tmp/wave6",
-    env,
-    gatewayFactory: gateway(capture),
+    env: configuredEnv,
+    gatewayFactory: gatewayCapture(capture),
     githubSecretResolver(access, context) {
       resolverCalls.push({ access, signal: context.signal });
       return {
-        bytes: Buffer.from(token),
+        bytes: Buffer.from(token, "utf8"),
         version: "stateless-v1",
         expiresAt: "2099-01-01T00:00:00.000Z",
       };
@@ -78,47 +78,53 @@ test("runtime composes resolver-backed provider for configured GitHub", async ()
   );
   assert.equal(JSON.stringify(runtime.descriptor).includes(token), false);
   assert.equal(
-    JSON.stringify(runtime.descriptor).includes(env.OPERATOR_GITHUB_CREDENTIAL_REF),
+    JSON.stringify(runtime.descriptor).includes(
+      configuredEnv.OPERATOR_GITHUB_CREDENTIAL_REF,
+    ),
     false,
   );
 });
 
-test("explicit provider wins and unconfigured runtime creates nothing", () => {
+test("an explicitly injected provider keeps precedence over resolver composition", () => {
   const explicitProvider = Object.freeze({
     async withSecret(_access, consumer) {
-      return consumer({ bytes: Buffer.from("ghs_test") });
+      return consumer({ bytes: Buffer.from("ghs_test", "utf8") });
     },
   });
   let providerFactoryCalls = 0;
-  let explicitInput;
+  let runtimeInput;
 
   createOperationalRuntime({
     cwd: "/tmp/wave6-explicit",
-    env,
+    env: configuredEnv,
     githubSecretProvider: explicitProvider,
     githubSecretResolver() {
       throw new Error("resolver must not run");
     },
     githubSecretProviderFactory() {
       providerFactoryCalls += 1;
-      throw new Error("factory must not run");
+      throw new Error("provider factory must not run");
     },
     githubTransport: { async requestWithCredential() {} },
     githubRuntimeFactory(input) {
-      explicitInput = input;
+      runtimeInput = input;
       return {
         configured: false,
         descriptor: { configured: false, productionChanged: false },
       };
     },
-    gatewayFactory: gateway({}),
+    gatewayFactory: gatewayCapture({}),
   });
 
   assert.equal(providerFactoryCalls, 0);
-  assert.equal(explicitInput.secretProvider, explicitProvider);
+  assert.equal(runtimeInput.secretProvider, explicitProvider);
+});
 
+test("unconfigured GitHub creates neither provider nor transport", () => {
+  let providerFactoryCalls = 0;
   let transportFactoryCalls = 0;
-  let unconfiguredInput;
+  let runtimeInput;
+
   createOperationalRuntime({
     cwd: "/tmp/wave6-unconfigured",
     env: { API_GATEWAY_STATE_FILE: "state.json" },
@@ -132,7 +138,7 @@ test("explicit provider wins and unconfigured runtime creates nothing", () => {
       transportFactoryCalls += 1;
     },
     githubRuntimeFactory(input) {
-      unconfiguredInput = input;
+      runtimeInput = input;
       return {
         configured: false,
         descriptor: {
@@ -142,13 +148,13 @@ test("explicit provider wins and unconfigured runtime creates nothing", () => {
         },
       };
     },
-    gatewayFactory: gateway({}),
+    gatewayFactory: gatewayCapture({}),
   });
 
   assert.equal(providerFactoryCalls, 0);
   assert.equal(transportFactoryCalls, 0);
-  assert.equal(unconfiguredInput.secretProvider, undefined);
-  assert.equal(unconfiguredInput.transport, undefined);
+  assert.equal(runtimeInput.secretProvider, undefined);
+  assert.equal(runtimeInput.transport, undefined);
 });
 
 test("configured GitHub without provider or resolver fails closed", () => {
@@ -156,9 +162,9 @@ test("configured GitHub without provider or resolver fails closed", () => {
     () =>
       createOperationalRuntime({
         cwd: "/tmp/wave6-fail",
-        env,
+        env: configuredEnv,
         githubTransport: { async requestWithCredential() {} },
       }),
-    /secretProvider must implement withSecret/,
+    /secretProvider\.withSecret must be a function/,
   );
 });
