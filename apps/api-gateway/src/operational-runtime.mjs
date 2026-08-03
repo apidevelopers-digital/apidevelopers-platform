@@ -10,6 +10,9 @@ import {
   createOperatorSecretResolverProvider,
 } from "./operator-secret-resolver-provider.mjs";
 import {
+  createOperatorVaultSecretProvider,
+} from "./operator-vault-secret-provider.mjs";
+import {
   createOperationalGatewayWithReadonlyOperator,
 } from "./operator-readonly-composition.mjs";
 
@@ -65,7 +68,9 @@ export function createOperationalRuntime({
   githubRuntimeFactory = createOperatorGitHubRuntime,
   githubTransportFactory = createOperatorGitHubReadonlyTransport,
   githubSecretProviderFactory = createOperatorSecretResolverProvider,
+  githubVaultSecretProviderFactory = createOperatorVaultSecretProvider,
   githubSecretResolver,
+  githubVaultClient,
   githubSecretProvider,
   githubTransport,
 } = {}) {
@@ -78,6 +83,8 @@ export function createOperationalRuntime({
 
   const config = resolveOperationalRuntimeConfig({ env, cwd });
   const githubConfigured = hasGitHubRuntimeConfiguration(env);
+  const credentialRef = optionalText(env.OPERATOR_GITHUB_CREDENTIAL_REF);
+
   let resolvedGitHubTransport = githubTransport;
   let resolvedGitHubSecretProvider = githubSecretProvider;
 
@@ -88,7 +95,21 @@ export function createOperationalRuntime({
     resolvedGitHubTransport = githubTransportFactory();
   }
 
-  if (!resolvedGitHubSecretProvider && githubConfigured && githubSecretResolver) {
+  if (!resolvedGitHubSecretProvider && githubConfigured && githubVaultClient) {
+    if (typeof githubVaultSecretProviderFactory !== "function") {
+      throw new TypeError("githubVaultSecretProviderFactory must be a function");
+    }
+    resolvedGitHubSecretProvider = githubVaultSecretProviderFactory({
+      vaultClient: githubVaultClient,
+      allowedSecretRefs: [credentialRef],
+    });
+  }
+
+  if (
+    !resolvedGitHubSecretProvider &&
+    githubConfigured &&
+    githubSecretResolver
+  ) {
     if (typeof githubSecretProviderFactory !== "function") {
       throw new TypeError("githubSecretProviderFactory must be a function");
     }
