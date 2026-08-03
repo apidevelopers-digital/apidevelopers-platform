@@ -1,0 +1,45 @@
+{
+  "schemaVersion": "operator-github-app-provisioning-runbook/v1",
+  "gate": "3F",
+  "status": "prepared",
+  "realExecutionAuthorized": false,
+  "organization": "apidevelopers-digital",
+  "appSlug": "apidevelopers-operator-gateway-pilot",
+  "permissions": {
+    "metadata": "read",
+    "contents": "read"
+  },
+  "webhooks": false,
+  "events": [],
+  "repositorySelection": "selected",
+  "repositories": [
+    ".github",
+    "apidevelopers-institution",
+    "apidevelopers-platform"
+  ],
+  "runner": {
+    "name": "igor-mac-runner",
+    "labels": [
+      "self-hosted",
+      "macOS",
+      "X64"
+    ]
+  },
+  "keychain": {
+    "service": "digital.apidevelopers.operator-gateway",
+    "account": "github-app-private-key",
+    "reference": "keychain://github/operator-gateway/app-private-key",
+    "itemExists": false
+  },
+  "authorizations": {
+    "configureGitHubAppPilot": false,
+    "storeKeyInKeychain": false,
+    "executeReadonlyPilot": false
+  },
+  "evidence": {
+    "appId": null,
+    "installationId": null,
+    "privateKeyFingerprintSha256": null,
+    "secretMaterialPresent": false
+  }
+}
