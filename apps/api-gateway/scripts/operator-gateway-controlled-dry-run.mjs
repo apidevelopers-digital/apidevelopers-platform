@@ -42,6 +42,7 @@ export async function runControlledDryRun({
     transportCalls: 0,
     referenceAllowed: false,
     methodAllowed: false,
+    originAllowed: false,
     pathAllowed: false,
     callerAuthHeader: false,
     transportBytes: undefined,
@@ -68,13 +69,20 @@ export async function runControlledDryRun({
     async requestWithCredential(input) {
       state.transportCalls += 1;
       state.transportBytes = input.credential.bytes;
+      const requestUrl = new URL(input.request.url);
       state.methodAllowed =
         input.request.method === fixture.operation.method;
-      state.pathAllowed = input.request.path === fixture.operation.path;
+      state.originAllowed = requestUrl.origin === "https://api.github.com";
+      state.pathAllowed = requestUrl.pathname === fixture.operation.path;
       state.callerAuthHeader = Object.keys(input.request.headers ?? {}).some(
         (name) => name.toLowerCase() === "authorization",
       );
-      if (!state.methodAllowed || !state.pathAllowed || state.callerAuthHeader) {
+      if (
+        !state.methodAllowed ||
+        !state.originAllowed ||
+        !state.pathAllowed ||
+        state.callerAuthHeader
+      ) {
         throw new Error("synthetic transport policy denied request");
       }
       if (
@@ -147,6 +155,7 @@ export async function runControlledDryRun({
       realCredentialLoaded: false,
       syntheticCredentialBytes: 520,
       methodAllowed: state.methodAllowed,
+      originAllowed: state.originAllowed,
       pathAllowed: state.pathAllowed,
       callerAuthHeaderPresent: state.callerAuthHeader,
       rawVaultBytesZeroed: zeroed(vaultBytes),
