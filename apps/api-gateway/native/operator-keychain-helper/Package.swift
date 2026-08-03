@@ -1,9 +1,9 @@
-// swift-tools-version: 5.7
+// swift-tools-version: 5.4
 import PackageDescription
 
 let package = Package(
     name: "OperatorKeychainHelper",
-    platforms: [.macOS(.v12)],
+    platforms: [.macOS(.v11)],
     products: [
         .executable(
             name: "operator-keychain-helper",
