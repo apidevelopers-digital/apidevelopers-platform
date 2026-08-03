@@ -1,11 +1,9 @@
-// swift-tools-version: 5.9
+// swift-tools-version: 5.7
 import PackageDescription
 
 let package = Package(
     name: "OperatorKeychainHelper",
-    platforms: [
-        .macOS(.v13)
-    ],
+    platforms: [.macOS(.v12)],
     products: [
         .executable(
             name: "operator-keychain-helper",
@@ -13,9 +11,7 @@ let package = Package(
         )
     ],
     targets: [
-        .target(
-            name: "OperatorKeychainHelperCore"
-        ),
+        .target(name: "OperatorKeychainHelperCore"),
         .executableTarget(
             name: "OperatorKeychainHelper",
             dependencies: ["OperatorKeychainHelperCore"]
