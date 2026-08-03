@@ -39,7 +39,6 @@ test("runtime composes exact-allowlist vault provider for configured GitHub", as
           return await consumer({
             bytes: rawBytes,
             version: "installation-v1",
-            expiresAt: "2099-01-01T00:00:00.000Z",
           });
         } finally {
           rawBytes.fill(0);
