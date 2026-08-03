@@ -50,7 +50,7 @@ test("rejects webhooks and events", async () => {
   manifest.app.webhookActive = true;
   manifest.app.events = ["push"];
 
-  const result = validateOperatorGithubAppPilotManifestV2(manifest);
+  const result = validateOperatorGitHubAppPilotManifestV2(manifest);
 
   assert.equal(result.ok, false);
 });
