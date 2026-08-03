@@ -1,0 +1,31 @@
+{
+  "schemaVersion": "operator-keychain-storage-evidence/v1",
+  "recordedAt": "2026-08-03T12:39:37-03:00",
+  "source": "manual-terminal-execution-and-screenshot",
+  "repositoryCommit": "63460d0d6a3eb82cc971f60a16ef2c4a5f0cbaf7",
+  "file": {
+    "path": "~/Downloads/api-devs-operator-gateway-pilot.2026-08-03.private-key.pem",
+    "sizeBytes": 1675,
+    "temporaryCopyStillPresent": true
+  },
+  "keychain": {
+    "service": "digital.apidevelopers.operator-gateway",
+    "account": "github-app-private-key",
+    "scope": "current-user",
+    "createOnly": true,
+    "created": true,
+    "replaced": false,
+    "secretReturned": false,
+    "verifiedBySecurityCli": true
+  },
+  "authorization": {
+    "phrase": "IGOR_APROVA_ARMAZENAR_CHAVE_NO_KEYCHAIN",
+    "consumed": true
+  },
+  "security": {
+    "pemContentRecorded": false,
+    "tokenIssued": false,
+    "appInstalled": false,
+    "productionChanged": false
+  }
+}
