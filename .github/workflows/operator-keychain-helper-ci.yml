@@ -1,0 +1,65 @@
+name: Operator Keychain Helper Test CI
+
+"on":
+  pull_request:
+    branches:
+      - main
+    paths:
+      - "apps/api-gateway/native/operator-keychain-helper/**"
+      - ".github/workflows/operator-keychain-helper-ci.yml"
+      - ".github/workflows/operator-keychain-helper-build-ci.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  test:
+    runs-on:
+      - self-hosted
+      - macOS
+      - X64
+    timeout-minutes: 30
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Resolve full Xcode developer directory
+        shell: bash
+        run: |
+          set -euo pipefail
+          shopt -s nullglob
+
+          selected=""
+          candidates=(
+            "/Applications/Xcode.app/Contents/Developer"
+          )
+
+          for app in /Applications/Xcode*.app; do
+            candidates+=("$app/Contents/Developer")
+          done
+
+          for candidate in "${candidates[@]}"; do
+            if [[ -d "$candidate/Platforms/MacOSX.platform" ]]; then
+              selected="$candidate"
+              break
+            fi
+          done
+
+          if [[ -z "$selected" ]]; then
+            echo "::error title=Full Xcode unavailable::No macOS SDK was found on the institutional runner"
+            exit 1
+          fi
+
+          echo "DEVELOPER_DIR=$selected" >> "$GITHUB_ENV"
+          DEVELOPER_DIR="$selected" xcrun --sdk macosx --show-sdk-platform-path
+          DEVELOPER_DIR="$selected" xcrun swift --version
+
+      - name: Test fail-closed native Keychain helper
+        shell: bash
+        run: |
+          set -euo pipefail
+          DEVELOPER_DIR="$DEVELOPER_DIR" xcrun swift test \
+            --package-path apps/api-gateway/native/operator-keychain-helper \
+            --jobs 2
