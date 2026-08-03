@@ -1,0 +1,69 @@
+{
+  "schemaVersion": "operator-github-app-registration-evidence/v1",
+  "recordedAt": "2026-08-03T11:43:00-03:00",
+  "source": {
+    "type": "manual-operator-confirmation-and-github-ui",
+    "notes": [
+      "The GitHub App was created manually before the dedicated create authorization was consumed.",
+      "The UI showed 7 selected repository permissions plus 1 mandatory metadata permission.",
+      "The operator confirmed the configured permissions match the approved read-only scope."
+    ]
+  },
+  "organization": "apidevelopers-digital",
+  "app": {
+    "name": "API Devs Operator Gateway Pilot",
+    "id": 4474490,
+    "slug": null,
+    "owner": "apidevelopers-digital",
+    "registrationStatus": "created",
+    "homepageUrl": "https://github.com/apidevelopers-digital",
+    "webhookActive": false,
+    "events": []
+  },
+  "repositoryPermissions": {
+    "actions": "read",
+    "administration": "read",
+    "checks": "read",
+    "commit_statuses": "read",
+    "contents": "read",
+    "issues": "read",
+    "metadata": "read",
+    "pull_requests": "read"
+  },
+  "additionalPermissions": {
+    "organization": {},
+    "account": {},
+    "enterprise": {}
+  },
+  "installationPolicy": {
+    "accountScope": "only-this-account",
+    "repositorySelection": "selected",
+    "repositories": [
+      ".github",
+      "apidevelopers-institution",
+      "apidevelopers-platform"
+    ]
+  },
+  "credentials": {
+    "privateKeyGenerated": true,
+    "privateKeyStoredInKeychain": false,
+    "privateKeyMaterialRecorded": false,
+    "clientSecretGenerated": false
+  },
+  "installation": {
+    "status": "not-installed",
+    "installationId": null
+  },
+  "authorizations": {
+    "configureGitHubAppPilotConsumed": true,
+    "createGitHubAppPilotConsumed": false,
+    "storeKeyInKeychainConsumed": false,
+    "installGitHubAppPilotConsumed": false,
+    "executeReadonlyPilotConsumed": false
+  },
+  "security": {
+    "secretMaterialPresent": false,
+    "externalCallsExecutedByRepositoryAutomation": false,
+    "productionChanged": false
+  }
+}
