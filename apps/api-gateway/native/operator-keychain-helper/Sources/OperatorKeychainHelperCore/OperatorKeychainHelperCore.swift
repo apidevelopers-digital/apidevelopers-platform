@@ -42,17 +42,13 @@ public struct OperatorKeychainHelperInvocation: Equatable {
             "--create-only",
             "--no-secret-output",
         ]
-
         guard arguments == expected else {
             throw OperatorKeychainHelperError.invalidArguments
         }
-
         guard !stdin.isEmpty,
-              stdin.count <= OperatorKeychainHelperConstants.maximumSecretBytes
-        else {
+              stdin.count <= OperatorKeychainHelperConstants.maximumSecretBytes else {
             throw OperatorKeychainHelperError.invalidSecret
         }
-
         service = OperatorKeychainHelperConstants.service
         account = OperatorKeychainHelperConstants.account
         secret = stdin
@@ -113,25 +109,26 @@ public struct OperatorSecurityFrameworkKeychainStore: OperatorKeychainStoring {
         account: String,
         secret: Data
     ) throws {
-        #if OPERATOR_KEYCHAIN_REAL_STORAGE_ENABLED && canImport(Security)
-        let attributes: [String: Any] = [
-            kSecClass as String: kSecClassGenericPassword,
-            kSecAttrService as String: service,
-            kSecAttrAccount as String: account,
-            kSecAttrAccessible as String: kSecAttrAccessibleAfterFirstUnlockThisDeviceOnly,
-            kSecValueData as String: secret,
-            kSecAttrSynchronizable as String: false,
+        #if OPERATOR_KEYCHAIN_REAL_STORAGE_ENABLED
+        #if canImport(Security)
+        let attributes: [CFString: Any] = [
+            kSecClass: kSecClassGenericPassword,
+            kSecAttrService: service,
+            kSecAttrAccount: account,
+            kSecAttrAccessible: kSecAttrAccessibleAfterFirstUnlockThisDeviceOnly,
+            kSecValueData: secret,
+            kSecAttrSynchronizable: false,
         ]
-
         let status = SecItemAdd(attributes as CFDictionary, nil)
-
         if status == errSecDuplicateItem {
             throw OperatorKeychainHelperError.duplicateItem
         }
-
         guard status == errSecSuccess else {
             throw OperatorKeychainHelperError.storageFailed
         }
+        #else
+        throw OperatorKeychainHelperError.storageDisabled
+        #endif
         #else
         throw OperatorKeychainHelperError.storageDisabled
         #endif
@@ -148,7 +145,6 @@ public func executeOperatorKeychainHelper(
         stdin: stdin
     )
     var temporarySecret = Data(invocation.secret)
-
     defer {
         temporarySecret.resetBytes(in: 0..<temporarySecret.count)
     }
@@ -158,6 +154,5 @@ public func executeOperatorKeychainHelper(
         account: invocation.account,
         secret: temporarySecret
     )
-
     return OperatorKeychainHelperResponse()
 }
