@@ -1,0 +1,78 @@
+name: Operator Gateway Controlled Activation Dry Run
+
+on:
+  workflow_dispatch:
+    inputs:
+      approval:
+        description: Exact approval phrase for the synthetic dry-run
+        required: true
+        type: string
+
+permissions:
+  contents: read
+
+concurrency:
+  group: operator-gateway-controlled-activation-dry-run
+  cancel-in-progress: false
+
+jobs:
+  controlled-dry-run:
+    runs-on:
+      - self-hosted
+      - macOS
+      - X64
+    timeout-minutes: 10
+    defaults:
+      run:
+        shell: bash
+        working-directory: apps/api-gateway
+
+    steps:
+      - name: Validate explicit approval
+        env:
+          APPROVAL: ${{ inputs.approval }}
+        run: |
+          set -euo pipefail
+          test "$APPROVAL" = "IGOR_APROVA_OPERATOR_GATEWAY_DRY_RUN"
+
+      - name: Checkout frozen revision
+        uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+
+      - name: Link local security dependencies
+        run: |
+          set -euo pipefail
+          root="$GITHUB_WORKSPACE"
+          mkdir -p "$root/apps/api-gateway/node_modules/@apidevelopers"
+          for package in contracts auth-core apikey-core persistence-core; do
+            ln -sfn "$root/packages/$package" "$root/apps/api-gateway/node_modules/@apidevelopers/$package"
+          done
+          mkdir -p "$root/packages/auth-core/node_modules/@apidevelopers"
+          ln -sfn "$root/packages/apikey-core" "$root/packages/auth-core/node_modules/@apidevelopers/apikey-core"
+          mkdir -p "$root/packages/apikey-core/node_modules/@apidevelopers"
+          ln -sfn "$root/packages/persistence-core" "$root/packages/apikey-core/node_modules/@apidevelopers/persistence-core"
+
+      - name: Validate synthetic harness tests
+        run: node --test test/operator-gateway-controlled-dry-run.test.mjs
+
+      - name: Execute synthetic controlled dry-run
+        env:
+          OPERATOR_GATEWAY_DRY_RUN_APPROVAL: ${{ inputs.approval }}
+        run: |
+          set -euo pipefail
+          mkdir -p artifacts
+          node scripts/operator-gateway-controlled-dry-run.mjs \
+            --output=artifacts/operator-gateway-controlled-dry-run-evidence.json
+
+      - name: Verify sanitized evidence
+        run: |
+          set -euo pipefail
+          node scripts/verify-operator-gateway-controlled-dry-run.mjs \
+            artifacts/operator-gateway-controlled-dry-run-evidence.json
+          cat artifacts/operator-gateway-controlled-dry-run-evidence.json

@@ -1,0 +1,16 @@
+{
+  "operation": {
+    "method": "GET",
+    "path": "/orgs/apidevelopers-digital"
+  },
+  "response": {
+    "status": 200,
+    "headers": {
+      "content-type": "application/json"
+    },
+    "body": {
+      "login": "apidevelopers-digital",
+      "type": "Organization"
+    }
+  }
+}
