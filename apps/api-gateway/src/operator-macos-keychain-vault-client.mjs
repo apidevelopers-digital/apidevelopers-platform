@@ -174,6 +174,8 @@ export function createOperatorMacosKeychainVaultClient({
           fail("keychain_unavailable", "macOS Keychain is unavailable");
         }
 
+        sourceBytes =
+          rawLease?.bytes instanceof Uint8Array ? rawLease.bytes : undefined;
         const normalizedLease = normalizeLease(rawLease, maxSecretBytes);
         sourceBytes = normalizedLease.sourceBytes;
         leaseBytes = normalizedLease.leaseBytes;
