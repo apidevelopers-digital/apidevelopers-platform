@@ -3,7 +3,7 @@ import { readFile } from "node:fs/promises";
 import test from "node:test";
 
 import {
-  validateOperatorGithubAppPilotManifestV2,
+  validateOperatorGitHubAppPilotManifestV2,
 } from "../src/operator-github-app-pilot-manifest-v2.mjs";
 
 const manifestUrl = new URL(
@@ -20,7 +20,7 @@ function clone(value) {
 }
 
 test("accepts the aligned read-only pilot scope", async () => {
-  const result = validateOperatorGithubAppPilotManifestV2(await loadManifest());
+  const result = validateOperatorGitHubAppPilotManifestV2(await loadManifest());
 
   assert.equal(result.ok, true);
   assert.equal(result.evidence.realActivationAuthorized, false);
@@ -31,7 +31,7 @@ test("rejects any write permission", async () => {
   const manifest = clone(await loadManifest());
   manifest.app.repositoryPermissions.contents = "write";
 
-  const result = validateOperatorGithubAppPilotManifestV2(manifest);
+  const result = validateOperatorGitHubAppPilotManifestV2(manifest);
 
   assert.equal(result.ok, false);
 });
@@ -40,7 +40,7 @@ test("rejects additional organization permissions", async () => {
   const manifest = clone(await loadManifest());
   manifest.app.organizationPermissions.members = "read";
 
-  const result = validateOperatorGithubAppPilotManifestV2(manifest);
+  const result = validateOperatorGitHubAppPilotManifestV2(manifest);
 
   assert.equal(result.ok, false);
 });
