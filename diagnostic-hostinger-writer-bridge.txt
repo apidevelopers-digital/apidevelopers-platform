@@ -1,0 +1,55 @@
+✔ runtime is disabled by default and exposes no http routes (1.108428ms)
+✖ prepare is always dry-run and returns an operation hash (0.978492ms)
+✖ execute requires approval bound to the exact operation hash (0.232376ms)
+✖ changing an operation invalidates the approval hash (0.210384ms)
+ℹ tests 4
+ℹ suites 0
+ℹ pass 1
+ℹ fail 3
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 156.177458
+
+✖ failing tests:
+
+test at apps/api-gateway/test/hostinger-writer-runtime.test.mjs:29:1
+✖ prepare is always dry-run and returns an operation hash (0.978492ms)
+  ReferenceError: canoncalize is not defined
+      at operationHash (file:///Users/milenapeterlesavioabreu/actions-runners/apidevelopers-organization-macos/actions-runner/_work/apidevelopers-platform/apidevelopers-platform/apps/api-gateway/src/hostinger-writer-runtime.mjs:19:30)
+      at Object.prepare (file:///Users/milenapeterlesavioabreu/actions-runners/apidevelopers-organization-macos/actions-runner/_work/apidevelopers-platform/apidevelopers-platform/apps/api-gateway/src/hostinger-writer-runtime.mjs:58:18)
+      at TestContext.<anonymous> (file:///Users/milenapeterlesavioabreu/actions-runners/apidevelopers-organization-macos/actions-runner/_work/apidevelopers-platform/apidevelopers-platform/apps/api-gateway/test/hostinger-writer-runtime.test.mjs:42:32)
+      at Test.runInAsyncScope (node:async_hooks:227:14)
+      at Test.run (node:internal/test_runner/test:1306:25)
+      at Test.processPendingSubtests (node:internal/test_runner/test:897:18)
+      at Test.postRun (node:internal/test_runner/test:1447:19)
+      at Test.run (node:internal/test_runner/test:1372:12)
+      at async startSubtestAfterBootstrap (node:internal/test_runner/harness:385:3)
+
+test at apps/api-gateway/test/hostinger-writer-runtime.test.mjs:48:1
+✖ execute requires approval bound to the exact operation hash (0.232376ms)
+  ReferenceError: canoncalize is not defined
+      at operationHash (file:///Users/milenapeterlesavioabreu/actions-runners/apidevelopers-organization-macos/actions-runner/_work/apidevelopers-platform/apidevelopers-platform/apps/api-gateway/src/hostinger-writer-runtime.mjs:19:30)
+      at Object.prepare (file:///Users/milenapeterlesavioabreu/actions-runners/apidevelopers-organization-macos/actions-runner/_work/apidevelopers-platform/apidevelopers-platform/apps/api-gateway/src/hostinger-writer-runtime.mjs:58:18)
+      at TestContext.<anonymous> (file:///Users/milenapeterlesavioabreu/actions-runners/apidevelopers-organization-macos/actions-runner/_work/apidevelopers-platform/apidevelopers-platform/apps/api-gateway/test/hostinger-writer-runtime.test.mjs:64:34)
+      at Test.runInAsyncScope (node:async_hooks:227:14)
+      at Test.run (node:internal/test_runner/test:1306:25)
+      at Test.processPendingSubtests (node:internal/test_runner/test:897:18)
+      at Test.postRun (node:internal/test_runner/test:1447:19)
+      at Test.run (node:internal/test_runner/test:1372:12)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:897:7)
+
+test at apps/api-gateway/test/hostinger-writer-runtime.test.mjs:76:1
+✖ changing an operation invalidates the approval hash (0.210384ms)
+  ReferenceError: canoncalize is not defined
+      at operationHash (file:///Users/milenapeterlesavioabreu/actions-runners/apidevelopers-organization-macos/actions-runner/_work/apidevelopers-platform/apidevelopers-platform/apps/api-gateway/src/hostinger-writer-runtime.mjs:19:30)
+      at Object.prepare (file:///Users/milenapeterlesavioabreu/actions-runners/apidevelopers-organization-macos/actions-runner/_work/apidevelopers-platform/apidevelopers-platform/apps/api-gateway/src/hostinger-writer-runtime.mjs:58:18)
+      at TestContext.<anonymous> (file:///Users/milenapeterlesavioabreu/actions-runners/apidevelopers-organization-macos/actions-runner/_work/apidevelopers-platform/apidevelopers-platform/apps/api-gateway/test/hostinger-writer-runtime.test.mjs:91:33)
+      at Test.runInAsyncScope (node:async_hooks:227:14)
+      at Test.run (node:internal/test_runner/test:1306:25)
+      at Test.processPendingSubtests (node:internal/test_runner/test:897:18)
+      at Test.postRun (node:internal/test_runner/test:1447:19)
+      at Test.run (node:internal/test_runner/test:1372:12)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:897:7)
+
+exit_code=1
