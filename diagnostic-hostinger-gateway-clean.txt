@@ -1,0 +1,1443 @@
+
+> @apidevelopers/api-gateway@0.7.0 test
+> node --test test/*.test.mjs
+
+node:internal/modules/package_json_reader:301
+  throw new ERR_MODULE_NOT_FOUND(packageName, fileURLToPath(base), null);
+        ^
+
+Error [ERR_MODULE_NOT_FOUND]: Cannot find package '@apidevelopers/persistence-core' imported from /Users/milenapeterlesavioabreu/actions-runners/apidevelopers-organization-macos/actions-runner/_work/apidevelopers-platform/apidevelopers-platform/apps/api-gateway/src/operational-composition.mjs
+    at Object.getPackageJSONURL (node:internal/modules/package_json_reader:301:9)
+    at packageResolve (node:internal/modules/esm/resolve:768:81)
+    at moduleResolve (node:internal/modules/esm/resolve:859:18)
+    at defaultResolve (node:internal/modules/esm/resolve:992:11)
+    at #cachedDefaultResolve (node:internal/modules/esm/loader:691:20)
+    at #resolveAndMaybeBlockOnLoaderThread (node:internal/modules/esm/loader:708:38)
+    at ModuleLoader.resolveSync (node:internal/modules/esm/loader:740:52)
+    at #resolve (node:internal/modules/esm/loader:673:17)
+    at ModuleLoader.getOrCreateModuleJob (node:internal/modules/esm/loader:593:35)
+    at ModuleJob.syncLink (node:internal/modules/esm/module_job:163:33) {
+  code: 'ERR_MODULE_NOT_FOUND'
+}
+
+Node.js v24.16.0
+✖ test/audit-query.test.mjs (73.717697ms)
+node:internal/modules/package_json_reader:301
+  throw new ERR_MODULE_NOT_FOUND(packageName, fileURLToPath(base), null);
+        ^
+
+Error [ERR_MODULE_NOT_FOUND]: Cannot find package '@apidevelopers/auth-core' imported from /Users/milenapeterlesavioabreu/actions-runners/apidevelopers-organization-macos/actions-runner/_work/apidevelopers-platform/apidevelopers-platform/apps/api-gateway/src/auth-composition.mjs
+    at Object.getPackageJSONURL (node:internal/modules/package_json_reader:301:9)
+    at packageResolve (node:internal/modules/esm/resolve:768:81)
+    at moduleResolve (node:internal/modules/esm/resolve:859:18)
+    at defaultResolve (node:internal/modules/esm/resolve:992:11)
+    at #cachedDefaultResolve (node:internal/modules/esm/loader:691:20)
+    at #resolveAndMaybeBlockOnLoaderThread (node:internal/modules/esm/loader:708:38)
+    at ModuleLoader.resolveSync (node:internal/modules/esm/loader:740:52)
+    at #resolve (node:internal/modules/esm/loader:673:17)
+    at ModuleLoader.getOrCreateModuleJob (node:internal/modules/esm/loader:593:35)
+    at ModuleJob.syncLink (node:internal/modules/esm/module_job:163:33) {
+  code: 'ERR_MODULE_NOT_FOUND'
+}
+
+Node.js v24.16.0
+✖ test/auth-composition.test.mjs (73.900614ms)
+node:internal/modules/package_json_reader:301
+  throw new ERR_MODULE_NOT_FOUND(packageName, fileURLToPath(base), null);
+        ^
+
+Error [ERR_MODULE_NOT_FOUND]: Cannot find package '@apidevelopers/contracts' imported from /Users/milenapeterlesavioabreu/actions-runners/apidevelopers-organization-macos/actions-runner/_work/apidevelopers-platform/apidevelopers-platform/apps/api-gateway/src/global-trust-audit.mjs
+    at Object.getPackageJSONURL (node:internal/modules/package_json_reader:301:9)
+    at packageResolve (node:internal/modules/esm/resolve:768:81)
+    at moduleResolve (node:internal/modules/esm/resolve:859:18)
+    at defaultResolve (node:internal/modules/esm/resolve:992:11)
+    at #cachedDefaultResolve (node:internal/modules/esm/loader:691:20)
+    at #resolveAndMaybeBlockOnLoaderThread (node:internal/modules/esm/loader:708:38)
+    at ModuleLoader.resolveSync (node:internal/modules/esm/loader:740:52)
+    at #resolve (node:internal/modules/esm/loader:673:17)
+    at ModuleLoader.getOrCreateModuleJob (node:internal/modules/esm/loader:593:35)
+    at ModuleJob.syncLink (node:internal/modules/esm/module_job:163:33) {
+  code: 'ERR_MODULE_NOT_FOUND'
+}
+
+Node.js v24.16.0
+✖ test/authenticated-route.test.mjs (101.078718ms)
+node:internal/modules/package_json_reader:301
+  throw new ERR_MODULE_NOT_FOUND(packageName, fileURLToPath(base), null);
+        ^
+
+Error [ERR_MODULE_NOT_FOUND]: Cannot find package '@apidevelopers/persistence-core' imported from /Users/milenapeterlesavioabreu/actions-runners/apidevelopers-organization-macos/actions-runner/_work/apidevelopers-platform/apidevelopers-platform/apps/api-gateway/src/operational-composition.mjs
+    at Object.getPackageJSONURL (node:internal/modules/package_json_reader:301:9)
+    at packageResolve (node:internal/modules/esm/resolve:768:81)
+    at moduleResolve (node:internal/modules/esm/resolve:859:18)
+    at defaultResolve (node:internal/modules/esm/resolve:992:11)
+    at #cachedDefaultResolve (node:internal/modules/esm/loader:691:20)
+    at #resolveAndMaybeBlockOnLoaderThread (node:internal/modules/esm/loader:708:38)
+    at ModuleLoader.resolveSync (node:internal/modules/esm/loader:740:52)
+    at #resolve (node:internal/modules/esm/loader:673:17)
+    at ModuleLoader.getOrCreateModuleJob (node:internal/modules/esm/loader:593:35)
+    at ModuleJob.syncLink (node:internal/modules/esm/module_job:163:33) {
+  code: 'ERR_MODULE_NOT_FOUND'
+}
+
+Node.js v24.16.0
+✖ test/decision-evidence-http.test.mjs (77.508367ms)
+node:internal/modules/package_json_reader:301
+  throw new ERR_MODULE_NOT_FOUND(packageName, fileURLToPath(base), null);
+        ^
+
+Error [ERR_MODULE_NOT_FOUND]: Cannot find package '@apidevelopers/contracts' imported from /Users/milenapeterlesavioabreu/actions-runners/apidevelopers-organization-macos/actions-runner/_work/apidevelopers-platform/apidevelopers-platform/apps/api-gateway/src/global-trust-audit.mjs
+    at Object.getPackageJSONURL (node:internal/modules/package_json_reader:301:9)
+    at packageResolve (node:internal/modules/esm/resolve:768:81)
+    at moduleResolve (node:internal/modules/esm/resolve:859:18)
+    at defaultResolve (node:internal/modules/esm/resolve:992:11)
+    at #cachedDefaultResolve (node:internal/modules/esm/loader:691:20)
+    at #resolveAndMaybeBlockOnLoaderThread (node:internal/modules/esm/loader:708:38)
+    at ModuleLoader.resolveSync (node:internal/modules/esm/loader:740:52)
+    at #resolve (node:internal/modules/esm/loader:673:17)
+    at ModuleLoader.getOrCreateModuleJob (node:internal/modules/esm/loader:593:35)
+    at ModuleJob.syncLink (node:internal/modules/esm/module_job:163:33) {
+  code: 'ERR_MODULE_NOT_FOUND'
+}
+
+Node.js v24.16.0
+✖ test/developer-surface.test.mjs (108.737101ms)
+node:internal/modules/package_json_reader:301
+  throw new ERR_MODULE_NOT_FOUND(packageName, fileURLToPath(base), null);
+        ^
+
+Error [ERR_MODULE_NOT_FOUND]: Cannot find package '@apidevelopers/persistence-core' imported from /Users/milenapeterlesavioabreu/actions-runners/apidevelopers-organization-macos/actions-runner/_work/apidevelopers-platform/apidevelopers-platform/apps/api-gateway/src/operational-composition.mjs
+    at Object.getPackageJSONURL (node:internal/modules/package_json_reader:301:9)
+    at packageResolve (node:internal/modules/esm/resolve:768:81)
+    at moduleResolve (node:internal/modules/esm/resolve:859:18)
+    at defaultResolve (node:internal/modules/esm/resolve:992:11)
+    at #cachedDefaultResolve (node:internal/modules/esm/loader:691:20)
+    at #resolveAndMaybeBlockOnLoaderThread (node:internal/modules/esm/loader:708:38)
+    at ModuleLoader.resolveSync (node:internal/modules/esm/loader:740:52)
+    at #resolve (node:internal/modules/esm/loader:673:17)
+    at ModuleLoader.getOrCreateModuleJob (node:internal/modules/esm/loader:593:35)
+    at ModuleJob.syncLink (node:internal/modules/esm/module_job:163:33) {
+  code: 'ERR_MODULE_NOT_FOUND'
+}
+
+Node.js v24.16.0
+✖ test/durable-global-trust-audit.test.mjs (66.761502ms)
+node:internal/modules/package_json_reader:301
+  throw new ERR_MODULE_NOT_FOUND(packageName, fileURLToPath(base), null);
+        ^
+
+Error [ERR_MODULE_NOT_FOUND]: Cannot find package '@apidevelopers/persistence-core' imported from /Users/milenapeterlesavioabreu/actions-runners/apidevelopers-organization-macos/actions-runner/_work/apidevelopers-platform/apidevelopers-platform/apps/api-gateway/test/durable-global-trust-decision-evidence.test.mjs
+    at Object.getPackageJSONURL (node:internal/modules/package_json_reader:301:9)
+    at packageResolve (node:internal/modules/esm/resolve:768:81)
+    at moduleResolve (node:internal/modules/esm/resolve:859:18)
+    at defaultResolve (node:internal/modules/esm/resolve:992:11)
+    at #cachedDefaultResolve (node:internal/modules/esm/loader:691:20)
+    at #resolveAndMaybeBlockOnLoaderThread (node:internal/modules/esm/loader:708:38)
+    at ModuleLoader.resolveSync (node:internal/modules/esm/loader:740:52)
+    at #resolve (node:internal/modules/esm/loader:673:17)
+    at ModuleLoader.getOrCreateModuleJob (node:internal/modules/esm/loader:593:35)
+    at ModuleJob.syncLink (node:internal/modules/esm/module_job:163:33) {
+  code: 'ERR_MODULE_NOT_FOUND'
+}
+
+Node.js v24.16.0
+✖ test/durable-global-trust-decision-evidence.test.mjs (69.859425ms)
+node:internal/modules/package_json_reader:301
+  throw new ERR_MODULE_NOT_FOUND(packageName, fileURLToPath(base), null);
+        ^
+
+Error [ERR_MODULE_NOT_FOUND]: Cannot find package '@apidevelopers/persistence-core' imported from /Users/milenapeterlesavioabreu/actions-runners/apidevelopers-organization-macos/actions-runner/_work/apidevelopers-platform/apidevelopers-platform/apps/api-gateway/test/durable-observability.test.mjs
+    at Object.getPackageJSONURL (node:internal/modules/package_json_reader:301:9)
+    at packageResolve (node:internal/modules/esm/resolve:768:81)
+    at moduleResolve (node:internal/modules/esm/resolve:859:18)
+    at defaultResolve (node:internal/modules/esm/resolve:992:11)
+    at #cachedDefaultResolve (node:internal/modules/esm/loader:691:20)
+    at #resolveAndMaybeBlockOnLoaderThread (node:internal/modules/esm/loader:708:38)
+    at ModuleLoader.resolveSync (node:internal/modules/esm/loader:740:52)
+    at #resolve (node:internal/modules/esm/loader:673:17)
+    at ModuleLoader.getOrCreateModuleJob (node:internal/modules/esm/loader:593:35)
+    at ModuleJob.syncLink (node:internal/modules/esm/module_job:163:33) {
+  code: 'ERR_MODULE_NOT_FOUND'
+}
+
+Node.js v24.16.0
+✖ test/durable-observability.test.mjs (66.78073ms)
+node:internal/modules/package_json_reader:301
+  throw new ERR_MODULE_NOT_FOUND(packageName, fileURLToPath(base), null);
+        ^
+
+Error [ERR_MODULE_NOT_FOUND]: Cannot find package '@apidevelopers/contracts' imported from /Users/milenapeterlesavioabreu/actions-runners/apidevelopers-organization-macos/actions-runner/_work/apidevelopers-platform/apidevelopers-platform/apps/api-gateway/src/global-trust-data-policy-registry.mjs
+    at Object.getPackageJSONURL (node:internal/modules/package_json_reader:301:9)
+    at packageResolve (node:internal/modules/esm/resolve:768:81)
+    at moduleResolve (node:internal/modules/esm/resolve:859:18)
+    at defaultResolve (node:internal/modules/esm/resolve:992:11)
+    at #cachedDefaultResolve (node:internal/modules/esm/loader:691:20)
+    at #resolveAndMaybeBlockOnLoaderThread (node:internal/modules/esm/loader:708:38)
+    at ModuleLoader.resolveSync (node:internal/modules/esm/loader:740:52)
+    at #resolve (node:internal/modules/esm/loader:673:17)
+    at ModuleLoader.getOrCreateModuleJob (node:internal/modules/esm/loader:593:35)
+    at ModuleJob.syncLink (node:internal/modules/esm/module_job:163:33) {
+  code: 'ERR_MODULE_NOT_FOUND'
+}
+
+Node.js v24.16.0
+✖ test/global-trust-admission-gate.test.mjs (109.804099ms)
+node:internal/modules/package_json_reader:301
+  throw new ERR_MODULE_NOT_FOUND(packageName, fileURLToPath(base), null);
+        ^
+
+Error [ERR_MODULE_NOT_FOUND]: Cannot find package '@apidevelopers/contracts' imported from /Users/milenapeterlesavioabreu/actions-runners/apidevelopers-organization-macos/actions-runner/_work/apidevelopers-platform/apidevelopers-platform/apps/api-gateway/src/global-trust-audit.mjs
+    at Object.getPackageJSONURL (node:internal/modules/package_json_reader:301:9)
+    at packageResolve (node:internal/modules/esm/resolve:768:81)
+    at moduleResolve (node:internal/modules/esm/resolve:859:18)
+    at defaultResolve (node:internal/modules/esm/resolve:992:11)
+    at #cachedDefaultResolve (node:internal/modules/esm/loader:691:20)
+    at #resolveAndMaybeBlockOnLoaderThread (node:internal/modules/esm/loader:708:38)
+    at ModuleLoader.resolveSync (node:internal/modules/esm/loader:740:52)
+    at #resolve (node:internal/modules/esm/loader:673:17)
+    at ModuleLoader.getOrCreateModuleJob (node:internal/modules/esm/loader:593:35)
+    at ModuleJob.syncLink (node:internal/modules/esm/module_job:163:33) {
+  code: 'ERR_MODULE_NOT_FOUND'
+}
+
+Node.js v24.16.0
+✖ test/global-trust-audit.test.mjs (108.971263ms)
+node:internal/modules/package_json_reader:301
+  throw new ERR_MODULE_NOT_FOUND(packageName, fileURLToPath(base), null);
+        ^
+
+Error [ERR_MODULE_NOT_FOUND]: Cannot find package '@apidevelopers/contracts' imported from /Users/milenapeterlesavioabreu/actions-runners/apidevelopers-organization-macos/actions-runner/_work/apidevelopers-platform/apidevelopers-platform/apps/api-gateway/src/global-trust-authorization.mjs
+    at Object.getPackageJSONURL (node:internal/modules/package_json_reader:301:9)
+    at packageResolve (node:internal/modules/esm/resolve:768:81)
+    at moduleResolve (node:internal/modules/esm/resolve:859:18)
+    at defaultResolve (node:internal/modules/esm/resolve:992:11)
+    at #cachedDefaultResolve (node:internal/modules/esm/loader:691:20)
+    at #resolveAndMaybeBlockOnLoaderThread (node:internal/modules/esm/loader:708:38)
+    at ModuleLoader.resolveSync (node:internal/modules/esm/loader:740:52)
+    at #resolve (node:internal/modules/esm/loader:673:17)
+    at ModuleLoader.getOrCreateModuleJob (node:internal/modules/esm/loader:593:35)
+    at ModuleJob.syncLink (node:internal/modules/esm/module_job:163:33) {
+  code: 'ERR_MODULE_NOT_FOUND'
+}
+
+Node.js v24.16.0
+✖ test/global-trust-authorization.test.mjs (75.619437ms)
+node:internal/modules/package_json_reader:301
+  throw new ERR_MODULE_NOT_FOUND(packageName, fileURLToPath(base), null);
+        ^
+
+Error [ERR_MODULE_NOT_FOUND]: Cannot find package '@apidevelopers/contracts' imported from /Users/milenapeterlesavioabreu/actions-runners/apidevelopers-organization-macos/actions-runner/_work/apidevelopers-platform/apidevelopers-platform/apps/api-gateway/src/global-trust-context.mjs
+    at Object.getPackageJSONURL (node:internal/modules/package_json_reader:301:9)
+    at packageResolve (node:internal/modules/esm/resolve:768:81)
+    at moduleResolve (node:internal/modules/esm/resolve:859:18)
+    at defaultResolve (node:internal/modules/esm/resolve:992:11)
+    at #cachedDefaultResolve (node:internal/modules/esm/loader:691:20)
+    at #resolveAndMaybeBlockOnLoaderThread (node:internal/modules/esm/loader:708:38)
+    at ModuleLoader.resolveSync (node:internal/modules/esm/loader:740:52)
+    at #resolve (node:internal/modules/esm/loader:673:17)
+    at ModuleLoader.getOrCreateModuleJob (node:internal/modules/esm/loader:593:35)
+    at ModuleJob.syncLink (node:internal/modules/esm/module_job:163:33) {
+  code: 'ERR_MODULE_NOT_FOUND'
+}
+
+Node.js v24.16.0
+✖ test/global-trust-context.test.mjs (93.455317ms)
+node:internal/modules/package_json_reader:301
+  throw new ERR_MODULE_NOT_FOUND(packageName, fileURLToPath(base), null);
+        ^
+
+Error [ERR_MODULE_NOT_FOUND]: Cannot find package '@apidevelopers/contracts' imported from /Users/milenapeterlesavioabreu/actions-runners/apidevelopers-organization-macos/actions-runner/_work/apidevelopers-platform/apidevelopers-platform/apps/api-gateway/src/global-trust-data-policy-registry.mjs
+    at Object.getPackageJSONURL (node:internal/modules/package_json_reader:301:9)
+    at packageResolve (node:internal/modules/esm/resolve:768:81)
+    at moduleResolve (node:internal/modules/esm/resolve:859:18)
+    at defaultResolve (node:internal/modules/esm/resolve:992:11)
+    at #cachedDefaultResolve (node:internal/modules/esm/loader:691:20)
+    at #resolveAndMaybeBlockOnLoaderThread (node:internal/modules/esm/loader:708:38)
+    at ModuleLoader.resolveSync (node:internal/modules/esm/loader:740:52)
+    at #resolve (node:internal/modules/esm/loader:673:17)
+    at ModuleLoader.getOrCreateModuleJob (node:internal/modules/esm/loader:593:35)
+    at ModuleJob.syncLink (node:internal/modules/esm/module_job:163:33) {
+  code: 'ERR_MODULE_NOT_FOUND'
+}
+
+Node.js v24.16.0
+✖ test/global-trust-data-policy-registry-http.test.mjs (88.281912ms)
+node:internal/modules/package_json_reader:301
+  throw new ERR_MODULE_NOT_FOUND(packageName, fileURLToPath(base), null);
+        ^
+
+Error [ERR_MODULE_NOT_FOUND]: Cannot find package '@apidevelopers/contracts' imported from /Users/milenapeterlesavioabreu/actions-runners/apidevelopers-organization-macos/actions-runner/_work/apidevelopers-platform/apidevelopers-platform/apps/api-gateway/src/global-trust-data-policy-registry.mjs
+    at Object.getPackageJSONURL (node:internal/modules/package_json_reader:301:9)
+    at packageResolve (node:internal/modules/esm/resolve:768:81)
+    at moduleResolve (node:internal/modules/esm/resolve:859:18)
+    at defaultResolve (node:internal/modules/esm/resolve:992:11)
+    at #cachedDefaultResolve (node:internal/modules/esm/loader:691:20)
+    at #resolveAndMaybeBlockOnLoaderThread (node:internal/modules/esm/loader:708:38)
+    at ModuleLoader.resolveSync (node:internal/modules/esm/loader:740:52)
+    at #resolve (node:internal/modules/esm/loader:673:17)
+    at ModuleLoader.getOrCreateModuleJob (node:internal/modules/esm/loader:593:35)
+    at ModuleJob.syncLink (node:internal/modules/esm/module_job:163:33) {
+  code: 'ERR_MODULE_NOT_FOUND'
+}
+
+Node.js v24.16.0
+✖ test/global-trust-data-policy-registry.test.mjs (82.695214ms)
+node:internal/modules/package_json_reader:301
+  throw new ERR_MODULE_NOT_FOUND(packageName, fileURLToPath(base), null);
+        ^
+
+Error [ERR_MODULE_NOT_FOUND]: Cannot find package '@apidevelopers/persistence-core' imported from /Users/milenapeterlesavioabreu/actions-runners/apidevelopers-organization-macos/actions-runner/_work/apidevelopers-platform/apidevelopers-platform/apps/api-gateway/src/operational-composition.mjs
+    at Object.getPackageJSONURL (node:internal/modules/package_json_reader:301:9)
+    at packageResolve (node:internal/modules/esm/resolve:768:81)
+    at moduleResolve (node:internal/modules/esm/resolve:859:18)
+    at defaultResolve (node:internal/modules/esm/resolve:992:11)
+    at #cachedDefaultResolve (node:internal/modules/esm/loader:691:20)
+    at #resolveAndMaybeBlockOnLoaderThread (node:internal/modules/esm/loader:708:38)
+    at ModuleLoader.resolveSync (node:internal/modules/esm/loader:740:52)
+    at #resolve (node:internal/modules/esm/loader:673:17)
+    at ModuleLoader.getOrCreateModuleJob (node:internal/modules/esm/loader:593:35)
+    at ModuleJob.syncLink (node:internal/modules/esm/module_job:163:33) {
+  code: 'ERR_MODULE_NOT_FOUND'
+}
+
+Node.js v24.16.0
+✖ test/global-trust-human-approval-http.test.mjs (147.847831ms)
+node:internal/modules/package_json_reader:301
+  throw new ERR_MODULE_NOT_FOUND(packageName, fileURLToPath(base), null);
+        ^
+
+Error [ERR_MODULE_NOT_FOUND]: Cannot find package '@apidevelopers/persistence-core' imported from /Users/milenapeterlesavioabreu/actions-runners/apidevelopers-organization-macos/actions-runner/_work/apidevelopers-platform/apidevelopers-platform/apps/api-gateway/test/global-trust-human-approval.test.mjs
+    at Object.getPackageJSONURL (node:internal/modules/package_json_reader:301:9)
+    at packageResolve (node:internal/modules/esm/resolve:768:81)
+    at moduleResolve (node:internal/modules/esm/resolve:859:18)
+    at defaultResolve (node:internal/modules/esm/resolve:992:11)
+    at #cachedDefaultResolve (node:internal/modules/esm/loader:691:20)
+    at #resolveAndMaybeBlockOnLoaderThread (node:internal/modules/esm/loader:708:38)
+    at ModuleLoader.resolveSync (node:internal/modules/esm/loader:740:52)
+    at #resolve (node:internal/modules/esm/loader:673:17)
+    at ModuleLoader.getOrCreateModuleJob (node:internal/modules/esm/loader:593:35)
+    at ModuleJob.syncLink (node:internal/modules/esm/module_job:163:33) {
+  code: 'ERR_MODULE_NOT_FOUND'
+}
+
+Node.js v24.16.0
+✖ test/global-trust-human-approval.test.mjs (178.815287ms)
+node:internal/modules/package_json_reader:301
+  throw new ERR_MODULE_NOT_FOUND(packageName, fileURLToPath(base), null);
+        ^
+
+Error [ERR_MODULE_NOT_FOUND]: Cannot find package '@apidevelopers/contracts' imported from /Users/milenapeterlesavioabreu/actions-runners/apidevelopers-organization-macos/actions-runner/_work/apidevelopers-platform/apidevelopers-platform/apps/api-gateway/src/global-trust-data-policy-registry.mjs
+    at Object.getPackageJSONURL (node:internal/modules/package_json_reader:301:9)
+    at packageResolve (node:internal/modules/esm/resolve:768:81)
+    at moduleResolve (node:internal/modules/esm/resolve:859:18)
+    at defaultResolve (node:internal/modules/esm/resolve:992:11)
+    at #cachedDefaultResolve (node:internal/modules/esm/loader:691:20)
+    at #resolveAndMaybeBlockOnLoaderThread (node:internal/modules/esm/loader:708:38)
+    at ModuleLoader.resolveSync (node:internal/modules/esm/loader:740:52)
+    at #resolve (node:internal/modules/esm/loader:673:17)
+    at ModuleLoader.getOrCreateModuleJob (node:internal/modules/esm/loader:593:35)
+    at ModuleJob.syncLink (node:internal/modules/esm/module_job:163:33) {
+  code: 'ERR_MODULE_NOT_FOUND'
+}
+
+Node.js v24.16.0
+✖ test/global-trust-incident-queue.test.mjs (172.224629ms)
+node:internal/modules/package_json_reader:301
+  throw new ERR_MODULE_NOT_FOUND(packageName, fileURLToPath(base), null);
+        ^
+
+Error [ERR_MODULE_NOT_FOUND]: Cannot find package '@apidevelopers/persistence-core' imported from /Users/milenapeterlesavioabreu/actions-runners/apidevelopers-organization-macos/actions-runner/_work/apidevelopers-platform/apidevelopers-platform/apps/api-gateway/src/operational-composition.mjs
+    at Object.getPackageJSONURL (node:internal/modules/package_json_reader:301:9)
+    at packageResolve (node:internal/modules/esm/resolve:768:81)
+    at moduleResolve (node:internal/modules/esm/resolve:859:18)
+    at defaultResolve (node:internal/modules/esm/resolve:992:11)
+    at #cachedDefaultResolve (node:internal/modules/esm/loader:691:20)
+    at #resolveAndMaybeBlockOnLoaderThread (node:internal/modules/esm/loader:708:38)
+    at ModuleLoader.resolveSync (node:internal/modules/esm/loader:740:52)
+    at #resolve (node:internal/modules/esm/loader:673:17)
+    at ModuleLoader.getOrCreateModuleJob (node:internal/modules/esm/loader:593:35)
+    at ModuleJob.syncLink (node:internal/modules/esm/module_job:163:33) {
+  code: 'ERR_MODULE_NOT_FOUND'
+}
+
+Node.js v24.16.0
+✖ test/global-trust-integrity-backfill-http.test.mjs (77.409948ms)
+node:internal/modules/package_json_reader:301
+  throw new ERR_MODULE_NOT_FOUND(packageName, fileURLToPath(base), null);
+        ^
+
+Error [ERR_MODULE_NOT_FOUND]: Cannot find package '@apidevelopers/persistence-core' imported from /Users/milenapeterlesavioabreu/actions-runners/apidevelopers-organization-macos/actions-runner/_work/apidevelopers-platform/apidevelopers-platform/apps/api-gateway/test/global-trust-integrity-backfill.test.mjs
+    at Object.getPackageJSONURL (node:internal/modules/package_json_reader:301:9)
+    at packageResolve (node:internal/modules/esm/resolve:768:81)
+    at moduleResolve (node:internal/modules/esm/resolve:859:18)
+    at defaultResolve (node:internal/modules/esm/resolve:992:11)
+    at #cachedDefaultResolve (node:internal/modules/esm/loader:691:20)
+    at #resolveAndMaybeBlockOnLoaderThread (node:internal/modules/esm/loader:708:38)
+    at ModuleLoader.resolveSync (node:internal/modules/esm/loader:740:52)
+    at #resolve (node:internal/modules/esm/loader:673:17)
+    at ModuleLoader.getOrCreateModuleJob (node:internal/modules/esm/loader:593:35)
+    at ModuleJob.syncLink (node:internal/modules/esm/module_job:163:33) {
+  code: 'ERR_MODULE_NOT_FOUND'
+}
+
+Node.js v24.16.0
+✖ test/global-trust-integrity-backfill.test.mjs (75.676358ms)
+node:internal/modules/package_json_reader:301
+  throw new ERR_MODULE_NOT_FOUND(packageName, fileURLToPath(base), null);
+        ^
+
+Error [ERR_MODULE_NOT_FOUND]: Cannot find package '@apidevelopers/persistence-core' imported from /Users/milenapeterlesavioabreu/actions-runners/apidevelopers-organization-macos/actions-runner/_work/apidevelopers-platform/apidevelopers-platform/apps/api-gateway/src/operational-composition.mjs
+    at Object.getPackageJSONURL (node:internal/modules/package_json_reader:301:9)
+    at packageResolve (node:internal/modules/esm/resolve:768:81)
+    at moduleResolve (node:internal/modules/esm/resolve:859:18)
+    at defaultResolve (node:internal/modules/esm/resolve:992:11)
+    at #cachedDefaultResolve (node:internal/modules/esm/loader:691:20)
+    at #resolveAndMaybeBlockOnLoaderThread (node:internal/modules/esm/loader:708:38)
+    at ModuleLoader.resolveSync (node:internal/modules/esm/loader:740:52)
+    at #resolve (node:internal/modules/esm/loader:673:17)
+    at ModuleLoader.getOrCreateModuleJob (node:internal/modules/esm/loader:593:35)
+    at ModuleJob.syncLink (node:internal/modules/esm/module_job:163:33) {
+  code: 'ERR_MODULE_NOT_FOUND'
+}
+
+Node.js v24.16.0
+✖ test/global-trust-integrity-http.test.mjs (75.807749ms)
+node:internal/modules/package_json_reader:301
+  throw new ERR_MODULE_NOT_FOUND(packageName, fileURLToPath(base), null);
+        ^
+
+Error [ERR_MODULE_NOT_FOUND]: Cannot find package '@apidevelopers/persistence-core' imported from /Users/milenapeterlesavioabreu/actions-runners/apidevelopers-organization-macos/actions-runner/_work/apidevelopers-platform/apidevelopers-platform/apps/api-gateway/test/global-trust-integrity.test.mjs
+    at Object.getPackageJSONURL (node:internal/modules/package_json_reader:301:9)
+    at packageResolve (node:internal/modules/esm/resolve:768:81)
+    at moduleResolve (node:internal/modules/esm/resolve:859:18)
+    at defaultResolve (node:internal/modules/esm/resolve:992:11)
+    at #cachedDefaultResolve (node:internal/modules/esm/loader:691:20)
+    at #resolveAndMaybeBlockOnLoaderThread (node:internal/modules/esm/loader:708:38)
+    at ModuleLoader.resolveSync (node:internal/modules/esm/loader:740:52)
+    at #resolve (node:internal/modules/esm/loader:673:17)
+    at ModuleLoader.getOrCreateModuleJob (node:internal/modules/esm/loader:593:35)
+    at ModuleJob.syncLink (node:internal/modules/esm/module_job:163:33) {
+  code: 'ERR_MODULE_NOT_FOUND'
+}
+
+Node.js v24.16.0
+✖ test/global-trust-integrity.test.mjs (79.786823ms)
+node:internal/modules/package_json_reader:301
+  throw new ERR_MODULE_NOT_FOUND(packageName, fileURLToPath(base), null);
+        ^
+
+Error [ERR_MODULE_NOT_FOUND]: Cannot find package '@apidevelopers/persistence-core' imported from /Users/milenapeterlesavioabreu/actions-runners/apidevelopers-organization-macos/actions-runner/_work/apidevelopers-platform/apidevelopers-platform/apps/api-gateway/src/operational-composition.mjs
+    at Object.getPackageJSONURL (node:internal/modules/package_json_reader:301:9)
+    at packageResolve (node:internal/modules/esm/resolve:768:81)
+    at moduleResolve (node:internal/modules/esm/resolve:859:18)
+    at defaultResolve (node:internal/modules/esm/resolve:992:11)
+    at #cachedDefaultResolve (node:internal/modules/esm/loader:691:20)
+    at #resolveAndMaybeBlockOnLoaderThread (node:internal/modules/esm/loader:708:38)
+    at ModuleLoader.resolveSync (node:internal/modules/esm/loader:740:52)
+    at #resolve (node:internal/modules/esm/loader:673:17)
+    at ModuleLoader.getOrCreateModuleJob (node:internal/modules/esm/loader:593:35)
+    at ModuleJob.syncLink (node:internal/modules/esm/module_job:163:33) {
+  code: 'ERR_MODULE_NOT_FOUND'
+}
+
+Node.js v24.16.0
+✖ test/global-trust-kill-switch-http.test.mjs (72.597188ms)
+node:internal/modules/package_json_reader:301
+  throw new ERR_MODULE_NOT_FOUND(packageName, fileURLToPath(base), null);
+        ^
+
+Error [ERR_MODULE_NOT_FOUND]: Cannot find package '@apidevelopers/persistence-core' imported from /Users/milenapeterlesavioabreu/actions-runners/apidevelopers-organization-macos/actions-runner/_work/apidevelopers-platform/apidevelopers-platform/apps/api-gateway/test/global-trust-kill-switch.test.mjs
+    at Object.getPackageJSONURL (node:internal/modules/package_json_reader:301:9)
+    at packageResolve (node:internal/modules/esm/resolve:768:81)
+    at moduleResolve (node:internal/modules/esm/resolve:859:18)
+    at defaultResolve (node:internal/modules/esm/resolve:992:11)
+    at #cachedDefaultResolve (node:internal/modules/esm/loader:691:20)
+    at #resolveAndMaybeBlockOnLoaderThread (node:internal/modules/esm/loader:708:38)
+    at ModuleLoader.resolveSync (node:internal/modules/esm/loader:740:52)
+    at #resolve (node:internal/modules/esm/loader:673:17)
+    at ModuleLoader.getOrCreateModuleJob (node:internal/modules/esm/loader:593:35)
+    at ModuleJob.syncLink (node:internal/modules/esm/module_job:163:33) {
+  code: 'ERR_MODULE_NOT_FOUND'
+}
+
+Node.js v24.16.0
+✖ test/global-trust-kill-switch.test.mjs (67.29019ms)
+node:internal/modules/package_json_reader:301
+  throw new ERR_MODULE_NOT_FOUND(packageName, fileURLToPath(base), null);
+        ^
+
+Error [ERR_MODULE_NOT_FOUND]: Cannot find package '@apidevelopers/contracts' imported from /Users/milenapeterlesavioabreu/actions-runners/apidevelopers-organization-macos/actions-runner/_work/apidevelopers-platform/apidevelopers-platform/apps/api-gateway/src/global-trust-model-registry-shared.mjs
+    at Object.getPackageJSONURL (node:internal/modules/package_json_reader:301:9)
+    at packageResolve (node:internal/modules/esm/resolve:768:81)
+    at moduleResolve (node:internal/modules/esm/resolve:859:18)
+    at defaultResolve (node:internal/modules/esm/resolve:992:11)
+    at #cachedDefaultResolve (node:internal/modules/esm/loader:691:20)
+    at #resolveAndMaybeBlockOnLoaderThread (node:internal/modules/esm/loader:708:38)
+    at ModuleLoader.resolveSync (node:internal/modules/esm/loader:740:52)
+    at #resolve (node:internal/modules/esm/loader:673:17)
+    at ModuleLoader.getOrCreateModuleJob (node:internal/modules/esm/loader:593:35)
+    at ModuleJob.syncLink (node:internal/modules/esm/module_job:163:33) {
+  code: 'ERR_MODULE_NOT_FOUND'
+}
+
+Node.js v24.16.0
+✖ test/global-trust-model-registry-http.test.mjs (91.453666ms)
+node:internal/modules/package_json_reader:301
+  throw new ERR_MODULE_NOT_FOUND(packageName, fileURLToPath(base), null);
+        ^
+
+Error [ERR_MODULE_NOT_FOUND]: Cannot find package '@apidevelopers/persistence-core' imported from /Users/milenapeterlesavioabreu/actions-runners/apidevelopers-organization-macos/actions-runner/_work/apidevelopers-platform/apidevelopers-platform/apps/api-gateway/test/global-trust-model-registry.test.mjs
+    at Object.getPackageJSONURL (node:internal/modules/package_json_reader:301:9)
+    at packageResolve (node:internal/modules/esm/resolve:768:81)
+    at moduleResolve (node:internal/modules/esm/resolve:859:18)
+    at defaultResolve (node:internal/modules/esm/resolve:992:11)
+    at #cachedDefaultResolve (node:internal/modules/esm/loader:691:20)
+    at #resolveAndMaybeBlockOnLoaderThread (node:internal/modules/esm/loader:708:38)
+    at ModuleLoader.resolveSync (node:internal/modules/esm/loader:740:52)
+    at #resolve (node:internal/modules/esm/loader:673:17)
+    at ModuleLoader.getOrCreateModuleJob (node:internal/modules/esm/loader:593:35)
+    at ModuleJob.syncLink (node:internal/modules/esm/module_job:163:33) {
+  code: 'ERR_MODULE_NOT_FOUND'
+}
+
+Node.js v24.16.0
+✖ test/global-trust-model-registry.test.mjs (70.599911ms)
+node:internal/modules/package_json_reader:301
+  throw new ERR_MODULE_NOT_FOUND(packageName, fileURLToPath(base), null);
+        ^
+
+Error [ERR_MODULE_NOT_FOUND]: Cannot find package '@apidevelopers/persistence-core' imported from /Users/milenapeterlesavioabreu/actions-runners/apidevelopers-organization-macos/actions-runner/_work/apidevelopers-platform/apidevelopers-platform/apps/api-gateway/test/global-trust-observability.test.mjs
+    at Object.getPackageJSONURL (node:internal/modules/package_json_reader:301:9)
+    at packageResolve (node:internal/modules/esm/resolve:768:81)
+    at moduleResolve (node:internal/modules/esm/resolve:859:18)
+    at defaultResolve (node:internal/modules/esm/resolve:992:11)
+    at #cachedDefaultResolve (node:internal/modules/esm/loader:691:20)
+    at #resolveAndMaybeBlockOnLoaderThread (node:internal/modules/esm/loader:708:38)
+    at ModuleLoader.resolveSync (node:internal/modules/esm/loader:740:52)
+    at #resolve (node:internal/modules/esm/loader:673:17)
+    at ModuleLoader.getOrCreateModuleJob (node:internal/modules/esm/loader:593:35)
+    at ModuleJob.syncLink (node:internal/modules/esm/module_job:163:33) {
+  code: 'ERR_MODULE_NOT_FOUND'
+}
+
+Node.js v24.16.0
+✖ test/global-trust-observability.test.mjs (82.139889ms)
+node:internal/modules/package_json_reader:301
+  throw new ERR_MODULE_NOT_FOUND(packageName, fileURLToPath(base), null);
+        ^
+
+Error [ERR_MODULE_NOT_FOUND]: Cannot find package '@apidevelopers/contracts' imported from /Users/milenapeterlesavioabreu/actions-runners/apidevelopers-organization-macos/actions-runner/_work/apidevelopers-platform/apidevelopers-platform/apps/api-gateway/src/global-trust-data-policy-registry.mjs
+    at Object.getPackageJSONURL (node:internal/modules/package_json_reader:301:9)
+    at packageResolve (node:internal/modules/esm/resolve:768:81)
+    at moduleResolve (node:internal/modules/esm/resolve:859:18)
+    at defaultResolve (node:internal/modules/esm/resolve:992:11)
+    at #cachedDefaultResolve (node:internal/modules/esm/loader:691:20)
+    at #resolveAndMaybeBlockOnLoaderThread (node:internal/modules/esm/loader:708:38)
+    at ModuleLoader.resolveSync (node:internal/modules/esm/loader:740:52)
+    at #resolve (node:internal/modules/esm/loader:673:17)
+    at ModuleLoader.getOrCreateModuleJob (node:internal/modules/esm/loader:593:35)
+    at ModuleJob.syncLink (node:internal/modules/esm/module_job:163:33) {
+  code: 'ERR_MODULE_NOT_FOUND'
+}
+
+Node.js v24.16.0
+✖ test/global-trust-operational-composition.test.mjs (177.157641ms)
+node:internal/modules/package_json_reader:301
+  throw new ERR_MODULE_NOT_FOUND(packageName, fileURLToPath(base), null);
+        ^
+
+Error [ERR_MODULE_NOT_FOUND]: Cannot find package '@apidevelopers/contracts' imported from /Users/milenapeterlesavioabreu/actions-runners/apidevelopers-organization-macos/actions-runner/_work/apidevelopers-platform/apidevelopers-platform/apps/api-gateway/src/global-trust-data-policy-registry.mjs
+    at Object.getPackageJSONURL (node:internal/modules/package_json_reader:301:9)
+    at packageResolve (node:internal/modules/esm/resolve:768:81)
+    at moduleResolve (node:internal/modules/esm/resolve:859:18)
+    at defaultResolve (node:internal/modules/esm/resolve:992:11)
+    at #cachedDefaultResolve (node:internal/modules/esm/loader:691:20)
+    at #resolveAndMaybeBlockOnLoaderThread (node:internal/modules/esm/loader:708:38)
+    at ModuleLoader.resolveSync (node:internal/modules/esm/loader:740:52)
+    at #resolve (node:internal/modules/esm/loader:673:17)
+    at ModuleLoader.getOrCreateModuleJob (node:internal/modules/esm/loader:593:35)
+    at ModuleJob.syncLink (node:internal/modules/esm/module_job:163:33) {
+  code: 'ERR_MODULE_NOT_FOUND'
+}
+
+Node.js v24.16.0
+✖ test/global-trust-output-validator.test.mjs (83.447265ms)
+node:internal/modules/package_json_reader:301
+  throw new ERR_MODULE_NOT_FOUND(packageName, fileURLToPath(base), null);
+        ^
+
+Error [ERR_MODULE_NOT_FOUND]: Cannot find package '@apidevelopers/contracts' imported from /Users/milenapeterlesavioabreu/actions-runners/apidevelopers-organization-macos/actions-runner/_work/apidevelopers-platform/apidevelopers-platform/apps/api-gateway/src/global-trust-data-policy-registry.mjs
+    at Object.getPackageJSONURL (node:internal/modules/package_json_reader:301:9)
+    at packageResolve (node:internal/modules/esm/resolve:768:81)
+    at moduleResolve (node:internal/modules/esm/resolve:859:18)
+    at defaultResolve (node:internal/modules/esm/resolve:992:11)
+    at #cachedDefaultResolve (node:internal/modules/esm/loader:691:20)
+    at #resolveAndMaybeBlockOnLoaderThread (node:internal/modules/esm/loader:708:38)
+    at ModuleLoader.resolveSync (node:internal/modules/esm/loader:740:52)
+    at #resolve (node:internal/modules/esm/loader:673:17)
+    at ModuleLoader.getOrCreateModuleJob (node:internal/modules/esm/loader:593:35)
+    at ModuleJob.syncLink (node:internal/modules/esm/module_job:163:33) {
+  code: 'ERR_MODULE_NOT_FOUND'
+}
+
+Node.js v24.16.0
+✖ test/global-trust-prompt-defense.test.mjs (155.43958ms)
+node:internal/modules/package_json_reader:301
+  throw new ERR_MODULE_NOT_FOUND(packageName, fileURLToPath(base), null);
+        ^
+
+Error [ERR_MODULE_NOT_FOUND]: Cannot find package '@apidevelopers/contracts' imported from /Users/milenapeterlesavioabreu/actions-runners/apidevelopers-organization-macos/actions-runner/_work/apidevelopers-platform/apidevelopers-platform/apps/api-gateway/src/global-trust-risk.mjs
+    at Object.getPackageJSONURL (node:internal/modules/package_json_reader:301:9)
+    at packageResolve (node:internal/modules/esm/resolve:768:81)
+    at moduleResolve (node:internal/modules/esm/resolve:859:18)
+    at defaultResolve (node:internal/modules/esm/resolve:992:11)
+    at #cachedDefaultResolve (node:internal/modules/esm/loader:691:20)
+    at #resolveAndMaybeBlockOnLoaderThread (node:internal/modules/esm/loader:708:38)
+    at ModuleLoader.resolveSync (node:internal/modules/esm/loader:740:52)
+    at #resolve (node:internal/modules/esm/loader:673:17)
+    at ModuleLoader.getOrCreateModuleJob (node:internal/modules/esm/loader:593:35)
+    at ModuleJob.syncLink (node:internal/modules/esm/module_job:163:33) {
+  code: 'ERR_MODULE_NOT_FOUND'
+}
+
+Node.js v24.16.0
+✖ test/global-trust-risk.test.mjs (87.766842ms)
+node:internal/modules/package_json_reader:301
+  throw new ERR_MODULE_NOT_FOUND(packageName, fileURLToPath(base), null);
+        ^
+
+Error [ERR_MODULE_NOT_FOUND]: Cannot find package '@apidevelopers/contracts' imported from /Users/milenapeterlesavioabreu/actions-runners/apidevelopers-organization-macos/actions-runner/_work/apidevelopers-platform/apidevelopers-platform/apps/api-gateway/test/global-trust-safety-simulation.test.mjs
+    at Object.getPackageJSONURL (node:internal/modules/package_json_reader:301:9)
+    at packageResolve (node:internal/modules/esm/resolve:768:81)
+    at moduleResolve (node:internal/modules/esm/resolve:859:18)
+    at defaultResolve (node:internal/modules/esm/resolve:992:11)
+    at #cachedDefaultResolve (node:internal/modules/esm/loader:691:20)
+    at #resolveAndMaybeBlockOnLoaderThread (node:internal/modules/esm/loader:708:38)
+    at ModuleLoader.resolveSync (node:internal/modules/esm/loader:740:52)
+    at #resolve (node:internal/modules/esm/loader:673:17)
+    at ModuleLoader.getOrCreateModuleJob (node:internal/modules/esm/loader:593:35)
+    at ModuleJob.syncLink (node:internal/modules/esm/module_job:163:33) {
+  code: 'ERR_MODULE_NOT_FOUND'
+}
+
+Node.js v24.16.0
+✖ test/global-trust-safety-simulation.test.mjs (124.407278ms)
+✔ runs STG-01 through STG-18 without exposing expected results to bindings (12.890461ms)
+✔ applies a deny-all process network guard and records blocked attempts (0.861369ms)
+✔ derives non-zero execution flags from telemetry and fails the run (2.533152ms)
+✔ fails closed when a binding returns an invalid control proof (4.240107ms)
+✔ sanitizer uses an allow-list and rejects malformed evidence references (3.137394ms)
+✔ requires the exact tenant and a full lowercase source SHA (0.943426ms)
+✔ null provider blocks inference and tool execution (0.312471ms)
+✔ runs STG-01 through STG-18 in fail-closed dry-run mode (11.487994ms)
+✔ manifest validation rejects unsafe staging configuration (2.392145ms)
+✔ null provider blocks inference and tool execution (0.338075ms)
+✔ cleanup runs when seeding fails and the report remains failed (2.536465ms)
+✔ repeated dry-runs produce the same logical scenario vector (2.173497ms)
+node:internal/modules/package_json_reader:301
+  throw new ERR_MODULE_NOT_FOUND(packageName, fileURLToPath(base), null);
+        ^
+
+Error [ERR_MODULE_NOT_FOUND]: Cannot find package '@apidevelopers/contracts' imported from /Users/milenapeterlesavioabreu/actions-runners/apidevelopers-organization-macos/actions-runner/_work/apidevelopers-platform/apidevelopers-platform/apps/api-gateway/test/global-trust-staging-operational-bindings.test.mjs
+    at Object.getPackageJSONURL (node:internal/modules/package_json_reader:301:9)
+    at packageResolve (node:internal/modules/esm/resolve:768:81)
+    at moduleResolve (node:internal/modules/esm/resolve:859:18)
+    at defaultResolve (node:internal/modules/esm/resolve:992:11)
+    at #cachedDefaultResolve (node:internal/modules/esm/loader:691:20)
+    at #resolveAndMaybeBlockOnLoaderThread (node:internal/modules/esm/loader:708:38)
+    at ModuleLoader.resolveSync (node:internal/modules/esm/loader:740:52)
+    at #resolve (node:internal/modules/esm/loader:673:17)
+    at ModuleLoader.getOrCreateModuleJob (node:internal/modules/esm/loader:593:35)
+    at ModuleJob.syncLink (node:internal/modules/esm/module_job:163:33) {
+  code: 'ERR_MODULE_NOT_FOUND'
+}
+
+Node.js v24.16.0
+✖ test/global-trust-staging-operational-bindings.test.mjs (77.100974ms)
+node:internal/modules/package_json_reader:301
+  throw new ERR_MODULE_NOT_FOUND(packageName, fileURLToPath(base), null);
+        ^
+
+Error [ERR_MODULE_NOT_FOUND]: Cannot find package '@apidevelopers/contracts' imported from /Users/milenapeterlesavioabreu/actions-runners/apidevelopers-organization-macos/actions-runner/_work/apidevelopers-platform/apidevelopers-platform/apps/api-gateway/test/global-trust-tool-invocation-guard.test.mjs
+    at Object.getPackageJSONURL (node:internal/modules/package_json_reader:301:9)
+    at packageResolve (node:internal/modules/esm/resolve:768:81)
+    at moduleResolve (node:internal/modules/esm/resolve:859:18)
+    at defaultResolve (node:internal/modules/esm/resolve:992:11)
+    at #cachedDefaultResolve (node:internal/modules/esm/loader:691:20)
+    at #resolveAndMaybeBlockOnLoaderThread (node:internal/modules/esm/loader:708:38)
+    at ModuleLoader.resolveSync (node:internal/modules/esm/loader:740:52)
+    at #resolve (node:internal/modules/esm/loader:673:17)
+    at ModuleLoader.getOrCreateModuleJob (node:internal/modules/esm/loader:593:35)
+    at ModuleJob.syncLink (node:internal/modules/esm/module_job:163:33) {
+  code: 'ERR_MODULE_NOT_FOUND'
+}
+
+Node.js v24.16.0
+✖ test/global-trust-tool-invocation-guard.test.mjs (73.765095ms)
+node:internal/modules/package_json_reader:301
+  throw new ERR_MODULE_NOT_FOUND(packageName, fileURLToPath(base), null);
+        ^
+
+Error [ERR_MODULE_NOT_FOUND]: Cannot find package '@apidevelopers/contracts' imported from /Users/milenapeterlesavioabreu/actions-runners/apidevelopers-organization-macos/actions-runner/_work/apidevelopers-platform/apidevelopers-platform/apps/api-gateway/test/global-trust-tool-invocation-http.test.mjs
+    at Object.getPackageJSONURL (node:internal/modules/package_json_reader:301:9)
+    at packageResolve (node:internal/modules/esm/resolve:768:81)
+    at moduleResolve (node:internal/modules/esm/resolve:859:18)
+    at defaultResolve (node:internal/modules/esm/resolve:992:11)
+    at #cachedDefaultResolve (node:internal/modules/esm/loader:691:20)
+    at #resolveAndMaybeBlockOnLoaderThread (node:internal/modules/esm/loader:708:38)
+    at ModuleLoader.resolveSync (node:internal/modules/esm/loader:740:52)
+    at #resolve (node:internal/modules/esm/loader:673:17)
+    at ModuleLoader.getOrCreateModuleJob (node:internal/modules/esm/loader:593:35)
+    at ModuleJob.syncLink (node:internal/modules/esm/module_job:163:33) {
+  code: 'ERR_MODULE_NOT_FOUND'
+}
+
+Node.js v24.16.0
+✖ test/global-trust-tool-invocation-http.test.mjs (71.07675ms)
+node:internal/modules/package_json_reader:301
+  throw new ERR_MODULE_NOT_FOUND(packageName, fileURLToPath(base), null);
+        ^
+
+Error [ERR_MODULE_NOT_FOUND]: Cannot find package '@apidevelopers/contracts' imported from /Users/milenapeterlesavioabreu/actions-runners/apidevelopers-organization-macos/actions-runner/_work/apidevelopers-platform/apidevelopers-platform/apps/api-gateway/src/global-trust-use-case-registry.mjs
+    at Object.getPackageJSONURL (node:internal/modules/package_json_reader:301:9)
+    at packageResolve (node:internal/modules/esm/resolve:768:81)
+    at moduleResolve (node:internal/modules/esm/resolve:859:18)
+    at defaultResolve (node:internal/modules/esm/resolve:992:11)
+    at #cachedDefaultResolve (node:internal/modules/esm/loader:691:20)
+    at #resolveAndMaybeBlockOnLoaderThread (node:internal/modules/esm/loader:708:38)
+    at ModuleLoader.resolveSync (node:internal/modules/esm/loader:740:52)
+    at #resolve (node:internal/modules/esm/loader:673:17)
+    at ModuleLoader.getOrCreateModuleJob (node:internal/modules/esm/loader:593:35)
+    at ModuleJob.syncLink (node:internal/modules/esm/module_job:163:33) {
+  code: 'ERR_MODULE_NOT_FOUND'
+}
+
+Node.js v24.16.0
+✖ test/global-trust-use-case-registry-http.test.mjs (92.860836ms)
+node:internal/modules/package_json_reader:301
+  throw new ERR_MODULE_NOT_FOUND(packageName, fileURLToPath(base), null);
+        ^
+
+Error [ERR_MODULE_NOT_FOUND]: Cannot find package '@apidevelopers/contracts' imported from /Users/milenapeterlesavioabreu/actions-runners/apidevelopers-organization-macos/actions-runner/_work/apidevelopers-platform/apidevelopers-platform/apps/api-gateway/src/global-trust-use-case-registry.mjs
+    at Object.getPackageJSONURL (node:internal/modules/package_json_reader:301:9)
+    at packageResolve (node:internal/modules/esm/resolve:768:81)
+    at moduleResolve (node:internal/modules/esm/resolve:859:18)
+    at defaultResolve (node:internal/modules/esm/resolve:992:11)
+    at #cachedDefaultResolve (node:internal/modules/esm/loader:691:20)
+    at #resolveAndMaybeBlockOnLoaderThread (node:internal/modules/esm/loader:708:38)
+    at ModuleLoader.resolveSync (node:internal/modules/esm/loader:740:52)
+    at #resolve (node:internal/modules/esm/loader:673:17)
+    at ModuleLoader.getOrCreateModuleJob (node:internal/modules/esm/loader:593:35)
+    at ModuleJob.syncLink (node:internal/modules/esm/module_job:163:33) {
+  code: 'ERR_MODULE_NOT_FOUND'
+}
+
+Node.js v24.16.0
+✖ test/global-trust-use-case-registry.test.mjs (93.57191ms)
+✔ runtime is disabled by default and exposes no http routes (1.011426ms)
+✔ prepare is always dry-run and returns an operation hash (1.713408ms)
+✔ execute requires approval bound to the exact operation hash (0.917564ms)
+✔ changing an operation invalidates the approval hash (0.342814ms)
+✔ managed-hosting artifact is vendored, registry-independent and tamper-evident (2385.284746ms)
+✖ managed-hosting artifact installs offline and passes operational smoke (1383.006901ms)
+node:internal/modules/package_json_reader:301
+  throw new ERR_MODULE_NOT_FOUND(packageName, fileURLToPath(base), null);
+        ^
+
+Error [ERR_MODULE_NOT_FOUND]: Cannot find package '@apidevelopers/persistence-core' imported from /Users/milenapeterlesavioabreu/actions-runners/apidevelopers-organization-macos/actions-runner/_work/apidevelopers-platform/apidevelopers-platform/apps/api-gateway/src/operational-composition.mjs
+    at Object.getPackageJSONURL (node:internal/modules/package_json_reader:301:9)
+    at packageResolve (node:internal/modules/esm/resolve:768:81)
+    at moduleResolve (node:internal/modules/esm/resolve:859:18)
+    at defaultResolve (node:internal/modules/esm/resolve:992:11)
+    at #cachedDefaultResolve (node:internal/modules/esm/loader:691:20)
+    at #resolveAndMaybeBlockOnLoaderThread (node:internal/modules/esm/loader:708:38)
+    at ModuleLoader.resolveSync (node:internal/modules/esm/loader:740:52)
+    at #resolve (node:internal/modules/esm/loader:673:17)
+    at ModuleLoader.getOrCreateModuleJob (node:internal/modules/esm/loader:593:35)
+    at ModuleJob.syncLink (node:internal/modules/esm/module_job:163:33) {
+  code: 'ERR_MODULE_NOT_FOUND'
+}
+
+Node.js v24.16.0
+✖ test/operational-auth-lifecycle.test.mjs (87.625419ms)
+node:internal/modules/package_json_reader:301
+  throw new ERR_MODULE_NOT_FOUND(packageName, fileURLToPath(base), null);
+        ^
+
+Error [ERR_MODULE_NOT_FOUND]: Cannot find package '@apidevelopers/persistence-core' imported from /Users/milenapeterlesavioabreu/actions-runners/apidevelopers-organization-macos/actions-runner/_work/apidevelopers-platform/apidevelopers-platform/apps/api-gateway/src/operational-composition.mjs
+    at Object.getPackageJSONURL (node:internal/modules/package_json_reader:301:9)
+    at packageResolve (node:internal/modules/esm/resolve:768:81)
+    at moduleResolve (node:internal/modules/esm/resolve:859:18)
+    at defaultResolve (node:internal/modules/esm/resolve:992:11)
+    at #cachedDefaultResolve (node:internal/modules/esm/loader:691:20)
+    at #resolveAndMaybeBlockOnLoaderThread (node:internal/modules/esm/loader:708:38)
+    at ModuleLoader.resolveSync (node:internal/modules/esm/loader:740:52)
+    at #resolve (node:internal/modules/esm/loader:673:17)
+    at ModuleLoader.getOrCreateModuleJob (node:internal/modules/esm/loader:593:35)
+    at ModuleJob.syncLink (node:internal/modules/esm/module_job:163:33) {
+  code: 'ERR_MODULE_NOT_FOUND'
+}
+
+Node.js v24.16.0
+✖ test/operational-entrypoint.test.mjs (172.673418ms)
+✔ transport passes bounded JSON body to the operational app (40.82403ms)
+✔ transport rejects oversized body before calling the app (11.186074ms)
+✔ transport returns a sanitized internal error (4.526259ms)
+node:internal/modules/package_json_reader:301
+  throw new ERR_MODULE_NOT_FOUND(packageName, fileURLToPath(base), null);
+        ^
+
+Error [ERR_MODULE_NOT_FOUND]: Cannot find package '@apidevelopers/persistence-core' imported from /Users/milenapeterlesavioabreu/actions-runners/apidevelopers-organization-macos/actions-runner/_work/apidevelopers-platform/apidevelopers-platform/apps/api-gateway/src/operational-composition.mjs
+    at Object.getPackageJSONURL (node:internal/modules/package_json_reader:301:9)
+    at packageResolve (node:internal/modules/esm/resolve:768:81)
+    at moduleResolve (node:internal/modules/esm/resolve:859:18)
+    at defaultResolve (node:internal/modules/esm/resolve:992:11)
+    at #cachedDefaultResolve (node:internal/modules/esm/loader:691:20)
+    at #resolveAndMaybeBlockOnLoaderThread (node:internal/modules/esm/loader:708:38)
+    at ModuleLoader.resolveSync (node:internal/modules/esm/loader:740:52)
+    at #resolve (node:internal/modules/esm/loader:673:17)
+    at ModuleLoader.getOrCreateModuleJob (node:internal/modules/esm/loader:593:35)
+    at ModuleJob.syncLink (node:internal/modules/esm/module_job:163:33) {
+  code: 'ERR_MODULE_NOT_FOUND'
+}
+
+Node.js v24.16.0
+✖ test/operational-http.test.mjs (90.197715ms)
+✔ keeps health public and excludes credentials from audit events (14.609002ms)
+✔ rate limits protected routes by credential fingerprint (0.847289ms)
+✔ isolates concurrent credentials and exposes structured metrics (1.298057ms)
+✔ validates protection contracts (0.4449ms)
+node:internal/modules/package_json_reader:301
+  throw new ERR_MODULE_NOT_FOUND(packageName, fileURLToPath(base), null);
+        ^
+
+Error [ERR_MODULE_NOT_FOUND]: Cannot find package '@apidevelopers/persistence-core' imported from /Users/milenapeterlesavioabreu/actions-runners/apidevelopers-organization-macos/actions-runner/_work/apidevelopers-platform/apidevelopers-platform/apps/api-gateway/src/operational-composition.mjs
+    at Object.getPackageJSONURL (node:internal/modules/package_json_reader:301:9)
+    at packageResolve (node:internal/modules/esm/resolve:768:81)
+    at moduleResolve (node:internal/modules/esm/resolve:859:18)
+    at defaultResolve (node:internal/modules/esm/resolve:992:11)
+    at #cachedDefaultResolve (node:internal/modules/esm/loader:691:20)
+    at #resolveAndMaybeBlockOnLoaderThread (node:internal/modules/esm/loader:708:38)
+    at ModuleLoader.resolveSync (node:internal/modules/esm/loader:740:52)
+    at #resolve (node:internal/modules/esm/loader:673:17)
+    at ModuleLoader.getOrCreateModuleJob (node:internal/modules/esm/loader:593:35)
+    at ModuleJob.syncLink (node:internal/modules/esm/module_job:163:33) {
+  code: 'ERR_MODULE_NOT_FOUND'
+}
+
+Node.js v24.16.0
+✖ test/operational-readiness-composition.test.mjs (66.812242ms)
+node:internal/modules/package_json_reader:301
+  throw new ERR_MODULE_NOT_FOUND(packageName, fileURLToPath(base), null);
+        ^
+
+Error [ERR_MODULE_NOT_FOUND]: Cannot find package '@apidevelopers/persistence-core' imported from /Users/milenapeterlesavioabreu/actions-runners/apidevelopers-organization-macos/actions-runner/_work/apidevelopers-platform/apidevelopers-platform/apps/api-gateway/src/operational-composition.mjs
+    at Object.getPackageJSONURL (node:internal/modules/package_json_reader:301:9)
+    at packageResolve (node:internal/modules/esm/resolve:768:81)
+    at moduleResolve (node:internal/modules/esm/resolve:859:18)
+    at defaultResolve (node:internal/modules/esm/resolve:992:11)
+    at #cachedDefaultResolve (node:internal/modules/esm/loader:691:20)
+    at #resolveAndMaybeBlockOnLoaderThread (node:internal/modules/esm/loader:708:38)
+    at ModuleLoader.resolveSync (node:internal/modules/esm/loader:740:52)
+    at #resolve (node:internal/modules/esm/loader:673:17)
+    at ModuleLoader.getOrCreateModuleJob (node:internal/modules/esm/loader:593:35)
+    at ModuleJob.syncLink (node:internal/modules/esm/module_job:163:33) {
+  code: 'ERR_MODULE_NOT_FOUND'
+}
+
+Node.js v24.16.0
+✖ test/operational-runtime-wave1.test.mjs (78.617494ms)
+node:internal/modules/package_json_reader:301
+  throw new ERR_MODULE_NOT_FOUND(packageName, fileURLToPath(base), null);
+        ^
+
+Error [ERR_MODULE_NOT_FOUND]: Cannot find package '@apidevelopers/persistence-core' imported from /Users/milenapeterlesavioabreu/actions-runners/apidevelopers-organization-macos/actions-runner/_work/apidevelopers-platform/apidevelopers-platform/apps/api-gateway/src/operational-composition.mjs
+    at Object.getPackageJSONURL (node:internal/modules/package_json_reader:301:9)
+    at packageResolve (node:internal/modules/esm/resolve:768:81)
+    at moduleResolve (node:internal/modules/esm/resolve:859:18)
+    at defaultResolve (node:internal/modules/esm/resolve:992:11)
+    at #cachedDefaultResolve (node:internal/modules/esm/loader:691:20)
+    at #resolveAndMaybeBlockOnLoaderThread (node:internal/modules/esm/loader:708:38)
+    at ModuleLoader.resolveSync (node:internal/modules/esm/loader:740:52)
+    at #resolve (node:internal/modules/esm/loader:673:17)
+    at ModuleLoader.getOrCreateModuleJob (node:internal/modules/esm/loader:593:35)
+    at ModuleJob.syncLink (node:internal/modules/esm/module_job:163:33) {
+  code: 'ERR_MODULE_NOT_FOUND'
+}
+
+Node.js v24.16.0
+✖ test/operational-runtime.test.mjs (84.888078ms)
+node:internal/modules/package_json_reader:301
+  throw new ERR_MODULE_NOT_FOUND(packageName, fileURLToPath(base), null);
+        ^
+
+Error [ERR_MODULE_NOT_FOUND]: Cannot find package '@apidevelopers/persistence-core' imported from /Users/milenapeterlesavioabreu/actions-runners/apidevelopers-organization-macos/actions-runner/_work/apidevelopers-platform/apidevelopers-platform/apps/api-gateway/src/operational-composition.mjs
+    at Object.getPackageJSONURL (node:internal/modules/package_json_reader:301:9)
+    at packageResolve (node:internal/modules/esm/resolve:768:81)
+    at moduleResolve (node:internal/modules/esm/resolve:859:18)
+    at defaultResolve (node:internal/modules/esm/resolve:992:11)
+    at #cachedDefaultResolve (node:internal/modules/esm/loader:691:20)
+    at #resolveAndMaybeBlockOnLoaderThread (node:internal/modules/esm/loader:708:38)
+    at ModuleLoader.resolveSync (node:internal/modules/esm/loader:740:52)
+    at #resolve (node:internal/modules/esm/loader:673:17)
+    at ModuleLoader.getOrCreateModuleJob (node:internal/modules/esm/loader:593:35)
+    at ModuleJob.syncLink (node:internal/modules/esm/module_job:163:33) {
+  code: 'ERR_MODULE_NOT_FOUND'
+}
+
+Node.js v24.16.0
+✖ test/operator-gateway-controlled-dry-run.test.mjs (80.266956ms)
+✔ accepts the aligned read-only pilot scope (6.69604ms)
+✔ rejects any write permission (1.741128ms)
+✔ rejects additional organization permissions (1.194897ms)
+✔ rejects webhooks and events (1.939811ms)
+✔ accepts the committed pre-provisioning manifest without secrets (7.409264ms)
+✔ rejects write permissions (1.293819ms)
+✔ rejects repositories outside the canonical allowlist (3.364797ms)
+✔ rejects webhooks and event subscriptions (3.311706ms)
+✔ rejects premature authorization flags (1.727021ms)
+✔ rejects private key and GitHub token material (2.337057ms)
+node:internal/modules/package_json_reader:301
+  throw new ERR_MODULE_NOT_FOUND(packageName, fileURLToPath(base), null);
+        ^
+
+Error [ERR_MODULE_NOT_FOUND]: Cannot find package '@apidevelopers/persistence-core' imported from /Users/milenapeterlesavioabreu/actions-runners/apidevelopers-organization-macos/actions-runner/_work/apidevelopers-platform/apidevelopers-platform/apps/api-gateway/src/operational-composition.mjs
+    at Object.getPackageJSONURL (node:internal/modules/package_json_reader:301:9)
+    at packageResolve (node:internal/modules/esm/resolve:768:81)
+    at moduleResolve (node:internal/modules/esm/resolve:859:18)
+    at defaultResolve (node:internal/modules/esm/resolve:992:11)
+    at #cachedDefaultResolve (node:internal/modules/esm/loader:691:20)
+    at #resolveAndMaybeBlockOnLoaderThread (node:internal/modules/esm/loader:708:38)
+    at ModuleLoader.resolveSync (node:internal/modules/esm/loader:740:52)
+    at #resolve (node:internal/modules/esm/loader:673:17)
+    at ModuleLoader.getOrCreateModuleJob (node:internal/modules/esm/loader:593:35)
+    at ModuleJob.syncLink (node:internal/modules/esm/module_job:163:33) {
+  code: 'ERR_MODULE_NOT_FOUND'
+}
+
+Node.js v24.16.0
+✖ test/operator-github-default-transport-wave4.test.mjs (81.333476ms)
+✔ GitHub readonly client accepts an opaque 520-byte installation token without truncation or leakage (7.362537ms)
+✔ GitHub credential path remains opaque and has no legacy 40/255-character constraint (4.233559ms)
+✔ requires injected client and safe organization (1.31955ms)
+✔ status reports organization without returning provider secrets (2.401908ms)
+✔ status enforces organization boundary and repository ownership (0.686366ms)
+✔ status sanitizes upstream denial and archived repository state (0.423271ms)
+✔ inventory returns bounded sanitized descriptors and opaque cursor (0.582993ms)
+✔ inventory validates cursor, provider and upstream failure (0.492809ms)
+✔ read and audit remain unavailable in this metadata block (0.34474ms)
+✔ requires opaque credential reference and injected transport (1.517689ms)
+✔ getOrganization uses temporary bytes and returns only login (4.149064ms)
+✔ getRepository strips raw GitHub fields (0.691211ms)
+✔ list repositories is bounded and parses next page (0.873845ms)
+✔ non-success and transport failures are sanitized (0.748447ms)
+✔ secret lease rejects strings and wipes copied bytes (0.394196ms)
+node:internal/modules/package_json_reader:301
+  throw new ERR_MODULE_NOT_FOUND(packageName, fileURLToPath(base), null);
+        ^
+
+Error [ERR_MODULE_NOT_FOUND]: Cannot find package '@apidevelopers/persistence-core' imported from /Users/milenapeterlesavioabreu/actions-runners/apidevelopers-organization-macos/actions-runner/_work/apidevelopers-platform/apidevelopers-platform/apps/api-gateway/src/operational-composition.mjs
+    at Object.getPackageJSONURL (node:internal/modules/package_json_reader:301:9)
+    at packageResolve (node:internal/modules/esm/resolve:768:81)
+    at moduleResolve (node:internal/modules/esm/resolve:859:18)
+    at defaultResolve (node:internal/modules/esm/resolve:992:11)
+    at #cachedDefaultResolve (node:internal/modules/esm/loader:691:20)
+    at #resolveAndMaybeBlockOnLoaderThread (node:internal/modules/esm/loader:708:38)
+    at ModuleLoader.resolveSync (node:internal/modules/esm/loader:740:52)
+    at #resolve (node:internal/modules/esm/loader:673:17)
+    at ModuleLoader.getOrCreateModuleJob (node:internal/modules/esm/loader:593:35)
+    at ModuleJob.syncLink (node:internal/modules/esm/module_job:163:33) {
+  code: 'ERR_MODULE_NOT_FOUND'
+}
+
+Node.js v24.16.0
+✖ test/operator-github-readonly-operational-runtime.test.mjs (79.665563ms)
+✔ complete read-only stack composes vault, egress, transport, client and adapter (43.866988ms)
+✔ complete stack remains deny-by-default for secret reference and egress origin (0.945119ms)
+✔ complete stack has no implicit network or vault fallback (0.553262ms)
+✔ transport carries a 520-byte installation token without returning it (2.540076ms)
+✔ transport blocks writes, foreign origins and caller authorization (1.020657ms)
+✔ transport rejects oversized responses and malformed credentials (2.555319ms)
+node:internal/modules/package_json_reader:301
+  throw new ERR_MODULE_NOT_FOUND(packageName, fileURLToPath(base), null);
+        ^
+
+Error [ERR_MODULE_NOT_FOUND]: Cannot find package '@apidevelopers/persistence-core' imported from /Users/milenapeterlesavioabreu/actions-runners/apidevelopers-organization-macos/actions-runner/_work/apidevelopers-platform/apidevelopers-platform/apps/api-gateway/src/operational-composition.mjs
+    at Object.getPackageJSONURL (node:internal/modules/package_json_reader:301:9)
+    at packageResolve (node:internal/modules/esm/resolve:768:81)
+    at moduleResolve (node:internal/modules/esm/resolve:859:18)
+    at defaultResolve (node:internal/modules/esm/resolve:992:11)
+    at #cachedDefaultResolve (node:internal/modules/esm/loader:691:20)
+    at #resolveAndMaybeBlockOnLoaderThread (node:internal/modules/esm/loader:708:38)
+    at ModuleLoader.resolveSync (node:internal/modules/esm/loader:740:52)
+    at #resolve (node:internal/modules/esm/loader:673:17)
+    at ModuleLoader.getOrCreateModuleJob (node:internal/modules/esm/loader:593:35)
+    at ModuleJob.syncLink (node:internal/modules/esm/module_job:163:33) {
+  code: 'ERR_MODULE_NOT_FOUND'
+}
+
+Node.js v24.16.0
+✖ test/operator-github-runtime.test.mjs (83.448696ms)
+✔ null adapter fails closed with adapter_unavailable (1.833302ms)
+✔ rejects row or value access requests (1.654382ms)
+✔ rejects hosts and engines outside the allowlist (0.390543ms)
+✔ returns deterministic schema metadata only (13.089006ms)
+✔ fails closed if provider returns rows, values, SQL or credentials (2.403461ms)
+✔ validates provider schema metadata (0.491362ms)
+✔ service rejects rows, values and unsupported engines before adapter access (4.084085ms)
+✔ service returns only sanitized schema metadata (0.855849ms)
+✔ service fails closed when provider returns data-bearing fields (0.333608ms)
+✔ HTTP route enforces authentication and scope (1.863195ms)
+✔ HTTP route uses null adapter semantics and sanitized audit metadata (0.797342ms)
+✔ delegates unrelated routes (1.396126ms)
+✔ rejects unauthenticated requests before inventory (0.418132ms)
+✔ denies missing tenant context and missing scope (0.880483ms)
+✔ default null adapter returns sanitized 503 and records failure (1.252414ms)
+✔ returns sanitized metadata only after successful audit (0.647386ms)
+✔ fails closed when success cannot be audited (0.487605ms)
+✔ rejects malformed JSON and non-POST methods (0.385002ms)
+✔ returns only sanitized metadata in deterministic order (15.625895ms)
+✔ rejects path traversal and absolute paths (1.669569ms)
+✔ rejects roots and extensions outside the allowlist (0.477339ms)
+✔ rejects content requests and non-allowlisted hosts (0.325772ms)
+✔ fails closed when a provider returns content or unsafe metadata (0.480488ms)
+✔ egress policy allows bounded GitHub GET metadata request (2.774434ms)
+✔ egress policy denies SSRF, writes, credentials and unknown query/header (0.751696ms)
+✔ credential transport injects bearer only inside fetch and sanitizes response (32.608321ms)
+✔ credential transport denies redirects and oversized responses (2.255942ms)
+✔ credential transport sanitizes timeout and network failures (0.537302ms)
+✔ unavailable transport fails closed without network (0.451654ms)
+✔ helper bridge is fail-closed while disabled (1.577403ms)
+✔ helper bridge emits a fixed shell-free descriptor and zeroes all temporary buffers (1.231312ms)
+✔ helper bridge rejects descriptor changes, overwrite and secret return before the process (0.37461ms)
+✔ helper bridge sanitizes process errors, timeouts and malformed responses (1.826581ms)
+✔ helper bridge integrates with the native writer and Gate 3 using synthetic material only (3.096507ms)
+✔ helper bridge source has no network, environment or direct security CLI binding (6.803543ms)
+✔ native writer is disabled by default (2.157497ms)
+✔ native writer sends a fixed bridge request and zeroes temporary bytes (0.920972ms)
+✔ native writer integrates with Gate 3 using synthetic material only (2.591336ms)
+✔ native writer has no process, shell, network or Keychain command binding (8.909069ms)
+✔ reader is fail-closed and does not invoke a process while disabled (4.059505ms)
+✔ reader uses a fixed shell-free command descriptor with synthetic output (1.388766ms)
+✔ reader denies non-allowlisted descriptors before invoking the process (0.295493ms)
+✔ reader sanitizes process failures and zeroes captured output (0.360588ms)
+✔ reader rejects timeout and oversized output while zeroing buffers (0.60276ms)
+✔ reader integrates end-to-end with the vault client and provider using only synthetic material (4.515675ms)
+✔ storage controller is fail-closed and never calls the writer while disabled (1.95323ms)
+✔ storage controller requires the exact approval before touching synthetic material (0.360047ms)
+✔ synthetic storage returns sanitized evidence and zeroes the writer buffer (3.266342ms)
+✔ writer failures are sanitized and temporary bytes are zeroed (0.508072ms)
+✔ storage rejects overwrite and invalid writer confirmation (0.39793ms)
+✔ storage controller has no process, network or environment access (8.214765ms)
+✔ synthetic Keychain adapter satisfies the vault provider lease contract (5.606191ms)
+✔ adapter denies unknown references and purposes before reading Keychain (0.983943ms)
+✔ adapter sanitizes reader failures without leaking provider details (0.741811ms)
+✔ adapter zeros oversized synthetic material when failing closed (0.406968ms)
+✔ consumer failures are preserved while temporary bytes are zeroed (0.39997ms)
+✔ adapter is injection-only and contains no shell, network or environment access (9.548359ms)
+✔ null adapters fail closed and record sanitized failure (2.59949ms)
+✔ operatorStatus returns bounded metadata and forces no-data flags (1.45023ms)
+✔ operatorInventory rejects unknown or data-bearing provider fields (0.726574ms)
+✔ operatorRead returns only requested safe primitive projection (1.204799ms)
+✔ operatorRead rejects unrequested, nested and sensitive projection fields (0.663532ms)
+✔ operatorAudit exposes event envelope without metadata or payload (0.679394ms)
+✔ audit persistence failure blocks a successful read (0.537433ms)
+✔ invalid context, traversal and non-allowlisted read fields are rejected (0.429482ms)
+✔ delegates unknown route (2.143892ms)
+✔ rejects non POST (0.421708ms)
+✔ rate limits before auth and hashes credential (0.988783ms)
+✔ rejects oversized body before auth (0.328514ms)
+✔ requires auth and handles auth outage (1.249488ms)
+✔ derives context from principal (4.986813ms)
+✔ rejects spoofed context and unknown target keys (1.978642ms)
+✔ enforces scope and audits denial (0.440782ms)
+✔ handles authorization outage (0.264454ms)
+✔ routes all operations with exact scopes (2.347045ms)
+✔ maps adapter and sensitive errors (0.85079ms)
+✔ requires resource id for read (0.28912ms)
+✔ resolver provider normalizes access, leases opaque bytes and zeroes its internal copy (6.743142ms)
+✔ resolver provider integrates with the contract and supports a 520-byte stateless installation token (0.87352ms)
+✔ resolver provider rejects malformed, oversized and expired leases (0.886862ms)
+✔ resolver failures and timeouts are sanitized (5.564429ms)
+✔ resolver provider validates configuration bounds (0.97935ms)
+node:internal/modules/package_json_reader:301
+  throw new ERR_MODULE_NOT_FOUND(packageName, fileURLToPath(base), null);
+        ^
+
+Error [ERR_MODULE_NOT_FOUND]: Cannot find package '@apidevelopers/persistence-core' imported from /Users/milenapeterlesavioabreu/actions-runners/apidevelopers-organization-macos/actions-runner/_work/apidevelopers-platform/apidevelopers-platform/apps/api-gateway/src/operational-composition.mjs
+    at Object.getPackageJSONURL (node:internal/modules/package_json_reader:301:9)
+    at packageResolve (node:internal/modules/esm/resolve:768:81)
+    at moduleResolve (node:internal/modules/esm/resolve:859:18)
+    at defaultResolve (node:internal/modules/esm/resolve:992:11)
+    at #cachedDefaultResolve (node:internal/modules/esm/loader:691:20)
+    at #resolveAndMaybeBlockOnLoaderThread (node:internal/modules/esm/loader:708:38)
+    at ModuleLoader.resolveSync (node:internal/modules/esm/loader:740:52)
+    at #resolve (node:internal/modules/esm/loader:673:17)
+    at ModuleLoader.getOrCreateModuleJob (node:internal/modules/esm/loader:593:35)
+    at ModuleJob.syncLink (node:internal/modules/esm/module_job:163:33) {
+  code: 'ERR_MODULE_NOT_FOUND'
+}
+
+Node.js v24.16.0
+✖ test/operator-secret-runtime-wave6.test.mjs (95.276428ms)
+node:internal/modules/package_json_reader:301
+  throw new ERR_MODULE_NOT_FOUND(packageName, fileURLToPath(base), null);
+        ^
+
+Error [ERR_MODULE_NOT_FOUND]: Cannot find package '@apidevelopers/persistence-core' imported from /Users/milenapeterlesavioabreu/actions-runners/apidevelopers-organization-macos/actions-runner/_work/apidevelopers-platform/apidevelopers-platform/apps/api-gateway/src/operational-composition.mjs
+    at Object.getPackageJSONURL (node:internal/modules/package_json_reader:301:9)
+    at packageResolve (node:internal/modules/esm/resolve:768:81)
+    at moduleResolve (node:internal/modules/esm/resolve:859:18)
+    at defaultResolve (node:internal/modules/esm/resolve:992:11)
+    at #cachedDefaultResolve (node:internal/modules/esm/loader:691:20)
+    at #resolveAndMaybeBlockOnLoaderThread (node:internal/modules/esm/loader:708:38)
+    at ModuleLoader.resolveSync (node:internal/modules/esm/loader:740:52)
+    at #resolve (node:internal/modules/esm/loader:673:17)
+    at ModuleLoader.getOrCreateModuleJob (node:internal/modules/esm/loader:593:35)
+    at ModuleJob.syncLink (node:internal/modules/esm/module_job:163:33) {
+  code: 'ERR_MODULE_NOT_FOUND'
+}
+
+Node.js v24.16.0
+✖ test/operator-vault-runtime-wave7.test.mjs (97.14985ms)
+✔ vault adapter provides a bounded temporary lease through the secret contract (5.441989ms)
+✔ vault adapter denies references outside the exact allowlist before client access (1.512381ms)
+✔ vault adapter rejects expired, oversized and malformed leases (0.523344ms)
+✔ vault adapter sanitizes client failures and preserves consumer failures (0.438547ms)
+✔ vault adapter enforces exactly one lease callback (0.424752ms)
+✔ vault adapter retains the canonical secret access validation (0.554049ms)
+node:internal/modules/package_json_reader:301
+  throw new ERR_MODULE_NOT_FOUND(packageName, fileURLToPath(base), null);
+        ^
+
+Error [ERR_MODULE_NOT_FOUND]: Cannot find package '@apidevelopers/contracts' imported from /Users/milenapeterlesavioabreu/actions-runners/apidevelopers-organization-macos/actions-runner/_work/apidevelopers-platform/apidevelopers-platform/apps/api-gateway/src/global-trust-audit.mjs
+    at Object.getPackageJSONURL (node:internal/modules/package_json_reader:301:9)
+    at packageResolve (node:internal/modules/esm/resolve:768:81)
+    at moduleResolve (node:internal/modules/esm/resolve:859:18)
+    at defaultResolve (node:internal/modules/esm/resolve:992:11)
+    at #cachedDefaultResolve (node:internal/modules/esm/loader:691:20)
+    at #resolveAndMaybeBlockOnLoaderThread (node:internal/modules/esm/loader:708:38)
+    at ModuleLoader.resolveSync (node:internal/modules/esm/loader:740:52)
+    at #resolve (node:internal/modules/esm/loader:673:17)
+    at ModuleLoader.getOrCreateModuleJob (node:internal/modules/esm/loader:593:35)
+    at ModuleJob.syncLink (node:internal/modules/esm/module_job:163:33) {
+  code: 'ERR_MODULE_NOT_FOUND'
+}
+
+Node.js v24.16.0
+✖ test/readiness.test.mjs (121.904301ms)
+✔ release bundle contains the operational runtime and institutional dependencies (355.746797ms)
+✔ release manifest detects artifact tampering (246.170091ms)
+✖ release bundle starts and passes the operational HTTP smoke (326.074884ms)
+node:internal/modules/package_json_reader:301
+  throw new ERR_MODULE_NOT_FOUND(packageName, fileURLToPath(base), null);
+        ^
+
+Error [ERR_MODULE_NOT_FOUND]: Cannot find package '@apidevelopers/contracts' imported from /Users/milenapeterlesavioabreu/actions-runners/apidevelopers-organization-macos/actions-runner/_work/apidevelopers-platform/apidevelopers-platform/apps/api-gateway/src/global-trust-audit.mjs
+    at Object.getPackageJSONURL (node:internal/modules/package_json_reader:301:9)
+    at packageResolve (node:internal/modules/esm/resolve:768:81)
+    at moduleResolve (node:internal/modules/esm/resolve:859:18)
+    at defaultResolve (node:internal/modules/esm/resolve:992:11)
+    at #cachedDefaultResolve (node:internal/modules/esm/loader:691:20)
+    at #resolveAndMaybeBlockOnLoaderThread (node:internal/modules/esm/loader:708:38)
+    at ModuleLoader.resolveSync (node:internal/modules/esm/loader:740:52)
+    at #resolve (node:internal/modules/esm/loader:673:17)
+    at ModuleLoader.getOrCreateModuleJob (node:internal/modules/esm/loader:593:35)
+    at ModuleJob.syncLink (node:internal/modules/esm/module_job:163:33) {
+  code: 'ERR_MODULE_NOT_FOUND'
+}
+
+Node.js v24.16.0
+✖ test/request-tenant-context.test.mjs (132.416493ms)
+node:internal/modules/package_json_reader:301
+  throw new ERR_MODULE_NOT_FOUND(packageName, fileURLToPath(base), null);
+        ^
+
+Error [ERR_MODULE_NOT_FOUND]: Cannot find package '@apidevelopers/contracts' imported from /Users/milenapeterlesavioabreu/actions-runners/apidevelopers-organization-macos/actions-runner/_work/apidevelopers-platform/apidevelopers-platform/apps/api-gateway/src/global-trust-audit.mjs
+    at Object.getPackageJSONURL (node:internal/modules/package_json_reader:301:9)
+    at packageResolve (node:internal/modules/esm/resolve:768:81)
+    at moduleResolve (node:internal/modules/esm/resolve:859:18)
+    at defaultResolve (node:internal/modules/esm/resolve:992:11)
+    at #cachedDefaultResolve (node:internal/modules/esm/loader:691:20)
+    at #resolveAndMaybeBlockOnLoaderThread (node:internal/modules/esm/loader:708:38)
+    at ModuleLoader.resolveSync (node:internal/modules/esm/loader:740:52)
+    at #resolve (node:internal/modules/esm/loader:673:17)
+    at ModuleLoader.getOrCreateModuleJob (node:internal/modules/esm/loader:593:35)
+    at ModuleJob.syncLink (node:internal/modules/esm/module_job:163:33) {
+  code: 'ERR_MODULE_NOT_FOUND'
+}
+
+Node.js v24.16.0
+✖ test/server.test.mjs (105.316717ms)
+ℹ tests 198
+ℹ suites 0
+ℹ pass 145
+ℹ fail 53
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 5160.618474
+
+✖ failing tests:
+
+test at test/audit-query.test.mjs:1:1
+✖ test/audit-query.test.mjs (73.717697ms)
+  'test failed'
+
+test at test/auth-composition.test.mjs:1:1
+✖ test/auth-composition.test.mjs (73.900614ms)
+  'test failed'
+
+test at test/authenticated-route.test.mjs:1:1
+✖ test/authenticated-route.test.mjs (101.078718ms)
+  'test failed'
+
+test at test/decision-evidence-http.test.mjs:1:1
+✖ test/decision-evidence-http.test.mjs (77.508367ms)
+  'test failed'
+
+test at test/developer-surface.test.mjs:1:1
+✖ test/developer-surface.test.mjs (108.737101ms)
+  'test failed'
+
+test at test/durable-global-trust-audit.test.mjs:1:1
+✖ test/durable-global-trust-audit.test.mjs (66.761502ms)
+  'test failed'
+
+test at test/durable-global-trust-decision-evidence.test.mjs:1:1
+✖ test/durable-global-trust-decision-evidence.test.mjs (69.859425ms)
+  'test failed'
+
+test at test/durable-observability.test.mjs:1:1
+✖ test/durable-observability.test.mjs (66.78073ms)
+  'test failed'
+
+test at test/global-trust-admission-gate.test.mjs:1:1
+✖ test/global-trust-admission-gate.test.mjs (109.804099ms)
+  'test failed'
+
+test at test/global-trust-audit.test.mjs:1:1
+✖ test/global-trust-audit.test.mjs (108.971263ms)
+  'test failed'
+
+test at test/global-trust-authorization.test.mjs:1:1
+✖ test/global-trust-authorization.test.mjs (75.619437ms)
+  'test failed'
+
+test at test/global-trust-context.test.mjs:1:1
+✖ test/global-trust-context.test.mjs (93.455317ms)
+  'test failed'
+
+test at test/global-trust-data-policy-registry-http.test.mjs:1:1
+✖ test/global-trust-data-policy-registry-http.test.mjs (88.281912ms)
+  'test failed'
+
+test at test/global-trust-data-policy-registry.test.mjs:1:1
+✖ test/global-trust-data-policy-registry.test.mjs (82.695214ms)
+  'test failed'
+
+test at test/global-trust-human-approval-http.test.mjs:1:1
+✖ test/global-trust-human-approval-http.test.mjs (147.847831ms)
+  'test failed'
+
+test at test/global-trust-human-approval.test.mjs:1:1
+✖ test/global-trust-human-approval.test.mjs (178.815287ms)
+  'test failed'
+
+test at test/global-trust-incident-queue.test.mjs:1:1
+✖ test/global-trust-incident-queue.test.mjs (172.224629ms)
+  'test failed'
+
+test at test/global-trust-integrity-backfill-http.test.mjs:1:1
+✖ test/global-trust-integrity-backfill-http.test.mjs (77.409948ms)
+  'test failed'
+
+test at test/global-trust-integrity-backfill.test.mjs:1:1
+✖ test/global-trust-integrity-backfill.test.mjs (75.676358ms)
+  'test failed'
+
+test at test/global-trust-integrity-http.test.mjs:1:1
+✖ test/global-trust-integrity-http.test.mjs (75.807749ms)
+  'test failed'
+
+test at test/global-trust-integrity.test.mjs:1:1
+✖ test/global-trust-integrity.test.mjs (79.786823ms)
+  'test failed'
+
+test at test/global-trust-kill-switch-http.test.mjs:1:1
+✖ test/global-trust-kill-switch-http.test.mjs (72.597188ms)
+  'test failed'
+
+test at test/global-trust-kill-switch.test.mjs:1:1
+✖ test/global-trust-kill-switch.test.mjs (67.29019ms)
+  'test failed'
+
+test at test/global-trust-model-registry-http.test.mjs:1:1
+✖ test/global-trust-model-registry-http.test.mjs (91.453666ms)
+  'test failed'
+
+test at test/global-trust-model-registry.test.mjs:1:1
+✖ test/global-trust-model-registry.test.mjs (70.599911ms)
+  'test failed'
+
+test at test/global-trust-observability.test.mjs:1:1
+✖ test/global-trust-observability.test.mjs (82.139889ms)
+  'test failed'
+
+test at test/global-trust-operational-composition.test.mjs:1:1
+✖ test/global-trust-operational-composition.test.mjs (177.157641ms)
+  'test failed'
+
+test at test/global-trust-output-validator.test.mjs:1:1
+✖ test/global-trust-output-validator.test.mjs (83.447265ms)
+  'test failed'
+
+test at test/global-trust-prompt-defense.test.mjs:1:1
+✖ test/global-trust-prompt-defense.test.mjs (155.43958ms)
+  'test failed'
+
+test at test/global-trust-risk.test.mjs:1:1
+✖ test/global-trust-risk.test.mjs (87.766842ms)
+  'test failed'
+
+test at test/global-trust-safety-simulation.test.mjs:1:1
+✖ test/global-trust-safety-simulation.test.mjs (124.407278ms)
+  'test failed'
+
+test at test/global-trust-staging-operational-bindings.test.mjs:1:1
+✖ test/global-trust-staging-operational-bindings.test.mjs (77.100974ms)
+  'test failed'
+
+test at test/global-trust-tool-invocation-guard.test.mjs:1:1
+✖ test/global-trust-tool-invocation-guard.test.mjs (73.765095ms)
+  'test failed'
+
+test at test/global-trust-tool-invocation-http.test.mjs:1:1
+✖ test/global-trust-tool-invocation-http.test.mjs (71.07675ms)
+  'test failed'
+
+test at test/global-trust-use-case-registry-http.test.mjs:1:1
+✖ test/global-trust-use-case-registry-http.test.mjs (92.860836ms)
+  'test failed'
+
+test at test/global-trust-use-case-registry.test.mjs:1:1
+✖ test/global-trust-use-case-registry.test.mjs (93.57191ms)
+  'test failed'
+
+test at test/managed-hosting-artifact.test.mjs:71:1
+✖ managed-hosting artifact installs offline and passes operational smoke (1383.006901ms)
+  Error: managed runtime exited before startup: code=1 signal=null stderr=node:internal/modules/esm/resolve:271
+      throw new ERR_MODULE_NOT_FOUND(
+            ^
+  
+  Error [ERR_MODULE_NOT_FOUND]: Cannot find module '/private/var/folders/rz/_mpkj_gs7xj847hb1_9l5q8r0000gn/T/packages/uni-operator-hostinger-adapter/src/hostinger-writer.mjs' imported from /private/var/folders/rz/_mpkj_gs7xj847hb1_9l5q8r0000gn/T/api-gateway-managed-artifact-XGzleR/application/src/hostinger-writer-runtime.mjs
+      at finalizeResolution (node:internal/modules/esm/resolve:271:11)
+      at moduleResolve (node:internal/modules/esm/resolve:865:10)
+      at defaultResolve (node:internal/modules/esm/resolve:992:11)
+      at #cachedDefaultResolve (node:internal/modules/esm/loader:691:20)
+      at #resolveAndMaybeBlockOnLoaderThread (node:internal/modules/esm/loader:708:38)
+      at ModuleLoader.resolveSync (node:internal/modules/esm/loader:740:52)
+      at #resolve (node:internal/modules/esm/loader:673:17)
+      at ModuleLoader.getOrCreateModuleJob (node:internal/modules/esm/loader:593:35)
+      at ModuleJob.syncLink (node:internal/modules/esm/module_job:163:33)
+      at ModuleJob.link (node:internal/modules/esm/module_job:253:17) {
+    code: 'ERR_MODULE_NOT_FOUND',
+    url: 'file:///private/var/folders/rz/_mpkj_gs7xj847hb1_9l5q8r0000gn/T/packages/uni-operator-hostinger-adapter/src/hostinger-writer.mjs'
+  }
+  
+  Node.js v24.16.0
+  
+      at ChildProcess.onExit (file:///Users/milenapeterlesavioabreu/actions-runners/apidevelopers-organization-macos/actions-runner/_work/apidevelopers-platform/apidevelopers-platform/apps/api-gateway/scripts/verify-managed-hosting-artifact.mjs:238:9)
+      at Object.onceWrapper (node:events:631:26)
+      at ChildProcess.emit (node:events:509:28)
+      at ChildProcess._handle.onexit (node:internal/child_process:295:12)
+
+test at test/operational-auth-lifecycle.test.mjs:1:1
+✖ test/operational-auth-lifecycle.test.mjs (87.625419ms)
+  'test failed'
+
+test at test/operational-entrypoint.test.mjs:1:1
+✖ test/operational-entrypoint.test.mjs (172.673418ms)
+  'test failed'
+
+test at test/operational-http.test.mjs:1:1
+✖ test/operational-http.test.mjs (90.197715ms)
+  'test failed'
+
+test at test/operational-readiness-composition.test.mjs:1:1
+✖ test/operational-readiness-composition.test.mjs (66.812242ms)
+  'test failed'
+
+test at test/operational-runtime-wave1.test.mjs:1:1
+✖ test/operational-runtime-wave1.test.mjs (78.617494ms)
+  'test failed'
+
+test at test/operational-runtime.test.mjs:1:1
+✖ test/operational-runtime.test.mjs (84.888078ms)
+  'test failed'
+
+test at test/operator-gateway-controlled-dry-run.test.mjs:1:1
+✖ test/operator-gateway-controlled-dry-run.test.mjs (80.266956ms)
+  'test failed'
+
+test at test/operator-github-default-transport-wave4.test.mjs:1:1
+✖ test/operator-github-default-transport-wave4.test.mjs (81.333476ms)
+  'test failed'
+
+test at test/operator-github-readonly-operational-runtime.test.mjs:1:1
+✖ test/operator-github-readonly-operational-runtime.test.mjs (79.665563ms)
+  'test failed'
+
+test at test/operator-github-runtime.test.mjs:1:1
+✖ test/operator-github-runtime.test.mjs (83.448696ms)
+  'test failed'
+
+test at test/operator-secret-runtime-wave6.test.mjs:1:1
+✖ test/operator-secret-runtime-wave6.test.mjs (95.276428ms)
+  'test failed'
+
+test at test/operator-vault-runtime-wave7.test.mjs:1:1
+✖ test/operator-vault-runtime-wave7.test.mjs (97.14985ms)
+  'test failed'
+
+test at test/readiness.test.mjs:1:1
+✖ test/readiness.test.mjs (121.904301ms)
+  'test failed'
+
+test at test/release-bundle.test.mjs:54:1
+✖ release bundle starts and passes the operational HTTP smoke (326.074884ms)
+  Error: operational bundle exited before startup: code=1 signal=null stderr=node:internal/modules/esm/resolve:271
+      throw new ERR_MODULE_NOT_FOUND(
+            ^
+  
+  Error [ERR_MODULE_NOT_FOUND]: Cannot find module '/private/var/folders/rz/_mpkj_gs7xj847hb1_9l5q8r0000gn/T/packages/uni-operator-hostinger-adapter/src/hostinger-writer.mjs' imported from /private/var/folders/rz/_mpkj_gs7xj847hb1_9l5q8r0000gn/T/api-gateway-bundle-test-HZ2TTA/bundle/src/hostinger-writer-runtime.mjs
+      at finalizeResolution (node:internal/modules/esm/resolve:271:11)
+      at moduleResolve (node:internal/modules/esm/resolve:865:10)
+      at defaultResolve (node:internal/modules/esm/resolve:992:11)
+      at #cachedDefaultResolve (node:internal/modules/esm/loader:691:20)
+      at #resolveAndMaybeBlockOnLoaderThread (node:internal/modules/esm/loader:708:38)
+      at ModuleLoader.resolveSync (node:internal/modules/esm/loader:740:52)
+      at #resolve (node:internal/modules/esm/loader:673:17)
+      at ModuleLoader.getOrCreateModuleJob (node:internal/modules/esm/loader:593:35)
+      at ModuleJob.syncLink (node:internal/modules/esm/module_job:163:33)
+      at ModuleJob.link (node:internal/modules/esm/module_job:253:17) {
+    code: 'ERR_MODULE_NOT_FOUND',
+    url: 'file:///private/var/folders/rz/_mpkj_gs7xj847hb1_9l5q8r0000gn/T/packages/uni-operator-hostinger-adapter/src/hostinger-writer.mjs'
+  }
+  
+  Node.js v24.16.0
+  
+      at ChildProcess.onExit (file:///Users/milenapeterlesavioabreu/actions-runners/apidevelopers-organization-macos/actions-runner/_work/apidevelopers-platform/apidevelopers-platform/apps/api-gateway/scripts/verify-release-bundle.mjs:111:9)
+      at Object.onceWrapper (node:events:631:26)
+      at ChildProcess.emit (node:events:509:28)
+      at ChildProcess._handle.onexit (node:internal/child_process:295:12)
+
+test at test/request-tenant-context.test.mjs:1:1
+✖ test/request-tenant-context.test.mjs (132.416493ms)
+  'test failed'
+
+test at test/server.test.mjs:1:1
+✖ test/server.test.mjs (105.316717ms)
+  'test failed'
+
+exit_code=1
