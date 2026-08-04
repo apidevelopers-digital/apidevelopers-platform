@@ -1,46 +1,35 @@
-name: Materialize Hostinger Writer Runtime Bridge
+name: Validate Hostinger Writer Runtime Bridge
 
 on:
   push:
     branches:
       - feat/operator-hostinger-writer-runtime-bridge-20260804
+  pull_request:
+    paths:
+      - "apps/api-gateway/src/hostinger-writer-runtime.mjs"
+      - "apps/api-gateway/src/operational-runtime.mjs"
+      - "apps/api-gateway/test/hostinger-writer-runtime.test.mjs"
+      - "scripts/materialize_hostinger_writer_runtime_bridge.py"
+      - ".github/workflows/materialize-hostinger-writer-runtime-bridge.yml"
 
 permissions:
-  contents: write
+  contents: read
 
 jobs:
-  materialize:
-    if: github.actor != 'github-actions[bot]'
+  validate:
     runs-on: [self-hosted, macOS, X64]
     timeout-minutes: 10
     steps:
-      - uses: actions/checkoutb4
-        with:
-          ref: feat/operator-hostinger-writer-runtime-bridge-20260804
-          fetch-depth: 0
-
-      - name: Apply runtime bridge
+      - uses: actions/checkout@v4
+     - name: Verify disabled bridge
         run: python3 scripts/materialize_hostinger_writer_runtime_bridge.py
-
-      - name: Validate
-        shell: bash
+      - name: Syntax
         run: |
-          set -euo pipefail
           node --check apps/api-gateway/src/hostinger-writer-runtime.mjs
           node --check apps/api-gateway/src/operational-runtime.mjs
-          node --test apps/api-gateway/test/hostinger-writer-runtime.test.mjs
-          npm --prefix apps/api-gateway test
-          git diff --check
-
-      - name: Commit validated bridge
-        shell: bash
-        run: |
-          set -euo pipefail
-          rm -f scripts/materialize_hostinger_writer_runtime_bridge.py
-          rm -f .github/workflows/materialize-hostinger-writer-runtime-bridge.yml
-          git config user.name "github-actions[bot]"
-          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add -A
-          git diff --cached --check
-          git commit -m "feat(operator): integrar writer Hostinger desligado ao runtime"
-          git push origin HEAD:feat/operator-hostinger-writer-runtime-bridge-20260804
+      - name: Bridge tests
+        run: node --test apps/api-gateway/test/hostinger-writer-runtime.test.mjs
+      - name: Gateway tests
+        run: npm --prefix apps/api-gateway test
+      - name: Diff check
+        run: git diff --check
