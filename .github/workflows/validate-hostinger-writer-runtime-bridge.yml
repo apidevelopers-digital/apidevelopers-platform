@@ -1,0 +1,39 @@
+name: Validate Hostinger Writer Runtime Bridge
+
+on:
+  push:
+    branches:
+      - feat/operator-hostinger-writer-runtime-bridge-clean-20260804
+  pull_request:
+    paths:
+      - "apps/api-gateway/src/hostinger-writer-runtime.mjs"
+      - "apps/api-gateway/src/operational-runtime.mjs"
+      - "apps/api-gateway/test/hostinger-writer-runtime.test.mjs"
+      - "apps/api-gateway/test/operational-runtime.test.mjs"
+      - "scripts/materialize_hostinger_writer_runtime_bridge.py"
+      - ".github/workflows/validate-hostinger-writer-runtime-bridge.yml"
+
+permissions:
+  contents: read
+
+jobs:
+  validate:
+    runs-on:
+      - self-hosted
+      - macOS
+      - X64
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - name: Verify disabled bridge
+        run: python3 scripts/materialize_hostinger_writer_runtime_bridge.py
+      - name: Syntax
+        run: |
+          node --check apps/api-gateway/src/hostinger-writer-runtime.mjs
+          node --check apps/api-gateway/src/operational-runtime.mjs
+      - name: Bridge tests
+        run: node --test apps/api-gateway/test/hostinger-writer-runtime.test.mjs
+      - name: Gateway tests
+        run: npm --prefix apps/api-gateway test
+     - name: Diff check
+        run: git diff --check
