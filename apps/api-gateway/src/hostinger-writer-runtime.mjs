@@ -4,12 +4,12 @@ import { createHostingerSafeWriter } from "../../../packages/uni-operator-hostin
 
 function canonicalize(value) {
   if (Array.isArray(value)) {
-    return `[{value.map(canonicalize).join(",")}]`;
+    return `[${value.map(canonicalize).join(",")}]`;
   }
   if (value && typeof value === "object") {
-    return `{2bject.keys(value)
+    return `{${Object.keys(value)
       .sort()
-      .map((key) => `${JSON.stringify/key)}:${canonicalize(value[key])}`)
+      .map((key) => `${JSON.stringify(key)}:${canonicalize(value[key])}`)
       .join(",")}}`;
   }
   return JSON.stringify(value);
