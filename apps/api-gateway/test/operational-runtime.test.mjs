@@ -64,6 +64,16 @@ test("operational runtime resolves configuration without exposing secrets in its
       reason: "github_readonly_not_configured",
       productionChanged: false,
     },
+    hostingerWriter: {
+      mode: "disabled",
+      capabilities: {
+        prepare: true,
+        execute: false,
+        approvalRequired: true,
+        operationHashBound: true,
+        exposedHttpRoutes: false,
+      },
+    },
   });
   assert.equal(JSON.stringify(runtime.descriptor).includes("super-secret"), false);
   assert.equal(JSON.stringify(runtime.descriptor).includes("/tmp/runtime"), false);

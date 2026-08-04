@@ -1,4 +1,5 @@
 import { resolve } from "node:path";
+import { createHostingerWriterRuntime } from "./hostinger-writer-runtime.mjs";
 
 import {
   createOperatorGitHubRuntime,
@@ -73,6 +74,7 @@ export function createOperationalRuntime({
   githubVaultClient,
   githubSecretProvider,
   githubTransport,
+  hostingerWriterFactory = createHostingerWriterRuntime,
 } = {}) {
   if (typeof gatewayFactory !== "function") {
     throw new TypeError("gatewayFactory must be a function");
@@ -124,6 +126,12 @@ export function createOperationalRuntime({
     transport: resolvedGitHubTransport,
   });
 
+  const hostingerWriter = hostingerWriterFactory({
+    roots: [],
+    enabled: false,
+    approvalVerifier: async () => false,
+  });
+
   const gateway = gatewayFactory({
     stateFilePath: config.stateFilePath,
     ...(config.adminKey ? { adminKey: config.adminKey } : {}),
@@ -151,6 +159,10 @@ export function createOperationalRuntime({
       stateStore: "json-file",
       adminKeyConfigured: Boolean(config.adminKey),
       githubReadonly: githubRuntime.descriptor,
+      hostingerWriter: Object.freeze({
+        mode: hostingerWriter.mode,
+        capabilities: hostingerWriter.capabilities,
+      }),
     }),
   });
 }
