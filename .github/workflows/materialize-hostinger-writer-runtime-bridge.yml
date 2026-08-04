@@ -17,11 +17,14 @@ permissions:
 
 jobs:
   validate:
-    runs-on: [self-hosted, macOS, X64]
+    runs-on:
+      - self-hosted
+      - macOS
+      - X64
     timeout-minutes: 10
     steps:
       - uses: actions/checkout@v4
-     - name: Verify disabled bridge
+      - name: Verify disabled bridge
         run: python3 scripts/materialize_hostinger_writer_runtime_bridge.py
       - name: Syntax
         run: |
