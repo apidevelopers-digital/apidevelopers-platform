@@ -1,34 +1,14 @@
-file:///Users/milenapeterlesavioabreu/actions-runners/apidevelopers-organization-macos/actions-runner/_work/apidevelopers-platform/apidevelopers-platform/apps/api-gateway/src/hostinger-writer-runtime.mjs:12
-      .map((key) => `${JSON.stringify/key)}:${canonicalize(value[key])}`)
-                     ^
-
-SyntaxError: Unexpected identifier '$'
-    at compileSourceTextModule (node:internal/modules/esm/utils:318:16)
-    at ModuleLoader.moduleStrategy (node:internal/modules/esm/translators:90:18)
-    at #translate (node:internal/modules/esm/loader:435:20)
-    at afterLoad (node:internal/modules/esm/loader:491:29)
-    at ModuleLoader.loadAndTranslate (node:internal/modules/esm/loader:496:12)
-    at #getOrCreateModuleJobAfterResolve (node:internal/modules/esm/loader:549:36)
-    at afterResolve (node:internal/modules/esm/loader:597:52)
-    at ModuleLoader.getOrCreateModuleJob (node:internal/modules/esm/loader:603:12)
-    at ModuleJob.syncLink (node:internal/modules/esm/module_job:163:33)
-    at ModuleJob.link (node:internal/modules/esm/module_job:253:17)
-
-Node.js v24.16.0
-✖ apps/api-gateway/test/hostinger-writer-runtime.test.mjs (73.955362ms)
-ℹ tests 1
+✔ runtime is disabled by default and exposes no http routes (1.761532ms)
+✔ prepare is always dry-run and returns an operation hash (1.114781ms)
+✔ execute requires approval bound to the exact operation hash (1.000818ms)
+✔ changing an operation invalidates the approval hash (0.427325ms)
+ℹ tests 4
 ℹ suites 0
-ℹ pass 0
-ℹ fail 1
+ℹ pass 4
+ℹ fail 0
 ℹ cancelled 0
 ℹ skipped 0
 ℹ todo 0
-ℹ duration_ms 84.34197
+ℹ duration_ms 233.107643
 
-✖ failing tests:
-
-test at apps/api-gateway/test/hostinger-writer-runtime.test.mjs:1:1
-✖ apps/api-gateway/test/hostinger-writer-runtime.test.mjs (73.955362ms)
-  'test failed'
-
-exit_code=1
+exit_code=0
