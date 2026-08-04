@@ -23,5 +23,7 @@ jobs:
         run: |
           node --check apps/api-gateway/src/hostinger-writer-runtime.mjs
           node --check apps/api-gateway/src/operational-runtime.mjs
+      - name: Bridge tests
+        run: node --test apps/api-gateway/test/hostinger-writer-runtime.test.mjs
       - name: Diff check
         run: git diff --check
