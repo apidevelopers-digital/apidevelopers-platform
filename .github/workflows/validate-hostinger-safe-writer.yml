@@ -1,0 +1,32 @@
+name: Validate Hostinger Safe Writer
+
+on:
+  push:
+    branches:
+      - feat/operator-hostinger-safe-writer-20260804
+  pull_request:
+    paths:
+      - "packages/uni-operator-hostinger-adapter/src/hostinger-writer.mjs"
+      - "packages/uni-operator-hostinger-adapter/test/hostinger-writer.test.mjs"
+      - ".github/workflows/validate-hostinger-safe-writer.yml"
+
+permissions:
+  contents: read
+
+jobs:
+  validate:
+    runs-on:
+      - self-hosted
+      - macOS
+      - X64
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - name: Syntax
+        run: node --check packages/uni-operator-hostinger-adapter/src/hostinger-writer.mjs
+      - name: Tests
+        run: node --test packages/uni-operator-hostinger-adapter/test/hostinger-writer.test.mjs
+      - name: Existing adapter tests
+        run: npm --prefix packages/uni-operator-hostinger-adapter test
+      - name: Diff check
+        run: git diff --check
