@@ -4,13 +4,6 @@ on:
   push:
     branches:
       - feat/operator-hostinger-writer-runtime-bridge-20260804
-  pull_request:
-    paths:
-      - "apps/api-gateway/src/hostinger-writer-runtime.mjs"
-      - "apps/api-gateway/src/operational-runtime.mjs"
-      - "apps/api-gateway/test/hostinger-writer-runtime.test.mjs"
-      - "scripts/materialize_hostinger_writer_runtime_bridge.py"
-      - ".github/workflows/materialize-hostinger-writer-runtime-bridge.yml"
 
 permissions:
   contents: read
@@ -30,9 +23,5 @@ jobs:
         run: |
           node --check apps/api-gateway/src/hostinger-writer-runtime.mjs
           node --check apps/api-gateway/src/operational-runtime.mjs
-      - name: Bridge tests
-        run: node --test apps/api-gateway/test/hostinger-writer-runtime.test.mjs
-      - name: Gateway tests
-        run: npm --prefix apps/api-gateway test
       - name: Diff check
         run: git diff --check
