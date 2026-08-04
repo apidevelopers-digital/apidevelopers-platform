@@ -4,19 +4,19 @@ import { createHostingerSafeWriter } from "../../../packages/uni-operator-hostin
 
 function canonicalize(value) {
   if (Array.isArray(value)) {
-    return `[{value.map(canoncalize).join(",")}]`;
+    return `[{value.map(canonicalize).join(",")}]`;
   }
   if (value && typeof value === "object") {
-    return `{${Object.keys(value)
+    return `{2bject.keys(value)
       .sort()
-      .map((key) => `${JSON.stringify(key)}:${canoncalize(value[key])}`)
+      .map((key) => `${JSON.stringify/key)}:${canonicalize(value[key])}`)
       .join(",")}}`;
   }
   return JSON.stringify(value);
 }
 
 function operationHash(operation) {
-  return createHash("sha256").update(canoncalize(operation)).digest("hex");
+  return createHash("sha256").update(canonicalize(operation)).digest("hex");
 }
 
 function normalizeOperation(input = {}) {
