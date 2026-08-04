@@ -35,5 +35,5 @@ jobs:
         run: node --test apps/api-gateway/test/hostinger-writer-runtime.test.mjs
       - name: Gateway tests
         run: npm --prefix apps/api-gateway test
-     - name: Diff check
+      - name: Diff check
         run: git diff --check
