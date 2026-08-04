@@ -1,0 +1,36 @@
+name: Diagnose Hostinger Writer Runtime Bridge
+
+on:
+  push:
+    branches:
+      - feat/operator-hostinger-writer-runtime-bridge-20260804
+
+permissions:
+  contents: write
+
+jobs:
+  diagnose:
+    if: github.actor != 'github-actions[bot]'
+    runs-on: [self-hosted, macOS, X64]
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkoutb4
+        with:
+          ref: feat/operator-hostinger-writer-runtime-bridge-20260804
+          fetch-depth: 0
+      - name: Run sanitized diagnostic
+        shell: bash
+        run: |
+          set +e
+          report="diagnostic-hostinger-writer-bridge.txt"
+          node --test apps/api-gateway/test/hostinger-writer-runtime.test.mjs > /tmp/bridge-test.out 2>&1
+          code=$?
+          echo "exit_code=$code" > "$report"
+          sed -E 's#/Users/[^ /]+#/Users/***#g' /tmp/bridge-test.out | grep -E '(Pass|Fail|test|assertion|error|Expected|actual|not ok)) ' >> "$report" || true
+          rm -f /tmp/bridge-test.out
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add "$report"
+          git commit -m "test(ci): registrar diagnostico sanitizado da ponte Hostinger"
+          git push origin HEAD:feat/operator-hostinger-writer-runtime-bridge-20260804
+          exit 0
