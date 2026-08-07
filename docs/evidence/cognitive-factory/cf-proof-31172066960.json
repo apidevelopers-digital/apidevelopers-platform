@@ -1,0 +1,68 @@
+{
+  "schema": "cognitive-factory-cross-repo-evidence/v1",
+  "proofId": "cf-31172066960",
+  "date": "2026-08-07",
+  "status": "PASS",
+  "approval": {
+    "approvedBy": "Igor",
+    "evidence": "siga",
+    "scope": "harmless fixture -> ephemeral branch -> Executor -> tests -> push -> governed draft PR -> evidence -> continuity",
+    "mergeAuthorized": false,
+    "deployAuthorized": false,
+    "productionWriteAuthorized": false
+  },
+  "executor": {
+    "repository": "apidevelopers-digital/uni-code-executor",
+    "workflow": "Cognitive Factory Controlled Write Proof v1",
+    "workflowRunId": 31172066960,
+    "workflowConclusion": "success",
+    "proofBranch": "proof/cognitive-factory-31172066960",
+    "proofCommitSha": "fe4caf629f82acc7a97c41530dc7e2a8268a3213",
+    "proofFile": "evidence/cognitive-factory/proof-31172066960.json",
+    "testsBeforeWrite": "CONFIRMED_BY_GREEN_WORKFLOW",
+    "stagedDiff": "CONFIRMED",
+    "commit": "CONFIRMED",
+    "pushOrigin": "CONFIRMED",
+    "executionResult": "EMITTED_AND_UPLOADED",
+    "evidenceRecord": "EMITTED_AND_UPLOADED",
+    "productionWrite": false
+  },
+  "governedHandoff": {
+    "repository": "apidevelopers-digital/uni-code-executor",
+    "draftPullRequest": 5,
+    "draft": true,
+    "mergeAuthorized": false,
+    "createdBy": "institutional GitHub connector"
+  },
+  "gates": {
+    "G1_platform": "PASS",
+    "G2_operator": "PASS",
+    "G3_executor_component": "PASS",
+    "G4_governance": "PASS",
+    "G5_institutional_closure": "PASS",
+    "positive_controlled_write": "PASS",
+    "negative_fail_closed": "PASS_BY_G3"
+  },
+  "historicalFailuresPreserved": [
+    {
+      "runId": 31170861732,
+      "status": "failure",
+      "note": "initial proof did not reach remote push"
+    },
+    {
+      "runId": 31171103461,
+      "status": "failure",
+      "note": "executor push succeeded but post-push closeout failed"
+    },
+    {
+      "runId": 31171679393,
+      "status": "failure",
+      "note": "executor push succeeded but post-push proof workflow still failed"
+    }
+  ],
+  "result": {
+    "controlledCrossRepoProof": "PASS",
+    "mainIntegration": "PENDING_EXPLICIT_MERGE_APPROVAL",
+    "deployment": "NOT_AUTHORIZED"
+  }
+}
