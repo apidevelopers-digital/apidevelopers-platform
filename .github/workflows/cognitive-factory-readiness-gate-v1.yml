@@ -1,0 +1,114 @@
+name: Cognitive Factory Readiness Gate v1
+
+on:
+  pull_request:
+    paths:
+      - "docs/cognitive-factory-readiness-gate-v1.md"
+      - ".github/workflows/cognitive-factory-readiness-gate-v1.yml"
+      - "tests/kernel-vertical/**"
+      - "packages/contracts/**"
+      - "packages/kernel-decision/**"
+      - "packages/kernel-runtime/**"
+      - "packages/kernel-evidence/**"
+      - "packages/kernel-audit/**"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: cognitive-factory-readiness-gate-v1-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  local-readiness:
+    name: G1 Platform local readiness
+    runs-on:
+      - self-hosted
+      - macOS
+      - X64
+    timeout-minutes: 20
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+
+      - name: Setup Node.js 22
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+
+      - name: Validate fail-closed gate specification
+        shell: bash
+        run: |
+          set -euo pipefail
+          test -f docs/cognitive-factory-readiness-gate-v1.md
+          grep -Fq 'fail-closed' docs/cognitive-factory-readiness-gate-v1.md
+          grep -Fq 'nenhum merge automático' docs/cognitive-factory-readiness-gate-v1.md
+          grep -Fq 'igor-mac-runner' docs/cognitive-factory-readiness-gate-v1.md
+
+      - name: Validate controlled activation remains explicitly gated
+        shell: bash
+        run: |
+          set -euo pipefail
+          file=.github/workflows/operator-gateway-controlled-activation-dry-run.yml
+          test -f "$file"
+          grep -Fq 'IGOR_APROVA_OPERATOR_GATEWAY_DRY_RUN' "$file"
+          grep -Fq 'contents: read' "$file"
+
+      - name: Validate core component packages
+        shell: bash
+        run: |
+          set -euo pipefail
+          for package in contracts kernel-decision kernel-runtime kernel-evidence kernel-audit; do
+            echo "validating packages/$package"
+            (
+              cd "packages/$package"
+              npm install --ignore-scripts --no-audit --no-fund
+              npm run check
+            )
+          done
+
+      - name: Install vertical lifecycle dependencies
+        working-directory: tests/kernel-vertical
+        run: npm install --install-links --ignore-scripts --no-audit --no-fund
+
+      - name: Run governed vertical lifecycle
+        working-directory: tests/kernel-vertical
+        shell: bash
+        run: |
+          set -euo pipefail
+          npm run check 2>&1 | tee kernel-vertical-lifecycle.log
+          grep -Fq 'KERNEL_VERTICAL_LIFECYCLE_GATE_OK' kernel-vertical-lifecycle.log
+
+      - name: Emit sanitized local readiness evidence
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p artifacts/cognitive-factory-readiness
+          cat > artifacts/cognitive-factory-readiness/local-gate.json <<EOF
+          {
+            "schema": "cognitive-factory-readiness-gate/v1",
+            "gate": "G1",
+            "status": "LOCAL_GATE_PASS",
+            "repository": "${GITHUB_REPOSITORY}",
+            "ref": "${GITHUB_REF}",
+            "sha": "${GITHUB_SHA}",
+            "runner_contract": ["self-hosted", "macOS", "X64"],
+            "permissions": ["contents:read"],
+            "cross_repo_status": "PENDING",
+            "production_write": false,
+            "merge_authorized": false
+          }
+          EOF
+          cat artifacts/cognitive-factory-readiness/local-gate.json
+
+      - name: Upload readiness evidence
+        uses: actions/upload-artifact@v4
+        with:
+          name: cognitive-factory-readiness-g1
+          path: artifacts/cognitive-factory-readiness/local-gate.json
+          if-no-files-found: error
+          retention-days: 14
