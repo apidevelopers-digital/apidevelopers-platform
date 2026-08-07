@@ -1,0 +1,44 @@
+{
+  "schema": "cognitive-factory-cross-repo-evidence/v1",
+  "proofId": "cf-31171103461",
+  "date": "2026-08-07",
+  "status": "PARTIAL_PASS",
+  "approval": {
+    "approvedBy": "Igor",
+    "evidence": "siga",
+    "scope": "harmless fixture -> ephemeral branch -> executor -> tests -> push -> draft PR -> evidence -> continuity",
+    "mergeAuthorized": false,
+    "deployAuthorized": false,
+    "productionWriteAuthorized": false
+  },
+  "executor": {
+    "repository": "apidevelopers-digital/uni-code-executor",
+    "workflowRunId": 31171103461,
+    "workflowConclusion": "failure",
+    "proofBranch": "proof/cognitive-factory-31171103461",
+    "proofCommitSha": "df3b9ee98730ea59956844858edaf3ad5732eb86",
+    "proofFile": "evidence/cognitive-factory/proof-31171103461.json",
+    "stagedDiff": "CONFIRMED",
+    "commit": "CONFIRMED",
+    "pushOrigin": "CONFIRMED",
+    "productionWrite": false
+  },
+  "pullRequest": {
+    "number": 4,
+    "repository": "apidevelopers-digital/uni-code-executor",
+    "draft": true,
+    "createdBy": "institutional GitHub connector after post-push workflow failure",
+    "mergeAuthorized": false
+  },
+  "gates": {
+    "G1_platform": "PASS",
+    "G2_operator": "PASS",
+    "G3_executor_component": "PASS",
+    "G4_governance": "PASS",
+    "G5_institutional_closure": "PASS"
+  },
+  "remaining": [
+    "workflow-native post-push completion / PR handoff is not yet green",
+    "final institutional merge/deploy remains unauthorized"
+  ]
+}
