@@ -4,10 +4,18 @@
   "date": "2026-08-07",
   "status": "PASS",
   "approval": {
-    "approvedBy": "Igor",
-    "evidence": "siga",
-    "scope": "harmless fixture -> ephemeral branch -> Executor -> tests -> push -> governed draft PR -> evidence -> continuity",
-    "mergeAuthorized": false,
+    "controlledProofApprovedBy": "Igor",
+    "controlledProofEvidence": "siga",
+    "controlledProofScope": "harmless fixture -> ephemeral branch -> Executor -> tests -> push -> governed draft PR -> evidence -> continuity",
+    "canonicalMergeApprovedBy": "Igor",
+    "canonicalMergeEvidence": "Aprovo os merges G1–G5, sem deploy.",
+    "canonicalMergeScope": [
+      "G1",
+      "G2",
+      "G3",
+      "G4",
+      "G5"
+    ],
     "deployAuthorized": false,
     "productionWriteAuthorized": false
   },
@@ -62,7 +70,7 @@
   ],
   "result": {
     "controlledCrossRepoProof": "PASS",
-    "mainIntegration": "PENDING_EXPLICIT_MERGE_APPROVAL",
+    "canonicalMainIntegration": "APPROVED_PENDING_EXECUTION_AND_POST_MERGE_VERIFICATION",
     "deployment": "NOT_AUTHORIZED"
   }
 }
