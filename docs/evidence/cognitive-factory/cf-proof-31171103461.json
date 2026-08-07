@@ -1,0 +1,7 @@
+{
+  "schema": "cognitive-factory-cross-repo-evidence-pointer/v1",
+  "proofId": "cf-31171103461",
+  "status": "SUPERSEDED",
+  "supersededBy": "docs/evidence/cognitive-factory/cf-proof-31172066960.json",
+  "note": "Historical partial proof retained for auditability; canonical green proof is cf-31172066960."
+}
