@@ -1,49 +1,57 @@
 # Monitor do contrato Hostinger Node
 
-Este monitor acompanha diariamente o contrato oficial usado pelo futuro build Node.js por archive.
+Este monitor acompanha diariamente o contrato oficial do endpoint de build Node.js por arquivo e a issue upstream `hostinger/api#56`.
 
 ## Fontes oficiais
 
-- `hostinger/api/openapi.json`;
-- issue `hostinger/api#56`.
+- `hostinger/api/openapi.json`
+- issue `hostinger/api#56`
 
-## Snapshot esperado
+## Baseline revisada em 2026-08-08
 
-- OpenAPI `3.0.0`;
-- API `1.23.0`;
-- endpoint `POST /api/hosting/v1/accounts/{username}/websites/{domain}/nodejs/builds/from-archive`;
-- `operationId=hosting_createNodeJSBuildFromArchiveV1`;
-- `application/json`;
-- schema `Hosting.V1.NodeJs.CreateFromArchiveRequest`;
-- campo obrigatório `archive` do tipo `string`;
-- issue `#56` aberta.
+- OpenAPI `3.0.0`
+- API global observada `1.30.0`
+- endpoint `POST /api/hosting/v1/accounts/{username}/websites/{domain}/nodejs/builds/from-archive`
+- `operationId=hosting_createNodeJSBuildFromArchiveV1`
+- `application/json`
+- schema `Hosting.V1.NodeJs.CreateFromArchiveRequest`
+- `archive` obrigatorio, tipo `string`, sem `format`
+- issue `#56` aberta
 
-## Comportamento
+## Regra de monitoramento
 
-Quando o snapshot permanece igual, o relatório retorna:
+O gate e **fail-closed para mudancas materiais do endpoint monitorado** ou para mudanca do estado/numero da issue upstream.
 
-- `status=unchanged-blocked`;
-- `reviewRequired=false`;
-- todas as barreiras externas em `false`.
+Mudancas materiais incluem:
 
-Quando o contrato muda ou a issue fecha, o workflow:
+- OpenAPI major/spec incompatível
+- remocao do endpoint
+- mudanca de `operationId`
+- mudanca do media type
+- mudanca do schema `$ref`
+- mudanca de obrigatoriedade/tipo/formato de `archive`
+- fechamento ou substituicao da issue #56
 
-1. gera um relatório sanitizado;
-2. publica o artifact no GitHub Actions;
-3. falha de forma controlada;
-4. exige revisão humana e novo PR antes de qualquer mudança no executor.
+A versao global `info.version` da API Hostinger e registrada como metadado. Um bump global isolado, sem mudanca material no endpoint monitorado, **nao falha o gate**. Isso evita falso positivo causado por alteracoes oficiais em outras areas da API.
 
-## Segurança
+## Estados
+
+- `unchanged-blocked`: endpoint e issue permanecem no baseline
+- `upstream-metadata-changed-blocked`: apenas metadado global mudou
+- `review-required`: contrato relevante ou issue mudou; revisao humana obrigatoria
+
+Em todos os estados o executor Hostinger Node permanece bloqueado ate haver decisao especifica.
+
+## Seguranca
 
 O workflow:
 
-- usa somente `contents: read`;
-- consulta apenas fontes públicas oficiais;
-- não usa `HOSTINGER_API_TOKEN`;
-- não prepara request Hostinger;
-- não executa POST;
-- não inicia build remoto;
-- não executa deploy;
-- não altera DNS.
-
-A execução diária ocorre no runner institucional `self-hosted / macOS / X64`.
+- usa somente `contents: read`
+- consulta fontes publicas oficiais
+- nao usa `HOSTINGER_API_TOKEN`
+- nao prepara request Hostinger
+- nao executa POST
+- nao inicia build remoto
+- nao executa deploy
+- nao altera DNS
+- roda no runner institucional `self-hosted / macOS / X64`
