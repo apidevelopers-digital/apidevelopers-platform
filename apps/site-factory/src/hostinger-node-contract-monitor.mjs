@@ -3,13 +3,24 @@ import crypto from "node:crypto";
 const EXPECTED = Object.freeze({
   issueNumber: 56,
   openapiVersion: "3.0.0",
-  apiVersion: "1.23.0",
+  apiVersion: "1.30.0",
   endpoint:
     "/api/hosting/v1/accounts/{username}/websites/{domain}/nodejs/builds/from-archive",
   operationId: "hosting_createNodeJSBuildFromArchiveV1",
   mediaType: "application/json",
   schemaName: "Hosting.V1.NodeJs.CreateFromArchiveRequest",
 });
+
+const CONTRACT_CHECK_NAMES = Object.freeze([
+  "openapiVersionMatches",
+  "endpointPresent",
+  "operationIdMatches",
+  "mediaTypeMatches",
+  "schemaRefMatches",
+  "archiveRequired",
+  "archiveTypeMatches",
+  "archiveFormatAbsent",
+]);
 
 function valueOrNull(value) {
   return typeof value === "string" && value.trim() ? value.trim() : null;
@@ -58,17 +69,22 @@ export function createHostingerNodeContractMonitorReport({
     issueStillOpen: issue.state === "open",
   };
 
-  const contractChanged = Object.entries(checks)
-    .filter(([name]) => !name.startsWith("issue"))
-    .some(([, passed]) => passed !== true);
+  const contractChanged = CONTRACT_CHECK_NAMES.some(
+    (name) => checks[name] !== true,
+  );
+  const apiVersionChanged = checks.apiVersionMatches !== true;
   const issueChanged =
     checks.issueNumberMatches !== true || checks.issueStillOpen !== true;
   const reviewRequired = contractChanged || issueChanged;
 
   const report = {
-    schemaVersion: "1.0",
+    schemaVersion: "1.1",
     kind: "site-factory-hostinger-node-contract-monitor",
-    status: reviewRequired ? "review-required" : "unchanged-blocked",
+    status: reviewRequired
+      ? "review-required"
+      : apiVersionChanged
+        ? "upstream-metadata-changed-blocked"
+        : "unchanged-blocked",
     reviewRequired,
     expected: EXPECTED,
     observed: {
@@ -88,6 +104,7 @@ export function createHostingerNodeContractMonitorReport({
     checks,
     changeSignals: {
       contractChanged,
+      apiVersionChanged,
       issueChanged,
       officialIssueClosed: issue.state === "closed",
     },
@@ -101,11 +118,13 @@ export function createHostingerNodeContractMonitorReport({
     },
     nextAction: reviewRequired
       ? "open_review_pull_request_before_any_executor_change"
-      : "keep_executor_blocked_and_continue_monitoring",
+      : apiVersionChanged
+        ? "record_global_api_version_drift_and_continue_monitoring"
+        : "keep_executor_blocked_and_continue_monitoring",
     observedAt: observedAt.trim(),
   };
 
   return Object.freeze({ ...report, fingerprint: digest(report) });
 }
 
-export { EXPECTED };
+export { EXPECTED, CONTRACT_CHECK_NAMES };

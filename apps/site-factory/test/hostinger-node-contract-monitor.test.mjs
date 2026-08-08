@@ -22,7 +22,9 @@ function createOpenApi({
           requestBody: {
             content: {
               [mediaType]: {
-                schema: { $ref: `#/components/schemas/${EXPECTED.schemaName}` },
+                schema: {
+                  $ref: `#/components/schemas/${EXPECTED.schemaName}`,
+                },
               },
             },
           },
@@ -31,7 +33,7 @@ function createOpenApi({
     },
     components: {
       schemas: {
-        "Hosting.V1.NodeJs.CreateFromArchiveRequest": {
+        [EXPECTED.schemaName]: {
           type: "object",
           required: ["archive"],
           properties: {
@@ -53,31 +55,50 @@ function createIssue({ state = "open", number = 56 } = {}) {
   };
 }
 
-test("returns unchanged-blocked for the pinned official contract", () => {
+test("returns unchanged-blocked for the pinned official endpoint contract", () => {
   const first = createHostingerNodeContractMonitorReport({
     openapi: createOpenApi(),
     issue: createIssue(),
-    observedAt: "2026-08-02T08:10:00Z",
+    observedAt: "2026-08-08T08:10:00Z",
   });
   const second = createHostingerNodeContractMonitorReport({
     openapi: createOpenApi(),
     issue: createIssue(),
-    observedAt: "2026-08-02T08:10:00Z",
+    observedAt: "2026-08-08T08:10:00Z",
   });
 
   assert.equal(first.status, "unchanged-blocked");
   assert.equal(first.reviewRequired, false);
   assert.equal(first.changeSignals.contractChanged, false);
+  assert.equal(first.changeSignals.apiVersionChanged, false);
   assert.equal(first.changeSignals.issueChanged, false);
   assert.equal(first.barriers.hostingerPostExecuted, false);
   assert.equal(first.fingerprint, second.fingerprint);
 });
 
-test("requires review when the official contract changes", () => {
+test("global API version drift is informative and does not fail the endpoint gate", () => {
+  const report = createHostingerNodeContractMonitorReport({
+    openapi: createOpenApi({ apiVersion: "1.31.0" }),
+    issue: createIssue(),
+    observedAt: "2026-08-08T08:10:00Z",
+  });
+
+  assert.equal(report.status, "upstream-metadata-changed-blocked");
+  assert.equal(report.reviewRequired, false);
+  assert.equal(report.checks.apiVersionMatches, false);
+  assert.equal(report.changeSignals.apiVersionChanged, true);
+  assert.equal(report.changeSignals.contractChanged, false);
+  assert.equal(
+    report.nextAction,
+    "record_global_api_version_drift_and_continue_monitoring",
+  );
+});
+
+test("requires review when the official endpoint contract changes", () => {
   const report = createHostingerNodeContractMonitorReport({
     openapi: createOpenApi({ mediaType: "multipart/form-data" }),
     issue: createIssue(),
-    observedAt: "2026-08-02T08:10:00Z",
+    observedAt: "2026-08-08T08:10:00Z",
   });
 
   assert.equal(report.status, "review-required");
@@ -94,7 +115,7 @@ test("requires review when the upstream issue closes", () => {
   const report = createHostingerNodeContractMonitorReport({
     openapi: createOpenApi(),
     issue: createIssue({ state: "closed" }),
-    observedAt: "2026-08-02T08:10:00Z",
+    observedAt: "2026-08-08T08:10:00Z",
   });
 
   assert.equal(report.status, "review-required");
