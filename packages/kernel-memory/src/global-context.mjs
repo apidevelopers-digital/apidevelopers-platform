@@ -13,7 +13,7 @@ const up = (v,n,min,max=min) => {
 };
 
 export function createGlobalContextV1(input={}) {
-  if(!input || typeof input!=="object" || Array.isArray(input)) throw new TypeError,"globalContext must be an object");
+  if(!input || typeof input!=="object" || Array.isArray(input)) throw new TypeError("globalContext must be an object");
   for(const k of Object.keys(input)) if(!KEYS.has(k)) throw new Error(`globalContext unsupported field: ${k}`);
 
   const language=str(input.language,"language",35).toLowerCase();
