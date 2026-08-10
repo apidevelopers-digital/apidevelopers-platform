@@ -1,7 +1,7 @@
 import {
   createSaasRuntime,
   createAccessRuntime,
-} from "../../../packages/saas-runtime/src/index.mjs";
+} from "@apidevelopers/saas-runtime";
 
 export function createSaasAccessComposition({
   store,
