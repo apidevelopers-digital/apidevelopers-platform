@@ -50,12 +50,19 @@ export function createApp({
   authenticator,
   audit = createGatewayGlobalTrustAudit(),
   readiness = createReadinessService(),
+  saasAccess,
 } = {}) {
   if (
     authenticator !== undefined &&
     typeof authenticator?.authenticate !== "function"
   ) {
     throw new TypeError("authenticator.authenticate must be a function");
+  }
+  if (
+    saasAccess !== undefined &&
+    typeof saasAccess?.evaluateAccess !== "function"
+  ) {
+    throw new TypeError("saasAccess.evaluateAccess must be a function");
   }
   if (typeof audit?.recordTenantContextIssued !== "function") {
     throw new TypeError("audit.recordTenantContextIssued must be a function");
@@ -71,24 +78,77 @@ export function createApp({
       headers = {},
     } = {}) {
       const normalizedMethod = String(method).toUpperCase();
+      const requestUrl = new URL(String(url), "http://api-gateway.local");
+      const pathname = requestUrl.pathname;
 
-      if (normalizedMethod === "GET" && url === "/health") {
+      if (normalizedMethod === "GET" && pathname === "/health") {
         return jsonResponse(200, {
           service: "api-gateway",
           status: "ok",
         });
       }
 
-      if (normalizedMethod === "GET" && url === "/ready") {
+      if (normalizedMethod === "GET" && pathname === "/ready") {
         const report = await readiness.check();
         return jsonResponse(report.status === "ready" ? 200 : 503, report);
       }
 
-      if (normalizedMethod === "GET" && url === "/openapi.json") {
+      if (normalizedMethod === "GET" && pathname === "/openapi.json") {
         return jsonResponse(200, getOpenApiDocument());
       }
 
-      if (normalizedMethod === "GET" && url === "/v1/whoami") {
+      if (normalizedMethod === "GET" && pathname === "/v1/saas/access") {
+        if (!authenticator) {
+          return jsonResponse(503, {
+            allowed: false,
+            reason: "authentication_unavailable",
+          });
+        }
+        if (!saasAccess) {
+          return jsonResponse(503, {
+            allowed: false,
+            reason: "saas_access_unavailable",
+          });
+        }
+
+        const identity = await authenticator.authenticate(headers);
+        if (!identity) {
+          return jsonResponse(401, {
+            allowed: false,
+            reason: "unauthorized",
+          });
+        }
+
+        const tenantId = identity?.principal?.tenantId;
+        if (!tenantId) {
+          return jsonResponse(403, {
+            allowed: false,
+            reason: "tenant_context_unavailable",
+          });
+        }
+
+        const accessGrantId = requestUrl.searchParams.get("accessGrantId")?.trim();
+        const workspaceId = requestUrl.searchParams.get("workspaceId")?.trim();
+        const productId = requestUrl.searchParams.get("productId")?.trim();
+        if (!accessGrantId || !workspaceId || !productId) {
+          return jsonResponse(400, {
+            allowed: false,
+            reason: "access_context_required",
+          });
+        }
+
+        const decision = await saasAccess.evaluateAccess({
+          identity,
+          accessGrantId,
+          tenantId,
+          workspaceId,
+          productId,
+        });
+
+        return jsonResponse(decision.allowed ? 200 : 403, decision);
+      }
+
+      if (normalizedMethod === "GET" && pathname === "/v1/whoami") {
         if (!authenticator) {
           return jsonResponse(503, {
             error: "authentication_unavailable",
