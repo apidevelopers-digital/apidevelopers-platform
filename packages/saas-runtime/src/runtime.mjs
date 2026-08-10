@@ -121,10 +121,11 @@ export function createSaasRuntime({ store, clock = () => new Date().toISOString(
 
     const result = await store.executeIdempotent(
       `saas.provisioning:${job.idempotencyKey}`,
-      async () => {
-        const existing = await provisioningJobs.getById(job.provisioningJobId);
+      async (tx) => {
+        const existing = tx.get("saas.provisioningJobs", job.provisioningJobId);
         if (existing) return existing;
-        return provisioningJobs.create(job);
+        tx.put("saas.provisioningJobs", job.provisioningJobId, job, { ifAbsent: true });
+        return job;
       },
     );
     return Object.freeze({
