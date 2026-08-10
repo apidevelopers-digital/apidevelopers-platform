@@ -1,13 +1,5 @@
 import { createHash } from "node:crypto";
-import {
-  cp,
-  mkdir,
-  readFile,
-  readdir,
-  rm,
-  stat,
-  writeFile,
-} from "node:fs/promises";
+import { cp, mkdir, readFile, readdir, rm, stat, writeFile } from "node:fs/promises";
 import { dirname, join, relative, resolve, sep } from "node:path";
 import { fileURLToPath, pathToFileURL } from "node:url";
 
@@ -19,6 +11,7 @@ const DEPENDENCY_DIRECTORIES = Object.freeze([
   "auth-core",
   "apikey-core",
   "persistence-core",
+  "saas-runtime",
 ]);
 
 function portablePath(value) {
@@ -31,23 +24,16 @@ async function readJson(path) {
 
 async function listFiles(root) {
   const files = [];
-
   async function visit(directory) {
     const entries = await readdir(directory, { withFileTypes: true });
     entries.sort((left, right) => left.name.localeCompare(right.name));
-
     for (const entry of entries) {
       const path = join(directory, entry.name);
-      if (entry.isDirectory()) {
-        await visit(path);
-      } else if (entry.isFile()) {
-        files.push(path);
-      } else {
-        throw new TypeError(`unsupported release entry: ${path}`);
-      }
+      if (entry.isDirectory()) await visit(path);
+      else if (entry.isFile()) files.push(path);
+      else throw new TypeError(`unsupported release entry: ${path}`);
     }
   }
-
   await visit(root);
   return files;
 }
@@ -114,10 +100,7 @@ export async function buildReleaseBundle({
       ),
     });
     packagedDependencies.push(
-      Object.freeze({
-        name: metadata.name,
-        version: metadata.version,
-      }),
+      Object.freeze({ name: metadata.name, version: metadata.version }),
     );
   }
 
@@ -164,26 +147,22 @@ export async function buildReleaseBundle({
 
 async function main() {
   const result = await buildReleaseBundle();
-  console.log(
-    JSON.stringify({
-      event: "api_gateway_release_bundle_created",
-      service: result.manifest.service,
-      version: result.manifest.version,
-      sourceRevision: result.manifest.sourceRevision,
-      files: result.manifest.files.length,
-      dependencies: result.manifest.dependencies.length,
-    }),
-  );
+  console.log(JSON.stringify({
+    event: "api_gateway_release_bundle_created",
+    service: result.manifest.service,
+    version: result.manifest.version,
+    sourceRevision: result.manifest.sourceRevision,
+    files: result.manifest.files.length,
+    dependencies: result.manifest.dependencies.length,
+  }));
 }
 
 if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) {
   main().catch((error) => {
-    console.error(
-      JSON.stringify({
-        event: "api_gateway_release_bundle_failed",
-        message: error instanceof Error ? error.message : "Unknown error",
-      }),
-    );
+    console.error(JSON.stringify({
+      event: "api_gateway_release_bundle_failed",
+      message: error instanceof Error ? error.message : "Unknown error",
+    }));
     process.exitCode = 1;
   });
 }
