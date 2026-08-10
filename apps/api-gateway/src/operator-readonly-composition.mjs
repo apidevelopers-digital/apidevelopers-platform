@@ -12,6 +12,7 @@ import {
 } from "./operator-readonly-core.mjs";
 import { createOperatorReadonlyHttpApp } from "./operator-readonly-http.mjs";
 import { createGitHubReadonlyAdapters } from "./operator-github-readonly-adapter.mjs";
+import { createSaasOperationalHttpComposition } from "./saas-operational-http-composition.mjs";
 
 export function createOperationalGatewayWithReadonlyOperator({
   operatorReadonlyAdapters,
@@ -43,6 +44,14 @@ export function createOperationalGatewayWithReadonlyOperator({
     protection,
   });
 
+  const saasComposition = createSaasOperationalHttpComposition({
+    app: base.app,
+    authenticator: base.authenticator,
+    audit: base.audit,
+    store: base.store,
+    ...(operationalOptions.clock ? { clock: operationalOptions.clock } : {}),
+  });
+
   const adapters =
     operatorReadonlyAdapters ??
     (githubReadonlyClient
@@ -60,7 +69,7 @@ export function createOperationalGatewayWithReadonlyOperator({
   });
 
   const readonlyApp = createOperatorReadonlyHttpApp({
-    app: base.app,
+    app: saasComposition.app,
     authenticator: base.authenticator,
     authorization: base.authorization,
     core: operatorReadonlyCore,
@@ -84,6 +93,8 @@ export function createOperationalGatewayWithReadonlyOperator({
 
   return Object.freeze({
     ...base,
+    saasRuntime: saasComposition.saasRuntime,
+    saasAccess: saasComposition.saasAccess,
     operatorReadonlyAdapters: adapters,
     operatorReadonlyCore,
     operatorReadonlyRateLimiter: sharedRateLimiter,

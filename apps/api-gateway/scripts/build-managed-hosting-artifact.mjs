@@ -29,6 +29,10 @@ const INTERNAL_PACKAGES = Object.freeze([
     directory: "persistence-core",
     name: "@apidevelopers/persistence-core",
   }),
+  Object.freeze({
+    directory: "saas-runtime",
+    name: "@apidevelopers/saas-runtime",
+  }),
 ]);
 const DIRECTORY_BY_PACKAGE = Object.freeze(
   Object.fromEntries(INTERNAL_PACKAGES.map((entry) => [entry.name, entry.directory])),

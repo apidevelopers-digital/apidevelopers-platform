@@ -26,6 +26,7 @@ const EXPECTED_DEPENDENCIES = Object.freeze({
   "@apidevelopers/apikey-core": "file:vendor/apikey-core",
   "@apidevelopers/contracts": "file:vendor/contracts",
   "@apidevelopers/persistence-core": "file:vendor/persistence-core",
+  "@apidevelopers/saas-runtime": "file:vendor/saas-runtime",
 });
 
 function portablePath(value) {
