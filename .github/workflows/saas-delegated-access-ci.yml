@@ -5,8 +5,10 @@ on:
     branches:
       - main
     paths:
-      - "apps/api-gateway/src/saas-delegated-access.mjs"
-      - "apps/api-gateway/test/saas-delegated-access.test.mjs"
+      - "apps/api-gateway/src/saas-delegated-access-v2.mjs"
+      - "apps/api-gateway/src/saas-operational-http-composition.mjs"
+      - "apps/api-gateway/test/saas-delegated-access-v2.test.mjs"
+      - "packages/contracts/src/saas-access.mjs"
       - "packages/saas-runtime/src/access.mjs"
       - "packages/saas-runtime/src/federated-principal.mjs"
       - ".github/workflows/saas-delegated-access-ci.yml"
@@ -14,8 +16,10 @@ on:
     branches:
       - main
     paths:
-      - "apps/api-gateway/src/saas-delegated-access.mjs"
-      - "apps/api-gateway/test/saas-delegated-access.test.mjs"
+      - "apps/api-gateway/src/saas-delegated-access-v2.mjs"
+      - "apps/api-gateway/src/saas-operational-http-composition.mjs"
+      - "apps/api-gateway/test/saas-delegated-access-v2.test.mjs"
+      - "packages/contracts/src/saas-access.mjs"
       - "packages/saas-runtime/src/access.mjs"
       - "packages/saas-runtime/src/federated-principal.mjs"
       - ".github/workflows/saas-delegated-access-ci.yml"
@@ -62,28 +66,5 @@ jobs:
           mkdir -p "$GITHUB_WORKSPACE/packages/apikey-core/node_modules/@apidevelopers"
           ln -sfn "$GITHUB_WORKSPACE/packages/persistence-core" "$GITHUB_WORKSPACE/packages/apikey-core/node_modules/@apidevelopers/persistence-core"
 
-      - name: Subject test
-        id: subject
-        shell: bash
-        continue-on-error: true
-        run: |
-          set -o pipefail
-          node --test test/saas-delegated-access.test.mjs 2>&1 | tee "$RUNNER_TEMP/saas-delegated-access.log"
-
-      - name: Report subject failure
-        if: steps.subject.outcome == 'failure'
-        shell: bash
-        run: |
-          {
-            echo "## SaaS delegated access test failure"
-            echo '```text'
-            tail -n 80 "$RUNNER_TEMP/saas-delegated-access.log"
-            echo '```'
-          } >> "$GITHUB_STEP_SUMMARY"
-
-          summary="$(tail -n 40 "$RUNNER_TEMP/saas-delegated-access.log" | tr '\n' ' ' | cut -c1-1800)"
-          summary="${summary//%/%25}"
-          summary="${summary//$'\r'/%0D}"
-          summary="${summary//$'\n'/%0A}"
-          echo "::error title=SaaS delegated access isolated failure::$summary"
-          exit 1
+      - name: Delegated access v2 contract
+        run: node --test test/saas-delegated-access-v2.test.mjs
