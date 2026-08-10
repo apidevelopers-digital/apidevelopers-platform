@@ -3,6 +3,7 @@ export * from "./canonical-ids.mjs";
 export * from "./event-envelope.mjs";
 export * from "./observability-envelope.mjs";
 export * from "./tenancy-context.mjs";
+export * from "./saas-tenancy.mjs";
 export * from "./auth-context.mjs";
 export * from "./cognitive-pipeline.mjs";
 export * from "./decision-policy.mjs";
