@@ -33,8 +33,11 @@ export function createDelegatedSaasAccessApp({
   if (typeof authenticator?.authenticate !== "function") {
     throw new TypeError("authenticator.authenticate must be a function");
   }
-  if (typeof saasAccess?.evaluateAccess !== "function") {
-    throw new TypeError("saasAccess.evaluateAccess must be a function");
+  if (
+    typeof saasAccess?.evaluateAccess !== "function" ||
+    typeof saasAccess?.resolveActiveGrant !== "function"
+  ) {
+    throw new TypeError("saasAccess.evaluateAccess and resolveActiveGrant must be functions");
   }
   if (typeof federatedPrincipal?.resolveFederatedPrincipal !== "function") {
     throw new TypeError("federatedPrincipal.resolveFederatedPrincipal must be a function");
@@ -82,13 +85,11 @@ export function createDelegatedSaasAccessApp({
         });
       }
 
-      const accessGrantId = requestUrl.searchParams.get("accessGrantId")?.trim();
-      const workspaceId = requestUrl.searchParams.get("workspaceId")?.trim();
       const productId = requestUrl.searchParams.get("productId")?.trim();
-      if (!accessGrantId || !workspaceId || !productId) {
+      if (!productId) {
         return jsonResponse(400, {
           allowed: false,
-          reason: "access_context_required",
+          reason: "product_context_required",
         });
       }
 
@@ -98,6 +99,19 @@ export function createDelegatedSaasAccessApp({
         externalSubject: subjectRef,
         subjectType: "delegated_subject_ref",
       });
+
+      const binding = await saasAccess.resolveActiveGrant({
+        tenantId,
+        principalId: principal.principalId,
+        productId,
+      });
+      if (!binding.resolved) {
+        return jsonResponse(403, {
+          allowed: false,
+          reason: binding.reason,
+          principalId: principal.principalId,
+        });
+      }
 
       const subjectIdentity = Object.freeze({
         role: "delegated-subject",
@@ -109,12 +123,13 @@ export function createDelegatedSaasAccessApp({
         }),
       });
 
+      const grant = binding.grant;
       const decision = await saasAccess.evaluateAccess({
         identity: subjectIdentity,
-        accessGrantId,
+        accessGrantId: grant.accessGrantId,
         tenantId,
-        workspaceId,
-        productId,
+        workspaceId: grant.workspaceId,
+        productId: grant.productId,
       });
 
       return jsonResponse(decision.allowed ? 200 : 403, {
