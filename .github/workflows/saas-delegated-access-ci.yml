@@ -59,4 +59,27 @@ jobs:
           ln -sfn "$GITHUB_WORKSPACE/packages/apikey-core" "$GITHUB_WORKSPACE/packages/auth-core/node_modules/@apidevelopers/apikey-core"
 
       - name: Subject test
-        run: node --test test/saas-delegated-access.test.mjs
+        id: subject
+        shell: bash
+        continue-on-error: true
+        run: |
+          set -o pipefail
+          node --test test/saas-delegated-access.test.mjs 2>&1 | tee "$RUNNER_TEMP/saas-delegated-access.log"
+
+      - name: Report subject failure
+        if: steps.subject.outcome == 'failure'
+        shell: bash
+        run: |
+          {
+            echo "## SaaS delegated access test failure"
+            echo '```text'
+            tail -n 80 "$RUNNER_TEMP/saas-delegated-access.log"
+            echo '```'
+          } >> "$GITHUB_STEP_SUMMARY"
+
+          summary="$(tail -n 40 "$RUNNER_TEMP/saas-delegated-access.log" | tr '\n' ' ' | cut -c1-1800)"
+          summary="${summary//%/%25}"
+          summary="${summary//$'\r'/%0D}"
+          summary="${summary//$'\n'/%0A}"
+          echo "::error title=SaaS delegated access isolated failure::$summary"
+          exit 1
