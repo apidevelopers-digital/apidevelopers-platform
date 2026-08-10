@@ -24,6 +24,7 @@ test("operational gateway mounts SaaS access route fail-closed", async () => {
       headers: {},
     });
     const body = JSON.parse(response.body);
+    console.log("SAAS_OPERATIONAL_RESPONSE", JSON.stringify({ status: response.status, body }));
 
     assert.ok(
       response.status >= 400 && response.status < 500,
