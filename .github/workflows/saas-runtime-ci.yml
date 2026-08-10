@@ -30,4 +30,12 @@ jobs:
           node-version: "22"
       - name: Check SaaS runtime
         working-directory: packages/saas-runtime
-        run: npm run check
+        shell: bash
+        run: |
+          set +e
+          npm run check 2>&1 | tee /tmp/saas-runtime-check.log
+          status=${PIPESTATUS[0]}
+          if [ "$status" -ne 0 ]; then
+            tail -n 40 /tmp/saas-runtime-check.log | sed ':a;N;$!ba;s/%/%25/g;s/\r/%0D/g;s/\n/%0A/g' | xargs -0 -I{} echo "::error title=SaaS runtime failure::{}"
+            exit "$status"
+          fi
