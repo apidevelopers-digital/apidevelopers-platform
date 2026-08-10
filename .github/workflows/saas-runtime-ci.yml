@@ -1,0 +1,33 @@
+name: SaaS Runtime CI
+
+on:
+  pull_request:
+    paths:
+      - "packages/saas-runtime/**"
+      - "packages/contracts/src/saas-*.mjs"
+      - "packages/persistence-core/**"
+      - ".github/workflows/saas-runtime-ci.yml"
+  push:
+    branches: [main]
+    paths:
+      - "packages/saas-runtime/**"
+      - "packages/contracts/src/saas-*.mjs"
+      - "packages/persistence-core/**"
+      - ".github/workflows/saas-runtime-ci.yml"
+
+jobs:
+  saas-runtime:
+    name: SaaS runtime gate
+    runs-on:
+      - self-hosted
+      - macOS
+      - X64
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+      - name: Check SaaS runtime
+        working-directory: packages/saas-runtime
+        run: npm run check
