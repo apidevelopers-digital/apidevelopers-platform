@@ -108,7 +108,7 @@ test("delegated SaaS access derives tenant from actor and resolves binding insid
   assert.equal(response.status, 200);
   assert.equal(observed.federatedInput.tenantId, "component.tenant.acme");
   assert.equal(observed.federatedInput.provider, "unico-operator-session");
-  assert.equal(observed.federatedInput.externalSubject, SUBJECT_REF,
+  assert.equal(observed.federatedInput.externalSubject, SUBJECT_REF);
   assert.equal(observed.federatedInput.subjectType, "delegated_subject_ref");
 
   assert.deepEqual(observed.bindingInput, {
@@ -128,7 +128,7 @@ test("delegated SaaS access derives tenant from actor and resolves binding insid
   assert.deepEqual(
     observed.accessInput.identity.principal.scopes,
     ["zuni:read", "zuni:reply"],
-   );
+  );
 
   assert.deepEqual(JSON.parse(response.body), {
     allowed: true,
