@@ -20,6 +20,7 @@
     "@apidevelopers/auth-core": "0.2.0",
     "@apidevelopers/apikey-core": "0.2.0",
     "@apidevelopers/contracts": "0.2.0",
-    "@apidevelopers/persistence-core": "0.3.0"
+    "@apidevelopers/persistence-core": "0.3.0",
+    "@apidevelopers/saas-runtime": "0.1.0"
   }
 }
