@@ -135,7 +135,10 @@ test("access remains fail-closed until provisioning succeeds", async () => {
     assert.equal(active.status, "active");
 
     const denied = await access.evaluateAccess({
-      identity: { role: "client", principal: { scopes: [] } },
+      identity: {
+        role: "client",
+        principal: { id: "user-1", scopes: [] },
+      },
       accessGrantId: ids.grant,
       tenantId: ids.tenant,
       workspaceId: ids.workspace,
@@ -145,7 +148,10 @@ test("access remains fail-closed until provisioning succeeds", async () => {
     assert.deepEqual(denied.missingScopes, ["zuni:use"]);
 
     const allowed = await access.evaluateAccess({
-      identity: { role: "client", principal: { scopes: ["zuni:use"] } },
+      identity: {
+        role: "client",
+        principal: { id: "user-1", scopes: ["zuni:use"] },
+      },
       accessGrantId: ids.grant,
       tenantId: ids.tenant,
       workspaceId: ids.workspace,
