@@ -48,6 +48,7 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
+
           mkdir -p "$GITHUB_WORKSPACE/apps/api-gateway/node_modules/@apidevelopers"
           ln -sfn "$GITHUB_WORKSPACE/packages/contracts" "$GITHUB_WORKSPACE/apps/api-gateway/node_modules/@apidevelopers/contracts"
           ln -sfn "$GITHUB_WORKSPACE/packages/auth-core" "$GITHUB_WORKSPACE/apps/api-gateway/node_modules/@apidevelopers/auth-core"
@@ -57,6 +58,9 @@ jobs:
 
           mkdir -p "$GITHUB_WORKSPACE/packages/auth-core/node_modules/@apidevelopers"
           ln -sfn "$GITHUB_WORKSPACE/packages/apikey-core" "$GITHUB_WORKSPACE/packages/auth-core/node_modules/@apidevelopers/apikey-core"
+
+          mkdir -p "$GITHUB_WORKSPACE/packages/apikey-core/node_modules/@apidevelopers"
+          ln -sfn "$GITHUB_WORKSPACE/packages/persistence-core" "$GITHUB_WORKSPACE/packages/apikey-core/node_modules/@apidevelopers/persistence-core"
 
       - name: Subject test
         id: subject
