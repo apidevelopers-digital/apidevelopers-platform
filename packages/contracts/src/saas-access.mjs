@@ -23,13 +23,17 @@ export function createAccessGrant(input = {}) {
     productId: requireText(input.productId, "productId"),
     subscriptionId: requireText(input.subscriptionId, "subscriptionId"),
     entitlementId: requireText(input.entitlementId, "entitlementId"),
-    requiredScopes: Array.isArray(input.requiredScopes) ? [...new Set(input.requiredScopes.map((x) => requireText(x, "requiredScope"))] : [],
+    requiredScopes: Array.isArray(input.requiredScopes)
+      ? [...new Set(input.requiredScopes.map((x) => requireText(x, "requiredScope"))]
+      : [],
     status: input.status ?? "pending",
     createdAt: requireText(input.createdAt, "createdAt"),
     activatedAt: input.activatedAt ? requireText(input.activatedAt, "activatedAt") : null,
   };
-  assertCanonicalId(grant.accessGrantId, { family: "component" });
-  for (const id of [grant.tenantId, grant.workspaceId, grant.subscriptionId, grant.entitlementId]) assertCanonicalId(id, { family: "component" });
+  assertCanonicalId(grant.accessGrantId, { expectedFamily: "component" });
+  for (const id of [grant.tenantId, grant.workspaceId, grant.subscriptionId, grant.entitlementId]) {
+    assertCanonicalId(id, { expectedFamily: "component" });
+  }
   if (!STATUSES.includes(grant.status)) throw new RangeError("invalid access grant status");
   if (grant.status === "active" && !grant.activatedAt) throw new Error("active access grant requires activatedAt");
   return Object.freeze(grant);
@@ -41,11 +45,17 @@ export function createOnboardingState(input = {}) {
     workspaceId: requireText(input.workspaceId, "workspaceId"),
     productId: requireText(input.productId, "productId"),
     status: input.status ?? "pending",
-    requiredSteps: Array.isArray(input.requiredSteps) ? [...new Set(input.requiredSteps.map((x) => requireText(x, "requiredStep"))] : [],
-    completedSteps: Array.isArray(inpu.completedSteps) ? [...new Set(input.completedSteps.map((x) => requireText(x, "completedStep"))] : [],
+    requiredSteps: Array.isArray(input.requiredSteps)
+      ? [...new Set(input.requiredSteps.map((x) => requireText(x, "requiredStep"))]
+      : [],
+    completedSteps: Array.isArray(input.completedSteps)
+      ? [...new Set(input.completedSteps.map((x) => requireText(x, "completedStep"))]
+      : [],
     updatedAt: requireText(input.updatedAt, "updatedAt"),
   };
-  for (const id of [state.tenantId, state.workspaceId]) assertCanonicalId(id, { family: "component" });
+  for (const id of [state.tenantId, state.workspaceId]) {
+    assertCanonicalId(id, { expectedFamily: "component" });
+  }
   if (!ONBOARDING_STATUSES.includes(state.status)) throw new RangeError("invalid onboarding status");
   return Object.freeze(state);
 }
@@ -55,13 +65,26 @@ export function assertAutomatedAccessReadiness({subscription, entitlement, provi
   if (!entitlement || entitlement.status !== "active") throw new Error("access requires active entitlement");
   if (!provisioningJob || provisioningJob.status !== "succeeded") throw new Error("access requires succeeded provisioning");
   if (!grant) throw new Error("access grant required");
-  for (const [a, b] of [["subscriptionId", "entitlement"], ["tenantId", "tenant"], ["troductId", "product"]]) {
-    const left = grant[a];
-    const right = b === "entitlement" ? entitlement[a] : b === "tenant" ? subscription[a] : subscription[a];
-    if (left !== right) throw new Error("access binding mismatch");
+
+  const checks = [
+    ["subscriptionId", subscription.subscriptionId],
+    ["tenantId", subscription.tenantId],
+    ["productId", subscription.productId],
+  ];
+  for (const [field, expected] of checks) {
+    if (grant[field] !== expected) throw new Error("access binding mismatch");
   }
-  if (grant.entitlementId !== entitlement.entitlementId || grant.workspaceId !== entitlement.workspaceId || grant.workspaceId !== provisioningJob.workspaceId) { 
-    throw new Error("acces workspace binding mismatch");
+
+  if (
+    grant.entitlementId !== entitlement.entitlementId ||
+    grant.workspaceId !== entitlement.workspaceId ||
+    grant.workspaceId !== provisioningJob.workspaceId ||
+    grant.tenantId !== entitlement.tenantId ||
+    grant.tenantId !== provisioningJob.tenantId ||
+    grant.productId !== entitlement.productId ||
+    grant.productId !== provisioningJob.productId
+  ) {
+    throw new Error("access workspace binding mismatch");
   }
   return true;
 }
