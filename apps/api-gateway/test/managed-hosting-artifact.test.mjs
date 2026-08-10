@@ -24,7 +24,7 @@ test("managed-hosting artifact is vendored, registry-independent and tamper-evid
 
   assert.equal(result.manifest.format, "managed-node-zip");
   assert.equal(result.manifest.sourceRevision, "managed-artifact-test");
-  assert.equal(result.manifest.dependencies.length, 4);
+  assert.equal(result.manifest.dependencies.length, 5);
 
   const packageMetadata = JSON.parse(
     await readFile(join(outputDirectory, "package.json"), "utf8"),
@@ -36,6 +36,10 @@ test("managed-hosting artifact is vendored, registry-independent and tamper-evid
   assert.equal(
     packageMetadata.dependencies["@apidevelopers/persistence-core"],
     "file:vendor/persistence-core",
+  );
+  assert.equal(
+    packageMetadata.dependencies["@apidevelopers/saas-runtime"],
+    "file:vendor/saas-runtime",
   );
 
   const lockMetadata = JSON.parse(
