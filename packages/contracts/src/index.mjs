@@ -5,6 +5,7 @@ export * from "./observability-envelope.mjs";
 export * from "./tenancy-context.mjs";
 export * from "./saas-tenancy.mjs";
 export * from "./saas-commercial.mjs";
+export * from "./saas-provisioning.mjs";
 export * from "./auth-context.mjs";
 export * from "./cognitive-pipeline.mjs";
 export * from "./decision-policy.mjs";
