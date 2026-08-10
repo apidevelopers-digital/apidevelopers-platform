@@ -1,5 +1,5 @@
 import { createSaasAccessComposition } from "./saas-access-composition.mjs";
-import { createDelegatedSaasAccessApp } from "./saas-delegated-access.mjs";
+import { createDelegatedSaasAccessApp } from "./saas-delegated-access-v2.mjs";
 import { createApp } from "./server.mjs";
 
 function pathnameOf(url) {
