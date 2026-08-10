@@ -36,6 +36,10 @@ export function createAccessRuntime({ store, saasRuntime, clock = () => new Date
     if (grant.tenantId !== tenantId || grant.workspaceId !== workspaceId || grant.productId !== productId) {
       return Object.freeze({ allowed: false, reason: "access_context_mismatch" });
     }
+    const principalId = identity?.principal?.id;
+    if (!principalId || grant.principalId !== principalId) {
+      return Object.freeze({ allowed: false, reason: "access_principal_mismatch" });
+    }
     const decision = authorize(identity, { scopes: grant.requiredScopes });
     return Object.freeze({ allowed: decision.allowed, reason: decision.reason, missingScopes: decision.missingScopes });
   }
