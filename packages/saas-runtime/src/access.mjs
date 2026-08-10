@@ -1,4 +1,4 @@
-import { authorize } from "../../auth-core/src/index.mjs";
+import { authorize } from "../../auth-core/src/authorize.mjs";
 import { createDurableRepository } from "../../persistence-core/src/index.mjs";
 import { createAccessGrant, createOnboardingState, assertAutomatedAccessReadiness } from "../../contracts/src/saas-access.mjs";
 
@@ -24,13 +24,13 @@ export function createAccessRuntime({ store, saasRuntime, clock = () => new Date
     const subscription = await saasRuntime.getSubscription(grant.subscriptionId);
     const entitlement = await saasRuntime.getEntitlement(grant.entitlementId);
     const provisioningJob = await saasRuntime.getProvisioningJob(provisioningJobId);
-    assertAutomatedAccessReadiness({ subscription, entitlement, provisioningJob, grant });
+    assertAutomatedAccessReadiness({subscription, entitlement, provisioningJob, grant});
     const next = createAccessGrant({ ...grant, status: "active", activatedAt: at });
     await grants.replace(next);
     return next;
   }
 
-  async function evaluateAccess({ identity, accessGrantId, tenantId, workspaceId, productId } = {}) {
+  async function evaluateAccess({identity, accessGrantId, tenantId, workspaceId, productId} = {}) {
     const grant = await grants.getById(accessGrantId);
     if (!grant || grant.status !== "active") return Object.freeze({ allowed: false, reason: "access_grant_inactive" });
     if (grant.tenantId !== tenantId || grant.workspaceId !== workspaceId || grant.productId !== productId) {
@@ -40,8 +40,8 @@ export function createAccessRuntime({ store, saasRuntime, clock = () => new Date
     return Object.freeze({ allowed: decision.allowed, reason: decision.reason, missingScopes: decision.missingScopes });
   }
 
-  async function setOnboarding({ tenantId, workspaceId, productId, status, requiredSteps = [], completedSteps = [], updatedAt = clock() } = {}) {
-    const record = createOnboardingState({ tenantId, workspaceId, productId, status, requiredSteps, completedSteps, updatedAt });
+  async function setOnboarding({tenantId, workspaceId, productId, status, requiredSteps = [], completedSteps = [], updatedAt = clock()} = {}) {
+    const record = createOnboardingState({tenantId, workspaceId, productId, status, requiredSteps, completedSteps, updatedAt});
     const value = Object.freeze({ onboardingKey: key(tenantId, workspaceId, productId), ...record });
     const current = await onboarding.getById(value.onboardingKey);
     if (current) {
