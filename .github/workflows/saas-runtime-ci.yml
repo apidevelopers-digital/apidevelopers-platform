@@ -36,7 +36,9 @@ jobs:
           npm run check 2>&1 | tee /tmp/saas-runtime-check.log
           status=${PIPESTATUS[0]}
           if [ "$status" -ne 0 ]; then
-            message="$(tail -n 30 /tmp/saas-runtime-check.log | tr '\n\r' '  ' | sed 's/%/%25/g;s//%20/g')"
+            module_error="(grep -Eim 1 'Cannot find (module|package)|ERR_MODULE_NOT_FOUND' /tmp/saas-runtime-check.log | tr '\n\r' '  ' | sed 's/%/%25/g')"
+            message="$(tail -n 60 /tmp/saas-runtime-check.log | tr '\n\r' '  ' | sed 's/%/%25/g')"
+            echo "::error title=SaaS runtime module error::${module_error:-no module line captured}"
             echo "::error title=SaaS runtime failure::$message"
             exit "$status"
           fi
