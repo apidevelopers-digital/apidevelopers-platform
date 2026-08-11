@@ -30,5 +30,6 @@ jobs:
           npm --prefix packages/saas-billing run check
           grep -R -q "amountMinor" packages/saas-billing/src
           grep -R -q "verifyAndParseWebhook" packages/saas-billing/src
-          grep -R -q "executeIdempotent" packages/saas-billing/src
+          grep -R -q "putIdempotency" packages/saas-billing/src/runtime.mjs
+          grep -R -q "store.transaction" packages/saas-billing/src/runtime.mjs
           ! grep -R -E "(sk_live_|sk_test_|access_token|api[_-]?key\s*=|cardNumber|cvv)" packages/saas-billing
