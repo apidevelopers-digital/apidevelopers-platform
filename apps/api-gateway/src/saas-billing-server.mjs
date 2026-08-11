@@ -29,9 +29,12 @@ export async function readBillingRawBody(request, { maxBytes = 262_144 } = {}) {
   return Buffer.concat(chunks, size);
 }
 
-export function createBillingReadyApp({ baseApp, authenticator, saasBilling } = {}) {
+export function createBillingReadyApp({ baseApp, authenticator, saasBilling, publicBillingHttp } = {}) {
   if (!baseApp || typeof baseApp.handleRequest !== "function") {
     throw new TypeError("baseApp.handleRequest must be a function");
+  }
+  if (publicBillingHttp !== undefined && typeof publicBillingHttp?.handle !== "function") {
+    throw new TypeError("publicBillingHttp.handle must be a function");
   }
   const billingHttp = createSaasBillingHttp({ authenticator, saasBilling });
 
@@ -44,6 +47,15 @@ export function createBillingReadyApp({ baseApp, authenticator, saasBilling } = 
     } = {}) {
       const requestUrl = new URL(String(url), "http://api-gateway.local");
       const query = Object.fromEntries(requestUrl.searchParams.entries());
+      if (publicBillingHttp) {
+        const publicBilling = await publicBillingHttp.handle({
+          method,
+          pathname: requestUrl.pathname,
+          headers,
+          rawBody,
+        });
+        if (publicBilling) return jsonResponse(publicBilling.status, publicBilling.payload);
+      }
       const billing = await billingHttp.handle({
         method,
         pathname: requestUrl.pathname,
@@ -63,14 +75,12 @@ export function createBillingHttpServer({ app } = {}) {
   }
   return http.createServer(async (request, response) => {
     try {
-      const requestUrl = new URL(
-        String(request.url ?? "/"),
-        "http://api-gateway.local",
-      );
+      const requestUrl = new URL(String(request.url ?? "/"), "http://api-gateway.local");
       const isBillingPost =
         String(request.method).toUpperCase() === "POST" &&
         (
           requestUrl.pathname.startsWith("/v1/saas/billing/") ||
+          requestUrl.pathname.startsWith("/v1/public/billing/") ||
           requestUrl.pathname.startsWith("/v1/financial/webhooks/")
         );
       const rawBody = isBillingPost
