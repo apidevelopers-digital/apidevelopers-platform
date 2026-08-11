@@ -8,17 +8,29 @@ permissions:
 
 jobs:
   wordpress-auth-probe:
-    name: Mercado Pago access token presence preflight
+    name: Mercado Pago authenticated read-only probe
     runs-on:
       - self-hosted
       - macOS
       - X64
     timeout-minutes: 10
     steps:
-      - name: Check MP_ACCESS_TOKEN binding without revealing value
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Validate Mercado Pago read-only regression tests
+        shell: bash
+        run: node --test packages/saas-billing/test/mercadopago-auth-probe.test.mjs
+
+      - name: Run Mercado Pago authenticated read-only probe
         shell: bash
         env:
+          APD_BILLING_MODE: test
+          APD_BILLING_LIVE_ENABLED: "false"
           MP_ACCESS_TOKEN: ${{ secrets.MP_ACCESS_TOKEN }}
+          MP_EXPECTED_TEST_USER_ID: ${{ secrets.MP_EXPECTED_TEST_USER_ID }}
         run: |
           set -euo pipefail
           test -n "${MP_ACCESS_TOKEN:-}"
+          test -n "${MP_EXPECTED_TEST_USER_ID:-}"
+          node scripts/mercadopago-auth-probe.mjs
