@@ -43,7 +43,7 @@ export function createZuniMasterInstitutionalPilotPlan({
   const entitlementId = createEntitlementId(
     tenantSlug,
     workspaceSlug,
-    "zuni.master",
+    "zuni-master",
   );
   const accessGrantId = createAccessGrantId(
     tenantSlug,
