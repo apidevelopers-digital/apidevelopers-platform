@@ -8,26 +8,17 @@ permissions:
 
 jobs:
   wordpress-auth-probe:
-    name: Mercado Pago credential presence preflight
+    name: Mercado Pago access token presence preflight
     runs-on:
       - self-hosted
       - macOS
       - X64
     timeout-minutes: 10
     steps:
-      - name: Check Mercado Pago secret bindings without revealing values
+      - name: Check MP_ACCESS_TOKEN binding without revealing value
         shell: bash
         env:
           MP_ACCESS_TOKEN: ${{ secrets.MP_ACCESS_TOKEN }}
-          MP_EXPECTED_TEST_USER_ID: ${{ secrets.MP_EXPECTED_TEST_USER_ID }}
         run: |
           set -euo pipefail
-          token_configured=false
-          expected_id_configured=false
-          if [ -n "${MP_ACCESS_TOKEN:-}" ]; then token_configured=true; fi
-          if [ -n "${MP_EXPECTED_TEST_USER_ID:-}" ]; then expected_id_configured=true; fi
-          echo "mp_access_token_configured=${token_configured}"
-          echo "mp_expected_test_user_id_configured=${expected_id_configured}"
-          if [ "${token_configured}" != "true" ] || [ "${expected_id_configured}" != "true" ]; then
-            exit 2
-          fi
+          test -n "${MP_ACCESS_TOKEN:-}"
