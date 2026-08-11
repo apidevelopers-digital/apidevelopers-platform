@@ -9,7 +9,7 @@ function requireText(value, name) {
 
 function normalizeEmail(value) {
   const email = requireText(value, "payerEmail").toLowerCase();
-  if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+  if (!/^[^\\s@]+@[^\\s@]+\\.[^\\s@]+$/.test(email)) {
     throw new TypeError("payerEmail must be a valid email");
   }
   return email;
@@ -28,6 +28,7 @@ function defineSurfaces(surfaces = []) {
   const map = new Map();
   for (const raw of surfaces) {
     const surfaceId = requireText(raw.surfaceId, "surfaceId");
+    const productId = requireText(raw.productId, "productId").toLowerCase();
     if (map.has(surfaceId)) {
       throw new Error(`duplicate surfaceId: ${surfaceId}`);
     }
@@ -48,6 +49,7 @@ function defineSurfaces(surfaces = []) {
       surfaceId,
       Object.freeze({
         surfaceId,
+        productId,
         allowedOrigins,
         successUrl: successUrl.toString(),
         cancelUrl: cancelUrl.toString(),
@@ -109,6 +111,9 @@ export function createPublicCheckoutIntentService({
       }
 
       const price = catalog.get(requireText(priceId, "priceId"));
+      if (price.productId !== surface.productId) {
+        throw new Error("billing_surface_product_mismatch");
+      }
       const email = normalizeEmail(payerEmail);
       const createdAt = clock().toISOString();
 
