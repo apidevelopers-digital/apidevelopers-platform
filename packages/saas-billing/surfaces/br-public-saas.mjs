@@ -76,9 +76,9 @@ const surfaces = [
   {
     surfaceId: "sitedauni-uni-social",
     productId: "uni.social",
-    origin: "https://sitedauni.com",
-    publicUrl: "https://sitedauni.com/apps/uni-social/",
-    status: "planned",
+    origin: "https://social.sitedauni.com",
+    publicUrl: "https://social.sitedauni.com/",
+    status: "published",
   },
 ].map(createSurface);
 
