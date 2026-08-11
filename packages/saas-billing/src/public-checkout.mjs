@@ -65,6 +65,23 @@ function defineSurfaces(surfaces = []) {
   return map;
 }
 
+function assertIdempotencyMatch(existing, { key, mode, price, email, surface }) {
+  const matches =
+    existing?.idempotencyKey === key &&
+    existing?.mode === mode &&
+    existing?.priceId === price.priceId &&
+    existing?.productId === price.productId &&
+    existing?.payerEmail === email &&
+    existing?.surfaceId === surface.surfaceId &&
+    existing?.successUrl === surface.successUrl &&
+    existing?.cancelUrl === surface.cancelUrl;
+
+  if (!matches) {
+    throw new Error("idempotency_key_conflict");
+  }
+  return existing;
+}
+
 export function createPublicCheckoutIntentService({
   catalog,
   store,
@@ -101,9 +118,6 @@ export function createPublicCheckoutIntentService({
     } = {}) {
       const key = requireText(idempotencyKey, "idempotencyKey");
 
-      const existing = await store.getPublicCheckoutIntent(key);
-      if (existing) return existing;
-
       if (consentAccepted !== true) {
         throw new Error("billing_consent_required");
       }
@@ -121,6 +135,18 @@ export function createPublicCheckoutIntentService({
         throw new Error("billing_surface_product_mismatch");
       }
       const email = normalizeEmail(payerEmail);
+
+      const existing = await store.getPublicCheckoutIntent(key);
+      if (existing) {
+        return assertIdempotencyMatch(existing, {
+          key,
+          mode,
+          price,
+          email,
+          surface,
+        });
+      }
+
       const createdAt = clock().toISOString();
 
       const intent = Object.freeze({
@@ -143,8 +169,15 @@ export function createPublicCheckoutIntentService({
         createdAt,
       });
 
-      await store.putPublicCheckoutIntent(key, intent);
-      return intent;
+      const stored = await store.putPublicCheckoutIntent(key, intent);
+      const committed = stored ?? intent;
+      return assertIdempotencyMatch(committed, {
+        key,
+        mode,
+        price,
+        email,
+        surface,
+      });
     },
   });
 }
