@@ -1,13 +1,9 @@
 function requireObject(value, name) {
-  if (!value || typeof value !== "object") {
-    throw new TypeError(`${name} must be an object`);
-  }
+  if (!value || typeof value !== "object") throw new TypeError("${name} must be an object");
 }
 
 function requireText(value, name) {
-  if (typeof value !== "string" || value.trim() === "") {
-    throw new TypeError(`${name} must be a non-empty string`);
-  }
+  if (typeof value !== "string" || value.trim() === "") throw new TypeError(`${name} must be a non-empty string`);
   return value.trim();
 }
 
@@ -15,24 +11,22 @@ function amountMajor(amountMinor) {
   return Number.parseFloat((amountMinor / 100).toFixed(2));
 }
 
+function recurrenceFor(interval) {
+  if (interval === "month") return { frequency: 1, frequency_type: "months" };
+  if (interval === "year") return { frequency: 12, frequency_type: "months" };
+  throw new TypeError(`unsupported Mercado Pago interval: ${interval}`);
+}
+
 function mpStatusToEventType(status) {
-  if (status === "authorized" || status === "active" || status === "approved") {
-    return "payment.succeeded";
-  }
-  if (["cancelled", "canceled_by_user"].includes(status)) {
-    return "subscription.cancelled";
-  }
-  if (["rejected", "paused", "past_due"].includes(status)) {
-    return "payment.failed";
-  }
+  if (status === "authorized" || status === "active" || status === "approved") return "payment.succeeded";
+  if (["cancelled", "cancelled_by_user"].includes(status)) return "subscription.cancelled";
+  if (["rejected", "paused", "past_due"].includes(status)) return "payment.failed";
   return "checkout.completed";
 }
 
 export function createMercadoPagoSubscriptionProvider({ client, mode = "test" } = {}) {
   requireObject(client, "client");
-  if (!["test", "live"].includes(mode)) {
-    throw new TypeError("mode must be test or live");
-  }
+  if (!["test", "live"].includes(mode)) throw new TypeError("mode must be test or live");
   if (typeof client.createSubscriptionPlan !== "function") {
     throw new TypeError("client.createSubscriptionPlan must be a function");
   }
@@ -44,25 +38,19 @@ export function createMercadoPagoSubscriptionProvider({ client, mode = "test" } 
     name: "mercadopago",
     mode,
     async createCheckoutSession({
-      checkoutIntentId,
-      tenantId,
-      workspaceId,
-      subscriptionId,
-      price,
-      successUrl,
+      checkoutIntentId, tenantId, workspaceId, subscriptionId, price, successUrl,
     }) {
+      const recurrence = recurrenceFor(price.interval);
       const payload = {
         reason: `${price.productId} ${price.planId}`,
         auto_recurring: {
-          frequency: 1,
-          frequency_type: price.interval === "year" ? "months" : "months",
-          repetitions: price.interval === "year" ? 12 : undefined,
+          ...recurrence,
           transaction_amount: amountMajor(price.amountMinor),
           currency_id: price.currency,
         },
-      back_url: successUrl,
+        back_url: successUrl,
         external_reference: subscriptionId,
-      metadata: {
+        metadata: {
           apd_checkout_intent_id: checkoutIntentId,
           apd_tenant_id: tenantId,
           apd_workspace_id: workspaceId,
@@ -73,16 +61,14 @@ export function createMercadoPagoSubscriptionProvider({ client, mode = "test" } 
         },
       };
 
-      const plan = await client.createSubscriptionPlan(payload, {
-        idempotencyKey: checkoutIntentId,
-      });
+      const plan = await client.createSubscriptionPlan(payload, { idempotencyKey: checkoutIntentId });
       return Object.freeze({
         providerCheckoutId: requireText(plan.id, "Mercado Pago plan id"),
         checkoutUrl: requireText(plan.init_point, "Mercado Pago init_point"),
         expiresAt: null,
       });
     },
-    async verifyAndParseWebhook{(headers = {}, rawBody) {
+    async verifyAndParseWebhook({ headers = {}, rawBody }) {
       const event = await client.verifyAndParseWebhook({ headers, rawBody });
       requireObject(event, "Mercado Pago webhook event");
       return Object.freeze({
