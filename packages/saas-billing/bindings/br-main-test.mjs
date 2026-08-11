@@ -48,6 +48,7 @@ const bindings = [
   product("br-main-test-imuni", "imuni", "uni", "imuni"),
   product("br-main-test-unijuri", "uni.juri", "uni", "uni.juri"),
   product("br-main-test-universo", "uni.verso", "uni", "uni.verso"),
+  product("br-main-test-unisocial", "uni.social", "uni", "uni.social"),
   product("br-main-test-zuni", "zuni", "apd", "zuni"),
 ];
 
