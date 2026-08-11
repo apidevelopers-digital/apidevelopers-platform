@@ -63,7 +63,7 @@ test("delegated SaaS v2 derives subject scopes from AccessGrant and exposes opaq
   });
 
   assert.equal(response.status, 200);
-  assert.deepEqual(observed.identity.principal.scopes, ["zeni:read", "zuni:reply"]);
+  assert.deepEqual(observed.identity.principal.scopes, ["zuni:read", "zuni:reply"]);
   assert.equal(observed.identity.principal.scopes.includes("zuni:admin"), false);
 
   const body = JSON.parse(response.body);
