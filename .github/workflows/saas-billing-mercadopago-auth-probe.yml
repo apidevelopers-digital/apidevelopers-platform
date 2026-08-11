@@ -2,15 +2,6 @@ name: SaaS Billing Mercado Pago Auth Probe
 
 on:
   workflow_dispatch:
-    inputs:
-      expected_test_user_id:
-        description: "Mercado Pago test user ID expected for account binding"
-        required: true
-        type: string
-      confirmation:
-        description: "Type TESTE_READ_ONLY_MERCADO_PAGO to allow the read-only probe"
-        required: true
-        type: string
 
 permissions:
   contents: read
@@ -18,7 +9,6 @@ permissions:
 jobs:
   mercadopago_auth_probe:
     name: Mercado Pago credential read-only probe
-    if: ${{ inputs.confirmation == 'TESTE_READ_ONLY_MERCADO_PAGO' }}
     runs-on:
       - self-hosted
       - macOS
@@ -39,7 +29,7 @@ jobs:
           APD_BILLING_MODE: test
           APD_BILLING_LIVE_ENABLED: "false"
           MP_ACCESS_TOKEN: ${{ secrets.MP_ACCESS_TOKEN }}
-          MP_EXPECTED_TEST_USER_ID: ${{ inputs.expected_test_user_id }}
+          MP_EXPECTED_TEST_USER_ID: ${{ secrets.MP_EXPECTED_TEST_USER_ID }}
         run: |
           set -euo pipefail
           test -n "${MP_ACCESS_TOKEN:-}"
