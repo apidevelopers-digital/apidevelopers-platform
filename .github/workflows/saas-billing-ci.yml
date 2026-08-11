@@ -5,7 +5,7 @@ on:
     paths:
       - "packages/saas-billing/**"
       - "apps/api-gateway/src/saas-billing-*.mjs"
-      - "apps/api-gateway/test/saas-billing-http.test.mjs"
+      - "apps/api-gateway/test/saas-billing-*.test.mjs"
       - ".github/workflows/saas-billing-ci.yml"
   push:
     branches:
@@ -13,7 +13,7 @@ on:
     paths:
       - "packages/saas-billing/**"
       - "apps/api-gateway/src/saas-billing-*.mjs"
-      - "apps/api-gateway/test/saas-billing-http.test.mjs"
+      - "apps/api-gateway/test/saas-billing-*.test.mjs"
       - ".github/workflows/saas-billing-ci.yml"
 
 permissions:
@@ -32,10 +32,11 @@ jobs:
         run: |
           set -euo pipefail
           npm --prefix packages/saas-billing run check
-          node --test apps/api-gateway/test/saas-billing-http.test.mjs
+          node --test apps/api-gateway/test/saas-billing-*.test.mjs
           grep -R -q "amountMinor" packages/saas-billing/src
           grep -R -q "verifyAndParseWebhook" packages/saas-billing/src
           grep -R -q "putIdempotency" packages/saas-billing/src/runtime.mjs
           grep -R -q "store.transaction" packages/saas-billing/src/runtime.mjs
           grep -R -q "stripe-signature" apps/api-gateway/test/saas-billing-http.test.mjs
-          ! grep -R -E "(sk_live_|sk_test_|access_token|api[_-]?key\s*=|cardNumber|cvv)" packages/saas-billing apps/api-gateway/src/saas-billing-*.mjs apps/api-gateway/test/saas-billing-http.test.mjs
+          grep -R -q "APD_BILLING_LIVE_ENABLED" apps/api-gateway/src/saas-billing-config.mjs
+          ! grep -R -E "(sk_live_|sk_test_|access_token|api[_-]?key\s*=|cardNumber|cvv)" packages/saas-billing apps/api-gateway/src/saas-billing-*.mjs apps/api-gateway/test/saas-billing-*.test.mjs
