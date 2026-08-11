@@ -13,6 +13,7 @@ test("BR public SaaS surface registry anchors the currently published catalog pr
     ["uni.verso", "https://sitedauni.com/apps/universo/"],
     ["uni.co", "https://sitedauni.com/apps/unico/"],
     ["zuni", "https://zuni.sitedauni.com/"],
+    ["uni.social", "https://social.sitedauni.com/"],
   ]);
 
   const published = BR_PUBLIC_SAAS_SURFACE_REGISTRY.published();
@@ -26,17 +27,17 @@ test("BR public SaaS surface registry anchors the currently published catalog pr
   }
 });
 
-test("uni.social is anchored as planned and cannot be mistaken for a published checkout surface", () => {
+test("uni.social is anchored to the enabled public host while checkout remains disabled", () => {
   const surface = BR_PUBLIC_SAAS_SURFACE_REGISTRY.get("sitedauni-uni-social");
 
   assert.equal(surface.productId, "uni.social");
-  assert.equal(surface.origin, "https://sitedauni.com");
-  assert.equal(surface.publicUrl, "https://sitedauni.com/apps/uni-social/");
-  assert.equal(surface.status, "planned");
+  assert.equal(surface.origin, "https://social.sitedauni.com");
+  assert.equal(surface.publicUrl, "https://social.sitedauni.com/");
+  assert.equal(surface.status, "published");
   assert.equal(surface.checkoutEnabled, false);
   assert.equal(
     BR_PUBLIC_SAAS_SURFACE_REGISTRY.published().some((item) => item.productId === "uni.social"),
-    false,
+    true,
   );
 });
 
