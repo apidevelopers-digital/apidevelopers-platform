@@ -28,7 +28,7 @@ export function readSaasBillingConfig(env = {}) {
   }
 
   const provider = requireText(env, "APD_BILLING_PROVIDER").toLowerCase();
-  if (provider !== "stripe") {
+  if (provider !== "mercadopago") {
     throw new Error(`unsupported billing provider: ${provider}`);
   }
 
@@ -38,16 +38,11 @@ export function readSaasBillingConfig(env = {}) {
   }
 
   const catalogPath = requireText(env, "APD_BILLING_CATALOG_PATH");
-  const secretEnvNames = [
-    "STRIPE_SECRET_KEY",
-    "STRIPE_WEBHOOK_SECRET",
-  ];
+  const secretEnvNames = ["MP_ACCESS_TOKEN", "MP_WEBHOOK_SECRET"];
   for (const name of secretEnvNames) requireText(env, name);
 
   if (mode === "live" && !readEnabled(env, "APD_BILLING_LIVE_ENABLED")) {
-    throw new Error(
-      "live billing requires explicit APD_BILLING_LIVE_ENABLED=true",
-    );
+    throw new Error("live billing requires explicit APD_BILLING_LIVE_ENABLED=true");
   }
 
   return Object.freeze({
