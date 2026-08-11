@@ -1,0 +1,34 @@
+name: SaaS Billing CI
+
+on:
+  pull_request:
+    paths:
+      - "packages/saas-billing/**"
+      - ".github/workflows/saas-billing-ci.yml"
+  push:
+    branches:
+      - "feat/saas-billing-foundation-20260811"
+    paths:
+      - "packages/saas-billing/**"
+      - ".github/workflows/saas-billing-ci.yml"
+
+permissions:
+  contents: read
+
+jobs:
+  validate:
+    runs-on:
+      - self-hosted
+      - macOS
+      - X64
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - name: Validate SaaS billing foundation
+        run: |
+          set -euo pipefail
+          npm --prefix packages/saas-billing run check
+          grep -R -q "amountMinor" packages/saas-billing/src
+          grep -R -q "verifyAndParseWebhook" packages/saas-billing/src
+          grep -R -q "executeIdempotent" packages/saas-billing/src
+          ! grep -R -E "(sk_live_|sk_test_|access_token|api[_-]?key\s*=|cardNumber|cvv)" packages/saas-billing
