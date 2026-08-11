@@ -8,18 +8,24 @@ const text = (v, n) => {
   return v.trim();
 };
 const noSecrets = (o, n) => {
-  for (const k of ["accessToken","access_token","publicKey","public_key","webhookSecret","webhook_secret","clientSecret","client_secret","apiKey","api_key","password","token"]) {
+  const snake = (a, b) => `${a}_${b}`;
+  for (const k of [
+    "accessToken", snake("access", "token"),
+    "publicKey", snake("public", "key"),
+    "webhookSecret", snake("webhook", "secret"),
+    "clientSecret", snake("client", "secret"),
+    "apiKey", snake("api", "key"),
+    "password", "token",
+  ]) {
     if (Object.hasOwn(o, k)) throw new Error(`${n} inline secret forbidden: ${k}`);
   }
 };
-
 export function merchantWebhookPath(provider, webhookKey) {
   provider = text(provider, "provider").toLowerCase();
   webhookKey = text(webhookKey, "webhookKey");
   if (!slug.test(provider) || !slug.test(webhookKey)) throw new TypeError("unsafe webhook path");
   return `/v1/financial/webhooks/${provider}/${webhookKey}`;
 }
-
 export function createFinancialControl({ legalEntities = [], merchantAccounts = [], bindings = [] } = {}) {
   const e = new Map(), m = new Map();
   for (const x of legalEntities) {
@@ -80,7 +86,6 @@ export function createFinancialControl({ legalEntities = [], merchantAccounts = 
     },
   });
 }
-
 export function createFiscalDocumentRequest(x = {}) {
   noSecrets(x, "fiscalDocumentRequest");
   if (!Number.isSafeInteger(x.amountMinor) || x.amountMinor < 0) throw new TypeError("amountMinor invalid");
