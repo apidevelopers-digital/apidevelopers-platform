@@ -44,6 +44,12 @@ function defineSurfaces(surfaces = []) {
     if (successUrl.protocol !== "https:" || cancelUrl.protocol !== "https:") {
       throw new TypeError("surface return URLs must use https");
     }
+    if (
+      !allowedOrigins.includes(successUrl.origin) ||
+      !allowedOrigins.includes(cancelUrl.origin)
+    ) {
+      throw new Error("surface_return_origin_not_allowed");
+    }
 
     map.set(
       surfaceId,
