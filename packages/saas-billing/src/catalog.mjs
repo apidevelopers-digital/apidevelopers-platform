@@ -21,6 +21,7 @@ export function createBillingPrice({ priceId, productId, planId, currency, inter
   if (!Number.isSafeInteger(amountMinor) || amountMinor < 0) throw new TypeError("amountMinor must be a non-negative safe integer");
   if (!TAX_BEHAVIORS.has(taxBehavior)) throw new TypeError("taxBehavior is invalid");
   if (typeof active !== "boolean") throw new TypeError("active must be boolean");
+  if (active && amountMinor <= 0) throw new TypeError("active billing price amountMinor must be greater than zero");
 
   return Object.freeze({
     priceId: priceId.trim().toLowerCase(),
