@@ -30,6 +30,27 @@ export function createAccessRuntime({ store, saasRuntime, clock = () => new Date
     return next;
   }
 
+  async function resolveActiveGrant({ tenantId, principalId, productId } = {}) {
+    if (!tenantId || !principalId || !productId) {
+      return Object.freeze({ resolved: false, reason: "access_binding_context_required", grant: null });
+    }
+    const matches = await grants.list({
+      where: {
+        tenantId,
+        principalId,
+        productId,
+        status: "active",
+      },
+    });
+    if (matches.length === 0) {
+      return Object.freeze({ resolved: false, reason: "access_grant_not_found", grant: null });
+    }
+    if (matches.length !== 1) {
+      return Object.freeze({ resolved: false, reason: "access_grant_ambiguous", grant: null });
+    }
+    return Object.freeze({ resolved: true, reason: null, grant: matches[0] });
+  }
+
   async function evaluateAccess({identity, accessGrantId, tenantId, workspaceId, productId} = {}) {
     const grant = await grants.getById(accessGrantId);
     if (!grant || grant.status !== "active") return Object.freeze({ allowed: false, reason: "access_grant_inactive" });
@@ -55,5 +76,12 @@ export function createAccessRuntime({ store, saasRuntime, clock = () => new Date
     return onboarding.create(value);
   }
 
-  return Object.freeze({ grantAccess, activateAccess, evaluateAccess, setOnboarding, getOnboarding: (tenantId, workspaceId, productId) => onboarding.getById(key(tenantId, workspaceId, productId)) });
+  return Object.freeze({
+    grantAccess,
+    activateAccess,
+    resolveActiveGrant,
+    evaluateAccess,
+    setOnboarding,
+    getOnboarding: (tenantId, workspaceId, productId) => onboarding.getById(key(tenantId, workspaceId, productId)),
+  });
 }

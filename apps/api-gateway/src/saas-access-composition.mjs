@@ -1,6 +1,7 @@
 import {
   createSaasRuntime,
   createAccessRuntime,
+  createFederatedPrincipalRuntime,
 } from "@apidevelopers/saas-runtime";
 
 export function createSaasAccessComposition({
@@ -20,9 +21,14 @@ export function createSaasAccessComposition({
     saasRuntime,
     ...(clock ? { clock } : {}),
   });
+  const federatedPrincipal = createFederatedPrincipalRuntime({
+    store,
+    ...(clock ? { clock } : {}),
+  });
 
   return Object.freeze({
     saasRuntime,
     saasAccess,
+    federatedPrincipal,
   });
 }

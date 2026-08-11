@@ -1,9 +1,9 @@
 import { createSaasAccessComposition } from "./saas-access-composition.mjs";
+import { createDelegatedSaasAccessApp } from "./saas-delegated-access-v2.mjs";
 import { createApp } from "./server.mjs";
 
-function isSaasAccessRoute(url) {
-  const requestUrl = new URL(String(url ?? "/"), "http://api-gateway.local");
-  return requestUrl.pathname === "/v1/saas/access";
+function pathnameOf(url) {
+  return new URL(String(url ?? "/"), "http://api-gateway.local").pathname;
 }
 
 export function createSaasOperationalHttpComposition({
@@ -32,10 +32,19 @@ export function createSaasOperationalHttpComposition({
     audit,
     saasAccess: saasComposition.saasAccess,
   });
+  const delegatedApp = createDelegatedSaasAccessApp({
+    authenticator,
+    saasAccess: saasComposition.saasAccess,
+    federatedPrincipal: saasComposition.federatedPrincipal,
+  });
 
   const wrappedApp = Object.freeze({
     async handleRequest(request = {}) {
-      if (isSaasAccessRoute(request.url)) {
+      const pathname = pathnameOf(request.url);
+      if (pathname === "/v1/saas/access/delegated") {
+        return delegatedApp.handleRequest(request);
+      }
+      if (pathname === "/v1/saas/access") {
         return saasApp.handleRequest(request);
       }
       return app.handleRequest(request);
@@ -46,5 +55,6 @@ export function createSaasOperationalHttpComposition({
     app: wrappedApp,
     saasRuntime: saasComposition.saasRuntime,
     saasAccess: saasComposition.saasAccess,
+    federatedPrincipal: saasComposition.federatedPrincipal,
   });
 }

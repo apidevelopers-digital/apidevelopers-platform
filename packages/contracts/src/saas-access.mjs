@@ -15,7 +15,7 @@ function uniqueTexts(values, name) {
   return [...new Set(values.map((value) => requireText(value, name)))];
 }
 
-export const saasAccessContractVersion = 1;
+export const saasAccessContractVersion = 2;
 
 export function createAccessGrantId(tenantSlug, workspaceSlug, productId, principalId) {
   return createCanonicalId({
@@ -25,6 +25,11 @@ export function createAccessGrantId(tenantSlug, workspaceSlug, productId, princi
 }
 
 export function createAccessGrant(input = {}) {
+  const requiredScopes = uniqueTexts(input.requiredScopes, "requiredScope");
+  const grantedScopes = Array.isArray(input.grantedScopes)
+    ? uniqueTexts(input.grantedScopes, "grantedScope")
+    : [...requiredScopes];
+
   const grant = {
     accessGrantId: requireText(input.accessGrantId, "accessGrantId"),
     principalId: requireText(input.principalId, "principalId"),
@@ -33,7 +38,8 @@ export function createAccessGrant(input = {}) {
     productId: requireText(input.productId, "productId"),
     subscriptionId: requireText(input.subscriptionId, "subscriptionId"),
     entitlementId: requireText(input.entitlementId, "entitlementId"),
-    requiredScopes: uniqueTexts(input.requiredScopes, "requiredScope"),
+    requiredScopes,
+    grantedScopes,
     status: input.status ?? "pending",
     createdAt: requireText(input.createdAt, "createdAt"),
     activatedAt: input.activatedAt ? requireText(input.activatedAt, "activatedAt") : null,

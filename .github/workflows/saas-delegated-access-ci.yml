@@ -1,0 +1,70 @@
+name: SaaS Delegated Access CI
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - "apps/api-gateway/src/saas-delegated-access-v2.mjs"
+      - "apps/api-gateway/src/saas-operational-http-composition.mjs"
+      - "apps/api-gateway/test/saas-delegated-access-v2.test.mjs"
+      - "packages/contracts/src/saas-access.mjs"
+      - "packages/saas-runtime/src/access.mjs"
+      - "packages/saas-runtime/src/federated-principal.mjs"
+      - ".github/workflows/saas-delegated-access-ci.yml"
+  pull_request:
+    branches:
+      - main
+    paths:
+      - "apps/api-gateway/src/saas-delegated-access-v2.mjs"
+      - "apps/api-gateway/src/saas-operational-http-composition.mjs"
+      - "apps/api-gateway/test/saas-delegated-access-v2.test.mjs"
+      - "packages/contracts/src/saas-access.mjs"
+      - "packages/saas-runtime/src/access.mjs"
+      - "packages/saas-runtime/src/federated-principal.mjs"
+      - ".github/workflows/saas-delegated-access-ci.yml"
+  workflow_dispatch: {}
+
+permissions:
+  contents: read
+
+jobs:
+  validate:
+    runs-on:
+      - self-hosted
+      - macOS
+      - X64
+    timeout-minutes: 10
+    defaults:
+      run:
+        working-directory: apps/api-gateway
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+
+      - name: Link workspace dependencies
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          mkdir -p "$GITHUB_WORKSPACE/apps/api-gateway/node_modules/@apidevelopers"
+          ln -sfn "$GITHUB_WORKSPACE/packages/contracts" "$GITHUB_WORKSPACE/apps/api-gateway/node_modules/@apidevelopers/contracts"
+          ln -sfn "$GITHUB_WORKSPACE/packages/auth-core" "$GITHUB_WORKSPACE/apps/api-gateway/node_modules/@apidevelopers/auth-core"
+          ln -sfn "$GITHUB_WORKSPACE/packages/apikey-core" "$GITHUB_WORKSPACE/apps/api-gateway/node_modules/@apidevelopers/apikey-core"
+          ln -sfn "$GITHUB_WORKSPACE/packages/persistence-core" "$GITHUB_WORKSPACE/apps/api-gateway/node_modules/@apidevelopers/persistence-core"
+          ln -sfn "$GITHUB_WORKSPACE/packages/saas-runtime" "$GITHUB_WORKSPACE/apps/api-gateway/node_modules/@apidevelopers/saas-runtime"
+
+          mkdir -p "$GITHUB_WORKSPACE/packages/auth-core/node_modules/@apidevelopers"
+          ln -sfn "$GITHUB_WORKSPACE/packages/apikey-core" "$GITHUB_WORKSPACE/packages/auth-core/node_modules/@apidevelopers/apikey-core"
+
+          mkdir -p "$GITHUB_WORKSPACE/packages/apikey-core/node_modules/@apidevelopers"
+          ln -sfn "$GITHUB_WORKSPACE/packages/persistence-core" "$GITHUB_WORKSPACE/packages/apikey-core/node_modules/@apidevelopers/persistence-core"
+
+      - name: Delegated access v2 contract
+        run: node --test test/saas-delegated-access-v2.test.mjs
