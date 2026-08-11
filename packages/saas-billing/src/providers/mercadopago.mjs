@@ -1,9 +1,11 @@
 function requireObject(value, name) {
-  if (!value || typeof value !== "object") throw new TypeError("${name} must be an object");
+  if (!value || typeof value !== "object") throw new TypeError(`${name} must be an object`);
 }
 
 function requireText(value, name) {
-  if (typeof value !== "string" || value.trim() === "") throw new TypeError(`${name} must be a non-empty string`);
+  if (typeof value !== "string" || value.trim() === "") {
+    throw new TypeError(`${name} must be a non-empty string`);
+  }
   return value.trim();
 }
 
@@ -18,15 +20,15 @@ function recurrenceFor(interval) {
 }
 
 function mpStatusToEventType(status) {
-  if (status === "authorized" || status === "active" || status === "approved") return "payment.succeeded";
+  if (status === "approved") return "payment.succeeded";
+  if (status === "rejected") return "payment.failed";
   if (["cancelled", "cancelled_by_user"].includes(status)) return "subscription.cancelled";
-  if (["rejected", "paused", "past_due"].includes(status)) return "payment.failed";
   return "checkout.completed";
 }
 
 export function createMercadoPagoSubscriptionProvider({ client, mode = "test" } = {}) {
   requireObject(client, "client");
-  if (!["test", "live"].includes(mode)) throw new TypeError("mode must be test or live");
+  if (!["test", "live"].includes(mode)) throw new TypeError "mode must be test or live");
   if (typeof client.createSubscriptionPlan !== "function") {
     throw new TypeError("client.createSubscriptionPlan must be a function");
   }
@@ -37,8 +39,14 @@ export function createMercadoPagoSubscriptionProvider({ client, mode = "test" } 
   return Object.freeze({
     name: "mercadopago",
     mode,
+
     async createCheckoutSession({
-      checkoutIntentId, tenantId, workspaceId, subscriptionId, price, successUrl,
+      checkoutIntentId,
+      tenantId,
+      workspaceId,
+      subscriptionId,
+      price,
+      successUrl,
     }) {
       const recurrence = recurrenceFor(price.interval);
       const payload = {
@@ -61,20 +69,26 @@ export function createMercadoPagoSubscriptionProvider({ client, mode = "test" } 
         },
       };
 
-      const plan = await client.createSubscriptionPlan(payload, { idempotencyKey: checkoutIntentId });
+      const plan = await client.createSubscriptionPlan(payload, {
+        idempotencyKey: checkoutIntentId,
+      });
       return Object.freeze({
         providerCheckoutId: requireText(plan.id, "Mercado Pago plan id"),
         checkoutUrl: requireText(plan.init_point, "Mercado Pago init_point"),
         expiresAt: null,
       });
     },
-    async verifyAndParseWebhook({ headers = {}, rawBody }) {
-      const event = await client.verifyAndParseWebhook({ headers, rawBody });
+
+    async verifyAndParseWebhook({ headers = {}, rawBody, query = {} }) {
+      const event = await client.verifyAndParseWebhook({ headers, rawBody, query });
       requireObject(event, "Mercado Pago webhook event");
       return Object.freeze({
         eventId: requireText(event.id, "Mercado Pago event id"),
         eventType: mpStatusToEventType(event.status),
-        subscriptionId: requireText(event.external_reference, "Mercado Pago external_reference"),
+        subscriptionId: requireText(
+          event.external_reference,
+          "Mercado Pago external_reference",
+        ),
         occurredAt: requireText(event.occurredAt, "Mercado Pago occurredAt"),
         providerSubscriptionId: event.preapprovalId ?? null,
         providerCustomerId: event.payerId ?? null,
