@@ -7,17 +7,10 @@ const JSON_HEADERS = Object.freeze({
 });
 
 function jsonResponse(status, payload) {
-  return {
-    status,
-    headers: JSON_HEADERS,
-    body: JSON.stringify(payload),
-  };
+  return { status, headers: JSON_HEADERS, body: JSON.stringify(payload) };
 }
 
-export async function readBillingRawBody(
-  request,
-  { maxBytes = 262_144 } = {},
-) {
+export async function readBillingRawBody(request, { maxBytes = 262_144 } = {}) {
   if (!Number.isSafeInteger(maxBytes) || maxBytes <= 0) {
     throw new TypeError("maxBytes must be a positive safe integer");
   }
@@ -36,11 +29,7 @@ export async function readBillingRawBody(
   return Buffer.concat(chunks, size);
 }
 
-export function createBillingReadyApp({
-  baseApp,
-  authenticator,
-  saasBilling,
-} = {}) {
+export function createBillingReadyApp({ baseApp, authenticator, saasBilling } = {}) {
   if (!baseApp || typeof baseApp.handleRequest !== "function") {
     throw new TypeError("baseApp.handleRequest must be a function");
   }
@@ -54,11 +43,13 @@ export function createBillingReadyApp({
       rawBody,
     } = {}) {
       const requestUrl = new URL(String(url), "http://api-gateway.local");
+      const query = Object.fromEntries(requestUrl.searchParams.entries());
       const billing = await billingHttp.handle({
         method,
         pathname: requestUrl.pathname,
         headers,
         rawBody,
+        query,
       });
       if (billing) return jsonResponse(billing.status, billing.payload);
       return baseApp.handleRequest({ method, url, headers });
@@ -76,10 +67,13 @@ export function createBillingHttpServer({ app } = {}) {
         String(request.url ?? "/"),
         "http://api-gateway.local",
       );
-      const billingPost =
+      const isBillingPost =
         String(request.method).toUpperCase() === "POST" &&
-        requestUrl.pathname.startsWith("/v1/saas/billing/");
-      const rawBody = billingPost
+        (
+          requestUrl.pathname.startsWith("/v1/saas/billing/") ||
+          requestUrl.pathname.startsWith("/v1/financial/webhooks/")
+        );
+      const rawBody = isBillingPost
         ? await readBillingRawBody(request)
         : undefined;
       const result = await app.handleRequest({
