@@ -5,7 +5,7 @@ import { withBilling, seedPending } from "./helpers.mjs";
 
 test("catalog keeps charge amounts in minor units and normalizes currency", () => {
   const catalog = createBillingCatalog([{
-    priceId:"UniCo-Pro-BRL.Month", productId:"UNIco", planId:"PRO",
+    priceId:"UniCo-Pro-BRL-Month", productId:"UNIco", planId:"PRO",
     currency:"brl", interval:"month", amountMinor:59725,
   }]);
   const price = catalog.get("unico-pro-brl-month");
