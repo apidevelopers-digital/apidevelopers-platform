@@ -1,61 +1,129 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { createFinancialControl, createFiscalDocumentRequest, merchantWebhookPath } from "../src/merchant.mjs";
+import {
+  createFinancialControl,
+  createFiscalDocumentRequest,
+  merchantWebhookPath,
+} from "../src/merchant.mjs";
 
 const legalEntities = [
-  { legalEntityId: "apd-br", countryCode: "BR", accountingCurrency: "BRL", taxIdRef: "secret://apd/cnpj", fiscalProfileId: "fiscal-apd-br", status: "active" },
-  { legalEntityId: "uni-br", countryCode: "BR", accountingCurrency: "BRL", taxIdRef: "secret://uni/cnpj", fiscalProfileId: "fiscal-uni-br", status: "active" },
+  {
+    legalEntityId: "legal-br-main",
+    countryCode: "BR",
+    accountingCurrency: "BRL",
+    taxIdRef: "secret://legal-br-main/cnpj",
+    fiscalProfileId: "fiscal-br-main",
+    status: "active",
+  },
 ];
+
 const merchantAccounts = [
-  { merchantAccountId: "mp-apd-br-test", legalEntityId: "apd-br", provider: "mercadopago", countryCode: "BR", currency: "BRL", environment: "test", credentialRef: "env://MP_APD_BR_ACCESS_TOKEN", webhookSecretRef: "env://MP_APD_BR_WEBHOOK_SECRET", webhookKey: "apd-br", status: "active" },
-  { merchantAccountId: "mp-uni-br-test", legalEntityId: "uni-br", provider: "mercadopago", countryCode: "BR", currency: "BRL", environment: "test", credentialRef: "env://MP_UNI_BR_ACCESS_TOKEN", webhookSecretRef: "env://MP_UNI_BR_WEBHOOK_SECRET", webhookKey: "uni-br", status: "active" },
+  {
+    merchantAccountId: "mp-br-main-test",
+    legalEntityId: "legal-br-main",
+    provider: "mercadopago",
+    countryCode: "BR",
+    currency: "BRL",
+    environment: "test",
+    credentialRef: "env://MP_ACCESS_TOKEN",
+    webhookSecretRef: "env://MP_WEBHOOK_SECRET",
+    webhookKey: "br-main",
+    status: "active",
+  },
 ];
 
-test("merchant webhook path is scoped by merchant, not product", () => {
-  assert.equal(merchantWebhookPath("mercadopago", "apd-br"), "/v1/financial/webhooks/mercadopago/apd-br");
-  assert.equal(merchantWebhookPath("mercadopago", "uni-br"), "/v1/financial/webhooks/mercadopago/uni-br");
+const bindings = [
+  {
+    bindingId: "b-apd-zuni",
+    productId: "zuni",
+    legalEntityId: "legal-br-main",
+    merchantAccountId: "mp-br-main-test",
+    businessUnitId: "apd",
+    brandId: "zuni",
+    fiscalProfileId: "fiscal-zuni-br",
+    countries: ["BR"],
+    currencies: ["BRL"],
+    status: "active",
+  },
+  {
+    bindingId: "b-uni-imuni",
+    productId: "imuni",
+    legalEntityId: "legal-br-main",
+    merchantAccountId: "mp-br-main-test",
+    businessUnitId: "uni",
+    brandId: "imuni",
+    fiscalProfileId: "fiscal-imuni-br",
+    countries: ["BR"],
+    currencies: ["BRL"],
+    status: "active",
+  },
+];
+
+test("one Brazilian legal entity can serve APD and uni business units", () => {
+  const control = createFinancialControl({ legalEntities, merchantAccounts, bindings });
+  const apd = control.resolve({ productId: "zuni", countryCode: "BR", currency: "BRL" });
+  const uni = control.resolve({ productId: "imuni", countryCode: "BR", currency: "BRL" });
+
+  assert.equal(apd.legalEntity.legalEntityId, "legal-br-main");
+  assert.equal(uni.legalEntity.legalEntityId, "legal-br-main");
+  assert.equal(apd.merchantAccount.merchantAccountId, "mp-br-main-test");
+  assert.equal(uni.merchantAccount.merchantAccountId, "mp-br-main-test");
+  assert.equal(apd.binding.businessUnitId, "apd");
+  assert.equal(uni.binding.businessUnitId, "uni");
 });
 
-test("seller resolution keeps legal entities separated", () => {
-  const control = createFinancialControl({
-    legalEntities,
-    merchantAccounts,
-    bindings: [
-      { bindingId: "b1", productId: "product-apd", legalEntityId: "apd-br", merchantAccountId: "mp-apd-br-test", fiscalProfileId: "fiscal-apd-br", countries: ["BR"], currencies: ["BRL"], status: "active" },
-      { bindingId: "b2", productId: "product-uni", legalEntityId: "uni-br", merchantAccountId: "mp-uni-br-test", fiscalProfileId: "fiscal-uni-br", countries: ["BR"], currencies: ["BRL"], status: "active" },
-    ],
-  });
-  assert.equal(control.resolve({ productId: "product-apd", countryCode: "BR", currency: "BRL" }).merchantAccount.merchantAccountId, "mp-apd-br-test");
-  assert.equal(control.resolve({ productId: "product-uni", countryCode: "BR", currency: "BRL" }).merchantAccount.merchantAccountId, "mp-uni-br-test");
-  assert.throws(() => control.resolve({ productId: "unknown", countryCode: "BR", currency: "BRL" }), /no active/);
+test("merchant webhook is application-scoped, not product-scoped", () => {
+  assert.equal(
+    merchantWebhookPath("mercadopago", "br-main"),
+    "/v1/financial/webhooks/mercadopago/br-main",
+  );
 });
 
-test("binding cannot use another legal entity merchant account", () => {
-  assert.throws(() => createFinancialControl({
-    legalEntities,
-    merchantAccounts: [merchantAccounts[0]],
-    bindings: [{ bindingId: "bad", productId: "x", legalEntityId: "uni-br", merchantAccountId: "mp-apd-br-test", fiscalProfileId: "fiscal-uni-br", countries: ["BR"], currencies: ["BRL"], status: "active" }],
-  }), /does not own/);
+test("seller resolution remains fail closed", () => {
+  const control = createFinancialControl({ legalEntities, merchantAccounts, bindings });
+  assert.throws(
+    () => control.resolve({ productId: "unknown", countryCode: "BR", currency: "BRL" }),
+    /no active/,
+  );
 });
 
-test("inline provider secrets are forbidden", () => {
-  assert.throws(() => createFinancialControl({
-    legalEntities,
-    merchantAccounts: [{ ...merchantAccounts[0], accessToken: "secret" }],
-  }), /inline secret forbidden/);
+test("binding requires business unit and brand", () => {
+  assert.throws(
+    () => createFinancialControl({
+      legalEntities,
+      merchantAccounts
+    ,bindings: [{ ...bindings[0], businessUnitId: "" }],
+    }),
+    /businessUnitId required/,
+  );
 });
 
-test("fiscal request is provider-independent and idempotent-addressable", () => {
+test("inline provider secrets remain forbidden", () => {
+  assert.throws(
+    () => createFinancialControl({
+      legalEntities,
+      merchantAccounts: [{ ...merchantAccounts[0], accessToken: "secret" }],
+    }),
+    /inline secret forbidden/,
+  );
+});
+
+test("fiscal request preserves legal entity, business unit and product", () => {
   const r = createFiscalDocumentRequest({
     fiscalRequestId: "fr_1",
     idempotencyKey: "payment:pay_1:fiscal:v1",
-    legalEntityId: "apd-br",
-    fiscalProfileId: "fiscal-apd-br",
+    legalEntityId: "legal-br-main",
+    businessUnitId: "uni",
+    productId: "imuni",
+    fiscalProfileId: "fiscal-imuni-br",
     sourceType: "payment",
     sourceId: "pay_1",
-    amountMinor: 9700,
+    amountMinor: 9900,
     currency: "BRL",
   });
+
+  assert.equal(r.legalEntityId, "legal-br-main");
+  assert.equal(r.businessUnitId, "uni");
+  assert.equal(r.productId, "imuni");
   assert.equal(r.status, "pending");
-  assert.equal(r.amountMinor, 9700);
 });
