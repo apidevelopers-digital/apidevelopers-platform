@@ -9,7 +9,7 @@ function requireText(value, name) {
 
 function normalizeEmail(value) {
   const email = requireText(value, "payerEmail").toLowerCase();
-  if (!/^[^\\s@]+@[^\\s@]+\\.[^\\s@]+$/.test(email)) {
+  if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
     throw new TypeError("payerEmail must be a valid email");
   }
   return email;
