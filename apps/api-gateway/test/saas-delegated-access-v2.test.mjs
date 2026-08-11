@@ -16,7 +16,7 @@ function actor(scopes = []) {
   });
 }
 
-test("delegated SaaS v2 derives subject scopes from AccessGrant", async () => {
+test("delegated SaaS v2 derives subject scopes from AccessGrant and exposes opaque binding context", async () => {
   const observed = {};
   const app = createDelegatedSaasAccessApp({
     authenticator: {
@@ -65,6 +65,18 @@ test("delegated SaaS v2 derives subject scopes from AccessGrant", async () => {
   assert.equal(response.status, 200);
   assert.deepEqual(observed.identity.principal.scopes, ["zuni:read", "zuni:reply"]);
   assert.equal(observed.identity.principal.scopes.includes("zuni:admin"), false);
+
+  const body = JSON.parse(response.body);
+  assert.equal(body.allowed, true);
+  assert.equal(body.principalId, "component.principal.0123456789abcdef0123456789abcdef");
+  assert.deepEqual(body.binding, {
+    tenantId: "component.tenant.acme",
+    workspaceId: "component.workspace.acme.zuni-main",
+    accessGrantId: "component.access.acme.main.zuni.user",
+    productId: "zuni",
+  });
+  assert.equal(Object.hasOwn(body, "externalSubject"), false);
+  assert.equal(Object.hasOwn(body, "subjectRef"), false);
 });
 
 test("delegated SaaS v2 remains fail-closed without service delegation scope", async () => {
