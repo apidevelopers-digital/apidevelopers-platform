@@ -166,7 +166,7 @@ export function createMercadoPagoHttpClient({
     }
 
     if (type === "payment") {
-      const payment = await request(`/v1/payments/${encodeURIComponent(resourceId}}`);
+      const payment = await request(`/v1/payments/${encodeURIComponent(resourceId)}`);
       return {
         id: asId(notification.id) ?? `${type}:${resourceId}:${notification.action ?? "updated"}`,
         status: payment.status,
