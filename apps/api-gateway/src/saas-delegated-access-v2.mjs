@@ -129,6 +129,12 @@ export function createDelegatedSaasAccessApp({
       return jsonResponse(decision.allowed ? 200 : 403, {
         ...decision,
         principalId: principal.principalId,
+        binding: Object.freeze({
+          tenantId,
+          workspaceId: grant.workspaceId,
+          accessGrantId: grant.accessGrantId,
+          productId: grant.productId,
+        }),
       });
     },
   });
