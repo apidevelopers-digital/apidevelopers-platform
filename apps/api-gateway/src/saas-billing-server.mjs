@@ -1,6 +1,5 @@
 import http from "node:http";
 
-import { createApp } from "./server.mjs";
 import { createSaasBillingHttp } from "./saas-billing-http.mjs";
 
 const JSON_HEADERS = Object.freeze({
@@ -38,7 +37,7 @@ export async function readBillingRawBody(
 }
 
 export function createBillingReadyApp({
-  baseApp = createApp(),
+  baseApp,
   authenticator,
   saasBilling,
 } = {}) {
