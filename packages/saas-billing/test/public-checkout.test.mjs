@@ -34,6 +34,17 @@ function createService() {
       active: true,
       taxBehavior: "exclusive",
     },
+    {
+      priceId: "uni.co.pro.month.br",
+      productId: "uni.co",
+      planId: "pro",
+      country: "BR",
+      currency: "BRL",
+      amountMinor: 29700,
+      interval: "month",
+      active: true,
+      taxBehavior: "exclusive",
+    },
   ]);
   const store = createStore();
   const service = createPublicCheckoutIntentService({
@@ -43,6 +54,7 @@ function createService() {
     surfaces: [
       {
         surfaceId: "imuni-public",
+        productId: "imuni",
         allowedOrigins: ["https://imuni.sitedauni.com"],
         successUrl: "https://imuni.sitedauni.com/billing/success",
         cancelUrl: "https://imuni.sitedauni.com/billing/cancel",
@@ -103,6 +115,25 @@ test("public checkout rejects unapproved origins and missing consent", async () 
       }),
     /billing_consent_required/,
   );
+});
+
+test("public checkout rejects a price from another product on an allowed surface", async () => {
+  const { service, store } = createService();
+
+  await assert.rejects(
+    () =>
+      service.create({
+        priceId: "uni.co.pro.month.br",
+        payerEmail: "client@example.com",
+        surfaceId: "imuni-public",
+        origin: "https://imuni.sitedauni.com",
+        idempotencyKey: "public:imuni:fixture:cross-product",
+        consentAccepted: true,
+      }),
+    /billing_surface_product_mismatch/,
+  );
+
+  assert.equal(store.items.size, 0);
 });
 
 test("public checkout is idempotent and safe response excludes payer email", async () => {
