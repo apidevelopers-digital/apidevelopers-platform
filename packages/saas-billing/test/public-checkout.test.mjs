@@ -136,6 +136,26 @@ test("public checkout rejects a price from another product on an allowed surface
   assert.equal(store.items.size, 0);
 });
 
+test("public checkout rejects return URLs outside the surface origin allowlist", () => {
+  assert.throws(
+    () =>
+      createPublicCheckoutIntentService({
+        catalog: { get() {} },
+        store: createStore(),
+        surfaces: [
+          {
+            surfaceId: "imuni-public",
+            productId: "imuni",
+            allowedOrigins: ["https://imuni.sitedauni.com"],
+            successUrl: "https://evil.example/billing/success",
+            cancelUrl: "https://imuni.sitedauni.com/billing/cancel",
+          },
+        ],
+      }),
+    /surface_return_origin_not_allowed/,
+  );
+});
+
 test("public checkout is idempotent and safe response excludes payer email", async () => {
   const { service, store } = createService();
   const input = {
