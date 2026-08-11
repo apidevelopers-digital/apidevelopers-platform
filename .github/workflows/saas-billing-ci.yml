@@ -4,12 +4,16 @@ on:
   pull_request:
     paths:
       - "packages/saas-billing/**"
+      - "apps/api-gateway/src/saas-billing-*.mjs"
+      - "apps/api-gateway/test/saas-billing-http.test.mjs"
       - ".github/workflows/saas-billing-ci.yml"
   push:
     branches:
       - "feat/saas-billing-foundation-20260811"
     paths:
       - "packages/saas-billing/**"
+      - "apps/api-gateway/src/saas-billing-*.mjs"
+      - "apps/api-gateway/test/saas-billing-http.test.mjs"
       - ".github/workflows/saas-billing-ci.yml"
 
 permissions:
@@ -24,12 +28,14 @@ jobs:
     timeout-minutes: 10
     steps:
       - uses: actions/checkout@v4
-      - name: Validate SaaS billing foundation
+      - name: Validate SaaS billing foundation and gateway
         run: |
           set -euo pipefail
           npm --prefix packages/saas-billing run check
+          node --test apps/api-gateway/test/saas-billing-http.test.mjs
           grep -R -q "amountMinor" packages/saas-billing/src
           grep -R -q "verifyAndParseWebhook" packages/saas-billing/src
           grep -R -q "putIdempotency" packages/saas-billing/src/runtime.mjs
           grep -R -q "store.transaction" packages/saas-billing/src/runtime.mjs
-          ! grep -R -E "(sk_live_|sk_test_|access_token|api[_-]?key\s*=|cardNumber|cvv)" packages/saas-billing
+          grep -R -q "stripe-signature" apps/api-gateway/test/saas-billing-http.test.mjs
+          ! grep -R -E "(sk_live_|sk_test_|access_token|api[_-]?key\s*=|cardNumber|cvv)" packages/saas-billing apps/api-gateway/src/saas-billing-*.mjs apps/api-gateway/test/saas-billing-http.test.mjs
