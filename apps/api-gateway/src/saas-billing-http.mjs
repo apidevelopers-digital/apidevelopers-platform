@@ -1,6 +1,6 @@
 const BILLING_ROUTES = Object.freeze({
   checkout: "/v1/saas/billing/checkout",
-  stripeWebhook: "/v1/saas/billing/webhooks/stripe",
+  mercadoPagoWebhook: "/v1/saas/billing/webhooks/mercadopago",
 });
 
 function parseJsonBody(rawBody) {
@@ -40,6 +40,7 @@ export function createSaasBillingHttp({ authenticator, saasBilling } = {}) {
   ) {
     throw new TypeError("authenticator.authenticate must be a function");
   }
+
   if (
     saasBilling !== undefined &&
     (
@@ -62,11 +63,11 @@ export function createSaasBillingHttp({ authenticator, saasBilling } = {}) {
       const normalizedMethod = String(method).toUpperCase();
       const isCheckout =
         normalizedMethod === "POST" && pathname === BILLING_ROUTES.checkout;
-      const isStripeWebhook =
+      const isMercadoPagoWebhook =
         normalizedMethod === "POST" &&
-        pathname === BILLING_ROUTES.stripeWebhook;
+        pathname === BILLING_ROUTES.mercadoPagoWebhook;
 
-      if (!isCheckout && !isStripeWebhook) return null;
+      if (!isCheckout && !isMercadoPagoWebhook) return null;
 
       if (!saasBilling) {
         return {
@@ -75,7 +76,7 @@ export function createSaasBillingHttp({ authenticator, saasBilling } = {}) {
         };
       }
 
-      if (isStripeWebhook) {
+      if (isMercadoPagoWebhook) {
         try {
           const event = await saasBilling.handleWebhook({ headers, rawBody });
           return {
@@ -108,6 +109,7 @@ export function createSaasBillingHttp({ authenticator, saasBilling } = {}) {
           payload: { error: "unauthorized" },
         };
       }
+
       const tenantId = identity?.principal?.tenantId;
       if (!tenantId) {
         return {
