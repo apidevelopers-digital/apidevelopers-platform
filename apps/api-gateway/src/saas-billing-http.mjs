@@ -1,12 +1,11 @@
 const BILLING_ROUTES = Object.freeze({
   checkout: "/v1/saas/billing/checkout",
-  mercadoPagoWebhook: "/v1/saas/billing/webhooks/mercadopago",
+  mercadoPagoWebhook: "/v1/financial/webhooks/mercadopago/br-main",
+  mercadoPagoWebhookLegacy: "/v1/saas/billing/webhooks/mercadopago",
 });
 
 function parseJsonBody(rawBody) {
-  if (rawBody === undefined || rawBody === null) {
-    throw new TypeError("request body is required");
-  }
+  if (rawBody === undefined || rawBody === null) throw new TypeError("request body is required");
   const text = Buffer.isBuffer(rawBody)
     ? rawBody.toString("utf8")
     : rawBody instanceof Uint8Array
@@ -34,23 +33,15 @@ function safeCheckout(checkout) {
 }
 
 export function createSaasBillingHttp({ authenticator, saasBilling } = {}) {
-  if (
-    authenticator !== undefined &&
-    typeof authenticator?.authenticate !== "function"
-  ) {
+  if (authenticator !== undefined && typeof authenticator?.authenticate !== "function") {
     throw new TypeError("authenticator.authenticate must be a function");
   }
-
   if (
     saasBilling !== undefined &&
-    (
-      typeof saasBilling?.createCheckout !== "function" ||
-      typeof saasBilling?.handleWebhook !== "function"
-    )
+    (typeof saasBilling?.createCheckout !== "function" ||
+      typeof saasBilling?.handleWebhook !== "function")
   ) {
-    throw new TypeError(
-      "saasBilling must provide createCheckout and handleWebhook",
-    );
+    throw new TypeError("saasBilling must provide createCheckout and handleWebhook");
   }
 
   return Object.freeze({
@@ -59,26 +50,26 @@ export function createSaasBillingHttp({ authenticator, saasBilling } = {}) {
       pathname = "/",
       headers = {},
       rawBody,
+      query = {},
     } = {}) {
       const normalizedMethod = String(method).toUpperCase();
       const isCheckout =
         normalizedMethod === "POST" && pathname === BILLING_ROUTES.checkout;
       const isMercadoPagoWebhook =
         normalizedMethod === "POST" &&
-        pathname === BILLING_ROUTES.mercadoPagoWebhook;
+        [BILLING_ROUTES.mercadoPagoWebhook, BILLING_ROUTES.mercadoPagoWebhookLegacy].includes(
+          pathname,
+        );
 
       if (!isCheckout && !isMercadoPagoWebhook) return null;
 
       if (!saasBilling) {
-        return {
-          status: 503,
-          payload: { error: "saas_billing_unavailable" },
-        };
+        return { status: 503, payload: { error: "saas_billing_unavailable" } };
       }
 
       if (isMercadoPagoWebhook) {
         try {
-          const event = await saasBilling.handleWebhook({ headers, rawBody });
+          const event = await saasBilling.handleWebhook({ headers, rawBody, query });
           return {
             status: 200,
             payload: {
@@ -88,51 +79,29 @@ export function createSaasBillingHttp({ authenticator, saasBilling } = {}) {
             },
           };
         } catch {
-          return {
-            status: 400,
-            payload: { error: "invalid_billing_webhook" },
-          };
+          return { status: 401, payload: { error: "invalid_billing_webhook" } };
         }
       }
 
       if (!authenticator) {
-        return {
-          status: 503,
-          payload: { error: "authentication_unavailable" },
-        };
+        return { status: 503, payload: { error: "authentication_unavailable" } };
       }
 
       const identity = await authenticator.authenticate(headers);
-      if (!identity) {
-        return {
-          status: 401,
-          payload: { error: "unauthorized" },
-        };
-      }
+      if (!identity) return { status: 401, payload: { error: "unauthorized" } };
 
       const tenantId = identity?.principal?.tenantId;
-      if (!tenantId) {
-        return {
-          status: 403,
-          payload: { error: "tenant_context_unavailable" },
-        };
-      }
+      if (!tenantId) return { status: 403, payload: { error: "tenant_context_unavailable" } };
 
       let body;
       try {
         body = parseJsonBody(rawBody);
       } catch {
-        return {
-          status: 400,
-          payload: { error: "invalid_json_body" },
-        };
+        return { status: 400, payload: { error: "invalid_json_body" } };
       }
 
       if (body.tenantId !== undefined && body.tenantId !== tenantId) {
-        return {
-          status: 403,
-          payload: { error: "tenant_context_mismatch" },
-        };
+        return { status: 403, payload: { error: "tenant_context_mismatch" } };
       }
 
       try {
@@ -145,15 +114,9 @@ export function createSaasBillingHttp({ authenticator, saasBilling } = {}) {
           successUrl: body.successUrl,
           cancelUrl: body.cancelUrl,
         });
-        return {
-          status: 201,
-          payload: safeCheckout(checkout),
-        };
+        return { status: 201, payload: safeCheckout(checkout) };
       } catch {
-        return {
-          status: 400,
-          payload: { error: "billing_checkout_rejected" },
-        };
+        return { status: 400, payload: { error: "billing_checkout_rejected" } };
       }
     },
   });
