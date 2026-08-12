@@ -28,11 +28,20 @@ jobs:
     timeout-minutes: 10
     steps:
       - uses: actions/checkout@v4
-      - name: Validate SaaS billing foundation and gateway
+
+      - name: Validate SaaS billing package
         run: |
           set -euo pipefail
           npm --prefix packages/saas-billing run check
+
+      - name: Validate SaaS billing gateway
+        run: |
+          set -euo pipefail
           node --test apps/api-gateway/test/saas-billing-*.test.mjs
+
+      - name: Validate billing guardrails
+        run: |
+          set -euo pipefail
           grep -R -q "amountMinor" packages/saas-billing/src
           grep -R -q "verifyAndParseWebhook" packages/saas-billing/src
           grep -R -q "putIdempotency" packages/saas-billing/src/runtime.mjs
@@ -40,4 +49,8 @@ jobs:
           grep -R -q "x-signature" apps/api-gateway/test/saas-billing-http.test.mjs
           grep -R -q "x-request-id" apps/api-gateway/test/saas-billing-http.test.mjs
           grep -R -q "APD_BILLING_LIVE_ENABLED" apps/api-gateway/src/saas-billing-config.mjs
-          ! grep -R -E "(sk_live_|sk_test_|access_token|api[_-]?key\\s*=|cardNumber|cvv)" packages/saas-billing apps/api-gateway/src/saas-billing-*.mjs apps/api-gateway/test/saas-billing-*.test.mjs
+
+      - name: Scan billing scope for secret-like material
+        run: |
+          set -euo pipefail
+          ! grep -R -E "(sk_live_|sk_test_|access_token|api[_-]?key\s*=|cardNumber|cvv)" packages/saas-billing apps/api-gateway/src/saas-billing-*.mjs apps/api-gateway/test/saas-billing-*.test.mjs
