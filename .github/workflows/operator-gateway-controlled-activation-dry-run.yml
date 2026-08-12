@@ -4,7 +4,7 @@ on:
   workflow_dispatch:
     inputs:
       example:
-        description: Authorization phrase for encrypted Mercado Pago webhook secret transfer
+        description: Authorization phrase for Mercado Pago webhook endpoint HMAC test
         required: true
         type: string
 
@@ -13,7 +13,7 @@ permissions:
 
 jobs:
   controlled-dry-run:
-    name: Mercado Pago encrypted webhook secret transfer
+    name: Mercado Pago webhook endpoint HMAC test
     runs-on:
       - self-hosted
       - macOS
@@ -26,9 +26,9 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          test "$APPROVAL" = "AUTORIZO_TRANSFERIR_SECRET_WEBHOOK_MP_TEST_CRIPTOGRAFADO"
+          test "$APPROVAL" = "AUTORIZO_TESTAR_HMAC_ENDPOINT_MP_TEST"
 
-      - name: Transfer webhook secret encrypted without revealing it
+      - name: Test valid and invalid signatures without billing mutation
         env:
           MP_WEBHOOK_SECRET: ${{ secrets.MP_WEBHOOK_SECRET }}
         shell: bash
@@ -36,57 +36,59 @@ jobs:
           set -euo pipefail
           test -n "${MP_WEBHOOK_SECRET:-}"
           node --input-type=module <<'NODE'
-          import { publicEncrypt, constants } from "node:crypto";
+          import { createHmac } from "node:crypto";
 
+          const endpoint = "https://sitedauni.com/v1/financial/webhooks/mercadopago/br-main/";
           const secret = process.env.MP_WEBHOOK_SECRET;
-          if (!secret) process.exit(20);
-
-          const bootstrapUrl = "https://sitedauni.com/v1/financial/webhooks/mercadopago/key-bootstrap.php";
-          const importUrl = "https://sitedauni.com/v1/financial/webhooks/mercadopago/key-import.php";
-
-          const bootstrapRes = await fetch(bootstrapUrl, {
-            method: "GET",
-            headers: { accept: "application/json" },
+          const dataId = "test123";
+          const requestId = "apd-webhook-hmac-selftest";
+          const ts = String(Date.now());
+          const manifest = `id:${dataId};request-id:${requestId};ts:${ts};`;
+          const v1 = createHmac("sha256", secret).update(manifest).digest("hex");
+          const url = `${endpoint}?data.id=${encodeURIComponent(dataId)}`;
+          const body = JSON.stringify({
+            type: "subscription_preapproval",
+            live_mode: false,
+            data: { id: dataId },
           });
-          if (!bootstrapRes.ok) process.exit(21);
-          const bootstrap = await bootstrapRes.json();
-          if (!bootstrap?.ok || !bootstrap?.publicKeyB64) process.exit(22);
 
-          const publicKey = Buffer.from(String(bootstrap.publicKeyB64), "base64").toString("utf8");
-          const ciphertext = publicEncrypt(
-            {
-              key: publicKey,
-              padding: constants.RSA_PKCS1_OAEP_PADDING,
-              oaepHash: "sha1",
-            },
-            Buffer.from(secret, "utf8"),
-          ).toString("base64");
-
-          const importRes = await fetch(importUrl, {
+          const valid = await fetch(url, {
             method: "POST",
             headers: {
               accept: "application/json",
               "content-type": "application/json",
+              "x-request-id": requestId,
+              "x-signature": `ts=${ts},v1=${v1}`,
             },
-            body: JSON.stringify({ ciphertextB64: ciphertext }),
+            body,
           });
+          const validPayload = await valid.json().catch(() => null);
+          if (valid.status !== 200 || !validPayload?.ok || validPayload?.signatureVerified !== true || validPayload?.billingMutationExecuted !== false) {
+            console.error(JSON.stringify({ ok:false, stage:"valid_signature", httpStatus:valid.status, payload:validPayload }));
+            process.exit(20);
+          }
 
-          const payload = await importRes.json().catch(() => null);
-          if (!importRes.ok || !payload?.ok || !payload?.configured) {
-            console.error(JSON.stringify({
-              ok: false,
-              stage: "encrypted_import",
-              httpStatus: importRes.status,
-              error: payload?.error ?? null,
-            }));
-            process.exit(23);
+          const invalid = await fetch(url, {
+            method: "POST",
+            headers: {
+              accept: "application/json",
+              "content-type": "application/json",
+              "x-request-id": requestId,
+              "x-signature": `ts=${ts},v1=${"0".repeat(64)}`,
+            },
+            body,
+          });
+          const invalidPayload = await invalid.json().catch(() => null);
+          if (invalid.status !== 401 || invalidPayload?.signatureVerified !== false) {
+            console.error(JSON.stringify({ ok:false, stage:"invalid_signature", httpStatus:invalid.status, payload:invalidPayload }));
+            process.exit(21);
           }
 
           console.log(JSON.stringify({
-            ok: true,
-            configured: true,
-            secretExposed: false,
-            fingerprintPrefix: payload.fingerprintPrefix ?? null,
-            liveEnabled: false,
+            ok:true,
+            validSignatureAccepted:true,
+            invalidSignatureRejected:true,
+            billingMutationExecuted:false,
+            liveEnabled:false,
           }));
           NODE
