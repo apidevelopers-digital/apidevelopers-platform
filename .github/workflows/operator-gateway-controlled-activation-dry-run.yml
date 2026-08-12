@@ -4,75 +4,89 @@ on:
   workflow_dispatch:
     inputs:
       example:
-        description: API transport field; must contain the exact synthetic dry-run approval phrase
+        description: Authorization phrase for encrypted Mercado Pago webhook secret transfer
         required: true
         type: string
 
 permissions:
   contents: read
 
-concurrency:
-  group: operator-gateway-controlled-activation-dry-run
-  cancel-in-progress: false
-
 jobs:
   controlled-dry-run:
+    name: Mercado Pago encrypted webhook secret transfer
     runs-on:
       - self-hosted
       - macOS
       - X64
     timeout-minutes: 10
-    defaults:
-      run:
-        shell: bash
-        working-directory: apps/api-gateway
-
     steps:
-      - name: Validate explicit approval
+      - name: Validate explicit authorization
         env:
           APPROVAL: ${{ inputs.example }}
+        shell: bash
         run: |
           set -euo pipefail
-          test "$APPROVAL" = "IGOR_APROVA_OPERATOR_GATEWAY_DRY_RUN"
+          test "$APPROVAL" = "AUTORIZO_TRANSFERIR_SECRET_WEBHOOK_MP_TEST_CRIPTOGRAFADO"
 
-      - name: Checkout frozen revision
-        uses: actions/checkout@v4
-        with:
-          persist-credentials: false
-
-      - name: Set up Node.js
-        uses: actions/setup-node@v4
-        with:
-          node-version: "22"
-
-      - name: Link local security dependencies
-        run: |
-          set -euo pipefail
-          root="$GITHUB_WORKSPACE"
-          mkdir -p "$root/apps/api-gateway/node_modules/@apidevelopers"
-          for package in contracts auth-core apikey-core persistence-core; do
-            ln -sfn "$root/packages/$package" "$root/apps/api-gateway/node_modules/@apidevelopers/$package"
-          done
-          mkdir -p "$root/packages/auth-core/node_modules/@apidevelopers"
-          ln -sfn "$root/packages/apikey-core" "$root/packages/auth-core/node_modules/@apidevelopers/apikey-core"
-          mkdir -p "$root/packages/apikey-core/node_modules/@apidevelopers"
-          ln -sfn "$root/packages/persistence-core" "$root/packages/apikey-core/node_modules/@apidevelopers/persistence-core"
-
-      - name: Validate synthetic harness tests
-        run: node --test test/operator-gateway-controlled-dry-run.test.mjs
-
-      - name: Execute synthetic controlled dry-run
+      - name: Transfer webhook secret encrypted without revealing it
         env:
-          OPERATOR_GATEWAY_DRY_RUN_APPROVAL: ${{ inputs.example }}
+          MP_WEBHOOK_SECRET: ${{ secrets.MP_WEBHOOK_SECRET }}
+        shell: bash
         run: |
           set -euo pipefail
-          mkdir -p artifacts
-          node scripts/operator-gateway-controlled-dry-run.mjs \
-            --output=artifacts/operator-gateway-controlled-dry-run-evidence.json
+          test -n "${MP_WEBHOOK_SECRET:-}"
+          node --input-type=module <<'NODE'
+          import { publicEncrypt, constants } from "node:crypto";
 
-      - name: Verify sanitized evidence
-        run: |
-          set -euo pipefail
-          node scripts/verify-operator-gateway-controlled-dry-run.mjs \
-            artifacts/operator-gateway-controlled-dry-run-evidence.json
-          cat artifacts/operator-gateway-controlled-dry-run-evidence.json
+          const secret = process.env.MP_WEBHOOK_SECRET;
+          if (!secret) process.exit(20);
+
+          const bootstrapUrl = "https://sitedauni.com/v1/financial/webhooks/mercadopago/key-bootstrap.php";
+          const importUrl = "https://sitedauni.com/v1/financial/webhooks/mercadopago/key-import.php";
+
+          const bootstrapRes = await fetch(bootstrapUrl, {
+            method: "GET",
+            headers: { accept: "application/json" },
+          });
+          if (!bootstrapRes.ok) process.exit(21);
+          const bootstrap = await bootstrapRes.json();
+          if (!bootstrap?.ok || !bootstrap?.publicKeyB64) process.exit(22);
+
+          const publicKey = Buffer.from(String(bootstrap.publicKeyB64), "base64").toString("utf8");
+          const ciphertext = publicEncrypt(
+            {
+              key: publicKey,
+              padding: constants.RSA_PKCS1_OAEP_PADDING,
+              oaepHash: "sha1",
+            },
+            Buffer.from(secret, "utf8"),
+          ).toString("base64");
+
+          const importRes = await fetch(importUrl, {
+            method: "POST",
+            headers: {
+              accept: "application/json",
+              "content-type": "application/json",
+            },
+            body: JSON.stringify({ ciphertextB64: ciphertext }),
+          });
+
+          const payload = await importRes.json().catch(() => null);
+          if (!importRes.ok || !payload?.ok || !payload?.configured) {
+            console.error(JSON.stringify({
+              ok: false,
+              stage: "encrypted_import",
+              httpStatus: importRes.status,
+              error: payload?.error ?? null,
+            }));
+            process.exit(23);
+          }
+
+          console.log(JSON.stringify({
+            ok: true,
+            configured: true,
+            secretExposed: false,
+            fingerprintPrefix: payload.fingerprintPrefix ?? null,
+            liveEnabled: false,
+          }));
+          NODE
