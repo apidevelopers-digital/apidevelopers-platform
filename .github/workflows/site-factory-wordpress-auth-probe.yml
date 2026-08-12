@@ -8,31 +8,29 @@ permissions:
 
 jobs:
   wordpress-auth-probe:
-    name: Mercado Pago authenticated read-only credential probe
+    name: WordPress authenticated read-only probe
     runs-on:
       - self-hosted
       - macOS
       - X64
     timeout-minutes: 10
     steps:
-       - name: Check Mercado Pago credential with GET users me
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Validate read-only regression test
+        shell: bash
+        run: node --test tests/wordpress-auth-probe-read-only.test.mjs
+
+      - name: Run authenticated read-only probe
         shell: bash
         env:
-          MP_ACCESS_TOKEN: ${{ secrets.MP_ACCESS_TOKEN }}
+          WORDPRESS_URL: ${{ secrets.WORDPRESS_URL }}
+          WORDPRESS_USERNAME: ${{ secrets.WORDPRESS_USERNAME }}
+          WORDPRESS_APP_PASSWORD: ${{ secrets.WORDPRESS_APP_PASSWORD }}
         run: |
           set -euo pipefail
-          test -n "${MP_ACCESS_TOKEN:-}"
-          node --input-type=module <<'NODE'
-          const token = process.env.MP_ACCESS_TOKEN;
-          const response = await fetch("https://api.mercadolibre.com/users/me", {
-            method: "GET",
-            headers: {
-              accept: "application/json",
-              authorization: `Bearer ${token}`,
-            },
-          });
-          if (!response.ok) process.exit(2);
-          const payload = await response.json();
-          if (payload?.id === undefined || payload?.id === null || String(payload.id).trim() === "") process.exit(3);
-          console.log("mercadopago-authenticated-readonly=ok");
-          NODE
+          test -n "${WORDPRESS_URL:-}"
+          test -n "${WORDPRESS_USERNAME:-}"
+          test -n "${WORDPRESS_APP_PASSWORD:-}"
+          node scripts/wordpress-auth-probe.mjs
