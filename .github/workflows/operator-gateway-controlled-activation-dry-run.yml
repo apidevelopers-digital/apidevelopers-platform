@@ -39,7 +39,8 @@ jobs:
           import { createHmac } from "node:crypto";
 
           const endpoint = "https://sitedauni.com/v1/financial/webhooks/mercadopago/br-main/";
-          const secret = process.env.MP_WEBHOOK_SECRET;
+          const secret = String(process.env.MP_WEBHOOK_SECRET || "").trim();
+          if (!secret) process.exit(19);
           const dataId = "test123";
           const requestId = "apd-webhook-hmac-selftest";
           const ts = String(Date.now());
