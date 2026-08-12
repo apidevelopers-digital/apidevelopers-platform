@@ -7,6 +7,8 @@ const MINOR_UNIT_DIGITS = Object.freeze({
   CNY: 2,
 });
 
+const RATE_OPERATIONS = Object.freeze(["multiply", "divide"]);
+
 function requireText(value, name) {
   if (typeof value !== "string" || !value.trim()) throw new TypeError(`${name} is required`);
   return value.trim();
@@ -47,6 +49,7 @@ export function createFxQuote({
   baseCurrency = BASE_PRICE_CURRENCY,
   quoteCurrency,
   rate,
+  operation = "multiply",
   asOf,
   source,
 } = {}) {
@@ -54,6 +57,10 @@ export function createFxQuote({
   const quote = normalizeCurrency(quoteCurrency);
   if (base === quote) throw new Error("fx quote must convert between different currencies");
   parseDecimalRatio(rate);
+
+  if (!RATE_OPERATIONS.includes(operation)) {
+    throw new TypeError(`unsupported FX rate operation: ${operation}`);
+  }
 
   const normalizedAsOf = requireText(asOf, "asOf");
   if (Number.isNaN(Date.parse(normalizedAsOf))) {
@@ -64,6 +71,7 @@ export function createFxQuote({
     baseCurrency: base,
     quoteCurrency: quote,
     rate: rate.trim(),
+    operation,
     asOf: normalizedAsOf,
     source: requireText(source, "source"),
   });
@@ -84,13 +92,27 @@ export function convertBasePriceMinor({ amountMinor, quote } = {}) {
   const baseDigits = MINOR_UNIT_DIGITS[BASE_PRICE_CURRENCY];
   const targetDigits = MINOR_UNIT_DIGITS[validatedQuote.quoteCurrency];
 
-  const numerator =
-    BigInt(amountMinor) *
-    rateNumerator *
-    pow10BigInt(targetDigits);
-  const denominator =
-    pow10BigInt(baseDigits) *
-    rateDenominator;
+  let numerator;
+  let denominator;
+
+  if (validatedQuote.operation === "multiply") {
+    numerator =
+      BigInt(amountMinor) *
+      rateNumerator *
+      pow10BigInt(targetDigits);
+    denominator =
+      pow10BigInt(baseDigits) *
+      rateDenominator;
+  } else {
+    numerator =
+      BigInt(amountMinor) *
+      rateDenominator *
+      pow10BigInt(targetDigits);
+    denominator =
+      pow10BigInt(baseDigits) *
+      rateNumerator;
+  }
+
   const converted = divideRoundHalfUp(numerator, denominator);
 
   if (converted > BigInt(Number.MAX_SAFE_INTEGER)) {
