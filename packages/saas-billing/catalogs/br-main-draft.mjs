@@ -29,12 +29,12 @@ const prices = [
   { priceId: "universo.pro.year.br", productId: "uni.verso", planId: "pro", currency: "BRL", interval: "year", amountMinor: 97000, taxBehavior: "unspecified", active: false },
   { priceId: "universo.scale.year.br", productId: "uni.verso", planId: "scale", currency: "BRL", interval: "year", amountMinor: 197000, taxBehavior: "unspecified", active: false },
 
-  { priceId: "unisocial.start.month.br", productId: "uni.social", planId: "start", currency: "BRL", interval: "month", amountMinor: 0, taxBehavior: "unspecified", active: false },
-  { priceId: "unisocial.pro.month.br", productId: "uni.social", planId: "pro", currency: "BRL", interval: "month", amountMinor: 0, taxBehavior: "unspecified", active: false },
-  { priceId: "unisocial.scale.month.br", productId: "uni.social", planId: "scale", currency: "BRL", interval: "month", amountMinor: 0, taxBehavior: "unspecified", active: false },
-  { priceId: "unisocial.start.year.br", productId: "uni.social", planId: "start", currency: "BRL", interval: "year", amountMinor: 0, taxBehavior: "unspecified", active: false },
-  { priceId: "unisocial.pro.year.br", productId: "uni.social", planId: "pro", currency: "BRL", interval: "year", amountMinor: 0, taxBehavior: "unspecified", active: false },
-  { priceId: "unisocial.scale.year.br", productId: "uni.social", planId: "scale", currency: "BRL", interval: "year", amountMinor: 0, taxBehavior: "unspecified", active: false },
+  { priceId: "unisocial.start.month.br", productId: "uni.social", planId: "start", currency: "BRL", interval: "month", amountMinor: 4990, taxBehavior: "unspecified", active: false },
+  { priceId: "unisocial.pro.month.br", productId: "uni.social", planId: "pro", currency: "BRL", interval: "month", amountMinor: 14990, taxBehavior: "unspecified", active: false },
+  { priceId: "unisocial.scale.month.br", productId: "uni.social", planId: "scale", currency: "BRL", interval: "month", amountMinor: 34990, taxBehavior: "unspecified", active: false },
+  { priceId: "unisocial.start.year.br", productId: "uni.social", planId: "start", currency: "BRL", interval: "year", amountMinor: 49900, taxBehavior: "unspecified", active: false },
+  { priceId: "unisocial.pro.year.br", productId: "uni.social", planId: "pro", currency: "BRL", interval: "year", amountMinor: 149900, taxBehavior: "unspecified", active: false },
+  { priceId: "unisocial.scale.year.br", productId: "uni.social", planId: "scale", currency: "BRL", interval: "year", amountMinor: 349900, taxBehavior: "unspecified", active: false },
 ];
 
 export const BR_MAIN_DRAFT_CATALOG = createBillingCatalog(prices);
