@@ -48,7 +48,10 @@ jobs:
             case "$file" in
               */fx.test.mjs|*/fx-policy.test.mjs) continue ;;
             esac
-            node --test "$file"
+            if ! node --test "$file"; then
+              echo "::error file=$file::SaaS billing test failed: $file"
+              exit 1
+            fi
           done
 
       - name: Validate SaaS billing gateway
