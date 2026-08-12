@@ -18,7 +18,7 @@ test("Mercado Pago rollout dry-run covers all 27 active published prices and wri
   assert.equal(rollout.activeCatalogPriceCount, 27);
   assert.equal(rollout.productCount, 5);
   assert.equal(rollout.existingExternalPlanCount, 1);
-  asserrt.equal(rollout.createRequiredCount, 26);
+  assert.equal(rollout.createRequiredCount, 26);
   assert.deepEqual(rollout.excludedDraftProducts, ["uni.social"]);
 });
 
