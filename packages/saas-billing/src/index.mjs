@@ -9,6 +9,7 @@ export * from "./public-checkout.mjs";
 export * from "./providers/mercadopago.mjs";
 export * from "./providers/stripe.mjs";
 export * from "./providers/stripe-fx.mjs";
+export * from "./providers/open-exchange-rates.mjs";
 export * from "./markets.mjs";
 export * from "./fx.mjs";
 export * from "./fx-policy.mjs";
