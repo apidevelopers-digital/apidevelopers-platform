@@ -1,75 +1,38 @@
 name: Operator Gateway Controlled Activation Dry Run
-
 on:
   workflow_dispatch:
     inputs:
       example:
-        description: Authorization phrase for encrypted Mercado Pago webhook secret parity check
         required: true
         type: string
-
 permissions:
   contents: read
-
 jobs:
   controlled-dry-run:
-    name: Mercado Pago encrypted webhook secret parity check
-    runs-on:
-      - self-hosted
-      - macOS
-      - X64
+    name: Mercado Pago HMAC ingress diagnostic
+    runs-on: [self-hosted, macOS, X64]
     timeout-minutes: 10
     steps:
-      - name: Validate explicit authorization
+      - name: Diagnose HMAC ingress
         env:
           APPROVAL: ${{ inputs.example }}
-        shell: bash
-        run: |
-          set -euo pipefail
-          test "$APPROVAL" = "AUTORIZO_CHECK_CRIPTO_PARIDADE_SECRET_WEBHOOK_MP_TEST"
-
-      - name: Compare encrypted GitHub secret with server copy without revealing either
-        env:
           MP_WEBHOOK_SECRET: ${{ secrets.MP_WEBHOOK_SECRET }}
         shell: bash
         run: |
           set -euo pipefail
+          test "$APPROVAL" = "AUTORIZO_DIAGNOSTICO_HMAC_INGRESS_MP_TEST"
           test -n "${MP_WEBHOOK_SECRET:-}"
           node --input-type=module <<'NODE'
-          import { publicEncrypt, constants } from "node:crypto";
-          const secret = String(process.env.MP_WEBHOOK_SECRET || "");
-          if (!secret) process.exit(20);
-
-          const bootstrapRes = await fetch("https://sitedauni.com/v1/financial/webhooks/mercadopago/key-bootstrap.php", {
-            headers: { accept: "application/json" },
-          });
-          const bootstrap = await bootstrapRes.json().catch(() => null);
-          if (!bootstrapRes.ok || !bootstrap?.ok || !bootstrap?.publicKeyB64) process.exit(21);
-
-          const publicKey = Buffer.from(String(bootstrap.publicKeyB64), "base64").toString("utf8");
-          const ciphertext = publicEncrypt({
-            key: publicKey,
-            padding: constants.RSA_PKCS1_OAEP_PADDING,
-            oaepHash: "sha1",
-          }, Buffer.from(secret, "utf8")).toString("base64");
-
-          const compareRes = await fetch("https://sitedauni.com/v1/financial/webhooks/mercadopago/key-import.php", {
-            method: "POST",
-            headers: { accept: "application/json", "content-type": "application/json" },
-            body: JSON.stringify({ ciphertextB64: ciphertext }),
-          });
-          const payload = await compareRes.json().catch(() => null);
-          const same = compareRes.status === 200 &&
-            payload?.ok === true &&
-            payload?.configured === true &&
-            payload?.alreadyConfigured === true;
-          console.log(JSON.stringify({
-            ok: same,
-            httpStatus: compareRes.status,
-            sameSecret: same,
-            serverHasSecret: compareRes.status === 200 || compareRes.status === 409,
-            secretExposed: false,
-            liveEnabled: false,
-          }));
-          if (!same) process.exit(22);
+          import { createHmac } from "node:crypto";
+          const endpoint="https://sitedauni.com/v1/financial/webhooks/mercadopago/br-main/";
+          const secret=String(process.env.MP_WEBHOOK_SECRET||"").trim();
+          const dataId="test123";
+          const requestId="apd-hmac-diagnostic";
+         ÛÛœİÏTİš[™Ê]K››İÊ
+JNÂˆ6öç7BÖæ–fW7CÖ–C¢G¶FF–GÓ·&WVW7BÖ–C¢G·&WVW7D–GÓ·G3¢G·G7Ó¶°¢½¹ÍĞØÄõÉ•…Ñ•!µ…Œ ‰Í¡„ÈÔØˆ±Í•É•Ğ¤¹ÕÁ‘…Ñ”¡µ…¹¥™•ÍĞ¤¹‘¥•ÍĞ ‰¡•àˆ¤ì(€€€€€€€€€½¹ÍĞÈõ…İ…¥Ğ™•Ñ ¡€‘í•¹‘Á½¥¹Ñôı‘…Ñ„¹¥ô‘í‘…Ñ…%‘õ€±ì(€€€€€€€€€€€µ•Ñ¡½è‰A=MPˆ±É•‘¥É•Ğè‰™½±±½Üˆ°(€€€€€€€€€€€¡•…‘•ÉÌéì‰½¹Ñ•¹ĞµÑåÁ”ˆè‰…ÁÁ±¥…Ñ¥½¸½©Í½¸ˆ°‰àµÉ•ÅÕ•ÍĞµ¥ˆéÉ•ÅÕ•ÍÑ%°‰àµÍ¥¹…ÑÕÉ”ˆéÑÌô‘íÑÍô±ØÄô‘íØÅõô°(€€€€€€€€€€€‰½‘äé)M=8¹ÍÑÉ¥¹¥™ä¡íÑåÁ”è‰ÍÕ‰ÍÉ¥ÁÑ¥½¹}ÁÉ•…ÁÁÉ½Ù…°ˆ±±¥Ù•}µ½‘”é™…±Í”±‘…Ñ„éí¥é‘…Ñ…%‘õô¤(€€€€€€€€€ô¤ì(€€€€€€€€€½¹ÍĞÀõ…İ…¥ĞÈ¹©Í½¸ ¤¹…Ñ   ¤ôù¹Õ±°¤ì(€€€€€€€€€const e=String(p?.error||"");
+          if(r.status===200&&p?.signatureVerified===true)process.exit(0);
+          if(r.status===401&&e==="invalid_webhook_signature_inputs")process.exit(31);
+          if(r.status===401&&e==="invalid_webhook_signature")process.exit(32);
+          if(r.status===503)process.exit(33);
+          process.exit(34);
           NODE
