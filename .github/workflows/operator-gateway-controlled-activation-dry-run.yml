@@ -4,7 +4,7 @@ on:
   workflow_dispatch:
     inputs:
       example:
-        description: API transport field; must contain the exact synthetic dry-run approval phrase
+        description: Authorization phrase for Mercado Pago authenticated read-only test
         required: true
         type: string
 
@@ -12,67 +12,49 @@ permissions:
   contents: read
 
 concurrency:
-  group: operator-gateway-controlled-activation-dry-run
+  group: mercadopago-authenticated-readonly-probe
   cancel-in-progress: false
 
 jobs:
   controlled-dry-run:
+    name: Mercado Pago read-only user id binding check
     runs-on:
       - self-hosted
       - macOS
       - X64
     timeout-minutes: 10
-    defaults:
-      run:
-        shell: bash
-        working-directory: apps/api-gateway
-
     steps:
-      - name: Validate explicit approval
+      - name: Validate explicit authorization
         env:
           APPROVAL: ${{ inputs.example }}
+        shell: bash
         run: |
           set -euo pipefail
-          test "$APPROVAL" = "IGOR_APROVA_OPERATOR_GATEWAY_DRY_RUN"
+          test "$APPROVAL" = "AUTORIZO_TESTE_READ_ONLY_MERCADO_PAGO"
 
-      - name: Checkout frozen revision
-        uses: actions/checkout@v4
-        with:
-          persist-credentials: false
-
-      - name: Set up Node.js
-        uses: actions/setup-node@v4
-        with:
-          node-version: "22"
-
-      - name: Link local security dependencies
-        run: |
-          set -euo pipefail
-          root="$GITHUB_WORKSPACE"
-          mkdir -p "$root/apps/api-gateway/node_modules/@apidevelopers"
-          for package in contracts auth-core apikey-core persistence-core; do
-            ln -sfn "$root/packages/$package" "$root/apps/api-gateway/node_modules/@apidevelopers/$package"
-          done
-          mkdir -p "$root/packages/auth-core/node_modules/@apidevelopers"
-          ln -sfn "$root/packages/apikey-core" "$root/packages/auth-core/node_modules/@apidevelopers/apikey-core"
-          mkdir -p "$root/packages/apikey-core/node_modules/@apidevelopers"
-          ln -sfn "$root/packages/persistence-core" "$root/packages/apikey-core/node_modules/@apidevelopers/persistence-core"
-
-      - name: Validate synthetic harness tests
-        run: node --test test/operator-gateway-controlled-dry-run.test.mjs
-
-      - name: Execute synthetic controlled dry-run
+      - name: Compare Mercado Pago user id without revealing values
+        shell: bash
         env:
-          OPERATOR_GATEWAY_DRY_RUN_APPROVAL: ${{ inputs.example }}
-        run: |
-          set -euo pipefil
-          mkdir -p artifacts
-          node scripts/operator-gateway-controlled-dry-run.mjs \
-            --output=artifacts/operator-gateway-controlled-dry-run-evidence.json
-
-      - name: Verify sanitized evidence
+          MP_ACCESS_TOKEN: ${{ secrets.MP_ACCESS_TOKEN }}
+          MP_EXPECTED_TEST_USER_ID: ${{ secrets.MP_EXPECTED_TEST_USER_ID }}
         run: |
           set -euo pipefail
-          node scripts/verify-operator-gateway-controlled-dry-run.mjs \
-            artifacts/operator-gateway-controlled-dry-run-evidence.json
-          cat artifacts/operator-gateway-controlled-dry-run-evidence.json
+          test -n "${MP_ACCESS_TOKEN:-}"
+          test -n "${MP_EXPECTED_TEST_USER_ID:-}"
+          node --input-type=module <<'NODE'
+          const token = process.env.MP_ACCESS_TOKEN;
+          const expected = String(process.env.MP_EXPECTED_TEST_USER_ID || "").trim();
+          const response = await fetch("https://api.mercadolibre.com/users/me", {
+            method: "GET",
+            headers: {
+              accept: "application/json",
+              authorization: `Bearer ${token}`,
+            },
+          });
+          if (!response.ok) process.exit(30);
+          const payload = await response.json();
+          const actual = payload?.id == null ? "" : String(payload?.id ?? "").trim();
+          if (!actual) process.exit(31);
+          if (actual !== expected) process.exit(32);
+          console.log("mercadopago-user-id-binding=ok");
+          NODE
