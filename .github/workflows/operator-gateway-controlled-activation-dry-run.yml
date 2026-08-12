@@ -65,7 +65,7 @@ jobs:
         env:
           OPERATOR_GATEWAY_DRY_RUN_APPROVAL: ${{ inputs.example }}
         run: |
-          set -euo pipefil
+          set -euo pipefail
           mkdir -p artifacts
           node scripts/operator-gateway-controlled-dry-run.mjs \
             --output=artifacts/operator-gateway-controlled-dry-run-evidence.json
