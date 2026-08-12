@@ -37,7 +37,7 @@ test("global markets use locked Stripe FX quote policy and no commercial uplift"
 
 test("unsupported currencies fail closed", () => {
   assert.throws(
-    () => getFxSourcePolicy({ targetCourrency: "GBP" }),
+    () => getFxSourcePolicy({ targetCurrency: "GBP" }),
     /unsupported FX target currency/,
   );
   assert.throws(
@@ -79,5 +79,5 @@ test("locked quote must be active and unexpired", () => {
         now,
       }),
     /expired/,
-   );
+  );
 });
