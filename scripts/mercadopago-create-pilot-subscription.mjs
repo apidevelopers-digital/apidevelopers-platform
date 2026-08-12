@@ -58,7 +58,7 @@ if (!s) {
     body:JSON.stringify({
       preapproval_plan_id: planId,
       payer_email: payerEmail,
-      reason: planReason',
+      reason: planReason,
       external_reference: externalReference,
       back_url: backUrl
     })
