@@ -1,95 +1,78 @@
 name: Operator Gateway Controlled Activation Dry Run
+
 on:
   workflow_dispatch:
     inputs:
       example:
+        description: API transport field; must contain the exact synthetic dry-run approval phrase
         required: true
         type: string
+
 permissions:
-  contents: write
+  contents: read
+
+concurrency:
+  group: operator-gateway-controlled-activation-dry-run
+  cancel-in-progress: false
+
 jobs:
   controlled-dry-run:
-    runs-on: [self-hosted, macOS, X64]
+    runs-on:
+      - self-hosted
+      - macOS
+      - X64
     timeout-minutes: 10
-    steps:
-      - uses: actions/checkout@v4
-        with:
-          persist-credentials: true
-      - name: Diagnose pilot subscription read-only
+    defaults:
+      run:
         shell: bash
+        working-directory: apps/api-gateway
+
+    steps:
+      - name: Validate explicit approval
         env:
           APPROVAL: ${{ inputs.example }}
-          MP_ACCESS_TOKEN: ${{ secrets.MP_ACCESS_TOKEN }}
-          MP_EXPECTED_TEST_USER_ID: ${{ secrets.MP_EXPECTED_TEST_USER_ID }}
         run: |
           set -euo pipefail
-          test "$APPROVAL" = "AUTORIZO_DIAGNOSTICAR_ASSINATURA_PILOTO_MP_TEST"
-          test -n "${MP_ACCESS_TOKEN:-}"
-          test -n "${MP_EXPECTED_TEST_USER_ID:-}"
-          node --input-type=module <<'NODE'
-          import fs from "node:fs";
-          const token=process.env.MP_ACCESS_TOKEN;
-          const expected=String(process.env.MP_EXPECTED_TEST_USER_ID||"").trim();
-          const H={accept:"application/json",authorization:`Bearer ${token}`};
-          const out={ok:false,mode:"read-only",sellerMatched:false,planMatches:null,subscriptionSearchHttp:null,exactMatches:null,statuses:[]};
-          async function fetchJson(url){
-            const r=await fetch(url,{headers:H});
-            const text=await r.text();
-            let p=null; try{p=text?JSON.parse(text):null}catch{}
-            return {r,p};
-          }
-          const me=await fetchJson("https://api.mercadopago.com/users/me");
-          if(!me.r.ok){out.stage="seller_auth";out.http=me.r.status;}
-          else if(String(me.p?.id??"").trim()!==expected){out.stage="seller_mismatch";}
-          else{
-            out.sellerMatched=true;
-            const reason="uni.verso start - piloto de teste API Developers";
-            const pu=new URL("https://api.mercadopago.com/preapproval_plan/search");
-            pu.searchParams.set("q",reason);
-            const pr=await fetchJson(pu);
-            if(!pr.r.ok){out.stage="plan_search";out.http=pr.r.status;}
-            else{
-              const plans=(Array.isArray(pr.p?.results)?pr.p.results:[]).filter(x=>
-                String(x?.reason??"").trim()===reason &&
-                Number(x?.auto_recurring?.transaction_amount)===49 &&
-                String(x?.auto_recurring?.currency_id??"")==="BRL" &&
-                Number(x?.auto_recurring?.frequency)===1 &&
-                String(x?.auto_recurring?.frequency_type??"")==="months"
-              );
-              out.planMatches=plans.length;
-              if(plans.length!==1){out.stage="plan_match";}
-              else{
-                const ref="pilot-subscription-buyer-3608645861-universo-start-20260812";
-                const su=new URL("https://api.mercadopago.com/preapproval/search");
-                su.searchParams.set("q",ref);
-                su.searchParams.set("preapproval_plan_id",String(plans[0].id));
-                const sr=await fetchJson(su);
-                out.subscriptionSearchHttp=sr.r.status;
-                if(!sr.r.ok){out.stage="subscription_search";}
-                else{
-                  const exact=(Array.isArray(sr.p?.results)?sr.p.results:[]).filter(x=>
-                    String(x?.external_reference??"")===ref &&
-                    String(x?.preapproval_plan_id??"")===String(plans[0].id)
-                  );
-                  out.exactMatches=exact.length;
-                  out.statuses=[...new Set(exact.map(x=>String(x?.status??"unknown")))].sort();
-                  out.ok=true;
-                  out.stage="complete";
-                }
-              }
-            }
-          }
-          fs.mkdirSync("artifacts",{recursive:true});
-          fs.writeFileSync("artifacts/mercadopago-pilot-subscription-diagnostic.json",JSON.stringify(out,null,2)+"\n");
-          console.log(JSON.stringify(out));
-          NODE
-      - name: Commit sanitized diagnostic evidence
-        shell: bash
+          test "$APPROVAL" = "IGOR_APROVA_OPERATOR_GATEWAY_DRY_RUN"
+
+      - name: Checkout frozen revision
+        uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+
+      - name: Link local security dependencies
         run: |
           set -euo pipefail
-          git config user.name "api-developers-bot"
-          git config user.email "actions@users.noreply.github.com"
-          git add artifacts/mercadopago-pilot-subscription-diagnostic.json
-          if git diff --cached --quiet; then exit 0; fi
-          git commit -m "test(billing): registrar diagnóstico read-only da assinatura piloto"
-          git push origin HEAD:${GITHUB_REF_NAME}
+          root="$GITHUB_WORKSPACE"
+          mkdir -p "$root/apps/api-gateway/node_modules/@apidevelopers"
+          for package in contracts auth-core apikey-core persistence-core; do
+            ln -sfn "$root/packages/$package" "$root/apps/api-gateway/node_modules/@apidevelopers/$package"
+          done
+          mkdir -p "$root/packages/auth-core/node_modules/@apidevelopers"
+          ln -sfn "$root/packages/apikey-core" "$root/packages/auth-core/node_modules/@apidevelopers/apikey-core"
+          mkdir -p "$root/packages/apikey-core/node_modules/@apidevelopers"
+          ln -sfn "$root/packages/persistence-core" "$root/packages/apikey-core/node_modules/@apidevelopers/persistence-core"
+
+      - name: Validate synthetic harness tests
+        run: node --test test/operator-gateway-controlled-dry-run.test.mjs
+
+      - name: Execute synthetic controlled dry-run
+        env:
+          OPERATOR_GATEWAY_DRY_RUN_APPROVAL: ${{ inputs.example }}
+        run: |
+          set -euo pipefil
+          mkdir -p artifacts
+          node scripts/operator-gateway-controlled-dry-run.mjs \
+            --output=artifacts/operator-gateway-controlled-dry-run-evidence.json
+
+      - name: Verify sanitized evidence
+        run: |
+          set -euo pipefail
+          node scripts/verify-operator-gateway-controlled-dry-run.mjs \
+            artifacts/operator-gateway-controlled-dry-run-evidence.json
+          cat artifacts/operator-gateway-controlled-dry-run-evidence.json
