@@ -1,15 +1,12 @@
 name: Operator Gateway Controlled Activation Dry Run
-
 on:
   workflow_dispatch:
     inputs:
       example:
         required: true
         type: string
-
 permissions:
   contents: write
-
 jobs:
   controlled-dry-run:
     runs-on: [self-hosted, macOS, X64]
@@ -18,7 +15,7 @@ jobs:
       - uses: actions/checkout@v4
         with:
           persist-credentials: true
-      - name: Create one pending Mercado Pago pilot subscription
+      - name: Diagnose pilot subscription read-only
         shell: bash
         env:
           APPROVAL: ${{ inputs.example }}
@@ -26,17 +23,73 @@ jobs:
           MP_EXPECTED_TEST_USER_ID: ${{ secrets.MP_EXPECTED_TEST_USER_ID }}
         run: |
           set -euo pipefail
-          test "$APPROVAL" = "AUTORIZO_CRIAR_1_ASSINATURA_PILOTO_MP_TEST"
-          node scripts/mercadopago-create-pilot-subscription.mjs
-      - name: Commit sanitized evidence
+          test "$APPROVAL" = "AUTORIZO_DIAGNOSTICAR_ASSINATURA_PILOTO_MP_TEST"
+          test -n "${MP_ACCESS_TOKEN:-}"
+          test -n "${MP_EXPECTED_TEST_USER_ID:-}"
+          node --input-type=module <<'NODE'
+          import fs from "node:fs";
+          const token=process.env.MP_ACCESS_TOKEN;
+          const expected=String(process.env.MP_EXPECTED_TEST_USER_ID||"").trim();
+          const H={accept:"application/json",authorization:`Bearer ${token}`};
+          const out={ok:false,mode:"read-only",sellerMatched:false,planMatches:null,subscriptionSearchHttp:null,exactMatches:null,statuses:[]};
+          async function fetchJson(url){
+            const r=await fetch(url,{headers:H});
+            const text=await r.text();
+            let p=null; try{p=text?JSON.parse(text):null}catch{}
+            return {r,p};
+          }
+          const me=await fetchJson("https://api.mercadopago.com/users/me");
+          if(!me.r.ok){out.stage="seller_auth";out.http=me.r.status;}
+          else if(String(me.p?.id??"").trim()!==expected){out.stage="seller_mismatch";}
+          else{
+            out.sellerMatched=true;
+            const reason="uni.verso start - piloto de teste API Developers";
+            const pu=new URL("https://api.mercadopago.com/preapproval_plan/search");
+            pu.searchParams.set("q",reason);
+            const pr=await fetchJson(pu);
+            if(!pr.r.ok){out.stage="plan_search";out.http=pr.r.status;}
+            else{
+              const plans=(Array.isArray(pr.p?.results)?pr.p.results:[]).filter(x=>
+                String(x?.reason??"").trim()===reason &&
+                Number(x?.auto_recurring?.transaction_amount)===49 &&
+                String(x?.auto_recurring?.currency_id??"")==="BRL" &&
+                Number(x?.auto_recurring?.frequency)===1 &&
+                String(x?.auto_recurring?.frequency_type??"")==="months"
+              );
+              out.planMatches=plans.length;
+              if(plans.length!==1){out.stage="plan_match";}
+              else{
+                const ref="pilot-subscription-buyer-3608645861-universo-start-20260812";
+                const su=new URL("https://api.mercadopago.com/preapproval/search");
+                su.searchParams.set("q",ref);
+                su.searchParams.set("preapproval_plan_id",String(plans[0].id));
+                const sr=await fetchJson(su);
+                out.subscriptionSearchHttp=sr.r.status;
+                if(!sr.r.ok){out.stage="subscription_search";}
+                else{
+                  const exact=(Array.isArray(sr.p?.results)?sr.p.results:[]).filter(x=>
+                    String(x?.external_reference??"")===ref &&
+                    String(x?.preapproval_plan_id??"")===String(plans[0].id)
+                  );
+                  out.exactMatches=exact.length;
+                  out.statuses=[...new Set(exact.map(x=>String(x?.status??"unknown")))].sort();
+                  out.ok=true;
+                  out.stage="complete";
+                }
+              }
+            }
+          }
+          fs.mkdirSync("artifacts",{recursive:true});
+          fs.writeFileSync("artifacts/mercadopago-pilot-subscription-diagnostic.json",JSON.stringify(out,null,2)+"\n");
+          console.log(JSON.stringify(out));
+          NODE
+      - name: Commit sanitized diagnostic evidence
         shell: bash
         run: |
           set -euo pipefail
           git config user.name "api-developers-bot"
           git config user.email "actions@users.noreply.github.com"
-          git add artifacts/mercadopago-pilot-subscription.json
-          if git diff --cached --quiet; then
-            exit 0
-          fi
-          git commit -m "test(billing): registrar assinatura piloto Mercado Pago pendente"
+          git add artifacts/mercadopago-pilot-subscription-diagnostic.json
+          if git diff --cached --quiet; then exit 0; fi
+          git commit -m "test(billing): registrar diagnóstico read-only da assinatura piloto"
           git push origin HEAD:${GITHUB_REF_NAME}
