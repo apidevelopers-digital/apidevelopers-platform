@@ -1,18 +1,21 @@
 name: Operator Gateway Controlled Activation Dry Run
+
 on:
   workflow_dispatch:
     inputs:
       example:
         required: true
         type: string
+
 permissions:
   contents: read
+
 jobs:
   controlled-dry-run:
     runs-on: [self-hosted, macOS, X64]
     timeout-minutes: 10
     steps:
-      - name: Create one Mercado Pago pilot plan
+      - name: Verify one Mercado Pago pilot plan
         shell: bash
         env:
           APPROVAL: ${{ inputs.example }}
@@ -20,22 +23,51 @@ jobs:
           MP_EXPECTED_TEST_USER_ID: ${{ secrets.MP_EXPECTED_TEST_USER_ID }}
         run: |
           set -euo pipefail
-          test "$APPROVAL" = "AUTORIZO_CRIAR_1_PLANO_PILOTO_MP_TEST"
+          test "$APPROVAL" = "AUTORIZO_VERIFICAR_1_PLANO_PILOTO_MP_TEST"
           test -n "${MP_ACCESS_TOKEN:-}"
           test -n "${MP_EXPECTED_TEST_USER_ID:-}"
           node --input-type=module <<'NODE'
-          const h={accept:"application/json",authorization:`Bearer ${process.env.MP_ACCESS_TOKEN}`};
-          const m=await fetch("https://api.mercadopago.com/users/me",{headers:h});
-          if(!m.ok)process.exit(20);
-          const me=await m.json();
-          const expected=String(process.env.MP_EXPECTED_TEST_USER_ID||"").trim();
-          if(String(me?.id??"").trim()!==expected)process.exit(21);
-          const body={reason:"uni.verso start - piloto de teste API Developers",auto_recurring:{frequency:1,frequency_type:"months",transaction_amount:49,currency_id:"BRL"},back_url:"https://sitedauni.com/apps/universo/"};
-          const r=await fetch("https://api.mercadopago.com/preapproval_plan",{method:"POST",headers:{...h,"content-type":"application/json"},body:JSON.stringify(body)});
-          const t=await r.text(); let p=null; try{p=t?JSON.parse(t):null}catch{process.exit(22)}
-          if(!r.ok){console.error(JSON.stringify({ok:false,httpStatus:r.status,error:p?.error??null,message:p?.message??null}));process.exit(23)}
-          const id=String(p?.id??"").trim(), init=String(p?.init_point??"").trim(), collector=String(p?.collector_id??"").trim();
-          if(!id||!init)process.exit(24);
-          if(collector&&collector!==expected)process.exit(25);
-          console.log(JSON.stringify({ok:true,created:true,object:"preapproval_plan",pilot:{priceId:"universo.start.month.br",productId:"uni.verso",planId:"start",amount:49,currency:"BRL",frequency:"1 month",backUrl:"https://sitedauni.com/apps/universo/"},mercadoPago:{id,initPoint:init,status:p?.status??null,sellerMatched:true},subscriptionCreated:false,paymentCreated:false},null,2));
+          const token = process.env.MP_ACCESS_TOKEN;
+          const expectedSellerId = String(process.env.MP_EXPECTED_TEST_USER_ID || "").trim();
+          const headers = { accept: "application/json", authorization: `Bearer ${token}` };
+
+          const meRes = await fetch("https://api.mercadopago.com/users/me", { headers });
+          if (!meRes.ok) process.exit(20);
+          const me = await meRes.json();
+          if (String(me?.id ?? "").trim() !== expectedSellerId) process.exit(21);
+
+          const reason = "uni.verso start - piloto de teste API Developers";
+          const url = new URL("https://api.mercadopago.com/preapproval_plan/search");
+          url.searchParams.set("q", reason);
+          const res = await fetch(url, { headers });
+          if (!res.ok) process.exit(22);
+          const payload = await res.json();
+          const results = Array.isArray(payload?.results) ? payload.results : [];
+          const exact = results.filter((item) =>
+            String(item?.reason ?? "").trim() === reason &&
+            Number(item?.auto_recurring?.transaction_amount) === 49 &&
+            String(item?.auto_recurring?.currency_id ?? "").trim() === "BRL" &&
+            Number(item?.auto_recurring?.frequency) === 1 &&
+            String(item?.auto_recurring?.frequency_type ?? "").trim() === "months"
+          );
+
+          if (exact.length !== 1) {
+            console.error(JSON.stringify({ ok:false, exactMatches: exact.length }));
+            process.exit(23);
+          }
+
+          const plan = exact[0];
+          if (!String(plan?.id ?? "").trim()) process.exit(24);
+          if (!String(plan?.init_point ?? "").trim()) process.exit(25);
+          if (plan?.collector_id != null && String(plan.collector_id).trim() !== expectedSellerId) process.exit(26);
+
+          console.log(JSON.stringify({
+            ok: true,
+            exactMatches: 1,
+            object: "preapproval_plan",
+            status: plan?.status ?? null,
+            sellerMatched: true,
+            subscriptionCreated: false,
+            paymentCreated: false
+          }));
           NODE
