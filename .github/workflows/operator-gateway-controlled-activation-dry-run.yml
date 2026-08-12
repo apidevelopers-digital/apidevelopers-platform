@@ -4,70 +4,75 @@ on:
   workflow_dispatch:
     inputs:
       example:
+        description: API transport field; must contain the exact synthetic dry-run approval phrase
         required: true
         type: string
 
 permissions:
   contents: read
 
+concurrency:
+  group: operator-gateway-controlled-activation-dry-run
+  cancel-in-progress: false
+
 jobs:
   controlled-dry-run:
-    runs-on: [self-hosted, macOS, X64]
+    runs-on:
+      - self-hosted
+      - macOS
+      - X64
     timeout-minutes: 10
-    steps:
-      - name: Verify one Mercado Pago pilot plan
+    defaults:
+      run:
         shell: bash
+        working-directory: apps/api-gateway
+
+    steps:
+      - name: Validate explicit approval
         env:
           APPROVAL: ${{ inputs.example }}
-          MP_ACCESS_TOKEN: ${{ secrets.MP_ACCESS_TOKEN }}
-          MP_EXPECTED_TEST_USER_ID: ${{ secrets.MP_EXPECTED_TEST_USER_ID }}
         run: |
           set -euo pipefail
-          test "$APPROVAL" = "AUTORIZO_VERIFICAR_1_PLANO_PILOTO_MP_TEST"
-          test -n "${MP_ACCESS_TOKEN:-}"
-          test -n "${MP_EXPECTED_TEST_USER_ID:-}"
-          node --input-type=module <<'NODE'
-          const token = process.env.MP_ACCESS_TOKEN;
-          const expectedSellerId = String(process.env.MP_EXPECTED_TEST_USER_ID || "").trim();
-          const headers = { accept: "application/json", authorization: `Bearer ${token}` };
+          test "$APPROVAL" = "IGOR_APROVA_OPERATOR_GATEWAY_DRY_RUN"
 
-          const meRes = await fetch("https://api.mercadopago.com/users/me", { headers });
-          if (!meRes.ok) process.exit(20);
-          const me = await meRes.json();
-          if (String(me?.id ?? "").trim() !== expectedSellerId) process.exit(21);
+      - name: Checkout frozen revision
+        uses: actions/checkout@v4
+        with:
+          persist-credentials: false
 
-          const reason = "uni.verso start - piloto de teste API Developers";
-          const url = new URL("https://api.mercadopago.com/preapproval_plan/search");
-          url.searchParams.set("q", reason);
-          const res = await fetch(url, { headers });
-          if (!res.ok) process.exit(22);
-          const payload = await res.json();
-          const results = Array.isArray(payload?.results) ? payload.results : [];
-          const exact = results.filter((item) =>
-            String(item?.reason ?? "").trim() === reason &&
-            Number(item?.auto_recurring?.transaction_amount) === 49 &&
-            String(item?.auto_recurring?.currency_id ?? "").trim() === "BRL" &&
-            Number(item?.auto_recurring?.frequency) === 1 &&
-            String(item?.auto_recurring?.frequency_type ?? "").trim() === "months"
-          );
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22"
 
-          if (exact.length !== 1) {
-            console.error(JSON.stringify({ ok:false, exactMatches: exact.length }));
-            process.exit(23);
-          }
+      - name: Link local security dependencies
+        run: |
+          set -euo pipefail
+          root="$GITHUB_WORKSPACE"
+          mkdir -p "$root/apps/api-gateway/node_modules/@apidevelopers"
+          for package in contracts auth-core apikey-core persistence-core; do
+            ln -sfn "$root/packages/$package" "$root/apps/api-gateway/node_modules/@apidevelopers/$package"
+          done
+          mkdir -p "$root/packages/auth-core/node_modules/@apidevelopers"
+          ln -sfn "$root/packages/apikey-core" "$root/packages/auth-core/node_modules/@apidevelopers/apikey-core"
+          mkdir -p "$root/packages/apikey-core/node_modules/@apidevelopers"
+          ln -sfn "$root/packages/persistence-core" "$root/packages/apikey-core/node_modules/@apidevelopers/persistence-core"
 
-          const plan = exact[0];
-          if (!String(plan?.id ?? "").trim()) process.exit(24);
-          if (!String(plan?.init_point ?? "").trim()) process.exit(25);
-          if (plan?.collector_id != null && String(plan.collector_id).trim() !== expectedSellerId) process.exit(26);
+      - name: Validate synthetic harness tests
+        run: node --test test/operator-gateway-controlled-dry-run.test.mjs
 
-          console.log(JSON.stringify({
-            ok: true,
-            exactMatches: 1,
-            object: "preapproval_plan",
-            status: plan?.status ?? null,
-            sellerMatched: true,
-            subscriptionCreated: false,
-            paymentCreated: false
-          }));
-          NODE
+      - name: Execute synthetic controlled dry-run
+        env:
+          OPERATOR_GATEWAY_DRY_RUN_APPROVAL: ${{ inputs.example }}
+        run: |
+          set -euo pipefail
+          mkdir -p artifacts
+          node scripts/operator-gateway-controlled-dry-run.mjs \
+            --output=artifacts/operator-gateway-controlled-dry-run-evidence.json
+
+      - name: Verify sanitized evidence
+        run: |
+          set -euo pipefail
+          node scripts/verify-operator-gateway-controlled-dry-run.mjs \
+            artifacts/operator-gateway-controlled-dry-run-evidence.json
+          cat artifacts/operator-gateway-controlled-dry-run-evidence.json
