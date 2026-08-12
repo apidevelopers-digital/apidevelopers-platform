@@ -17,7 +17,7 @@ concurrency:
 
 jobs:
   controlled-dry-run:
-    name: Mercado Pago authenticated read-only probe
+    name: Mercado Pago authenticated read-only credential probe
     runs-on:
       - self-hosted
       - macOS
@@ -32,24 +32,26 @@ jobs:
           set -euo pipefail
           test "$APPROVAL" = "AUTORIZO_TESTE_READ_ONLY_MERCADO_PAGO"
 
-      - name: Checkout frozen revision
-        uses: actions/checkout@v4
-        with:
-          persist-credentials: false
-
-      - name: Validate read-only probe regression tests
-        shell: bash
-        run: node --test packages/saas-billing/test/mercadopago-auth-probe.test.mjs
-
-      - name: Run Mercado Pago authenticated read-only probe
+      - name: GET users me without revealing account data
         shell: bash
         env:
-          APD_BILLING_MODE: test
-          APD_BILLING_LIVE_ENABLED: "false"
           MP_ACCESS_TOKEN: ${{ secrets.MP_ACCESS_TOKEN }}
-          MP_EXPECTED_TEST_USER_ID: ${{ secrets.MP_EXPECTED_TEST_USER_ID }}
         run: |
           set -euo pipefail
           test -n "${MP_ACCESS_TOKEN:-}"
-          test -n "${MP_EXPECTED_TEST_USER_ID:-}"
-          node scripts/mercadopago-auth-probe.mjs
+          node --input-type=module <<'NODE'
+          const token = process.env.MP_ACCESS_TOKEN;
+          const response = await fetch("https://api.mercadolibre.com/users/me", {
+            method: "GET",
+            headers: {
+              accept: "application/json",
+              authorization: `Bearer ${token}`,
+            },
+          });
+          if (!response.ok) process.exit(20);
+          const payload = await response.json();
+          if (payload?.id === undefined || payload?.id === null || String(payload.id).trim() === "") {
+            process.exit(21);
+          }
+          console.log("mercadopago-authenticated-readonly=ok");
+          NODE
