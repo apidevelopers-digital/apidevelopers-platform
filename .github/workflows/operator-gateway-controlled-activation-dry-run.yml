@@ -4,7 +4,7 @@ on:
   workflow_dispatch:
     inputs:
       example:
-        description: Authorization phrase for Mercado Pago webhook readiness read-only check
+        description: API transport field; must contain the exact synthetic dry-run approval phrase
         required: true
         type: string
 
@@ -12,45 +12,67 @@ permissions:
   contents: read
 
 concurrency:
-  group: mercadopago-webhook-readiness-check
+  group: operator-gateway-controlled-activation-dry-run
   cancel-in-progress: false
 
 jobs:
   controlled-dry-run:
-    name: Mercado Pago webhook readiness read-only
     runs-on:
       - self-hosted
       - macOS
       - X64
     timeout-minutes: 10
+    defaults:
+      run:
+        shell: bash
+        working-directory: apps/api-gateway
+
     steps:
-      - name: Validate explicit authorization
+      - name: Validate explicit approval
         env:
           APPROVAL: ${{ inputs.example }}
-        shell: bash
         run: |
           set -euo pipefail
-          test "$APPROVAL" = "AUTORIZO_CHECK_READ_ONLY_WEBHOOK_MP"
+          test "$APPROVAL" = "IGOR_APROVA_OPERATOR_GATEWAY_DRY_RUN"
 
-      - name: Checkout
+      - name: Checkout frozen revision
         uses: actions/checkout@v4
         with:
           persist-credentials: false
 
-      - name: Check webhook secret presence without revealing value
-        env:
-          MP_WEBHOOK_SECRET: ${{ secrets.MP_WEBHOOK_SECRET }}
-        shell: bash
-        run: |
-          set -euo pipefail
-          if [[ -z "${MP_WEBHOOK_SECRET:-}" ]]; then
-            echo "mercadopago_webhook_secret_present=false"
-            exit 20
-          fi
-          echo "mercadopago_webhook_secret_present=true"
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22"
 
-      - name: Run Mercado Pago webhook signature verifier tests
-        shell: bash
+      - name: Link local security dependencies
         run: |
           set -euo pipefail
-          node --test packages/saas-billing/test/mercadopago-client.test.mjs
+          root="$GITHUB_WORKSPACE"
+          mkdir -p "$root/apps/api-gateway/node_modules/@apidevelopers"
+          for package in contracts auth-core apikey-core persistence-core; do
+            ln -sfn "$root/packages/$package" "$root/apps/api-gateway/node_modules/@apidevelopers/$package"
+          done
+          mkdir -p "$root/packages/auth-core/node_modules/@apidevelopers"
+          ln -sfn "$root/packages/apikey-core" "$root/packages/auth-core/node_modules/@apidevelopers/apikey-core"
+          mkdir -p "$root/packages/apikey-core/node_modules/@apidevelopers"
+          ln -sfn "$root/packages/persistence-core" "$root/packages/apikey-core/node_modules/@apidevelopers/persistence-core"
+
+      - name: Validate synthetic harness tests
+        run: node --test test/operator-gateway-controlled-dry-run.test.mjs
+
+      - name: Execute synthetic controlled dry-run
+        env:
+          OPERATOR_GATEWAY_DRY_RUN_APPROVAL: ${{ inputs.example }}
+        run: |
+          set -euo pipefail
+          mkdir -p artifacts
+          node scripts/operator-gateway-controlled-dry-run.mjs \
+            --output=artifacts/operator-gateway-controlled-dry-run-evidence.json
+
+      - name: Verify sanitized evidence
+        run: |
+          set -euo pipefail
+          node scripts/verify-operator-gateway-controlled-dry-run.mjs \
+            artifacts/operator-gateway-controlled-dry-run-evidence.json
+          cat artifacts/operator-gateway-controlled-dry-run-evidence.json
