@@ -9,3 +9,4 @@ export * from "./public-checkout.mjs";
 export * from "./providers/mercadopago.mjs";
 export * from "./providers/stripe.mjs";
 export * from "./markets.mjs";
+export * from "./fx.mjs";
