@@ -1,38 +1,78 @@
 name: Operator Gateway Controlled Activation Dry Run
+
 on:
   workflow_dispatch:
     inputs:
       example:
+        description: API transport field; must contain the exact synthetic dry-run approval phrase
         required: true
         type: string
+
 permissions:
   contents: read
+
+concurrency:
+  group: operator-gateway-controlled-activation-dry-run
+  cancel-in-progress: false
+
 jobs:
   controlled-dry-run:
-    name: Mercado Pago HMAC ingress diagnostic
-    runs-on: [self-hosted, macOS, X64]
+    runs-on:
+      - self-hosted
+      - macOS
+      - X64
     timeout-minutes: 10
+    defaults:
+      run:
+        shell: bash
+        working-directory: apps/api-gateway
+
     steps:
-      - name: Diagnose HMAC ingress
+      - name: Validate explicit approval
         env:
           APPROVAL: ${{ inputs.example }}
-          MP_WEBHOOK_SECRET: ${{ secrets.MP_WEBHOOK_SECRET }}
-        shell: bash
         run: |
           set -euo pipefail
-          test "$APPROVAL" = "AUTORIZO_DIAGNOSTICO_HMAC_INGRESS_MP_TEST"
-          test -n "${MP_WEBHOOK_SECRET:-}"
-          node --input-type=module <<'NODE'
-          import { createHmac } from "node:crypto";
-          const endpoint="https://sitedauni.com/v1/financial/webhooks/mercadopago/br-main/";
-          const secret=String(process.env.MP_WEBHOOK_SECRET||"").trim();
-          const dataId="test123";
-          const requestId="apd-hmac-diagnostic";
-         ÛÛœÝÏTÝš[™Ê]K››ÝÊ
-JNÂˆ6öç7BÖæ–fW7CÖ–C¢G¶FF–GÓ·&WVW7BÖ–C¢G·&WVW7D–GÓ·G3¢G·G7Ó¶°¢½¹ÍÐØÄõÉ•…Ñ•!µ…Œ ‰Í¡„ÈÔØˆ±Í•É•Ð¤¹ÕÁ‘…Ñ”¡µ…¹¥™•ÍÐ¤¹‘¥•ÍÐ ‰¡•àˆ¤ì(€€€€€€€€€½¹ÍÐÈõ…Ý…¥Ð™•Ñ ¡€‘í•¹‘Á½¥¹Ñôý‘…Ñ„¹¥ô‘í‘…Ñ…%‘õ€±ì(€€€€€€€€€€€µ•Ñ¡½è‰A=MPˆ±É•‘¥É•Ðè‰™½±±½Üˆ°(€€€€€€€€€€€¡•…‘•ÉÌéì‰½¹Ñ•¹ÐµÑåÁ”ˆè‰…ÁÁ±¥…Ñ¥½¸½©Í½¸ˆ°‰àµÉ•ÅÕ•ÍÐµ¥ˆéÉ•ÅÕ•ÍÑ%°‰àµÍ¥¹…ÑÕÉ”ˆéÑÌô‘íÑÍô±ØÄô‘íØÅõô°(€€€€€€€€€€€‰½‘äé)M=8¹ÍÑÉ¥¹¥™ä¡íÑåÁ”è‰ÍÕ‰ÍÉ¥ÁÑ¥½¹}ÁÉ•…ÁÁÉ½Ù…°ˆ±±¥Ù•}µ½‘”é™…±Í”±‘…Ñ„éí¥é‘…Ñ…%‘õô¤(€€€€€€€€€ô¤ì(€€€€€€€€€½¹ÍÐÀõ…Ý…¥ÐÈ¹©Í½¸ ¤¹…Ñ   ¤ôù¹Õ±°¤ì(€€€€€€€€€const e=String(p?.error||"");
-          if(r.status===200&&p?.signatureVerified===true)process.exit(0);
-          if(r.status===401&&e==="invalid_webhook_signature_inputs")process.exit(31);
-          if(r.status===401&&e==="invalid_webhook_signature")process.exit(32);
-          if(r.status===503)process.exit(33);
-          process.exit(34);
-          NODE
+          test "$APPROVAL" = "IGOR_APROVA_OPERATOR_GATEWAY_DRY_RUN"
+
+      - name: Checkout frozen revision
+        uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+
+      - name: Link local security dependencies
+        run: |
+          set -euo pipefail
+          root="$GITHUB_WORKSPACE"
+          mkdir -p "$root/apps/api-gateway/node_modules/@apidevelopers"
+          for package in contracts auth-core apikey-core persistence-core; do
+            ln -sfn "$root/packages/$package" "$root/apps/api-gateway/node_modules/@apidevelopers/$package"
+          done
+          mkdir -p "$root/packages/auth-core/node_modules/@apidevelopers"
+          ln -sfn "$root/packages/apikey-core" "$root/packages/auth-core/node_modules/@apidevelopers/apikey-core"
+          mkdir -p "$root/packages/apikey-core/node_modules/@apidevelopers"
+          ln -sfn "$root/packages/persistence-core" "$root/packages/apikey-core/node_modules/@apidevelopers/persistence-core"
+
+      - name: Validate synthetic harness tests
+        run: node --test test/operator-gateway-controlled-dry-run.test.mjs
+
+      - name: Execute synthetic controlled dry-run
+        env:
+          OPERATOR_GATEWAY_DRY_RUN_APPROVAL: ${{ inputs.example }}
+        run: |
+          set -euo pipefail
+          mkdir -p artifacts
+          node scripts/operator-gateway-controlled-dry-run.mjs \
+            --output=artifacts/operator-gateway-controlled-dry-run-evidence.json
+
+      - name: Verify sanitized evidence
+        run: |
+          set -euo pipefail
+          node scripts/verify-operator-gateway-controlled-dry-run.mjs \
+            artifacts/operator-gateway-controlled-dry-run-evidence.json
+          cat artifacts/operator-gateway-controlled-dry-run-evidence.json
