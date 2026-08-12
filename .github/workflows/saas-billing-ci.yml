@@ -21,18 +21,20 @@ permissions:
 
 jobs:
   validate:
-    runs-on:
-      - self-hosted
-      - macOS
-      - X64
+    runs-on: [self-hosted, macOS, X64]
     timeout-minutes: 10
     steps:
       - uses: actions/checkout@v4
 
-      - name: Validate SaaS billing package
+      - name: Validate SaaS billing syntax
         run: |
           set -euo pipefail
-          npm --prefix packages/saas-billing run check
+          find packages/saas-billing/src packages/saas-billing/test -name '*.mjs' -print0 | xargs -0 -n1 node --check
+
+      - name: Validate SaaS billing unit tests
+        run: |
+          set -euo pipefail
+          npm --prefix packages/saas-billing test
 
       - name: Validate SaaS billing gateway
         run: |
