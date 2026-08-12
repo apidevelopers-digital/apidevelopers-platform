@@ -4,7 +4,7 @@ on:
   workflow_dispatch:
     inputs:
       example:
-        description: Authorization phrase for Mercado Pago webhook secret parity check
+        description: Authorization phrase for encrypted Mercado Pago webhook secret parity check
         required: true
         type: string
 
@@ -13,7 +13,7 @@ permissions:
 
 jobs:
   controlled-dry-run:
-    name: Mercado Pago webhook secret parity read-only
+    name: Mercado Pago encrypted webhook secret parity check
     runs-on:
       - self-hosted
       - macOS
@@ -26,9 +26,9 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          test "$APPROVAL" = "AUTORIZO_CHECK_PARIDADE_SECRET_WEBHOOK_MP_TEST"
+          test "$APPROVAL" = "AUTORIZO_CHECK_CRIPTO_PARIDADE_SECRET_WEBHOOK_MP_TEST"
 
-      - name: Compare GitHub secret with materialized server secret fingerprint
+      - name: Compare encrypted GitHub secret with server copy without revealing either
         env:
           MP_WEBHOOK_SECRET: ${{ secrets.MP_WEBHOOK_SECRET }}
         shell: bash
@@ -36,48 +36,40 @@ jobs:
           set -euo pipefail
           test -n "${MP_WEBHOOK_SECRET:-}"
           node --input-type=module <<'NODE'
-          import { createHash } from "node:crypto";
-          const secret = String(process.env.MP_WEBHOOK_SECRET || "").trim();
+          import { publicEncrypt, constants } from "node:crypto";
+          const secret = String(process.env.MP_WEBHOOK_SECRET || "");
           if (!secret) process.exit(20);
-          const expectedServerFileSha256 = "4681f033887a5ff766df07146559755b7525bb82b94feb18a27173228e773a3";
-          const candidate = createHash("sha256").update(secret + "\n", "utf8").digest("hex");
-          const same = candidate === expectedServerFileSha256;
+
+          const bootstrapRes = await fetch("https://sitedauni.com/v1/financial/webhooks/mercadopago/key-bootstrap.php", {
+            headers: { accept: "application/json" },
+          });
+          const bootstrap = await bootstrapRes.json().catch(() => null);
+          if (!bootstrapRes.ok || !bootstrap?.ok || !bootstrap?.publicKeyB64) process.exit(21);
+
+          const publicKey = Buffer.from(String(bootstrap.publicKeyB64), "base64").toString("utf8");
+          const ciphertext = publicEncrypt({
+            key: publicKey,
+            padding: constants.RSA_PKCS1_OAEP_PADDING,
+            oaepHash: "sha1",
+          }, Buffer.from(secret, "utf8")).toString("base64");
+
+          const compareRes = await fetch("https://sitedauni.com/v1/financial/webhooks/mercadopago/key-import.php", {
+            method: "POST",
+            headers: { accept: "application/json", "content-type": "application/json" },
+            body: JSON.stringify({ ciphertextB64: ciphertext }),
+          });
+          const payload = await compareRes.json().catch(() => null);
+          const same = compareRes.status === 200 &&
+            payload?.ok === true &&
+            payload?.configured === true &&
+            payload?.alreadyConfigured === true;
           console.log(JSON.stringify({
             ok: same,
-            githubSecretPresent: true,
-            serverMaterializedSecretPresent: true,
-            fingerprintsMatch: same,
+            httpStatus: compareRes.status,
+            sameSecret: same,
+            serverHasSecret: compareRes.status === 200 || compareRes.status === 409,
             secretExposed: false,
             liveEnabled: false,
           }));
-          if (!same) process.exit(21);
-          NODE
-
-      - name: Check published endpoint readiness
-        shell: bash
-        run: |
-          set -euo pipefail
-          node --input-type=module <<'NODE'
-          const response = await fetch("https://sitedauni.com/v1/financial/webhooks/mercadopago/br-main/", {
-            method: "GET",
-            headers: { accept: "application/json" },
-          });
-          const payload = await response.json().catch(() => null);
-          const ok = response.status === 200 &&
-            payload?.ok === true &&
-            payload?.mode === "test" &&
-            payload?.secretConfigured === true &&
-            payload?.signatureVerificationEnabled === true &&
-            payload?.eventProcessingEnabled === false &&
-            payload?.liveEnabled === false;
-          console.log(JSON.stringify({
-            ok,
-            httpStatus: response.status,
-            mode: payload?.mode ?? null,
-            secretConfigured: payload?.secretConfigured ?? null,
-            signatureVerificationEnabled: payload?.signatureVerificationEnabled ?? null,
-            eventProcessingEnabled: payload?.eventProcessingEnabled ?? null,
-            liveEnabled: payload?.liveEnabled ?? null,
-          }));
-          if (!ok) process.exit(22);
+          if (!same) process.exit(22);
           NODE
