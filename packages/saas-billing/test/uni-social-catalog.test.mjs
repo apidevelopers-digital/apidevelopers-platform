@@ -14,14 +14,24 @@ import {
   BR_MAIN_TEST_MERCHANT_ACCOUNT_ID,
 } from "../bindings/br-main-test.mjs";
 
-test("uni.social is anchored in the BR draft catalog without approved pricing", () => {
+test("uni.social has approved BRL base pricing in the draft catalog and remains inactive", () => {
   const prices = BR_MAIN_DRAFT_PRICES.filter((price) => price.productId === "uni.social");
   assert.equal(prices.length, 6);
   assert.deepEqual([...new Set(prices.map((price) => price.planId))].sort(), ["pro", "scale", "start"]);
   assert.equal(prices.filter((price) => price.interval === "month").length, 3);
   assert.equal(prices.filter((price) => price.interval === "year").length, 3);
   assert.equal(prices.every((price) => price.currency === "BRL"), true);
-  assert.equal(prices.every((price) => price.amountMinor === 0), true);
+  assert.deepEqual(
+    Object.fromEntries(prices.map((price) => [price.priceId, price.amountMinor])),
+    {
+      "unisocial.start.month.br": 4990,
+      "unisocial.pro.month.br": 14990,
+      "unisocial.scale.month.br": 34990,
+      "unisocial.start.year.br": 49900,
+      "unisocial.pro.year.br": 149900,
+      "unisocial.scale.year.br": 349900,
+    },
+  );
   assert.equal(prices.every((price) => price.active === false), true);
 
   assert.throws(
@@ -30,7 +40,7 @@ test("uni.social is anchored in the BR draft catalog without approved pricing", 
   );
 });
 
-test("uni.social remains outside the published active test price catalog until pricing approval", () => {
+test("uni.social remains outside the published active test price catalog until activation approval", () => {
   assert.equal(BR_PUBLISHED_SAAS_TEST_PRICES.some((price) => price.productId === "uni.social"), false);
   assert.throws(
     () => BR_PUBLISHED_SAAS_TEST_CATALOG.get("unisocial.start.month.br"),
