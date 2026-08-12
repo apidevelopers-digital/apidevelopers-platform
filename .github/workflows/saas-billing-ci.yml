@@ -31,10 +31,25 @@ jobs:
           set -euo pipefail
           find packages/saas-billing/src packages/saas-billing/test -name '*.mjs' -print0 | xargs -0 -n1 node --check
 
-      - name: Validate SaaS billing unit tests
+      - name: Validate direct FX unit tests
         run: |
           set -euo pipefail
-          npm --prefix packages/saas-billing test
+          node --test packages/saas-billing/test/fx.test.mjs
+
+      - name: Validate FX source policy unit tests
+        run: |
+          set -euo pipefail
+          node --test packages/saas-billing/test/fx-policy.test.mjs
+
+      - name: Validate remaining SaaS billing unit tests
+        run: |
+          set -euo pipefail
+          for file in packages/saas-billing/test/*.test.mjs; do
+            case "$file" in
+              */fx.test.mjs|*/fx-policy.test.mjs) continue ;;
+            esac
+            node --test "$file"
+          done
 
       - name: Validate SaaS billing gateway
         run: |
