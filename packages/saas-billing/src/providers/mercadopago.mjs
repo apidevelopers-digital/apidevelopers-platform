@@ -29,10 +29,26 @@ const CHECKOUT_RETURN_POLICY = Object.freeze({
   separateCancelUrlSupported: false,
 });
 
-export function createMercadoPagoSubscriptionProvider({ client, mode = "test" } = {}) {
+export function createMercadoPagoSubscriptionProvider({
+  client,
+  mode = "test",
+  planRegistry,
+  allowPlanCreationOnCheckout = false,
+} = {}) {
   obj(client, "client");
   if (!["test", "live"].includes(mode)) throw new TypeError("mode must be test or live");
-  if (typeof client.createSubscriptionPlan !== "function") throw new TypeError("client.createSubscriptionPlan must be a function");
+  if (
+    planRegistry !== undefined &&
+    (typeof planRegistry?.resolve !== "function")
+  ) {
+    throw new TypeError("planRegistry.resolve must be a function");
+  }
+  if (
+    allowPlanCreationOnCheckout === true &&
+    typeof client.createSubscriptionPlan !== "function"
+  ) {
+    throw new TypeError("client.createSubscriptionPlan must be a function");
+  }
   if (typeof client.verifyAndParseWebhook !== "function") throw new TypeError("client.verifyAndParseWebhook must be a function");
 
   return Object.freeze({
@@ -51,6 +67,23 @@ export function createMercadoPagoSubscriptionProvider({ client, mode = "test" } 
     }) {
       if (cancelUrl && cancelUrl !== successUrl) {
         throw new Error("mercadopago_separate_cancel_url_not_supported");
+      }
+
+      if (planRegistry) {
+        const binding = planRegistry.resolve({
+          priceId: price.priceId,
+          provider: "mercadopago",
+          environment: mode,
+        });
+        return Object.freeze({
+          providerCheckoutId: text(binding.providerPlanId, "Mercado Pago plan id"),
+          checkoutUrl: text(binding.checkoutUrl, "Mercado Pago init_point"),
+          expiresAt: null,
+        });
+      }
+
+      if (allowPlanCreationOnCheckout !== true) {
+        throw new Error("mercadopago_provider_plan_binding_required");
       }
 
       const plan = await client.createSubscriptionPlan({
