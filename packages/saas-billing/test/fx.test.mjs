@@ -28,6 +28,27 @@ test("direct FX conversion keeps BRL as canonical base and applies zero market u
   assert.equal(converted.currency, "USD");
   assert.equal(converted.pricingModel, "direct_fx_conversion");
   assert.equal(converted.marketUpliftBps, 0);
+  assert.equal(converted.fxQuote.operation, "multiply");
+});
+
+test("provider settlement-direction rate can be divided without floating inversion", () => {
+  const converted = convertBasePriceMinor({
+    amountMinor: 4990,
+    quote: {
+      baseCurrency: "BRL",
+      quoteCurrency: "USD",
+      rate: "5",
+      operation: "divide",
+      asOf,
+      source: "provider-base-rate",
+    },
+  });
+
+  assert.equal(converted.amountMinor, 998);
+  assert.equal(converted.currency, "USD");
+  assert.equal(converted.fxQuote.rate, "5");
+  assert.equal(converted.fxQuote.operation, "divide");
+  assert.equal(converted.marketUpliftBps, 0);
 });
 
 test("zero-decimal currencies round only to their smallest chargeable unit", () => {
@@ -78,6 +99,20 @@ test("FX quote requires auditable source and timestamp", () => {
   assert.throws(
     () => createFxQuote({ quoteCurrency: "USD", rate: "0.20", asOf: "not-a-date", source }),
     /asOf must be a valid ISO date\/time/,
+  );
+});
+
+test("unsupported FX operations fail closed", () => {
+  assert.throws(
+    () =>
+      createFxQuote({
+        quoteCurrency: "USD",
+        rate: "5",
+        operation: "invert",
+        asOf,
+        source,
+      }),
+    /unsupported FX rate operation/,
   );
 });
 
