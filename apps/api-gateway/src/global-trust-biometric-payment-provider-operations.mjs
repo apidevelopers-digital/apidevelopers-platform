@@ -1,10 +1,11 @@
+
 const DEFAULT_POLICY = Object.freeze({
   failureThreshold: 3,
   cooldownMs: 30_000,
   autoKillSwitchAfterOpenCount: 2,
 });
 
-const NON_PROVIDER_FAILURE_CODES = new Set([
+const LOCAL_ERROR_CODES = new Set([
   "TRUST_PAYMENT_PROVIDER_DISABLED",
   "TRUST_PAYMENT_PROVIDER_KILL_SWITCH",
   "TRUST_PAYMENT_PROVIDER_MODE_BLOCKED",
@@ -29,13 +30,10 @@ function required(value, name) {
   return normalized;
 }
 
-function positiveInteger(value, name, { min = 1, max = Number.MAX_SAFE_INTEGER } = {}) {
+function boundedInt(value, name, min, max) {
   const normalized = Number(value);
   if (!Number.isSafeInteger(normalized) || normalized < min || normalized > max) {
-    fail(
-      "TRUST_PAYMENT_PROVIDER_OPERATIONS_INVALID_POLICY",
-      `${name} must be an integer between ${min} and ${max}`,
-    );
+    fail("TRUST_PAYMENT_PROVIDER_OPERATIONS_INVALID_POLICY", `${name} is invalid`);
   }
   return normalized;
 }
@@ -43,12 +41,13 @@ function positiveInteger(value, name, { min = 1, max = Number.MAX_SAFE_INTEGER }
 function normalizePolicy(input = {}) {
   const merged = { ...DEFAULT_POLICY, ...input };
   return Object.freeze({
-    failureThreshold: positiveInteger(merged.failureThreshold, "failureThreshold", { min: 1, max: 20 }),
-    cooldownMs: positiveInteger(merged.cooldownMs, "cooldownMs", { min: 100, max: 3_600_000 }),
-    autoKillSwitchAfterOpenCount: positiveInteger(
+    failureThreshold: boundedInt(merged.failureThreshold, "failureThreshold", 1, 20),
+    cooldownMs: boundedInt(merged.cooldownMs, "cooldownMs", 100, 3_600_000),
+    autoKillSwitchAfterOpenCount: boundedInt(
       merged.autoKillSwitchAfterOpenCount,
       "autoKillSwitchAfterOpenCount",
-      { min: 1, max: 20 },
+      1,
+      20,
     ),
   });
 }
@@ -59,37 +58,36 @@ function requireControl(control) {
   }
   for (const method of ["authorize", "health", "readiness", "engageKillSwitch", "status"]) {
     if (typeof control[method] !== "function") {
-      fail(
-        "TRUST_PAYMENT_PROVIDER_OPERATIONS_INVALID_CONTROL",
-        `control.${method} must be a function`,
-      );
+      fail("TRUST_PAYMENT_PROVIDER_OPERATIONS_INVALID_CONTROL", `control.${method} must be a function`);
     }
   }
   return control;
 }
 
-function normalizeSink(sink, name) {
-  if (sink == null) {
+function normalizeSink(input, name) {
+  if (input == null) {
     return Object.freeze({ async append() { return true; } });
   }
-  if (typeof sink.append !== "function") {
+  if (typeof input.append !== "function") {
     fail("TRUST_PAYMENT_PROVIDER_OPERATIONS_INVALID_SINK", `${name}.append must be a function`);
   }
-  return sink;
+  return input;
 }
 
-function safeCode(error) {
-  const code = String(error?.code ?? "TRUST_PAYMENT_PROVIDER_UNKNOWN_FAILURE").trim();
-  return code || "TRUST_PAYMENT_PROVIDER_UNKNOWN_FAILURE";
+function errorCode(error) {
+  return String(error?.code ?? "TRUST_PAYMENT_PROVIDER_UNKNOWN_FAILURE").trim()
+    || "TRUST_PAYMENT_PROVIDER_UNKNOWN_FAILURE";
 }
 
 function isProviderFailure(error) {
-  const code = safeCode(error);
-  if (NON_PROVIDER_FAILURE_CODES.has(code)) return false;
-  if (code === "TRUST_PAYMENT_PROVIDER_TIMEOUT") return true;
-  if (error?.retryable === true) return true;
-  if (code === "TRUST_PAYMENT_PROVIDER_INVALID_RESPONSE") return true;
-  return code.startsWith("TRUST_PAYMENT_PROVIDER_UPSTREAM_");
+  const code = errorCode(error);
+  if (LOCAL_ERROR_CODES.has(code)) return false;
+  return (
+    code === "TRUST_PAYMENT_PROVIDER_TIMEOUT"
+    || code === "TRUST_PAYMENT_PROVIDER_INVALID_RESPONSE"
+    || error?.retryable === true
+    || code.startsWith("TRUST_PAYMENT_PROVIDER_UPSTREAM_")
+  );
 }
 
 export function createBiometricPaymentProviderOperations({
@@ -100,8 +98,8 @@ export function createBiometricPaymentProviderOperations({
   nowMs = () => Date.now(),
 } = {}) {
   const control = requireControl(controlInput);
-  const telemetrySink = normalizeSink(telemetryInput, "telemetrySink");
-  const incidentSink = normalizeSink(incidentInput, "incidentSink");
+  const telemetry = normalizeSink(telemetryInput, "telemetrySink");
+  const incidents = normalizeSink(incidentInput, "incidentSink");
   const policy = normalizePolicy(policyInput);
 
   let circuitState = "closed";
@@ -136,7 +134,7 @@ export function createBiometricPaymentProviderOperations({
     return value;
   }
 
-  async function emit(type, fields = {}) {
+  async function emit(target, type, fields = {}) {
     const event = Object.freeze({
       type,
       version: "1.0.0",
@@ -146,21 +144,7 @@ export function createBiometricPaymentProviderOperations({
       ...fields,
       sensitiveContentIncluded: false,
     });
-    await telemetrySink.append(event);
-    return event;
-  }
-
-  async function incident(type, fields = {}) {
-    const event = Object.freeze({
-      type,
-      version: "1.0.0",
-      provider: control.providerName ?? "unknown",
-      mode: control.providerMode ?? "unknown",
-      circuitState,
-      ...fields,
-      sensitiveContentIncluded: false,
-    });
-    await incidentSink.append(event);
+    await target.append(event);
     return event;
   }
 
@@ -169,15 +153,16 @@ export function createBiometricPaymentProviderOperations({
     lastTransitionAt = at;
   }
 
-  async function openCircuit(error, at, correlationId, operation) {
+  async function openCircuit(error, correlationId, operation) {
+    const at = now();
     transition("open", at);
     openedUntil = at + policy.cooldownMs;
     halfOpenProbeInFlight = false;
     openCount += 1;
     counters.circuitOpened += 1;
-    lastErrorCode = safeCode(error);
+    lastErrorCode = errorCode(error);
 
-    await incident("trust.payment.provider.circuit_opened", {
+    await emit(incidents, "trust.payment.provider.circuit_opened", {
       correlationId,
       operation,
       errorCode: lastErrorCode,
@@ -189,7 +174,7 @@ export function createBiometricPaymentProviderOperations({
     if (openCount >= policy.autoKillSwitchAfterOpenCount) {
       control.engageKillSwitch("incident.provider_repeated_failure");
       counters.killSwitchEngaged += 1;
-      await incident("trust.payment.provider.kill_switch_engaged", {
+      await emit(incidents, "trust.payment.provider.kill_switch_engaged", {
         correlationId,
         operation,
         reason: "incident.provider_repeated_failure",
@@ -205,49 +190,43 @@ export function createBiometricPaymentProviderOperations({
     if (circuitState === "open") {
       if (at < openedUntil) {
         counters[blockedCounter] += 1;
-        await emit(`trust.payment.provider.${operation}_blocked`, {
+        await emit(telemetry, `trust.payment.provider.${operation}_blocked`, {
           correlationId,
           reason: "circuit_open",
           openedUntil,
         });
         fail("TRUST_PAYMENT_PROVIDER_CIRCUIT_OPEN", "payment provider circuit is open");
       }
-
       transition("half_open", at);
       counters.halfOpenTransitions += 1;
       halfOpenProbeInFlight = false;
-      await emit("trust.payment.provider.circuit_half_open", {
+      await emit(telemetry, "trust.payment.provider.circuit_half_open", {
         correlationId,
         operation,
         openCount,
       });
     }
 
-    if (circuitState === "half_open") {
+    const wasHalfOpen = circuitState === "half_open";
+    if (wasHalfOpen) {
       if (halfOpenProbeInFlight) {
         counters[blockedCounter] += 1;
-        await emit(`trust.payment.provider.${operation}_blocked`, {
+        await emit(telemetry, `trust.payment.provider.${operation}_blocked`, {
           correlationId,
           reason: "half_open_probe_in_flight",
         });
-        fail(
-          "TRUST_PAYMENT_PROVIDER_CIRCUIT_HALF_OPEN_BUSY",
-          "payment provider half-open probe is already in flight",
-        );
+        fail("TRUST_PAYMENT_PROVIDER_CIRCUIT_HALF_OPEN_BUSY", "half-open probe already in flight");
       }
       halfOpenProbeInFlight = true;
     }
 
-    return Object.freeze({
-      startedAt: at,
-      wasHalfOpen: circuitState === "half_open",
-    });
+    return Object.freeze({ startedAt: at, wasHalfOpen });
   }
 
   async function execute(operation, request, invoke) {
     const correlationId = required(request?.correlationId, "request.correlationId");
     const totalCounter = operation === "reconcile" ? "reconcileTotal" : "authorizeTotal";
-    const successCounter = operation === "reconcile" ? "reconcileSucceeded" : "authorizeSucceeded";
+    const succeededCounter = operation === "reconcile" ? "reconcileSucceeded" : "authorizeSucceeded";
     const failedCounter = operation === "reconcile" ? "reconcileFailed" : "authorizeFailed";
     counters[totalCounter] += 1;
 
@@ -255,7 +234,7 @@ export function createBiometricPaymentProviderOperations({
       counters[failedCounter] += 1;
       const error = new Error("payment provider reconciliation is unavailable");
       error.code = "TRUST_PAYMENT_PROVIDER_RECONCILIATION_UNAVAILABLE";
-      await emit("trust.payment.provider.reconcile_failed", {
+      await emit(telemetry, "trust.payment.provider.reconcile_failed", {
         correlationId,
         errorCode: error.code,
         providerFailure: false,
@@ -269,7 +248,7 @@ export function createBiometricPaymentProviderOperations({
 
     try {
       const result = await invoke();
-      counters[successCounter] += 1;
+      counters[succeededCounter] += 1;
       consecutiveFailures = 0;
       lastErrorCode = null;
 
@@ -277,29 +256,28 @@ export function createBiometricPaymentProviderOperations({
         transition("closed", now());
         openedUntil = null;
         halfOpenProbeInFlight = false;
-        await emit("trust.payment.provider.circuit_closed", {
+        await emit(telemetry, "trust.payment.provider.circuit_closed", {
           correlationId,
           operation,
           openCount,
         });
       }
 
-      await emit(`trust.payment.provider.${operation}_succeeed`, {
+      await emit(telemetry, `trust.payment.provider.${operation}_succeeded`, {
         correlationId,
         outcome: String(result?.status ?? "unknown"),
         durationMs: Math.max(0, now() - startedAt),
       });
-
       return result;
     } catch (error) {
       counters[failedCounter] += 1;
-      lastErrorCode = safeCode(error);
+      lastErrorCode = errorCode(error);
       if (wasHalfOpen) halfOpenProbeInFlight = false;
 
       const providerFailure = isProviderFailure(error);
       if (providerFailure) consecutiveFailures += 1;
 
-      await emit(`trust.payment.provider.${operation}_failed`, {
+      await emit(telemetry, `trust.payment.provider.${operation}_failed`, {
         correlationId,
         errorCode: lastErrorCode,
         providerFailure,
@@ -311,9 +289,8 @@ export function createBiometricPaymentProviderOperations({
         providerFailure
         && (wasHalfOpen || consecutiveFailures >= policy.failureThreshold)
       ) {
-        await openCircuit(error, now(), correlationId, operation);
+        await openCircuit(error, correlationId, operation);
       }
-
       throw error;
     }
   }
@@ -329,7 +306,7 @@ export function createBiometricPaymentProviderOperations({
   async function health() {
     counters.healthChecks += 1;
     const result = await control.health();
-    await emit("trust.payment.provider.health_checked", {
+    await emit(telemetry, "trust.payment.provider.health_checked", {
       outcome: String(result?.status ?? "unknown"),
     });
     return result;
@@ -338,7 +315,7 @@ export function createBiometricPaymentProviderOperations({
   async function readiness() {
     counters.readinessChecks += 1;
     const result = await control.readiness();
-    await emit("trust.payment.provider.readiness_checked", {
+    await emit(telemetry, "trust.payment.provider.readiness_checked", {
       outcome: result?.ready === true ? "ready" : "not_ready",
       reason: result?.reason ? String(result.reason) : null,
     });
@@ -374,13 +351,12 @@ export function createBiometricPaymentProviderOperations({
 
   async function resetCircuit(reason = "manual") {
     const normalizedReason = required(reason, "reason");
-    const at = now();
-    transition("closed", at);
+    transition("closed", now());
     consecutiveFailures = 0;
     openedUntil = null;
     halfOpenProbeInFlight = false;
     lastErrorCode = null;
-    await incident("trust.payment.provider.circuit_reset", {
+    await emit(incidents, "trust.payment.provider.circuit_reset", {
       reason: normalizedReason,
       openCount,
     });
