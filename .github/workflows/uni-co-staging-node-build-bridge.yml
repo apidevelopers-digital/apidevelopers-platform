@@ -54,7 +54,13 @@ jobs:
           SELECTED_PORT=""
           for port in 65002 22; do
             if nc -z -w 3 "$SSH_HOST" "$port" >/dev/null 2>&1; then
-              if ssh -i "$SSH_KEY" -p "$port"                 -o BatchMode=yes                 -o ConnectTimeout=5                 -o StrictHostKeyChecking=yes                 -o UserKnownHostsFile="$SSH_KNOWN_HOSTS"                 "$SSH_USER@$SSH_HOST"                 "test -f '$STAGING_ROOT/uni-co-runtime-$SOURCE_SHA.zip' && printf ready" 2>/dev/null | grep -qx ready; then
+              if ssh -i "$SSH_KEY" -p "$port" \
+                -o BatchMode=yes \
+                -o ConnectTimeout=5 \
+                -o StrictHostKeyChecking=yes \
+                -o UserKnownHostsFile="$SSH_KNOWN_HOSTS" \
+                "$SSH_USER@$SSH_HOST" \
+                "test -f '$STAGING_ROOT/uni-co-runtime-$SOURCE_SHA.zip' && printf ready" 2>/dev/null | grep -qx ready; then
                 SELECTED_PORT="$port"
                 break
               fi
@@ -83,22 +89,30 @@ jobs:
         shell: bash
         run: |
           set -Eeuo pipefail
-          RESPONSE="$RUNNER_TEMP/hostinger-node-build-response.json"
-          API_URL="https://developers.hostinger.com/api/hosting/v1/accounts/${HOSTINGER_USERNAME}/websites/${HOSTINGER_DOMAIN}/nodejs/builds/from-archive"
-          HTTP_CODE="$(
-            curl --silent --show-error               --output "$RESPONSE"               --write-out '%{http_code}'               --request POST "$API_URL"               --header "Authorization: Bearer $HOSTINGER_API_TOKEN"               --header "Accept: application/json"               --form "archive=@${ARCHIVE_PATH};type=application/zip"               --form "node_version=22"               --form "app_type=express"               --form "entry_file=server.js"               --form "package_manager=npm"
-          )"
-          if [[ ! "$HTTP_CODE" =~ ^2 ]]; then
-            echo "Hostinger Node build request failed with HTTP_$HTTP_CODE" >&2
-            exit 1
-          fi
-          node --input-type=module - "$RESPONSE" <<'NODE'
-          import fs from "node:fs";
-          const file = process.argv[2];
-          const payload = JSON.parse(fs.readFileSync(file, "utf8"));
-          const uuid = payload?.uuid ?? payload?.data?.uuid ?? null;
-          const state = payload?.state ?? payload?.data?.state ?? "pending";
-          if (!uuid) throw new Error("hostinger_build_uuid_missing");
-          fs.appendFileSync(process.env.GITHUB_STEP_SUMMARY, `hostinger_build_created=true\nbuild_uuid=${uuid}\ninitial_state=${state}\nproduction_touched=false\n`);
-          console.log(`Hostinger staging build created: ${uuid} (${state})`);
+          node --input-type=module <<'NODE'
+          import { createNodeBuildFromArchive, sanitizeEvidence } from "./apps/site-factory/src/hostinger-node-build-api-only.mjs";
+
+          try {
+            const result = await createNodeBuildFromArchive({
+              token: process.env.HOSTINGER_API_TOKEN,j              username: process.env.HOSTINGER_USERNAME,
+              domain: process.env.HOSTINGER_DOMAIN,
+              archivePath: process.env.ARCHIVE_PATH,
+              transport: "multipart",
+              nodeVersion: 22,
+              appType: "express",
+              entryFile: "server.js",
+              packageManager: "npm",
+            });
+
+            console.log(JSON.stringify({
+              ok: true,
+              uuid: result.uuid,
+              state: result.state,
+              responseStatus: result.response?.status ?? null,
+            }));
+          } catch (error) {
+            const evidence = sanitizeEvidence(error?.evidence ?? { message: error?.message ?? String(error) }, process.env.HOSTINGER_API_TOKEN);
+            console.error(JSON.stringify({ ok: false, evidence }));
+            process.exit(1);
+          }
           NODE
