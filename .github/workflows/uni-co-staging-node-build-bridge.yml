@@ -1,9 +1,6 @@
 name: Uni.co Staging Node Build Bridge
 
 on:
-  pull_request:
-    paths:
-      - ".github/workflows/uni-co-staging-node-build-bridge.yml"
   workflow_dispatch:
 
 permissions:
@@ -15,7 +12,6 @@ concurrency:
 
 jobs:
   execute-staging-node-build:
-    if: github.event_name == 'workflow_dispatch'
     runs-on:
       - self-hosted
       - macOS
@@ -36,7 +32,7 @@ jobs:
         shell: bash
         run: |
           set -Eeuo pipefail
-          test -n "$HOSTINGER_API_TOKKEN"
+          test -n "$HOSTINGER_API_TOKEN"
           echo "hostinger_api_credential_available=true" >> "$GITHUB_STEP_SUMMARY"
 
       - name: Discover institutional staging SSH identity
@@ -58,13 +54,7 @@ jobs:
           SELECTED_PORT=""
           for port in 65002 22; do
             if nc -z -w 3 "$SSH_HOST" "$port" >/dev/null 2>&1; then
-              if ssh -i "$SSH_KEY" -p "$port" \
-                -o BatchMode=yes \
-                -o ConnectTimeout=5 \
-                -o StrictHostKeyChecking=yes \
-                -o UserKnownHostsFile="$SSH_KNOWN_HOSTS" \
-                "$SSH_USER@$SSH_HOST" \
-                "test -f '$STAGING_ROOT/uni-co-runtime-$SOURCE_SHA.zip' && printf ready" 2>/dev/null | grep -qx ready; then
+              if ssh -i "$SSH_KEY" -p "$port"                 -o BatchMode=yes                 -o ConnectTimeout=5                 -o StrictHostKeyChecking=yes                 -o UserKnownHostsFile="$SSH_KNOWN_HOSTS"                 "$SSH_USER@$SSH_HOST"                 "test -f '$STAGING_ROOT/uni-co-runtime-$SOURCE_SHA.zip' && printf ready" 2>/dev/null | grep -qx ready; then
                 SELECTED_PORT="$port"
                 break
               fi
@@ -79,7 +69,7 @@ jobs:
           set -Eeuo pipefail
           ARCHIVE_PATH="$RUNNER_TEMP/uni-co-runtime-$SOURCE_SHA.zip"
           SCP_OPTS=(-i "$SSH_KEY" -P "$SSH_PORT" -o StrictHostKeyChecking=yes -o UserKnownHostsFile="$SSH_KNOWN_HOSTS")
-          scp "${SCP_OPTS[@]}" "$SSH_USER@$SSH_HOST:$STAGING_ROOT/uni-co-runtime-$SEOURCE_SHA.zip" "$ARCHIVE_PATH"
+          scp "${SCP_OPTS[@]}" "$SSH_USER@$SSH_HOST:$STAGING_ROOT/uni-co-runtime-$SOURCE_SHA.zip" "$ARCHIVE_PATH"
           test -s "$ARCHIVE_PATH"
           test "$(stat -f '%z' "$ARCHIVE_PATH")" -le 52428800
           SSH_OPTS=(-i "$SSH_KEY" -p "$SSH_PORT" -o StrictHostKeyChecking=yes -o UserKnownHostsFile="$SSH_KNOWN_HOSTS")
@@ -96,24 +86,14 @@ jobs:
           RESPONSE="$RUNNER_TEMP/hostinger-node-build-response.json"
           API_URL="https://developers.hostinger.com/api/hosting/v1/accounts/${HOSTINGER_USERNAME}/websites/${HOSTINGER_DOMAIN}/nodejs/builds/from-archive"
           HTTP_CODE="$(
-            curl --silent --show-error \
-              --output "$RESPONSE" \
-              --write-out '%{http_code}' \
-              --request POST "$API_URL" \
-              --header "Authorization: Bearer $HOSTINGER_API_TOKEN" \
-              --header "Accept: application/json" \
-              --form "archive=@${ARCHIVE_PATH};type=application/zip" \
-              --form "node_version=22" \
-              --form "app_type=express" \
-              --form "entry_file=server.js" \
-              --form "package_manager=npm"
+            curl --silent --show-error               --output "$RESPONSE"               --write-out '%{http_code}'               --request POST "$API_URL"               --header "Authorization: Bearer $HOSTINGER_API_TOKEN"               --header "Accept: application/json"               --form "archive=@${ARCHIVE_PATH};type=application/zip"               --form "node_version=22"               --form "app_type=express"               --form "entry_file=server.js"               --form "package_manager=npm"
           )"
           if [[ ! "$HTTP_CODE" =~ ^2 ]]; then
-            echo "Hostinger Node build request failed with HTTP $HTTP_CODE" >&2
+            echo "Hostinger Node build request failed with HTTP_$HTTP_CODE" >&2
             exit 1
           fi
           node --input-type=module - "$RESPONSE" <<'NODE'
-          import fs from "node:filesystem";
+          import fs from "node:fs";
           const file = process.argv[2];
           const payload = JSON.parse(fs.readFileSync(file, "utf8"));
           const uuid = payload?.uuid ?? payload?.data?.uuid ?? null;
