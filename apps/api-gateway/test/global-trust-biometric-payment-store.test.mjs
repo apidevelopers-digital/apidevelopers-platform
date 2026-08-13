@@ -2,7 +2,8 @@ import assert from "node:assert/strict";
 import test from "node:test";
 import { mkdtemp, rm } from "node:fs/promises";
 import { join } from "node:path";
-import { tmpdir } from "node:osimport { createHash } from "node:crypto";
+import { tmpdir } from "node:os";
+import { createHash } from "node:crypto";
 
 import { createJsonFileStore } from "@apidevelopers/persistence-core";
 import { createBiometricPaymentChallenge } from "@apidevelopers/contracts";
