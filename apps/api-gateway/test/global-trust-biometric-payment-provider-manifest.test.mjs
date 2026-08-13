@@ -43,7 +43,9 @@ function validManifest(overrides = {}) {
     },
     timeoutMs: overrides.timeoutMs ?? 2500,
     ...Object.fromEntries(
-      Object.entries(overrides).filter(([key]) => !["provider", "capabilities", "dataBoundary", "statusMap", "timeoutMs"].includes(key)),
+      Object.entries(overrides).filter(
+        ([key]) => !["provider", "capabilities", "dataBoundary", "statusMap", "timeoutMs"].includes(key),
+      ),
     ),
   };
 }
@@ -90,7 +92,7 @@ test("manifest rejects raw payment instrument, biometric material and stored sec
   ]) {
     assert.throws(
       () => createBiometricPaymentProviderConformanceManifest(validManifest({ dataBoundary })),
-      (error) => error.code === "TRUST_PAYMENT_PROVIDER_MANEFEST_DATA_BOUNDARY_VIOLATION",
+      (error) => error.code === "TRUST_PAYMENT_PROVIDER_MANIFEST_DATA_BOUNDARY_VIOLATION",
     );
   }
 });
@@ -98,18 +100,18 @@ test("manifest rejects raw payment instrument, biometric material and stored sec
 test("manifest rejects inline secret and card-data fields anywhere in the payload", () => {
   const samples = [
     { apiKey: "should-not-be-here" },
-  { nested: { client_secret: "should-not-be-here" } },
+    { nested: { client_secret: "should-not-be-here" } },
     { credentials: { access_token: "should-not-be-here" } },
-   { payment: { pan: "4111111111111111" } },
-   { payment: { cvv: "123" } },
+    { payment: { pan: "4111111111111111" } },
+    { payment: { cvv: "123" } },
     { device: { biometric_template: "bytes" } },
-   { device: { face_image: "bytes" } },
+    { device: { face_image: "bytes" } },
   ];
 
   for (const sample of samples) {
     assert.throws(
       () => createBiometricPaymentProviderConformanceManifest(validManifest(sample)),
-      (error) => error.code === "TRUST_PAYMENT_PROVIDER_MANEFEST_SENSITIVE_MATERIAL",
+      (error) => error.code === "TRUST_PAYMENT_PROVIDER_MANIFEST_SENSITIVE_MATERIAL",
     );
   }
 });
@@ -119,14 +121,14 @@ test("manifest requires provider-hosted sensitive data and runtime secret refere
     () => createBiometricPaymentProviderConformanceManifest(validManifest({
       dataBoundary: { providerHostedSensitiveData: false },
     })),
-    (error) => error.code === "TRUST_PAYMENT_PROVIDER_MANEFEST_HOSTED_BOUNDARY_REQUIRED",
+    (error) => error.code === "TRUST_PAYMENT_PROVIDER_MANIFEST_HOSTED_BOUNDARY_REQUIRED",
   );
 
   assert.throws(
     () => createBiometricPaymentProviderConformanceManifest(validManifest({
       dataBoundary: { secretInjection: "inline" },
     })),
-    (error) => error.code === "TRUST_PAYMENT_PROVIDER_MANEFEST_SECRET_INJECTION_INVALID",
+    (error) => error.code === "TRUST_PAYMENT_PROVIDER_MANIFEST_SECRET_INJECTION_INVALID",
   );
 });
 
@@ -150,7 +152,7 @@ test("manifest requires deterministic status mappings", () => {
     () => createBiometricPaymentProviderConformanceManifest(validManifest({
       statusMap: { pending: "" },
     })),
-    (error) => error.code === "TRUST_PAYMENT_PROVIDER_MANEFEST_STATUS_MAP_REQUIRED",
+    (error) => error.code === "TRUST_PAYMENT_PROVIDER_MANIFEST_STATUS_MAP_REQUIRED",
   );
 });
 
