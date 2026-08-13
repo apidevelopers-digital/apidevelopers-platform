@@ -1,106 +1,151 @@
-# Global Trust — Biometric Payment Authorization v1
+# Global Trust — Biometric Payment Authorization v2
 
-**Status:** implementação candidata / contrato-first  
-**Contrato:** `1.0.0`  
-**Escopo:** autorização de pagamento com verificação local do usuário  
-**Execução financeira real:** não incluída nesta entrega
+**Status:** candidate implementation / contract + verification runtime  
+**Contract version:** `1.0.0`  
+**Financial execution:** disabled by default (`dry-run`)  
+**Scope:** transaction-bound authorization using passkeys with local user verification
 
-## Objetivo
+## 1. Boundary
 
-Estender o Global Trust para autorizar pagamentos com uma credencial criptográfica liberada por verificação local no dispositivo. A experiência pode usar Face ID/rosto, íris, palma, impressão digital ou PIN do dispositivo conforme o autenticador disponível.
+Global Trust does not capture, receive, infer, or persist a face image, iris scan, palm image/template, fingerprint template, or authenticator private key.
 
-A API Developers.digital **não recebe nem armazena imagem biométrica, template biométrico ou segredo do autenticador**. O runtime recebe somente o resultado verificável da cerimônia criptográfica e os identificadores/digests necessários para auditoria.
+Face, iris, palm, fingerprint, device PIN, or another local factor may unlock a platform authenticator. The server authorizes from a cryptographic passkey/WebAuthn assertion and transaction evidence, not from biometric material.
 
-## Base canônica
+`localVerificationMethodHint` is non-authoritative UX metadata only. Policy must never treat `face`, `iris`, `palm`, or another hint as proof that a specific biometric modality was used.
 
-Esta família reutiliza os contratos existentes de Global Trust:
-
-- `IdentitySubject` para o titular;
-- `CredentialMetadata` com `credentialType=passkey`;
-- `AuthenticationContext` para autenticação e nível de garantia;
-- `AuthorizationDecision` para `allow`, `deny` ou `pending_approval`;
-- `RiskAssessment`, `AuditEvent` e `EvidenceRecord` para risco e evidência.
-
-Não substitui nem redefine esses contratos.
-
-## Novos contratos
+## 2. Contracts
 
 ### `BiometricPaymentIntent`
 
-Representa a intenção que o usuário deverá confirmar:
-
-- `paymentIntentId`, `subjectId`, `tenantId`, `payeeId` opacos;
-- `amountMinor` inteiro positivo;
-- `currency` ISO 4217;
-- `purposeCode` explícito;
-- janela curta de validade;
-- `consentRequired=true`;
-- nenhum dado sensível de instrumento de pagamento.
+Binds:
+- opaque payment intent, subject, tenant, and payee identifiers;
+- positive integer `amountMinor`;
+- ISO 4217 currency;
+- explicit `purposeCode`;
+- creation and expiry;
+- explicit consent requirement;
+- no sensitive payment-instrument data.
 
 ### `BiometricPaymentChallenge`
 
-Representa o desafio de autenticação de uso único:
-
-- `ceremony`: `webauthn` ou `secure_payment_confirmation`;
-- `credentialId` de uma passkey;
-- `challengeDigest` SHA-256;
-- `paymentContextDigest` SHA-256;
-- contexto visível de pagamento com recebedor, valor, moeda e finalidade;
+Binds the one-time authentication ceremony to:
+- intent, subject, tenant, credential;
+- random unpadded base64url challenge plus SHA-256 digest;
+- SHA-256 payment-context digest;
+- payee, amount, currency, and purpose;
+- RP ID and exact expected HTTPS origin;
+- optional SPC top origin and payee identity;
+- optional exact displayed SPC amount;
 - `userVerification=required`;
 - `oneTimeUse=true`;
-- sem biometria, template ou material secreto.
+- short validity window;
+- no biometric material, template, or secret material.
+
+For `secure_payment_confirmation`, top origin, exact displayed amount, and a payee name or origin are mandatory.
 
 ### `BiometricPaymentProof`
 
-Representa somente o resultado já verificado da cerimônia:
-
-- referência à intenção, desafio, autenticação e credencial;
-- digest da assertion e do contexto do pagamento;
+Contains only verified evidence references:
+- proof, challenge, intent, authentication, subject, tenant, and credential IDs;
+- assertion digest;
+- payment-context digest;
 - `userVerified=true`;
 - `verificationClass=local_user_verification`;
-- `replayCheckPassed=true`;
-- sem biometria, template ou material secreto.
+- non-authoritative local method hint;
+- anti-replay result;
+- verification time;
+- no biometric material, template, or secret material.
 
-`localVerificationMethodHint` aceita `face`, `iris`, `palm`, `fingerprint`, `device_pin`, `other` e `unknown`, mas é **sempre não autoritativo** (`methodHintAuthoritative=false`). A política de autorização não pode depender de o servidor “saber” qual biometria foi usada.
+## 3. Verification runtime
 
-## Invariantes de segurança
+`apps/api-gateway/src/global-trust-biometric-payment-verifier.mjs` verifies the actual assertion boundary.
 
-1. Biometria permanece no autenticador/dispositivo.
-2. O Trust recebe prova criptográfica e o sinal de user verification, não a biometria.
-3. Pagamento exige autenticação por `passkey` em `aal2` ou `aal3`.
-4. `userVerification` é obrigatório.
-5. O desafio é de uso único e possui expiração.
-6. Intenção, desafio e prova devem manter o mesmo tenant, sujeito, credencial e contexto de pagamento.
-7. Valor, moeda, recebedor e finalidade são vinculados ao contexto confirmado.
-8. Digests são SHA-256 em hexadecimal; conteúdo sensível não entra em auditoria/evidência.
-9. O método local (`face`, `iris`, `palm` etc.) é apenas dica de UX e nunca evidência autoritativa.
-10. Qualquer execução financeira permanece fora deste contrato e requer adaptador/PSP explícito, política de risco e evidência própria.
+It validates:
+1. active passkey credential scoped to the same subject and tenant;
+2. AAL2 or AAL3;
+3. ES256 or RS256 public-key verification;
+4. exact one-time challenge and challenge digest;
+5. exact client-data type (`webauthn.get` or `payment.get`);
+6. exact expected origin;
+7. RP ID hash from authenticator data;
+8. user-presence and user-verification flags;
+9. cryptographic signature over authenticator data and client-data hash;
+10. authenticator sign counter when available;
+11. for SPC, payment RP, top origin, payee, currency, and displayed amount;
+12. assertion digest for downstream evidence.
 
-## Fluxo alvo
+## 4. Replay and decision policy
 
-1. Criar `BiometricPaymentIntent`.
-2. Avaliar risco e política.
-3. Criar `BiometricPaymentChallenge` com `userVerification=required`.
-4. O dispositivo executa WebAuthn/SPC e faz a verificação local disponível.
-5. O servidor verifica a assertion, anti-replay e a vinculação dos dados da transação.
-6. Criar `BiometricPaymentProof` sem material biométrico.
-7. Validar `assertBiometricPaymentCeremony(...)` contra `AuthenticationContext`.
-8. Emitir `AuthorizationDecision` e evidência.
-9. Somente uma camada financeira aprovada pode executar a cobrança/pagamento.
+The runtime consumes a challenge only once after cryptographic verification. An in-memory implementation exists for deterministic tests and dry-run development.
 
-## Referências técnicas
+External financial execution is fail-closed unless both conditions are satisfied:
+- `externalExecutionApproved=true`; and
+- the challenge store declares `durability="durable"`.
 
-O desenho segue o modelo de WebAuthn em que user verification ocorre no autenticador e a biometria não é revelada ao Relying Party. Para pagamentos na Web, Secure Payment Confirmation permite evidência criptográfica de que detalhes da transação foram confirmados.
+Risk decisions are separated from cryptographic verification:
+- critical risk → `deny`;
+- high risk → `pending_approval`;
+- amount/currency policy may require human approval;
+- configured high-value transactions may require SPC.
 
-No Brasil, biometria vinculada a uma pessoa natural deve ser tratada como dado pessoal sensível; por isso esta arquitetura evita deliberadamente coletar ou persistir biometria na API.
+## 5. Evidence and audit
 
-## Limites desta entrega
+After a valid assertion, the runtime creates:
+- `AuthenticationContext`;
+- `BiometricPaymentProof`;
+- `RiskAssessment`;
+- `AuthorizationDecision`;
+- `AuditEvent`;
+- `EvidenceRecord`;
+- credential sign-count update request.
 
-- não captura rosto, íris, palma ou impressão digital;
-- não faz reconhecimento biométrico remoto;
-- não armazena template biométrico;
-- não armazena private key/passkey secret;
-- não movimenta dinheiro;
-- não integra adquirente, banco, wallet ou PSP;
-- não faz deploy;
-- não declara conformidade regulatória ou certificação.
+Audit/evidence contain identifiers and digests, not raw assertion secrets or biometric data.
+
+## 6. Financial adapter boundary
+
+The default adapter is a null `dry-run` adapter:
+- provider contact disabled;
+- deterministic simulated reference;
+- `financialExecutionOccurred=false`.
+
+A real bank, wallet, acquirer, PSP, or payment rail adapter is outside this milestone and must be introduced explicitly with its own contract, idempotency, durable anti-replay state, observability, rollback/compensation behavior, sandbox evidence, and explicit operational approval.
+
+## 7. Verification coverage
+
+Dedicated CI runs on the institutional self-hosted macOS X64 runner and covers:
+- contract invariants;
+- real ES256 assertion signing and verification;
+- Face/iris/palm as non-authoritative local hints;
+- challenge replay rejection;
+- tampered displayed amount rejection;
+- RP/origin/transaction binding;
+- risk policy;
+- SPC threshold policy;
+- fail-closed external adapter behavior;
+- no financial execution in dry-run.
+
+## 8. What this milestone does not claim
+
+This implementation does **not** claim:
+- remote biometric recognition;
+- storage of biometric templates;
+- Apple Face ID API access from the server;
+- iris or palm vendor certification;
+- PCI, EMV, FIDO, banking, LGPD, or other regulatory certification;
+- production PSP/acquirer integration;
+- production deployment;
+- real-money execution.
+
+## 9. Remaining production gates
+
+Before real-money production readiness:
+1. choose and contract the financial provider/rail;
+2. implement a provider adapter and idempotent execution contract;
+3. replace ephemeral replay state with a durable transactional store;
+4. validate real device/browser/authenticator compatibility;
+5. validate provider sandbox and end-to-end settlement/authorization behavior;
+6. complete privacy, threat-model, security, and regulatory reviews;
+7. add production observability, incident controls, and rollback/compensation evidence;
+8. obtain explicit approval for deploy and real financial execution.
+
+Until those gates are evidenced, the canonical runtime remains safe `dry-run`.
