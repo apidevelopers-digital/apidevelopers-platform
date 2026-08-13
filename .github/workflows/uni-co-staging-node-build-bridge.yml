@@ -33,9 +33,8 @@ jobs:
         run: |
           set -Eeuo pipefail
           test -n "$HOSTINGER_API_TOKEN"
-          echo "hostinger_api_credential_available=true" >> "$GITHUB_STEP_SUMMARY"
 
-      - name: Discover institutional staging SSH identity
+      - name: Discover institutional staging SSH#identity
         shell: bash
         run: |
           set -Eeuo pipefail
@@ -83,9 +82,9 @@ jobs:
           LOCAL_SHA="$(shasum -a 256 "$ARCHIVE_PATH" | awk '{print $1}')"
           test "$REMOTE_SHA" = "$LOCAL_SHA"
           echo "ARCHIVE_PATH=$ARCHIVE_PATH" >> "$GITHUB_ENV"
-          echo "archive_transport_verified=true" >> "$GITHUB_STEP_SUMMARY"
 
-      - name: Create Hostinger Node build from archive
+      - name: Attempt Hostinger Node build from archive
+        id: hostinger_build
         shell: bash
         run: |
           set -Eeuo pipefail
@@ -93,9 +92,11 @@ jobs:
           import fs from "node:fs";
           import { createNodeBuildFromArchive, sanitizeEvidence } from "./apps/site-factory/src/hostinger-node-build-api-only.mjs";
 
+          const out = process.env.GITHUB_OUTPUT;
           try {
             const result = await createNodeBuildFromArchive({
-              token: process.env.HOSTINGER_API_TOKEN,j              username: process.env.HOSTINGER_USERNAME,
+              token: process.env.HOSTINGER_API_TOKEN,
+              username: process.env.HOSTINGER_USERNAME,
               domain: process.env.HOSTINGER_DOMAIN,
               archivePath: process.env.ARCHIVE_PATH,
               transport: "multipart",
@@ -104,23 +105,49 @@ jobs:
               entryFile: "server.js",
               packageManager: "npm",
             });
-
-            const safe = {
-              ok: true,
-              uuid: result.uuid,
-              state: result.state,
-              responseStatus: result.response?.status ?? null,
-            };
-            fs.appendFileSync(process.env.GITHUB_STEP_SUMMARY, "```json\n" + JSON.stringify(safe, null, 2) + "\n```\n");
-            console.log(JSON.stringify(safe));
+            fs.appendFileSync(out, `ok=true\nstatus=${result.response?.status ?? 0}\nuuid=${result.uuid}\nstate=${result.state}\n`);
           } catch (error) {
-            const evidence = sanitizeEvidence(
-              error?.evidence ?? { message: error?.message ?? String(error) },
-              process.env.HOSTINGER_API_TOKEN,
-            );
-            const safe = { ok: false, evidence };
-            fs.appendFileSync(process.env.GITHUB_STEP_SUMMARY, "```json\n" + JSON.stringify(safe, null, 2) + "\n```\n");
-            console.error(JSON.stringify(safe));
-            process.exit(1);
+            const evidence = sanitizeEvidence(error?.evidence ?? { message: error?.message ?? String(error) }, process.env.HOSTINGER_API_TOKEN);
+            const status = evidence?.response?.status ?? evidence?.status ?? 0;
+            const payload = evidence?.response?.payload ?? evidence?.payload ?? {};
+            const message = payload?.message ?? error?.message ?? "unknown";
+            const normalized = String(message).replaceAll("\n", " ").slice(0, 180);
+            fs.appendFileSync(out, `ok=false\nstatus=${status}\nmessage=${normalized}\n`);
           }
           NODE
+
+      - name: Hostinger build accepted
+        if: steps.hostinger_build.outputs.ok == 'true'
+        shell: bash
+        run: |
+          echo "hostinger_build_created=true" >> "$GITHUB_STEP_SUMMARY"
+          echo "build_uuid=${{ steps.hostinger_build.outputs.uuid }}" >> "$GITHUB_STEP_SUMMARY"
+          echo "initial_state=${{ steps.hostinger_build.outputs.state }}" >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Diagnostic - Hostinger authentication rejected
+        if: steps.hostinger_build.outputs.ok == 'false' && (steps.hostinger_build.outputs.status == '401' || steps.hostinger_build.outputs.status == '403')
+        run: echo "classified=authentication_or_scope" >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Diagnostic - Hostinger staging website not found
+        if: steps.hostinger_build.outputs.ok == 'false' && steps.hostinger_build.outputs.status == '404'
+        run: echo "classified=staging_website_not_found" >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Diagnostic - Hostinger archive or build payload rejected
+        if: steps.hostinger_build.outputs.ok == 'false' && steps.hostinger_build.outputs.status == '422'
+        run: echo "classified=archive_or_build_payload_rejected" >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Diagnostic - Hostinger rate limited
+        if: steps.hostinger_build.outputs.ok == 'false' && steps.hostinger_build.outputs.status == '429'
+        run: echo "classified=rate_limited" >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Diagnostic - Hostinger server error
+        if: steps.hostinger_build.outputs.ok == 'false' && startsWith(steps.hostinger_build.outputs.status, '5')
+        run: echo "classified=hostinger_server_error" >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Fail if Hostinger build was not accepted
+        if: steps.hostinger_build.outputs.ok != 'true'
+        shell: bash
+        run: |
+          echo "hostinger_status=${{ steps.hostinger_build.outputs.status }}" >> "$GITHUB_STEP_SUMMARY"
+
+          exit 1
