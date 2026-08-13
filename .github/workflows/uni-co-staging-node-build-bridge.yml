@@ -1,0 +1,124 @@
+name: Uni.co Staging Node Build Bridge
+
+on:
+  pull_request:
+    paths:
+      - ".github/workflows/uni-co-staging-node-build-bridge.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: uni-co-staging-node-build-bridge
+  cancel-in-progress: false
+
+jobs:
+  execute-staging-node-build:
+    if: github.event_name == 'workflow_dispatch'
+    runs-on:
+      - self-hosted
+      - macOS
+      - X64
+    timeout-minutes: 20
+    env:
+      SSH_USER: u242521810
+      SSH_HOST: 147.79.84.117
+      STAGING_ROOT: /home/u242521810/domains/sitedauni.com/public_html/apps/uni-co-staging
+      SOURCE_SHA: 81f94c57dbc3445dae65e3c6a76d4d11329e3f6c
+      HOSTINGER_USERNAME: u242521810
+      HOSTINGER_DOMAIN: unico-staging.sitedauni.com
+      HOSTINGER_API_TOKEN: ${{ secrets.HOSTINGER_API_TOKEN }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Confirm institutional Hostinger credential
+        shell: bash
+        run: |
+          set -Eeuo pipefail
+          test -n "$HOSTINGER_API_TOKKEN"
+          echo "hostinger_api_credential_available=true" >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Discover institutional staging SSH identity
+        shell: bash
+        run: |
+          set -Eeuo pipefail
+          SSH_KEY="$(find /Users -maxdepth 8 -type f -path '*/.ssh/uni_janela_staging' -print -quit 2>/dev/null || true)"
+          KNOWN_HOSTS="$(find /Users -maxdepth 8 -type f \( -path '*/.ssh/known_hosts' -o -path '*/.ssh/known_hosts_uni_janela' \) -size +0c -print -quit 2>/dev/null || true)"
+          test -n "$SSH_KEY"
+          test -n "$KNOWN_HOSTS"
+          test "$(stat -f '%Lp' "$SSH_KEY")" = "600"
+          echo "SSH_KEY=$SSH_KEY" >> "$GITHUB_ENV"
+          echo "SSH_KNOWN_HOSTS=$KNOWN_HOSTS" >> "$GITHUB_ENV"
+
+      - name: Resolve authorized SSH transport
+        shell: bash
+        run: |
+          set -Eeuo pipefail
+          SELECTED_PORT=""
+          for port in 65002 22; do
+            if nc -z -w 3 "$SSH_HOST" "$port" >/dev/null 2>&1; then
+              if ssh -i "$SSH_KEY" -p "$port" \
+                -o BatchMode=yes \
+                -o ConnectTimeout=5 \
+                -o StrictHostKeyChecking=yes \
+                -o UserKnownHostsFile="$SSH_KNOWN_HOSTS" \
+                "$SSH_USER@$SSH_HOST" \
+                "test -f '$STAGING_ROOT/uni-co-runtime-$SOURCE_SHA.zip' && printf ready" 2>/dev/null | grep -qx ready; then
+                SELECTED_PORT="$port"
+                break
+              fi
+            fi
+          done
+          test -n "$SELECTED_PORT"
+          echo "SSH_PORT=$SELECTED_PORT" >> "$GITHUB_ENV"
+
+      - name: Download exact sanitized staging archive
+        shell: bash
+        run: |
+          set -Eeuo pipefail
+          ARCHIVE_PATH="$RUNNER_TEMP/uni-co-runtime-$SOURCE_SHA.zip"
+          SCP_OPTS=(-i "$SSH_KEY" -P "$SSH_PORT" -o StrictHostKeyChecking=yes -o UserKnownHostsFile="$SSH_KNOWN_HOSTS")
+          scp "${SCP_OPTS[@]}" "$SSH_USER@$SSH_HOST:$STAGING_ROOT/uni-co-runtime-$SEOURCE_SHA.zip" "$ARCHIVE_PATH"
+          test -s "$ARCHIVE_PATH"
+          test "$(stat -f '%z' "$ARCHIVE_PATH")" -le 52428800
+          SSH_OPTS=(-i "$SSH_KEY" -p "$SSH_PORT" -o StrictHostKeyChecking=yes -o UserKnownHostsFile="$SSH_KNOWN_HOSTS")
+          REMOTE_SHA="$(ssh "${SSH_OPTS[@]}" "$SSH_USER@$SSH_HOST" "sha256sum '$STAGING_ROOT/uni-co-runtime-$SOURCE_SHA.zip' | awk '{print \$1}'")"
+          LOCAL_SHA="$(shasum -a 256 "$ARCHIVE_PATH" | awk '{print $1}')"
+          test "$REMOTE_SHA" = "$LOCAL_SHA"
+          echo "ARCHIVE_PATH=$ARCHIVE_PATH" >> "$GITHUB_ENV"
+          echo "archive_transport_verified=true" >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Create Hostinger Node build from archive
+        shell: bash
+        run: |
+          set -Eeuo pipefail
+          RESPONSE="$RUNNER_TEMP/hostinger-node-build-response.json"
+          API_URL="https://developers.hostinger.com/api/hosting/v1/accounts/${HOSTINGER_USERNAME}/websites/${HOSTINGER_DOMAIN}/nodejs/builds/from-archive"
+          HTTP_CODE="$(
+            curl --silent --show-error \
+              --output "$RESPONSE" \
+              --write-out '%{http_code}' \
+              --request POST "$API_URL" \
+              --header "Authorization: Bearer $HOSTINGER_API_TOKEN" \
+              --header "Accept: application/json" \
+              --form "archive=@${ARCHIVE_PATH};type=application/zip" \
+              --form "node_version=22" \
+              --form "app_type=express" \
+              --form "entry_file=server.js" \
+              --form "package_manager=npm"
+          )"
+          if [[ ! "$HTTP_CODE" =~ ^2 ]]; then
+            echo "Hostinger Node build request failed with HTTP $HTTP_CODE" >&2
+            exit 1
+          fi
+          node --input-type=module - "$RESPONSE" <<'NODE'
+          import fs from "node:filesystem";
+          const file = process.argv[2];
+          const payload = JSON.parse(fs.readFileSync(file, "utf8"));
+          const uuid = payload?.uuid ?? payload?.data?.uuid ?? null;
+          const state = payload?.state ?? payload?.data?.state ?? "pending";
+          if (!uuid) throw new Error("hostinger_build_uuid_missing");
+          fs.appendFileSync(process.env.GITHUB_STEP_SUMMARY, `hostinger_build_created=true\nbuild_uuid=${uuid}\ninitial_state=${state}\nproduction_touched=false\n`);
+          console.log(`Hostinger staging build created: ${uuid} (${state})`);
+          NODE
