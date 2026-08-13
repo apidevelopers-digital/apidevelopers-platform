@@ -109,13 +109,13 @@ test("operational sandbox execution routes provider calls through circuit breake
   );
 
   assert.equal(adapter.operationalStatus().circuit.state, "open");
-  assert.equal(calls(), 2);
+  assert.equal(calls, 2);
 
   await assert.rejects(
     adapter.authorize(request("003")),
     (error) => error.code === "TRUST_PAYMENT_PROVIDER_INDETERMINATE",
-   );
-  assert.equal(calls(), 2);
+  );
+  assert.equal(calls, 2);
 
   clock += 501;
   const recovered = await adapter.authorize(request("004"));
