@@ -9,10 +9,13 @@ on:
       - "packages/contracts/src/global-trust-biometric-payment.mjs"
       - "packages/contracts/test/global-trust-biometric-payment.test.mjs"
       - "packages/contracts/docs/GLOBAL_TRUST_BIOMETRIC_PAYMENT_CONTRACTS.md"
+      - "packages/persistence-core/**"
       - "apps/api-gateway/src/global-trust-biometric-payment-verifier.mjs"
       - "apps/api-gateway/src/global-trust-biometric-payment-policy.mjs"
       - "apps/api-gateway/src/global-trust-biometric-payment-runtime.mjs"
+      - "apps/api-gateway/src/global-trust-biometric-payment-store.mjs"
       - "apps/api-gateway/test/global-trust-biometric-payment-runtime.test.mjs"
+      - "apps/api-gateway/test/global-trust-biometric-payment-store.test.mjs"
       - ".github/workflows/global-trust-biometric-payment-ci.yml"
   pull_request:
     branches:
@@ -21,10 +24,13 @@ on:
       - "packages/contracts/src/global-trust-biometric-payment.mjs"
       - "packages/contracts/test/global-trust-biometric-payment.test.mjs"
       - "packages/contracts/docs/GLOBAL_TRUST_BIOMETRIC_PAYMENT_CONTRACTS.md"
+      - "packages/persistence-core/**"
       - "apps/api-gateway/src/global-trust-biometric-payment-verifier.mjs"
       - "apps/api-gateway/src/global-trust-biometric-payment-policy.mjs"
       - "apps/api-gateway/src/global-trust-biometric-payment-runtime.mjs"
+      - "apps/api-gateway/src/global-trust-biometric-payment-store.mjs"
       - "apps/api-gateway/test/global-trust-biometric-payment-runtime.test.mjs"
+      - "apps/api-gateway/test/global-trust-biometric-payment-store.test.mjs"
       - ".github/workflows/global-trust-biometric-payment-ci.yml"
   workflow_dispatch:
 
@@ -50,12 +56,13 @@ jobs:
         with:
           node-version: "22"
 
-      - name: Bind local contracts package
+      - name: Bind local platform packages
         shell: bash
         run: |
           set -euo pipefail
           mkdir -p apps/api-gateway/node_modules/@apidevelopers
-          ln -s "$GITHUB_WORKSPACE/packages/contracts"             "$GITHUB_WORKSPACE/apps/api-gateway/node_modules/@apidevelopers/contracts"
+          ln -s "$GITHUB_WORKSPACE/packages/contracts"                 "$GITHUB_WORKSPACE/apps/api-gateway/node_modules/@apidevelopers/contracts"
+          ln -s "$GITHUB_WORKSPACE/packages/persistence-core"                 "$GITHUB_WORKSPACE/apps/api-gateway/node_modules/@apidevelopers/persistence-core"
 
       - name: Validate syntax
         shell: bash
@@ -66,7 +73,9 @@ jobs:
           node --check apps/api-gateway/src/global-trust-biometric-payment-verifier.mjs
           node --check apps/api-gateway/src/global-trust-biometric-payment-policy.mjs
           node --check apps/api-gateway/src/global-trust-biometric-payment-runtime.mjs
+          node --check apps/api-gateway/src/global-trust-biometric-payment-store.mjs
           node --check apps/api-gateway/test/global-trust-biometric-payment-runtime.test.mjs
+          node --check apps/api-gateway/test/global-trust-biometric-payment-store.test.mjs
 
       - name: Execute contract tests
         run: node --test packages/contracts/test/global-trust-biometric-payment.test.mjs
@@ -74,3 +83,7 @@ jobs:
       - name: Execute cryptographic runtime tests
         working-directory: apps/api-gateway
         run: node --test test/global-trust-biometric-payment-runtime.test.mjs
+
+      - name: Execute persistent replay-store tests
+        working-directory: apps/api-gateway
+        run: node --test test/global-trust-biometric-payment-store.test.mjs
