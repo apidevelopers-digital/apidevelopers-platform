@@ -40,7 +40,7 @@ function request(id = "reconcile.001") {
     subjectId: "subject.igor",
     tenantId: "tenant.uni",
     payeeId: "payee.merchant.001",
-    amountMinor: 12990,
+    amountMinor: 12_990,
     currency: "BRL",
     purposeCode: "checkout.purchase",
     proofId: `proof.${id}`,
@@ -61,7 +61,6 @@ test("reconciliation failures share the authorization circuit and recover throug
     name: "provider-neutral-reconciliation-sandbox",
     idempotencyGuaranteed: true,
     financialExecutionCapable: false,
-
     async authorize({ idempotencyKey }) {
       authorizeCalls += 1;
       return {
@@ -70,7 +69,6 @@ test("reconciliation failures share the authorization circuit and recover throug
         providerCode: "SANDBOX_PENDING",
       };
     },
-
     async getStatus({ idempotencyKey }) {
       statusCalls += 1;
       if (statusCalls <= 2) {
@@ -105,7 +103,7 @@ test("reconciliation failures share the authorization circuit and recover throug
     now: () => new Date(clock).toISOString(),
     idFactory: (() => {
       let n = 0;
-      return () => `attempt.${++n)`;
+      return () => `attempt.${++n}`;
     })(),
   });
 
@@ -113,14 +111,12 @@ test("reconciliation failures share the authorization circuit and recover throug
   assert.equal(pending.status, "pending");
   assert.equal(authorizeCalls, 1);
 
-  await assert.rejects(
-    adapter.reconcile({ idempotencyKey: "payment.intent.reconcile.001" }),
-    (error) => error.code === "TRUST_PAYMENT_PROVIDER_UPSTREAM_STATUS_UNAVAILABLE",
-  );
-  await assert.rejects(
-    adapter.reconcile({ idempotencyKey: "payment.intent.reconcile.001" }),
-    (error) => error.code === "TRUST_PAYMENT_PROVIDER_UPSTREAM_STATUS_UNAVAILABLE",
-  );
+  for (let i = 0; i < 2; i += 1) {
+    await assert.rejects(
+      adapter.reconcile({ idempotencyKey: "payment.intent.reconcile.001" }),
+      (error) => error.code === "TRUST_PAYMENT_PROVIDER_UPSTREAM_STATUS_UNAVAILABLE",
+    );
+  }
 
   assert.equal(adapter.operationalStatus().circuit.state, "open");
   assert.equal(adapter.operationalStatus().counters.reconcileTotal, 2);
@@ -154,11 +150,9 @@ test("reconciliation failures share the authorization circuit and recover throug
     true,
   );
   assert.equal(
-    telemetry.some(
-      (event) => event.type === "trust.payment.provider.reconcile_blocked",
-    ),
+    telemetry.some((event) => event.type === "trust.payment.provider.reconcile_blocked"),
     true,
-   );
+  );
   assert.equal(
     telemetry.some(
       (event) =>
