@@ -21,7 +21,7 @@ jobs:
       SSH_USER: u242521810
       SSH_HOST: 147.79.84.117
       STAGING_ROOT: /home/u242521810/domains/sitedauni.com/public_html/apps/uni-co-staging
-      SOURCE_SHA: 81f94c57dbc3445dae65e3c6a76d4d11329e3f6c
+      SOURCE_SHA: c316a3171a76a0f4c824e62bc0ee8ae87e10150e
       HOSTINGER_USERNAME: u242521810
       HOSTINGER_DOMAIN: unico-staging.sitedauni.com
       HOSTINGER_API_TOKEN: ${{ secrets.HOSTINGER_API_TOKEN }}
