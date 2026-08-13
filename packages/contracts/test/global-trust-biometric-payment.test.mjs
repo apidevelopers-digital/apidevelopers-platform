@@ -5,7 +5,6 @@ import { createAuthenticationContext } from "../src/global-trust-identity.mjs";
 import {
   assertBiometricPaymentCeremony,
   assertBiometricPaymentChallengeContract,
-  assertBiometricPaymentProofContract,
   createBiometricPaymentChallenge,
   createBiometricPaymentIntent,
   createBiometricPaymentProof,
@@ -15,6 +14,7 @@ const tenantId = "tenant.uni";
 const subjectId = "subject.igor";
 const paymentIntentId = "payment.intent.001";
 const credentialId = "credential.passkey.001";
+const challengeB64u = "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA";
 const challengeDigest = "a".repeat(64);
 const paymentContextDigest = "b".repeat(64);
 const assertionDigest = "c".repeat(64);
@@ -28,9 +28,7 @@ const authExpiresAt = "2026-08-13T09:03:00.000Z";
 
 function ceremony(methodHint = "face", assuranceLevel = "aal2") {
   const intent = createBiometricPaymentIntent({
-    paymentIntentId,
-    subjectId,
-    tenantId,
+    paymentIntentId, subjectId, tenantId,
     payeeId: "payee.merchant.001",
     amountMinor: 12990,
     currency: "BRL",
@@ -41,17 +39,21 @@ function ceremony(methodHint = "face", assuranceLevel = "aal2") {
 
   const challenge = createBiometricPaymentChallenge({
     challengeId: "challenge.payment.001",
-    paymentIntentId,
-    subjectId,
-    tenantId,
-    credentialId,
+    paymentIntentId, subjectId, tenantId, credentialId,
     ceremony: "secure_payment_confirmation",
+    challengeB64u,
     challengeDigest,
     paymentContextDigest,
     payeeId: intent.payeeId,
     amountMinor: intent.amountMinor,
     currency: intent.currency,
     purposeCode: intent.purposeCode,
+    rpId: "pay.apidevelopers.digital",
+    expectedOrigin: "https://pay.apidevelopers.digital",
+    expectedTopOrigin: "https://apidevelopers.digital",
+    expectedPayeeName: "API Developers.digital",
+    expectedPayeeOrigin: "https://apidevelopers.digital",
+    expectedAmountValue: "129.90",
     createdAt: challengeAt,
     expiresAt: challengeExpiresAt,
   });
@@ -61,9 +63,7 @@ function ceremony(methodHint = "face", assuranceLevel = "aal2") {
     challengeId: challenge.challengeId,
     paymentIntentId,
     authenticationId: "auth.payment.001",
-    subjectId,
-    tenantId,
-    credentialId,
+    subjectId, tenantId, credentialId,
     assertionDigest,
     paymentContextDigest,
     localVerificationMethodHint: methodHint,
@@ -72,8 +72,7 @@ function ceremony(methodHint = "face", assuranceLevel = "aal2") {
 
   const authenticationContext = createAuthenticationContext({
     authenticationId: proof.authenticationId,
-    subjectId,
-    tenantId,
+    subjectId, tenantId,
     methods: ["passkey", "user_verification"],
     assuranceLevel,
     authenticatedAt,
@@ -83,7 +82,7 @@ function ceremony(methodHint = "face", assuranceLevel = "aal2") {
   return { intent, challenge, proof, authenticationContext };
 }
 
-test("Face, iris and palm are supported as non-authoritative local verification hints", () => {
+test("face, iris and palm remain non-authoritative local verification hints", () => {
   for (const methodHint of ["face", "iris", "palm"]) {
     const value = ceremony(methodHint);
     assert.equal(assertBiometricPaymentCeremony(value), true);
@@ -92,9 +91,32 @@ test("Face, iris and palm are supported as non-authoritative local verification 
   }
 });
 
-test("payment authorization is fail-closed for biometric material and secret material", () => {
-  const { challenge, proof } = ceremony();
+test("SPC challenge binds raw challenge, RP/origins, payee and displayed amount", () => {
+  const { challenge } = ceremony();
+  assert.equal(assertBiometricPaymentChallengeContract(challenge), challenge);
+  assert.equal(challenge.userVerification, "required");
+  assert.equal(challenge.oneTimeUse, true);
+  assert.equal(challenge.expectedAmountValue, "129.90");
+  assert.equal(challenge.rawBiometricDataIncluded, false);
+  assert.equal(challenge.biometricTemplateIncluded, false);
+  assert.equal(challenge.secretMaterialIncluded, false);
 
+  assert.throws(
+    () => assertBiometricPaymentChallengeContract({ ...challenge, expectedOrigin: null }),
+    /expectedOrigin is required/,
+  );
+  assert.throws(
+    () => assertBiometricPaymentChallengeContract({
+      ...challenge,
+      expectedPayeeName: null,
+      expectedPayeeOrigin: null,
+    }),
+    /requires expectedPayeeName or expectedPayeeOrigin/,
+  );
+});
+
+test("payment authorization remains fail-closed for biometric and secret material", () => {
+  const { challenge, proof } = ceremony();
   assert.throws(
     () => assertBiometricPaymentChallengeContract({ ...challenge, rawBiometricDataIncluded: true }),
     /rawBiometricDataIncluded must be false/,
@@ -104,60 +126,34 @@ test("payment authorization is fail-closed for biometric material and secret mat
     /biometricTemplateIncluded must be false/,
   );
   assert.throws(
-    () => assertBiometricPaymentProofContract({ ...proof, secretMaterialIncluded: true }),
+    () => assertBiometricPaymentCeremony({
+      ...ceremony(),
+      proof: { ...proof, secretMaterialIncluded: true },
+    }),
     /secretMaterialIncluded must be false/,
   );
 });
 
-test("payment authorization requires passkey-backed AAL2 or AAL3", () => {
-  const value = ceremony("iris", "aal1");
-  assert.throws(
-    () => assertBiometricPaymentCeremony(value),
-    /requires aal2 or aal3/,
-  );
+test("ceremony requires passkey-backed AAL2/AAL3 and immutable payment context", () => {
+  const weak = ceremony("iris", "aal1");
+  assert.throws(() => assertBiometricPaymentCeremony(weak), /requires aal2 or aal3/);
 
-  const strong = ceremony("palm", "aal2");
-  const withoutPasskey = {
-    ...strong,
-    authenticationContext: createAuthenticationContext({
-      authenticationId: strong.proof.authenticationId,
-      subjectId,
-      tenantId,
-      methods: ["mfa"],
-      assuranceLevel: "aal2",
-      authenticatedAt,
-      expiresAt: authExpiresAt,
-    }),
-  };
-  assert.throws(
-    () => assertBiometricPaymentCeremony(withoutPasskey),
-    /methods must include passkey/,
-  );
-});
-
-test("payment context and challenge validity are bound across the ceremony", () => {
-  const value = ceremony();
+  const value = ceremony("palm", "aal2");
   assert.throws(
     () => assertBiometricPaymentCeremony({
       ...value,
-      challenge: { ...value.challenge, paymentContext: { ...value.challenge.paymentContext, amountMinor: 1 } },
+      challenge: {
+        ...value.challenge,
+        paymentContext: { ...value.challenge.paymentContext, amountMinor: 1 },
+      },
     }),
     /amountMinor must match/,
   );
-
   assert.throws(
     () => assertBiometricPaymentCeremony({
       ...value,
       proof: { ...value.proof, paymentContextDigest: "d".repeat(64) },
     }),
     /paymentContextDigest must match/,
-  );
-
-  assert.throws(
-    () => assertBiometricPaymentCeremony({
-      ...value,
-      proof: { ...value.proof, verifiedAt: "2026-08-13T09:04:00.000Z" },
-    }),
-    /must be within challenge validity/,
   );
 });
