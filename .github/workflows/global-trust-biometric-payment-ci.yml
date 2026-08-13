@@ -17,10 +17,12 @@ on:
       - "apps/api-gateway/src/global-trust-biometric-payment-execution.mjs"
       - "apps/api-gateway/src/global-trust-biometric-payment-credential-state.mjs"
       - "apps/api-gateway/src/global-trust-biometric-payment-bound-runtime.mjs"
+      - "apps/api-gateway/src/global-trust-biometric-payment-provider-control.mjs"
       - "apps/api-gateway/test/global-trust-biometric-payment-runtime.test.mjs"
       - "apps/api-gateway/test/global-trust-biometric-payment-store.test.mjs"
       - "apps/api-gateway/test/global-trust-biometric-payment-execution.test.mjs"
       - "apps/api-gateway/test/global-trust-biometric-payment-e2e.test.mjs"
+      - "apps/api-gateway/test/global-trust-biometric-payment-provider-control.test.mjs"
       - ".github/workflows/global-trust-biometric-payment-ci.yml"
   pull_request:
     branches:
@@ -37,10 +39,12 @@ on:
       - "apps/api-gateway/src/global-trust-biometric-payment-execution.mjs"
       - "apps/api-gateway/src/global-trust-biometric-payment-credential-state.mjs"
       - "apps/api-gateway/src/global-trust-biometric-payment-bound-runtime.mjs"
+      - "apps/api-gateway/src/global-trust-biometric-payment-provider-control.mjs"
       - "apps/api-gateway/test/global-trust-biometric-payment-runtime.test.mjs"
       - "apps/api-gateway/test/global-trust-biometric-payment-store.test.mjs"
       - "apps/api-gateway/test/global-trust-biometric-payment-execution.test.mjs"
       - "apps/api-gateway/test/global-trust-biometric-payment-e2e.test.mjs"
+      - "apps/api-gateway/test/global-trust-biometric-payment-provider-control.test.mjs"
       - ".github/workflows/global-trust-biometric-payment-ci.yml"
   workflow_dispatch:
 
@@ -89,10 +93,12 @@ jobs:
           node --check apps/api-gateway/src/global-trust-biometric-payment-execution.mjs
           node --check apps/api-gateway/src/global-trust-biometric-payment-credential-state.mjs
           node --check apps/api-gateway/src/global-trust-biometric-payment-bound-runtime.mjs
+          node --check apps/api-gateway/src/global-trust-biometric-payment-provider-control.mjs
           node --check apps/api-gateway/test/global-trust-biometric-payment-runtime.test.mjs
           node --check apps/api-gateway/test/global-trust-biometric-payment-store.test.mjs
           node --check apps/api-gateway/test/global-trust-biometric-payment-execution.test.mjs
           node --check apps/api-gateway/test/global-trust-biometric-payment-e2e.test.mjs
+          node --check apps/api-gateway/test/global-trust-biometric-payment-provider-control.test.mjs
 
       - name: Execute contract tests
         run: node --test packages/contracts/test/global-trust-biometric-payment.test.mjs
@@ -112,3 +118,7 @@ jobs:
       - name: Execute end-to-end biometric payment tests
         working-directory: apps/api-gateway
         run: node --test test/global-trust-biometric-payment-e2e.test.mjs
+
+      - name: Execute sandbox provider control tests
+        working-directory: apps/api-gateway
+        run: node --test test/global-trust-biometric-payment-provider-control.test.mjs
