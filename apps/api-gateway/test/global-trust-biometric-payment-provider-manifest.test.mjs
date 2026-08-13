@@ -145,18 +145,20 @@ test("conformance report blocks adapters without correlation or kill switch supp
   );
 });
 
-test("manifest requires deterministic status mappings and required operations", () => {
+test("manifest requires deterministic status mappings", () => {
   assert.throws(
     () => createBiometricPaymentProviderConformanceManifest(validManifest({
       statusMap: { pending: "" },
     })),
-    (error) => error.code === "TRUST_PAYMENT_PROVIDER_MANEFEST_INVALID",
+    (error) => error.code === "TRUST_PAYMENT_PROVIDER_MANEFEST_STATUS_MAP_REQUIRED",
   );
+});
 
+test("manifest requires reconcile and all mandatory provider operations", () => {
   assert.throws(
     () => createBiometricPaymentProviderConformanceManifest(validManifest({
       capabilities: { operations: ["authorize", "health", "readiness"] },
     })),
-    (error) => error.code === "TRUST_PAYMENT_PROVIDER_MANEFEST_MISSING_CAPABILITY",
+    (error) => error.code === "TRUST_PAYMENT_PROVIDER_MANIFEST_MISSING_CAPABILITY",
   );
 });
