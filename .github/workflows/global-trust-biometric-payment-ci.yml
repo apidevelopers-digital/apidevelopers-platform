@@ -14,8 +14,10 @@ on:
       - "apps/api-gateway/src/global-trust-biometric-payment-policy.mjs"
       - "apps/api-gateway/src/global-trust-biometric-payment-runtime.mjs"
       - "apps/api-gateway/src/global-trust-biometric-payment-store.mjs"
+      - "apps/api-gateway/src/global-trust-biometric-payment-execution.mjs"
       - "apps/api-gateway/test/global-trust-biometric-payment-runtime.test.mjs"
       - "apps/api-gateway/test/global-trust-biometric-payment-store.test.mjs"
+      - "apps/api-gateway/test/global-trust-biometric-payment-execution.test.mjs"
       - ".github/workflows/global-trust-biometric-payment-ci.yml"
   pull_request:
     branches:
@@ -29,8 +31,10 @@ on:
       - "apps/api-gateway/src/global-trust-biometric-payment-policy.mjs"
       - "apps/api-gateway/src/global-trust-biometric-payment-runtime.mjs"
       - "apps/api-gateway/src/global-trust-biometric-payment-store.mjs"
+      - "apps/api-gateway/src/global-trust-biometric-payment-execution.mjs"
       - "apps/api-gateway/test/global-trust-biometric-payment-runtime.test.mjs"
       - "apps/api-gateway/test/global-trust-biometric-payment-store.test.mjs"
+      - "apps/api-gateway/test/global-trust-biometric-payment-execution.test.mjs"
       - ".github/workflows/global-trust-biometric-payment-ci.yml"
   workflow_dispatch:
 
@@ -74,8 +78,10 @@ jobs:
           node --check apps/api-gateway/src/global-trust-biometric-payment-policy.mjs
           node --check apps/api-gateway/src/global-trust-biometric-payment-runtime.mjs
           node --check apps/api-gateway/src/global-trust-biometric-payment-store.mjs
+          node --check apps/api-gateway/src/global-trust-biometric-payment-execution.mjs
           node --check apps/api-gateway/test/global-trust-biometric-payment-runtime.test.mjs
           node --check apps/api-gateway/test/global-trust-biometric-payment-store.test.mjs
+          node --check apps/api-gateway/test/global-trust-biometric-payment-execution.test.mjs
 
       - name: Execute contract tests
         run: node --test packages/contracts/test/global-trust-biometric-payment.test.mjs
@@ -87,3 +93,7 @@ jobs:
       - name: Execute persistent replay-store tests
         working-directory: apps/api-gateway
         run: node --test test/global-trust-biometric-payment-store.test.mjs
+
+      - name: Execute idempotent execution tests
+        working-directory: apps/api-gateway
+        run: node --test test/global-trust-biometric-payment-execution.test.mjs
