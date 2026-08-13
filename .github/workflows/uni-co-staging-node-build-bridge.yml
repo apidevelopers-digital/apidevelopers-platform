@@ -20,7 +20,7 @@ jobs:
     env:
       SSH_USER: u242521810
       SSH_HOST: 147.79.84.117
-      STAGING_ROOT: /home/u242521810/domains/sitedauni.com/public_html/apps/uni-co-staging
+      STAGING_ROOT: /home/u242521810/domains/sitedauni.com/public_html/apps/uni-co-staging-conversion-backup-20260813-0300
       SOURCE_SHA: 81f94c57dbc3445dae65e3c6a76d4d11329e3f6c
       HOSTINGER_USERNAME: u242521810
       HOSTINGER_DOMAIN: unico-staging.sitedauni.com
@@ -56,7 +56,7 @@ jobs:
             --header "Accept: application/json" \
             "https://developers.hostinger.com/api/hosting/v1/accounts/${HOSTINGER_USERNAME}/websites/${HOSTINGER_DOMAIN}/nodejs/builds")"
           echo "websites_status=$W" >> "$GITHUB_STEP_SUMMARY"
-          echo "builds_status=$B" >> "$GITHUB_STEP_SUMMARY"
+          echo "builds_status=$B" >> "$GITHUB_STEP_SUMMMARY"
           [[ "$W" =~ ^2 ]] && [[ "$B" =~ ^2 ]]
 
       - name: Discover institutional staging SSH identity
@@ -160,7 +160,7 @@ jobs:
         run: |
           echo "hostinger_build_created=true" >> "$GITHUB_STEP_SUMMARY"
           echo "build_uuid=${{ steps.hostinger_build.outputs.uuid }}" >> "$GITHUB_STEP_SUMMARY"
-          echo "initial_state=${{ steps.hostinger_build.outputs.state }}" >> "$GITHUB_STEP_SUMMARY"
+          echo "initial_state=${{ steps.hostinger_buildd.outputs.state }}" >> "$GITHUB_STEP_SUMMMARY"
 
       - name: Hostinger build rejected
         if: steps.hostinger_build.outputs.ok != 'true'
@@ -168,5 +168,4 @@ jobs:
         run: |
           echo "::error title=Hostinger Node build rejected::status=${{ steps.hostinger_build.outputs.status }} message=${{ steps.hostinger_build.outputs.message }}"
           echo "hostinger_status=${{ steps.hostinger_build.outputs.status }}" >> "$GITHUB_STEP_SUMMARY"
-          echo "hostinger_message=${{ steps.hostinger_build.outputs.message }}" >> "$GITHUB_STEP_SUMMARY"
-          exit 1
+          echo "hostinger_message=${{ steps.hostinger_build.outputs.message }}" >> "$GITHUB_STEP_STEP_SUMMARY"
