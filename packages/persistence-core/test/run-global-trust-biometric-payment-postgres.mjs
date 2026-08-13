@@ -10,10 +10,10 @@ import EmbeddedPostgres from "embedded-postgres";
 
 const packageRoot = dirname(dirname(fileURLToPath(import.meta.url)));
 const repoRoot = dirname(dirname(packageRoot));
-const testFile = join(
-  repoRoot,
-  "apps/api-gateway/test/global-trust-biometric-payment-postgres.integration.test.mjs",
-);
+const testFiles = [
+  join(repoRoot, "apps/api-gateway/test/global-trust-biometric-payment-postgres.integration.test.mjs"),
+  join(repoRoot, "apps/api-gateway/test/global-trust-biometric-payment-postgres-runtime.integration.test.mjs"),
+];
 const MARKER = "GLOBAL_TRUST_PAYMENT_POSTGRES_DURABILITY_GATE_OK";
 
 async function reserveFreePort() {
@@ -22,18 +22,15 @@ async function reserveFreePort() {
   server.listen(0, "127.0.0.1");
   await once(server, "listening");
   const address = server.address();
-  if (!address || typeof address === "string") {
-    server.close();
-    throw new Error("Could not reserve PostgreSQL test port");
-  }
+  if (!address || typeof address === "string") throw new Error("Could not reserve PostgreSQL test port");
   const { port } = address;
   server.close();
   await once(server, "close");
   return port;
 }
 
-async function runTest(connectionString) {
-  const child = spawn(process.execPath, ["--test", testFile], {
+async function runTests(connectionString) {
+  const child = spawn(process.execPath, ["--test", ...testFiles], {
     cwd: repoRoot,
     env: {
       ...process.env,
@@ -44,12 +41,9 @@ async function runTest(connectionString) {
     },
     stdio: "inherit",
   });
-
   const [code, signal] = await once(child, "exit");
   if (code !== 0) {
-    throw new Error(
-      `Global Trust PostgreSQL durability test failed (code=${code ?? "null"}, signal=${signal ?? "null"})`,
-    );
+    throw new Error(`Global Trust PostgreSQL durability tests failed (code=${code ?? "null"}, signal=${signal ?? "null"})`);
   }
 }
 
@@ -88,12 +82,10 @@ async function main() {
       `postgresql://${encodeURIComponent(user)}:${encodeURIComponent(password)}` +
       `@127.0.0.1:${port}/${encodeURIComponent(database)}`;
 
-    await runTest(connectionString);
+    await runTests(connectionString);
     process.stdout.write(`${MARKER}\n`);
   } finally {
-    if (started) {
-      await postgres.stop().catch(() => {});
-    }
+    if (started) await postgres.stop().catch(() => {});
     await rm(databaseDir, { recursive: true, force: true });
   }
 }
