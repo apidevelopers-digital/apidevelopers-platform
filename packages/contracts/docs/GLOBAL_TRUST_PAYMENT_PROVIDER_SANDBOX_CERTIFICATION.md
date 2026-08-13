@@ -1,87 +1,70 @@
 # Global Trust Payment — Provider Sandbox Certification
 
-**Status:** verified on feature branch  
-**Scope:** provider-neutral sandbox certification only  
+**Status:** provider-neutral sandbox verified  
 **Real-money execution:** disabled  
 **External egress:** blocked  
-**Institutional authority:** this document is technical evidence for the platform branch; it does not select a provider and does not supersede institutional authority documents.
+**Authority:** technical platform evidence only; this document does not select or approve a provider.
 
-## 1. Purpose
+## Verified provider-neutral controls
 
-This milestone defines and verifies the minimum operational contract that a future payment provider adapter must satisfy before any named PSP, acquirer, bank, wallet, or payment rail can be considered for integration.
-
-The certification harness is intentionally provider-neutral. It exercises a local sandbox implementation only and never enables real financial execution.
-
-## 2. Verified controls
-
-The provider control plane is deny-by-default and verifies:
-
-- sandbox-only mode unless a later institutional decision explicitly authorizes another mode;
+The sandbox boundary verifies:
+- deny-by-default and sandbox-only mode;
 - explicit provider enablement;
 - idempotency by `idempotencyKey`;
-- health and readiness signals;
-- timeout policy;
-- retry only when the provider explicitly declares transport retry as safe;
-- per-currency amount limits;
-- per-tenant transaction-window limits;
+- amount and tenant-window limits;
+- timeout and safe-retry rules;
+- health/readiness;
 - provider kill switch;
-- rejection of external mode under sandbox-only policy;
-- rejection of providers marked as capable of real-money execution by the certification harness.
+- rejection of external mode and real-money-capable providers;
+- sanitized telemetry and incident events;
+- shared `closed/open/half-open` circuit breaker;
+- authorization and reconciliation through the same circuit;
+- read-only reconciliation control path;
+- operational composition into persistent execution;
+- provider conformance manifest.
 
-## 3. Certification checks
+The conformance boundary remains:
+- `providerSelectedByInstitution=false`;
+- `productionApproved=false`;
+- `realMoneyApproved=false`;
+- `sandboxOnly=true`;
+- `realMoneyExecution=false`;
+- `rawBiometricDataIncluded=false`;
+- `secretsIncluded=false`.
 
-`certifyBiometricPaymentSandboxProvider(...)` produces a `BiometricPaymentProviderCertificationReport` and requires all checks to pass:
+## Current CI evidence
 
-1. `health`
-2. `readiness`
-3. `idempotency`
-4. `kill_switch`
-5. `deny_by_default`
-6. `external_mode_blocked`
-7. `amount_limit`
+At feature-branch head `53508ea233dbdf61845c7be5e788170140242895`, these relevant gates completed successfully:
+- Global Trust Payment Provider Sandbox Certification CI;
+- Global Trust Payment Provider Reconciliation CI;
+- Global Trust Biometric Payment CI;
+- Global Trust Biometric Payment PostgreSQL Durability CI;
+- API Gateway CI;
+- Platform Baseline CI;
+- Persistence Core CI.
 
-The report scope declares:
+The operational E2E proves the provider-neutral path:
 
-- `sandboxOnly=true`
-- `realMoneyExecution=false`
-- `rawBiometricDataIncluded=false`
-- `secretsIncluded=false`
+`SPC/passkey → Trust decision → operational adapter → provider control → circuit breaker → provider sandbox → persistence/reconciliation`
 
-A failed check produces `TRUST_PAYMENT_PROVIDER_CERTIFICATION_FAILED`.
+The PostgreSQL durability gate separately proves transactional anti-replay across concurrent connections and reconnect.
 
-## 4. CI evidence
+## Not claimed
 
-Dedicated workflow:
-
-`.github/workflows/global-trust-payment-provider-certification-ci.yml`
-
-The workflow runs on the institutional self-hosted macOS X64 runner and sets:
-
-- `GLOBAL_TRUST_PAYMENT_MODE=sandbox`
-- `GLOBAL_TRUST_PAYMENT_EGRESS=blocked`
-- `GLOBAL_TRUST_REAL_MONEY=disabled`
-
-At feature-branch head `d628396a8c16f8a273989a82ef8b97338b1a56af`, the following gates completed successfully:
-
-- Global Trust Payment Provider Sandbox Certification CI
-- Global Trust Biometric Payment CI
-- API Gateway CI
-- Platform Baseline CI
-
-## 5. What this does not prove
-
-This milestone does **not** prove or claim:
-
-- selection or approval of any named PSP, bank, acquirer, wallet, or payment rail;
+This evidence does not claim:
+- selection or approval of a named PSP, bank, acquirer, wallet, or payment rail;
 - connectivity to an external provider sandbox;
 - provider contractual approval;
+- provider-specific settlement/capture/refund/payout behavior;
+- real-device biometric compatibility certification;
 - PCI, banking, EMV, FIDO, LGPD, or other regulatory certification;
+- production datastore provisioning;
 - production deployment;
-- real-money authorization, capture, settlement, refund, or payout;
+- real-money execution;
 - approval to enable external egress.
 
-## 6. Next production gate
+## Next production gate
 
-A named financial provider can only be introduced after an institutional decision identifies the provider and its role.
+A named provider may only be introduced after an institutional decision identifies the provider and its role.
 
-After that decision, the provider-specific adapter must pass this same sandbox control boundary plus provider-specific contract mapping, reconciliation, negative testing, observability, privacy/security review, and explicit operational approval before any production or real-money enablement.
+After that decision, its adapter must pass the same provider-neutral controls plus provider-specific request/response mapping, sandbox authorization/reconciliation, negative/error/idempotency cases, provider observability, applicable settlement/capture/refund/compensation behavior, privacy/security/legal/regulatory review, and explicit operational approval before production or real-money enablement.
