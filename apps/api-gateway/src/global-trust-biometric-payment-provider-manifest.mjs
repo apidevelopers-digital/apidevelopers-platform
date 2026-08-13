@@ -29,7 +29,6 @@ const FORBIDDEN_KEYS = new Set([
   "palmimage",
   "palm_image",
 ]);
-
 const REQUIRED_STATUS_MAP = Object.freeze(["authorized", "declined", "pending"]);
 
 function fail(code, message) {
@@ -45,14 +44,12 @@ function required(value, name) {
   }
   return normalized;
 }
-
 function asObject(value, name) {
   if (!value || typeof value !== "object" || Array.isArray(value)) {
     fail("TRUST_PAYMENT_PROVIDER_MANIFEST_INVALID", `${name} must be an object`);
   }
   return value;
 }
-
 function asStringArray(value, name) {
   if (!Array.isArray(value) || value.length === 0) {
     fail("TRUST_PAYMENT_PROVIDER_MANIFEST_INVALID", `${name} must be a non-empty array`);
@@ -60,7 +57,6 @@ function asStringArray(value, name) {
   const normalized = value.map((item, index) => required(item, `${name}[${index}]`));
   return Object.freeze([...new Set(normalized)]);
 }
-
 function assertNoSensitiveMaterial(value, path = "manifest") {
   if (value == null) return true;
   if (Array.isArray(value)) {
@@ -68,20 +64,18 @@ function assertNoSensitiveMaterial(value, path = "manifest") {
     return true;
   }
   if (typeof value !== "object") return true;
-
   for (const [key, child] of Object.entries(value)) {
     const normalizedKey = key.toLowerCase().replace(/[^a-z0-9_]/g, "");
     if (FORBIDDEN_KEYS.has(normalizedKey)) {
       fail(
-        "TRUST_PAYMENT_PROVIDER_MANEFEST_SENSITIVE_MATERIAL",
-       `${path}.${key} is forbidden in provider manifests`,
+        "TRUST_PAYMENT_PROVIDER_MANIFEST_SENSITIVE_MATERIAL",
+        `${path}.${key} is forbidden in provider manifests`,
       );
     }
     assertNoSensitiveMaterial(child, `${path}.${key}`);
   }
   return true;
 }
-
 function normalizeOperations(value) {
   const operations = asStringArray(value, "capabilities.operations");
   const allowed = new Set(["authorize", "reconcile", "health", "readiness"]);
@@ -92,12 +86,11 @@ function normalizeOperations(value) {
   }
   for (const mandatory of ["authorize", "reconcile", "health", "readiness"]) {
     if (!operations.includes(mandatory)) {
-      fail("TRUST_PAYMENT_PROVIDER_MANEFEST_MISSING_CAPABILITY", `${mandatory} capability is required`);
+      fail("TRUST_PAYMENT_PROVIDER_MANIFEST_MISSING_CAPABILITY", `${mandatory} capability is required`);
     }
   }
   return operations;
 }
-
 export function createBiometricPaymentProviderConformanceManifest(input = {}) {
   assertNoSensitiveMaterial(input);
   const manifest = asObject(input, "manifest");
@@ -108,34 +101,30 @@ export function createBiometricPaymentProviderConformanceManifest(input = {}) {
   const currencies = asStringArray(capabilities.supportedCurrencies, "capabilities.supportedCurrencies");
   const countries = asStringArray(capabilities.supportedCountries, "capabilities.supportedCountries");
   const statusMap = asObject(manifest.statusMap, "statusMap");
-
   if (provider.mode !== "sandbox") {
-    fail("TRUST_PAYMENT_PROVIDER_MANEFEST_SANDBOX_REQUIRED", "provider.mode must be sandbox");
+    fail("TRUST_PAYMENT_PROVIDER_MANIFEST_SANDBOX_REQUIRED", "provider.mode must be sandbox");
   }
   if (capabilities.idempotencyGuaranteed !== true) {
     fail("TRUST_PAYMENT_PROVIDER_MANIFEST_IDEMPOTENCY_REQUIRED", "idempotencyGuaranteed must be true");
   }
   if (capabilities.financialExecutionCapable === true) {
     fail(
-      "TRUST_PAYMENT_PROVIDER_MANEFEST_REAL_MONEY_BLOCKED",
+      "TRUST_PAYMENT_PROVIDER_MANIFEST_REAL_MONEY_BLOCKED",
       "sandbox conformance manifest must not declare real-money capability",
     );
   }
-
   const normalizedStatusMap = {};
   for (const status of REQUIRED_STATUS_MAP) {
     const mapped = String(statusMap[status] ?? "").trim();
     if (!mapped) {
-      fail("TRUST_PAYMENT_PROVIDER_MANEFEST_STATUS_MAP_REQUIRED", `${status} status mapping is required`);
+      fail("TRUST_PAYMENT_PROVIDER_MANIFEST_STATUS_MAP_REQUIRED", `${status} status mapping is required`);
     }
     normalizedStatusMap[status] = mapped;
   }
-
   const timeoutMs = Number(manifest.timeoutMs ?? 2500);
   if (!Number.isSafeInteger(timeoutMs) || timeoutMs < 100 || timeoutMs > 120000) {
-    fail("TRUST_PAYMENT_PROVIDER_MANEFEST_INVALID_TIMEOUT", "timeoutMs must be an integer between 100 and 120000");
+    fail("TRUST_PAYMENT_PROVIDER_MANIFEST_INVALID_TIMEOUT", "timeoutMs must be an integer between 100 and 120000");
   }
-
   const boundaryRules = {
     platformReceivesRawPaymentInstrument: dataBoundary.platformReceivesRawPaymentInstrument === true,
     platformReceivesRawBiometricMaterial: dataBoundary.platformReceivesRawBiometricMaterial === true,
@@ -143,7 +132,6 @@ export function createBiometricPaymentProviderConformanceManifest(input = {}) {
     providerHostedSensitiveData: dataBoundary.providerHostedSensitiveData === true,
     secretInjection: required(dataBoundary.secretInjection, "dataBoundary.secretInjection"),
   };
-
   if (
     boundaryRules.platformReceivesRawPaymentInstrument
     || boundaryRules.platformReceivesRawBiometricMaterial
@@ -166,7 +154,6 @@ export function createBiometricPaymentProviderConformanceManifest(input = {}) {
       "secretInjection must be runtime_reference",
     );
   }
-
   const normalized = Object.freeze({
     type: "BiometricPaymentProviderConformanceManifest",
     version: "1.0.0",
@@ -200,7 +187,6 @@ export function createBiometricPaymentProviderConformanceManifest(input = {}) {
       realMoneyRequired: false,
     }),
   });
-
   return normalized;
 }
 
@@ -211,7 +197,6 @@ export function evaluateBiometricPaymentProviderConformance(manifestInput = {}) 
 
     if (!manifest.capabilities.correlationIdSupported) blockers.push("correlation_id_support_required");
     if (!manifest.capabilities.killSwitchSupported) blockers.push("kill_switch_support_required");
-
     return Object.freeze({
       type: "BiometricPaymentProviderConformanceReport",
       version: "1.0.0",
