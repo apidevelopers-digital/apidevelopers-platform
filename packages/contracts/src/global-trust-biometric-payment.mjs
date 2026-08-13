@@ -7,12 +7,14 @@ import {
   id,
   iso,
   object,
+  optionalString,
   positiveInteger,
   string,
 } from "./global-trust-support.mjs";
 import { assertAuthenticationContextContract } from "./global-trust-identity.mjs";
 
 const SHA256 = /^[a-f0-9]{64}$/i;
+const BASE64URL = /^[A-Za-z0-9_-]{43,}$/;
 const ISO_CURRENCY = /^[A-Z]{3}$/;
 
 export const BIOMETRIC_PAYMENT_CEREMONIES = new Set([
@@ -42,9 +44,52 @@ function currency(value, name) {
   return normalized;
 }
 
+function challengeToken(value, name) {
+  const normalized = string(value, name);
+  if (!BASE64URL.test(normalized)) throw new Error(`${name} must be unpadded base64url with at least 32 bytes of entropy`);
+  return normalized;
+}
+
 function optionalVerificationMethodHint(value, name) {
   if (value == null) return null;
   return enumeration(value, name, LOCAL_VERIFICATION_METHOD_HINTS);
+}
+
+function optionalOrigin(value, name) {
+  if (value == null) return null;
+  const normalized = string(value, name);
+  let parsed;
+  try {
+    parsed = new URL(normalized);
+  } catch {
+    throw new Error(`${name} must be a valid HTTPS origin`);
+  }
+  if (parsed.protocol !== "https:" || parsed.origin !== normalized) {
+    throw new Error(`${name} must be an exact HTTPS origin`);
+  }
+  return normalized;
+}
+
+function rpId(value, name) {
+  const normalized = string(value, name).toLowerCase();
+  if (
+    normalized.includes("://")
+    || normalized.includes("/")
+    || normalized.includes("@")
+    || normalized.startsWith(".")
+    || normalized.endsWith(".")
+  ) {
+    throw new Error(`${name} must be a relying-party domain`);
+  }
+  return normalized;
+}
+
+function amountValue(value, name) {
+  const normalized = string(value, name);
+  if (!/^(?:0|[1-9]\d*)(?:\.\d{1,12})?$/.test(normalized)) {
+    throw new Error(`${name} must be a canonical non-negative decimal amount`);
+  }
+  return normalized;
 }
 
 function mustBeFalse(value, name) {
@@ -113,6 +158,7 @@ export function assertBiometricPaymentChallengeContract(value, name = "biometric
   id(value.tenantId, `${name}.tenantId`);
   id(value.credentialId, `${name}.credentialId`);
   enumeration(value.ceremony, `${name}.ceremony`, BIOMETRIC_PAYMENT_CEREMONIES);
+  challengeToken(value.challengeB64u, `${name}.challengeB64u`);
   digest(value.challengeDigest, `${name}.challengeDigest`);
   digest(value.paymentContextDigest, `${name}.paymentContextDigest`);
 
@@ -121,6 +167,22 @@ export function assertBiometricPaymentChallengeContract(value, name = "biometric
   positiveInteger(value.paymentContext.amountMinor, `${name}.paymentContext.amountMinor`);
   currency(value.paymentContext.currency, `${name}.paymentContext.currency`);
   string(value.paymentContext.purposeCode, `${name}.paymentContext.purposeCode`);
+
+  rpId(value.rpId, `${name}.rpId`);
+  if (value.expectedOrigin == null) throw new Error(`${name}.expectedOrigin is required`);
+  optionalOrigin(value.expectedOrigin, `${name}.expectedOrigin`);
+  optionalOrigin(value.expectedTopOrigin, `${name}.expectedTopOrigin`);
+  optionalString(value.expectedPayeeName, `${name}.expectedPayeeName`);
+  optionalOrigin(value.expectedPayeeOrigin, `${name}.expectedPayeeOrigin`);
+  if (value.expectedAmountValue != null) amountValue(value.expectedAmountValue, `${name}.expectedAmountValue`);
+
+  if (value.ceremony === "secure_payment_confirmation") {
+    if (value.expectedTopOrigin == null) throw new Error(`${name}.expectedTopOrigin is required for secure_payment_confirmation`);
+    if (value.expectedAmountValue == null) throw new Error(`${name}.expectedAmountValue is required for secure_payment_confirmation`);
+    if (value.expectedPayeeName == null && value.expectedPayeeOrigin == null) {
+      throw new Error(`${name} requires expectedPayeeName or expectedPayeeOrigin for secure_payment_confirmation`);
+    }
+  }
 
   if (value.userVerification !== "required") throw new Error(`${name}.userVerification must be required`);
   mustBeTrue(value.oneTimeUse, `${name}.oneTimeUse`);
@@ -140,12 +202,19 @@ export function createBiometricPaymentChallenge({
   tenantId,
   credentialId,
   ceremony = "webauthn",
+  challengeB64u,
   challengeDigest,
   paymentContextDigest,
   payeeId,
   amountMinor,
   currency: currencyCode,
   purposeCode,
+  rpId: relyingPartyId,
+  expectedOrigin,
+  expectedTopOrigin = null,
+  expectedPayeeName = null,
+  expectedPayeeOrigin = null,
+  expectedAmountValue = null,
   createdAt = new Date().toISOString(),
   expiresAt,
 } = {}) {
@@ -157,6 +226,7 @@ export function createBiometricPaymentChallenge({
     tenantId,
     credentialId,
     ceremony,
+    challengeB64u,
     challengeDigest,
     paymentContextDigest,
     paymentContext: {
@@ -165,6 +235,12 @@ export function createBiometricPaymentChallenge({
       currency: currencyCode,
       purposeCode,
     },
+    rpId: relyingPartyId,
+    expectedOrigin,
+    expectedTopOrigin,
+    expectedPayeeName,
+    expectedPayeeOrigin,
+    expectedAmountValue,
     userVerification: "required",
     oneTimeUse: true,
     createdAt,
