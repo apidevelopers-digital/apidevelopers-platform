@@ -122,15 +122,18 @@ export function createBiometricPaymentProviderConformanceManifest(input = {}) {
     );
   }
 
+  const normalizedStatusMap = {};
   for (const status of REQUIRED_STATUS_MAP) {
-    if (!required(statusMap[status], `${statusMap}.${status}`)) {
-      fail("TRUST_PAYMENT_PROVIDER_MANIFEST_STATUS_MAP_REQUIRED", `${status} status mapping is required`);
+    const mapped = String(statusMap[status] ?? "").trim();
+    if (!mapped) {
+      fail("TRUST_PAYMENT_PROVIDER_MANEFEST_STATUS_MAP_REQUIRED", `${status} status mapping is required`);
     }
+    normalizedStatusMap[status] = mapped;
   }
 
   const timeoutMs = Number(manifest.timeoutMs ?? 2500);
   if (!Number.isSafeInteger(timeoutMs) || timeoutMs < 100 || timeoutMs > 120000) {
-    fail("TRUST_PAYMENT_PROVIDER_MANIFEST_INVALID_TIMEOUT", "timeoutMs must be an integer between 100 and 120000");
+    fail("TRUST_PAYMENT_PROVIDER_MANEFEST_INVALID_TIMEOUT", "timeoutMs must be an integer between 100 and 120000");
   }
 
   const boundaryRules = {
@@ -155,7 +158,7 @@ export function createBiometricPaymentProviderConformanceManifest(input = {}) {
     fail(
       "TRUST_PAYMENT_PROVIDER_MANIFEST_HOSTED_BOUNDARY_REQUIRED",
       "providerHostedSensitiveData must be true",
-     );
+    );
   }
   if (boundaryRules.secretInjection !== "runtime_reference") {
     fail(
@@ -186,9 +189,9 @@ export function createBiometricPaymentProviderConformanceManifest(input = {}) {
     }),
     dataBoundary: Object.freeze(boundaryRules),
     statusMap: Object.freeze({
-      authorized: required(statusMap.authorized, "statusMap.authorized"),
-      declined: required(statusMap.declined, "statusMap.declined"),
-      pending: required(statusMap.pending, "statusMap.pending"),
+      authorized: normalizedStatusMap.authorized,
+      declined: normalizedStatusMap.declined,
+      pending: normalizedStatusMap.pending,
     }),
     timeoutMs,
     certification: Object.freeze({
@@ -226,7 +229,7 @@ export function evaluateBiometricPaymentProviderConformance(manifestInput = {}) 
       version: "1.0.0",
       providerId: null,
       status: "invalid",
-      blockers: Object.freeze([error.code ?? "TRUST_PAYMENT_PROVIDER_MANEFEST_INVALID"]),
+      blockers: Object.freeze([error.code ?? "TRUST_PAYMENT_PROVIDER_MANIFEST_INVALID"]),
       providerSelectedByInstitution: false,
       productionApproved: false,
       realMoneyApproved: false,
