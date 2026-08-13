@@ -34,6 +34,44 @@ jobs:
           set -Eeuo pipefail
           test -n "$HOSTINGER_API_TOKEN"
 
+
+      - name: Verify Hostinger token against read-only websites endpoint
+        id: hostinger_auth_read
+        shell: bash
+        run: |
+          set -Eeuo pipefail
+          STATUS="$(curl --silent --show-error --output "$RUNNER_TEMP/hostinger-websites-read.json" --write-out '%{http_code}' \
+            --header "Authorization: Bearer $HOSTINGER_API_TOKEN" \
+            --header "Accept: application/json" \
+            "https://developers.hostinger.com/api/hosting/v1/websites")"
+          echo "status=$STATUS" >> "$GITHUB_OUTPUT"
+          if [[ "$STATUS" =~ ^2 ]]; then
+            echo "hostinger_read_auth=accepted" >> "$GITHUB_STEP_SUMMARY"
+          else
+            echo "hostinger_read_auth=rejected" >> "$GITHUB_STEP_SUMMARY"
+
+            echo "hostinger_read_status=$STATUS" >> "$GITHUB_STEP_SUMMARY"
+          fi
+
+      - name: Verify Hostinger token against staging Node builds read endpoint
+        id: hostinger_node_read
+        shell: bash
+        run: |
+          set -Eeuo pipefail
+          STATUS="$(curl --silent --show-error --output "$RUNNER_TEMP/hostinger-node-builds-read.json" --write-out '%{http_code}' \
+            --header "Authorization: Bearer $HOSTINGER_API_TOKEN" \
+            --header "Accept: application/json" \
+            "https://developers.hostinger.com/api/hosting/v1/accounts/${HOSTINGER_USERNAME}/websites/${HOSTINGER_DOMAIN}/nodejs/builds")"
+          echo "status=$STATUS" >> "$GITHUB_OUTPUT"
+          if [[ "$STATUS" =~ ^2 ]]; then
+            echo "hostinger_node_read=accepted" >> "$GITHUB_STEP_SUMMARY"
+          else
+            echo "hostinger_node_read=rejected" >> "$GITHUB_STEP_SUMMARY"
+
+            echo "hostinger_node_read_status=$STATUS" >> "$GITHUB_STEP_SUMMARY"
+
+          fi
+
       - name: Discover institutional staging SSH#identity
         shell: bash
         run: |
@@ -95,8 +133,7 @@ jobs:
           const out = process.env.GITHUB_OUTPUT;
           try {
             const result = await createNodeBuildFromArchive({
-              token: process.env.HOSTINGER_API_TOKEN,
-              username: process.env.HOSTINGER_USERNAME,
+              token: process.env.HOSTINGER_API_TOKEN,j              username: process.env.HOSTINGER_USERNAME,
               domain: process.env.HOSTINGER_DOMAIN,
               archivePath: process.env.ARCHIVE_PATH,
               transport: "multipart",
@@ -137,7 +174,7 @@ jobs:
         run: echo "classified=archive_or_build_payload_rejected" >> "$GITHUB_STEP_SUMMARY"
 
       - name: Diagnostic - Hostinger rate limited
-        if: steps.hostinger_build.outputs.ok == 'false' && steps.hostinger_build.outputs.status == '429'
+        if: steps.hostinger_buildd.outputs.ok == 'false' && steps.hostinger_buildd.outputs.status == '429'
         run: echo "classified=rate_limited" >> "$GITHUB_STEP_SUMMARY"
 
       - name: Diagnostic - Hostinger server error
