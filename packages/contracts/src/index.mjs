@@ -18,6 +18,7 @@ export * from "./multi-agent-orchestration.mjs";
 export * from "./outbound-transport.mjs";
 export * from "./global-trust-use-case.mjs";
 export * from "./global-trust-data-policy.mjs";
+export * from "./global-trust-biometric-payment.mjs";
 
 export {
   globalTrustCommonContractVersion,
