@@ -90,6 +90,7 @@ jobs:
         run: |
           set -Eeuo pipefail
           node --input-type=module <<'NODE'
+          import fs from "node:fs";
           import { createNodeBuildFromArchive, sanitizeEvidence } from "./apps/site-factory/src/hostinger-node-build-api-only.mjs";
 
           try {
@@ -104,15 +105,22 @@ jobs:
               packageManager: "npm",
             });
 
-            console.log(JSON.stringify({
+            const safe = {
               ok: true,
               uuid: result.uuid,
               state: result.state,
               responseStatus: result.response?.status ?? null,
-            }));
+            };
+            fs.appendFileSync(process.env.GITHUB_STEP_SUMMARY, "```json\n" + JSON.stringify(safe, null, 2) + "\n```\n");
+            console.log(JSON.stringify(safe));
           } catch (error) {
-            const evidence = sanitizeEvidence(error?.evidence ?? { message: error?.message ?? String(error) }, process.env.HOSTINGER_API_TOKEN);
-            console.error(JSON.stringify({ ok: false, evidence }));
+            const evidence = sanitizeEvidence(
+              error?.evidence ?? { message: error?.message ?? String(error) },
+              process.env.HOSTINGER_API_TOKEN,
+            );
+            const safe = { ok: false, evidence };
+            fs.appendFileSync(process.env.GITHUB_STEP_SUMMARY, "```json\n" + JSON.stringify(safe, null, 2) + "\n```\n");
+            console.error(JSON.stringify(safe));
             process.exit(1);
           }
           NODE
