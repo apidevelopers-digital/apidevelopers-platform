@@ -57,7 +57,7 @@ jobs:
           node --check apps/api-gateway/src/global-trust-biometric-payment-provider-manifest.mjs
           node --check apps/api-gateway/test/global-trust-biometric-payment-provider-control.test.mjs
           node --check apps/api-gateway/test/global-trust-biometric-payment-provider-certification.test.mjs
-          node --check apps/api-gateway/test/global-trust-biometric-payment-provider-manifest.test.mjs"
+          node --check apps/api-gateway/test/global-trust-biometric-payment-provider-manifest.test.mjs
 
       - name: Execute provider control tests
         working-directory: apps/api-gateway
