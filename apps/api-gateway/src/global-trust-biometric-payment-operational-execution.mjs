@@ -13,13 +13,28 @@ function requireSandboxProvider(provider) {
     fail("TRUST_PAYMENT_OPERATIONAL_SANDBOX_PROVIDER_INVALID", "provider must be an object");
   }
   if (provider.mode !== "sandbox") {
-    fail("TRUST_PAYMENT_OPERATIONAL_SANDBOX_REQUIRED", "operational composition accepts sandbox providers only");
+    fail(
+      "TRUST_PAYMENT_OPERATIONAL_SANDBOX_REQUIRED",
+      "operational composition accepts sandbox providers only",
+    );
   }
   if (provider.financialExecutionCapable === true) {
-    fail("TRUST_PAYMENT_OPERATIONAL_REAL_MONEY_BLOCKED", "real-money-capable provider cannot enter sandbox operational composition");
+    fail(
+      "TRUST_PAYMENT_OPERATIONAL_REAL_MONEY_BLOCKED",
+      "real-money-capable provider cannot enter sandbox operational composition",
+    );
   }
   if (provider.idempotencyGuaranteed !== true || typeof provider.authorize !== "function") {
-    fail("TRUST_PAYMENT_OPERATIONAL_PROVIDER_CONTRACT_INVALID", "provider must guarantee idempotency and implement authorize");
+    fail(
+      "TRUST_PAYMENT_OPERATIONAL_PROVIDER_CONTRACT_INVALID",
+      "provider must guarantee idempotency and implement authorize",
+    );
+  }
+  if (typeof provider.getStatus !== "function") {
+    fail(
+      "TRUST_PAYMENT_OPERATIONAL_RECONCILIATION_UNAVAILABLE",
+      "sandbox provider must implement getStatus for reconciliation",
+    );
   }
   return provider;
 }
@@ -72,10 +87,13 @@ export function createOperationalSandboxBiometricPaymentExecutionAdapter({
     },
 
     async getStatus(request) {
-      if (typeof provider.getStatus !== "function") {
-        fail("TRUST_PAYMENT_OPERATIONAL_RECONCILIATION_UNAVAILABLE", "sandbox provider does not support reconciliation");
-      }
-      return provider.getStatus(request);
+      return operations.reconcile({
+        ...request,
+        correlationId:
+          request.correlationId
+          ?? request.paymentIntentId
+          ?? request.idempotencyKey,
+      });
     },
   });
 
