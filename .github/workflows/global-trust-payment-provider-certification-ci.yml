@@ -8,8 +8,10 @@ on:
     paths:
       - "apps/api-gateway/src/global-trust-biometric-payment-provider-control.mjs"
       - "apps/api-gateway/src/global-trust-biometric-payment-provider-certification.mjs"
+      - "apps/api-gateway/src/global-trust-biometric-payment-provider-manifest.mjs"
       - "apps/api-gateway/test/global-trust-biometric-payment-provider-control.test.mjs"
       - "apps/api-gateway/test/global-trust-biometric-payment-provider-certification.test.mjs"
+      - "apps/api-gateway/test/global-trust-biometric-payment-provider-manifest.test.mjs"
       - ".github/workflows/global-trust-payment-provider-certification-ci.yml"
   pull_request:
     branches:
@@ -17,8 +19,10 @@ on:
     paths:
       - "apps/api-gateway/src/global-trust-biometric-payment-provider-control.mjs"
       - "apps/api-gateway/src/global-trust-biometric-payment-provider-certification.mjs"
+      - "apps/api-gateway/src/global-trust-biometric-payment-provider-manifest.mjs"
       - "apps/api-gateway/test/global-trust-biometric-payment-provider-control.test.mjs"
       - "apps/api-gateway/test/global-trust-biometric-payment-provider-certification.test.mjs"
+      - "apps/api-gateway/test/global-trust-biometric-payment-provider-manifest.test.mjs"
       - ".github/workflows/global-trust-payment-provider-certification-ci.yml"
   workflow_dispatch:
 
@@ -50,8 +54,10 @@ jobs:
           set -euo pipefail
           node --check apps/api-gateway/src/global-trust-biometric-payment-provider-control.mjs
           node --check apps/api-gateway/src/global-trust-biometric-payment-provider-certification.mjs
+          node --check apps/api-gateway/src/global-trust-biometric-payment-provider-manifest.mjs
           node --check apps/api-gateway/test/global-trust-biometric-payment-provider-control.test.mjs
           node --check apps/api-gateway/test/global-trust-biometric-payment-provider-certification.test.mjs
+          node --check apps/api-gateway/test/global-trust-biometric-payment-provider-manifest.test.mjs"
 
       - name: Execute provider control tests
         working-directory: apps/api-gateway
@@ -60,3 +66,7 @@ jobs:
       - name: Execute provider sandbox certification tests
         working-directory: apps/api-gateway
         run: node --test test/global-trust-biometric-payment-provider-certification.test.mjs
+
+      - name: Execute provider conformance manifest tests
+        working-directory: apps/api-gateway
+        run: node --test test/global-trust-biometric-payment-provider-manifest.test.mjs
