@@ -16,7 +16,9 @@ function fail(code, message) {
 
 function required(value, name) {
   const normalized = String(value ?? "").trim();
-  if (!normalized) fail("TRUST_PAYMENT_PROVIDER_CONTROL_INVALID_INPUT", `${name} is required`);
+  if (!normalized) {
+    fail("TRUST_PAYMENT_PROVIDER_CONTROL_INVALID_INPUT", `${name} is required`);
+  }
   return normalized;
 }
 
@@ -42,7 +44,7 @@ function normalizePolicy(input = {}) {
     fail("TRUST_PAYMENT_PROVIDER_CONTROL_INVALID_POLICY", "allowModes must be a non-empty array");
   }
 
-  const allowModes = Object.freeze(merged.allowModes.map((item) => required(item, "allowModes[]")));
+  const allowModes = Object.freeze(merged.allowModes.map((item) => required(item, "allowModes[]"));
   const timeoutMs = asPositiveInteger(merged.timeoutMs, "timeoutMs", { min: 100, max: 120_000 });
   const maxAttempts = asPositiveInteger(merged.maxAttempts, "maxAttempts", { min: 1, max: 3 });
   const maxTransactionsPerTenantWindow = asPositiveInteger(
@@ -89,10 +91,12 @@ function requireProvider(provider) {
   return { provider, mode, name };
 }
 
-function timeoutPromise(ms, controller) {
-  return new Promise((_, reject) => {
-    const timer = setTimeout(() => {
-      controller?.abort?.();
+async function withTimeout(operation, ms) {
+  const controller = new AbortController();
+  let timer;
+  const timeout = new Promise((_, reject) => {
+    timer = setTimeout(() => {
+      controller.abort();
       const error = new Error("payment provider timed out");
       error.code = "TRUST_PAYMENT_PROVIDER_TIMEOUT";
       error.retryable = true;
@@ -100,12 +104,15 @@ function timeoutPromise(ms, controller) {
     }, ms);
     timer.unref?.();
   });
-}
 
-async function withTimeout(operation, ms) {
-  const controller = new AbortController();
-  const work = Promise.resolve().then(() => operation(controller.signal));
-  return Promise.race([work, timeoutPromise(ms, controller)]);
+  try {
+    return await Promise.race([
+      Promise.resolve().then(() => operation(controller.signal)),
+      timeout,
+    ]);
+  } finally {
+    if (timer) clearTimeout(timer);
+  }
 }
 
 export function createBiometricPaymentProviderControl({
@@ -126,12 +133,12 @@ export function createBiometricPaymentProviderControl({
     }
     if (killSwitch) {
       fail(
-      "TRUST_PAYMENT_PROVIDER_KILL_SWITCH",
-      `payment provider is disabled by kill switch${killReason ? `: ${killReason}` : ""}`,
-    );
+        "TRUST_PAYMENT_PROVIDER_KILL_SWITCH",
+        `payment provider is disabled by kill switch${killReason ? `: ${killReason}` : ""}`,
+      );
     }
     if (!policy.allowModes.includes(mode)) {
-    fail("TRUST_PAYMENT_PROVIDER_MODE_BLOCKED", `provider mode ${mode} is not allowed by current policy`);
+      fail("TRUST_PAYMENT_PROVIDER_MODE_BLOCKED", `provider mode ${mode} is not allowed by current policy`);
     }
   }
 
@@ -141,16 +148,18 @@ export function createBiometricPaymentProviderControl({
     const limit = policy.maxAmountMinorByCurrency[currency];
     if (limit != null && amountMinor > limit) {
       fail(
-      "TRUST_PAYMENT_PROVIDER_AMOUNT_LIMIT",
-      `amountMinor exceeds configured limit for ${currency}`,
-    );
+        "TRUST_PAYMENT_PROVIDER_AMOUNT_LIMIT",
+        `amountMinor exceeds configured limit for ${currency}`,
+      );
     }
   }
 
   function reserveTenantWindow(request) {
     const tenantId = required(request?.tenantId, "request.tenantId");
     const now = Number(nowMs());
-    if (!Number.isFinite(now)) fail("TRUST_PAYMENT_PROVIDER_CLOCK_INVALID", "nowMs must return a number");
+    if (!Number.isFinite(now)) {
+      fail("TRUST_PAYMENT_PROVIDER_CLOCK_INVALID", "nowMs must return a number");
+    }
 
     const current = tenantWindows.get(tenantId);
     const active = current && now - current.startedAt < policy.windowMs
@@ -158,91 +167,21 @@ export function createBiometricPaymentProviderControl({
       : { startedAt: now, count: 0 };
 
     if (active.count >= policy.maxTransactionsPerTenantWindow) {
-      fail(
-        "TRUST_PAYMENT_PROVIDER_TENANT_RATE_LIMIT",
-        "tenant transaction window limit exceeded",
-      );
+      fail("TRUST_PAYMENT_PROVIDER_TENANT_RATE_LIMIT", "tenant transaction window limit exceeded");
     }
 
     active.count += 1;
     tenantWindows.set(tenantId, active);
   }
 
-  async function health() {
-    if (killSwitch) {
-      return Object.freeze({
-      status: "disabled",
-      provider: name,
-      mode,
-      killSwitch: true,
-      reason: killReason,
-    });
-  }
-
-    if (typeof provider.health !== "function") {
-      return Object.freeze({
-      status: policy.enabled && policy.allowModes.includes(mode) ? "unknown" : "disabled",
-      provider: name,
-      mode,
-      killSwitch: false,
-    });
-  }
-
-  const result = await withTimeout((signal) => provider.health({ signal }), policy.timeoutMs);
-  return Object.freeze({
-    provider: name,
-    mode,
-    killSwitch: false,
-    ...(result && typeof result === "object" ? result : { status: "unknown" }),
-  });
-  }
-
-  async function readiness() {
-    if (!policy.enabled || killSwitch || !policy.allowModes.includes(mode)) {
-      return Object.freeze({
-        ready: false,
-        provider: name,
-        mode,
-        reason: killSwitch ? "kill_switch" : "policy_disabled",
-      });
-    }
-
-    if (typeof provider.readiness !== "function") {
-      return Object.freeze({
-        ready: false,
-        provider: name,
-        mode,
-        reason: "provider_readiness_unavailable",
-      });
-    }
-
-    const result = await withTimeout((signal) => provider.readiness({ signal }), policy.timeoutMs);
-    return Object.freeze({
-      provider: name,
-      mode,
-      ...(result && typeof result === "object" ? result : { ready: false }),
-    });
-  }
-
-  async function authorize(request = {}) {
-    assertEnabled();
-    checkAmount(request);
-    reserveTenantWindow(request);
-
-    const idempotencyKey = required(request.idempotencyKey, "request.idempotencyKey");
+  async function invokeWithPolicy(operation) {
     let lastError;
-
-    for (let attempt = 1; attempt <= policy.maxAttempts; attempt += 1) {
+    for (let attempt = 1; attempt <= policy.maxAttempts; attemp += 1) {
       try {
-        const result = await withTimeout(
-          (signal) => provider.authorize({ ...request, idempotencyKey, signal }),
-          policy.timeoutMs,
-        );
-
+        const result = await withTimeout(operation, policy.timeoutMs);
         if (!result || typeof result !== "object") {
           fail("TRUST_PAYMENT_PROVIDER_INVALID_RESPONSE", "provider returned an invalid response");
         }
-
         return Object.freeze({
           ...result,
           control: Object.freeze({
@@ -261,8 +200,71 @@ export function createBiometricPaymentProviderControl({
         await sleep(Math.min(25 * attempt, 100));
       }
     }
-
     throw lastError;
+  }
+
+  async function authorize(request = {}) {
+    assertEnabled();
+    checkAmount(request);
+    reserveTenantWindow(request);
+    const idempotencyKey = required(request.idempotencyKey, "request.idempotencyKey");
+    return invokeWithPolicy(
+      (signal) => provider.authorize({ ...request, idempotencyKey, signal }),
+    );
+  }
+
+  async function getStatus(request = {}) {
+    assertEnabled();
+    if (typeof provider.getStatus !== "function") {
+      fail(
+        "TRUST_PAYMENT_PROVIDER_RECONCILIATION_UNAVAILABLE",
+        "payment provider does not implement getStatus",
+      );
+    }
+
+    const idempotencyKey = required(request.idempotencyKey, "request.idempotencyKey");
+    return withTimeout(
+      async (signal) => {
+        const result = await provider.getStatus({ ...request, idempotencyKey, signal });
+        if (!result || typeof result !== "object") {
+          fail("TRUST_PAYMENT_PROVIDER_INVALID_RESPONSE", "provider returned an invalid response");
+        }
+        return Object.freeze({
+          ...result,
+          control: Object.freeze({
+            provider: name,
+            mode,
+            attempt: 1,
+            maxAttempts: 1,
+            timeoutMs: policy.timeoutMs,
+            readOnly: true,
+          }),
+        });
+      },
+      policy.timeoutMs,
+    );
+  }
+
+  async function health() {
+    if (killSwitch) {
+      return Object.freeze({ status: "disabled", provider: name, mode, killSwitch: true, reason: killReason });
+  }
+    if (typeof provider.health !== "function") {
+      return Object.freeze({ status: policy.enabled && policy.allowModes.includes(mode) ? "unknown" : "disabled", provider: name, mode, killSwitch: false });
+  }
+  const result = await withTimeout((signal) => provider.health({ signal }), policy.timeoutMs);
+    return Object.freeze({ provider: name, mode, killSwitch: false, ...(result && typeof result === "object" ? result : { status: "unknown" }) });
+  }
+
+  async function readiness() {
+    if (!policy.enabled || killSwitch || !policy.allowModes.includes(mode)) {
+      return Object.freeze({ ready: false, provider: name, mode, reason: killSwitch ? "kill_switch" : "policy_disabled" });
+    }
+    if (typeof provider.readiness !== "function") {
+      return Object.freeze({ ready: false, provider: name, mode, reason: "provider_readiness_unavailable" });
+    }
+    const result = await withTimeout((signal) => provider.readiness({ signal }), policy.timeoutMs);
+    return Object.freeze({ provider: name, mode, ...(result && typeof result === "object" ? result : { ready: false }) });
   }
 
   function engageKillSwitch(reason = "manual") {
@@ -282,17 +284,18 @@ export function createBiometricPaymentProviderControl({
     providerMode: mode,
     policy,
     authorize,
+    getStatus,
     health,
     readiness,
     engageKillSwitch,
     resetKillSwitch,
     status() {
       return Object.freeze({
-      enabledByPolicy: policy.enabled,
-      allowedMode: policy.allowModes.includes(mode),
-      killSwitch,
-      killReason,
-    });
-  },
+        enabledByPolicy: policy.enabled,
+        allowedMode: policy.allowModes.includes(mode),
+        killSwitch,
+        killReason,
+      });
+    },
   });
 }
