@@ -11,11 +11,10 @@ import {
 const requireFromPersistence = createRequire(
   new URL("../../../packages/persistence-core/package.json", import.meta.url),
 );
-const { Pool } = requireFromPersistence("pg");
-
 const connectionString = process.env.POSTGRES_TEST_URL;
 
 function createPool() {
+  const { Pool } = requireFromPersistence("pg");
   return new Pool({
     connectionString,
     max: 4,
