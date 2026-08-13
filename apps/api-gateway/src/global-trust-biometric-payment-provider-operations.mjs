@@ -12,6 +12,7 @@ const NON_PROVIDER_FAILURE_CODES = new Set([
   "TRUST_PAYMENT_PROVIDER_TENANT_RATE_LIMIT",
   "TRUST_PAYMENT_PROVIDER_CONTROL_INVALID_INPUT",
   "TRUST_PAYMENT_PROVIDER_CONTROL_INVALID_POLICY",
+  "TRUST_PAYMENT_PROVIDER_RECONCILIATION_UNAVAILABLE",
 ]);
 
 function fail(code, message) {
@@ -116,6 +117,10 @@ export function createBiometricPaymentProviderOperations({
     authorizeSucceeded: 0,
     authorizeFailed: 0,
     authorizeBlocked: 0,
+    reconcileTotal: 0,
+    reconcileSucceeded: 0,
+    reconcileFailed: 0,
+    reconcileBlocked: 0,
     circuitOpened: 0,
     halfOpenTransitions: 0,
     healthChecks: 0,
@@ -138,7 +143,7 @@ export function createBiometricPaymentProviderOperations({
       provider: control.providerName ?? "unknown",
       mode: control.providerMode ?? "unknown",
       circuitState,
-    ...fields,
+      ...fields,
       sensitiveContentIncluded: false,
     });
     await telemetrySink.append(event);
@@ -164,7 +169,7 @@ export function createBiometricPaymentProviderOperations({
     lastTransitionAt = at;
   }
 
-  async function openCircuit(error, at, correlationId) {
+  async function openCircuit(error, at, correlationId, operation) {
     transition("open", at);
     openedUntil = at + policy.cooldownMs;
     halfOpenProbeInFlight = false;
@@ -174,6 +179,7 @@ export function createBiometricPaymentProviderOperations({
 
     await incident("trust.payment.provider.circuit_opened", {
       correlationId,
+      operation,
       errorCode: lastErrorCode,
       consecutiveFailures,
       openCount,
@@ -185,38 +191,42 @@ export function createBiometricPaymentProviderOperations({
       counters.killSwitchEngaged += 1;
       await incident("trust.payment.provider.kill_switch_engaged", {
         correlationId,
+        operation,
         reason: "incident.provider_repeated_failure",
         openCount,
       });
     }
   }
 
-  async function prepareCircuit(correlationId) {
+  async function prepareCircuit(correlationId, operation) {
     const at = now();
+    const blockedCounter = operation === "reconcile" ? "reconcileBlocked" : "authorizeBlocked";
 
     if (circuitState === "open") {
       if (at < openedUntil) {
-        counters.authorizeBlocked += 1;
-        await emit("trust.payment.provider.authorize_blocked", {
+        counters[blockedCounter] += 1;
+        await emit(`trust.payment.provider.${operation}_blocked`, {
           correlationId,
           reason: "circuit_open",
           openedUntil,
         });
         fail("TRUST_PAYMENT_PROVIDER_CIRCUIT_OPEN", "payment provider circuit is open");
       }
+
       transition("half_open", at);
       counters.halfOpenTransitions += 1;
       halfOpenProbeInFlight = false;
       await emit("trust.payment.provider.circuit_half_open", {
         correlationId,
+        operation,
         openCount,
       });
     }
 
     if (circuitState === "half_open") {
       if (halfOpenProbeInFlight) {
-        counters.authorizeBlocked += 1;
-        await emit("trust.payment.provider.authorize_blocked", {
+        counters[blockedCounter] += 1;
+        await emit(`trust.payment.provider.${operation}_blocked`, {
           correlationId,
           reason: "half_open_probe_in_flight",
         });
@@ -228,18 +238,38 @@ export function createBiometricPaymentProviderOperations({
       halfOpenProbeInFlight = true;
     }
 
-    return at;
+    return Object.freeze({
+      startedAt: at,
+      wasHalfOpen: circuitState === "half_open",
+    });
   }
 
-  async function authorize(request = {}) {
-    const correlationId = required(request.correlationId, "request.correlationId");
-    counters.authorizeTotal += 1;
-    const startedAt = await prepareCircuit(correlationId);
-    const wasHalfOpen = circuitState === "half_open";
+  async function execute(operation, request, invoke) {
+    const correlationId = required(request?.correlationId, "request.correlationId");
+    const totalCounter = operation === "reconcile" ? "reconcileTotal" : "authorizeTotal";
+    const successCounter = operation === "reconcile" ? "reconcileSucceeded" : "authorizeSucceeded";
+    const failedCounter = operation === "reconcile" ? "reconcileFailed" : "authorizeFailed";
+    counters[totalCounter] += 1;
+
+    if (operation === "reconcile" && typeof control.getStatus !== "function") {
+      counters[failedCounter] += 1;
+      const error = new Error("payment provider reconciliation is unavailable");
+      error.code = "TRUST_PAYMENT_PROVIDER_RECONCILIATION_UNAVAILABLE";
+      await emit("trust.payment.provider.reconcile_failed", {
+        correlationId,
+        errorCode: error.code,
+        providerFailure: false,
+        consecutiveFailures,
+        durationMs: 0,
+      });
+      throw error;
+    }
+
+    const { startedAt, wasHalfOpen } = await prepareCircuit(correlationId, operation);
 
     try {
-      const result = await control.authorize(request);
-      counters.authorizeSucceeded += 1;
+      const result = await invoke();
+      counters[successCounter] += 1;
       consecutiveFailures = 0;
       lastErrorCode = null;
 
@@ -249,11 +279,12 @@ export function createBiometricPaymentProviderOperations({
         halfOpenProbeInFlight = false;
         await emit("trust.payment.provider.circuit_closed", {
           correlationId,
+          operation,
           openCount,
         });
       }
 
-      await emit("trust.payment.provider.authorize_succeeded", {
+      await emit(`trust.payment.provider.${operation}_succeeed`, {
         correlationId,
         outcome: String(result?.status ?? "unknown"),
         durationMs: Math.max(0, now() - startedAt),
@@ -261,14 +292,14 @@ export function createBiometricPaymentProviderOperations({
 
       return result;
     } catch (error) {
-      counters.authorizeFailed += 1;
+      counters[failedCounter] += 1;
       lastErrorCode = safeCode(error);
       if (wasHalfOpen) halfOpenProbeInFlight = false;
 
       const providerFailure = isProviderFailure(error);
       if (providerFailure) consecutiveFailures += 1;
 
-      await emit("trust.payment.provider.authorize_failed", {
+      await emit(`trust.payment.provider.${operation}_failed`, {
         correlationId,
         errorCode: lastErrorCode,
         providerFailure,
@@ -280,11 +311,19 @@ export function createBiometricPaymentProviderOperations({
         providerFailure
         && (wasHalfOpen || consecutiveFailures >= policy.failureThreshold)
       ) {
-        await openCircuit(error, now(), correlationId);
+        await openCircuit(error, now(), correlationId, operation);
       }
 
       throw error;
     }
+  }
+
+  async function authorize(request = {}) {
+    return execute("authorize", request, () => control.authorize(request));
+  }
+
+  async function reconcile(request = {}) {
+    return execute("reconcile", request, () => control.getStatus(request));
   }
 
   async function health() {
@@ -351,6 +390,7 @@ export function createBiometricPaymentProviderOperations({
   return Object.freeze({
     policy,
     authorize,
+    reconcile,
     health,
     readiness,
     status,
