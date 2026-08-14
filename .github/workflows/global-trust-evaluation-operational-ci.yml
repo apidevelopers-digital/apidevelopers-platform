@@ -8,11 +8,13 @@ on:
     paths:
       - "apps/api-gateway/src/global-trust-evaluation-tenant.mjs"
       - "apps/api-gateway/src/global-trust-evaluation-http.mjs"
+      - "apps/api-gateway/src/global-trust-evaluation-operator-provisioning.mjs"
       - "apps/api-gateway/src/operational-trust-evaluation-composition.mjs"
       - "apps/api-gateway/src/operational-runtime.mjs"
       - "apps/api-gateway/src/operational-server.mjs"
       - "apps/api-gateway/test/operational-trust-evaluation-composition.test.mjs"
       - "apps/api-gateway/test/operational-trust-evaluation-feature-flag.test.mjs"
+      - "apps/api-gateway/test/operational-trust-evaluation-secure-handoff.test.mjs"
       - ".github/workflows/global-trust-evaluation-operational-ci.yml"
   pull_request:
     branches:
@@ -20,11 +22,13 @@ on:
     paths:
       - "apps/api-gateway/src/global-trust-evaluation-tenant.mjs"
       - "apps/api-gateway/src/global-trust-evaluation-http.mjs"
+      - "apps/api-gateway/src/global-trust-evaluation-operator-provisioning.mjs"
       - "apps/api-gateway/src/operational-trust-evaluation-composition.mjs"
       - "apps/api-gateway/src/operational-runtime.mjs"
       - "apps/api-gateway/src/operational-server.mjs"
       - "apps/api-gateway/test/operational-trust-evaluation-composition.test.mjs"
       - "apps/api-gateway/test/operational-trust-evaluation-feature-flag.test.mjs"
+      - "apps/api-gateway/test/operational-trust-evaluation-secure-handoff.test.mjs"
       - ".github/workflows/global-trust-evaluation-operational-ci.yml"
 
 permissions:
@@ -59,18 +63,20 @@ jobs:
           for dir in packages/*; do
             if [ -f "$dir/package.json" ]; then
               pkg="$(basename "$dir")"
-              ln -s "$GITHUB_WORKSPACE/$dir" "$GITHUB_WORKSPACE/node_modules/@apidevelopers/$pkg"
+              ln -s "$GITHUB_WORKSSPACE/$dir" "$GITHUB_WORKSPACE/node_modules/@apidevelopers/$pkg"
             fi
           done
 
       - name: Validate syntax
         run: |
           set -euo pipefail
+          node --check apps/api-gateway/src/global-trust-evaluation-operator-provisioning.mjs
           node --check apps/api-gateway/src/operational-trust-evaluation-composition.mjs
           node --check apps/api-gateway/src/operational-runtime.mjs
           node --check apps/api-gateway/src/operational-server.mjs
           node --check apps/api-gateway/test/operational-trust-evaluation-composition.test.mjs
           node --check apps/api-gateway/test/operational-trust-evaluation-feature-flag.test.mjs
+          node --check apps/api-gateway/test/operational-trust-evaluation-secure-handoff.test.mjs
 
       - name: Execute operational Evaluation E2E
         working-directory: apps/api-gateway
@@ -89,3 +95,7 @@ jobs:
       - name: Validate disabled-by-default feature flag
         working-directory: apps/api-gateway
         run: node --test test/operational-trust-evaluation-feature-flag.test.mjs
+
+      - name: Validate secure handoff injection boundary
+        working-directory: apps/api-gateway
+        run: node --test test/operational-trust-evaluation-secure-handoff.test.mjs
