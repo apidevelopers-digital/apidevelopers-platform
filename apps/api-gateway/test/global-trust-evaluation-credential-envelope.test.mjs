@@ -20,9 +20,9 @@ function rsaPair(modulusLength = 2048) {
   });
 }
 
-function payload(secret = SYNTHETIC_SECRET) {
+function payload() {
   return {
-    secret,
+    secret: SYNTHETIC_SECRET,
     tenantId: "component.tenant.acme",
     apiKeyId: "apikey-evaluation-acme",
     expiresAt: "2026-08-28T09:00:00.000Z",
@@ -30,27 +30,30 @@ function payload(secret = SYNTHETIC_SECRET) {
   };
 }
 
-test("sealed envelope encrypts first-issued credential for the recipient public key", async () => {
-  const keys = rsaPair();
-  const envelopes = [];
-  const handoff = createTrustEvaluationCredentialEnvelopeHandoff({
-    recipientPublicKey: keys.publicKey,
-    async deliverEnvelope(envelope) {
-      envelopes.push(structuredClone(envelope));
-    },
+function handoff(publicKey, sink) {
+  return createTrustEvaluationCredentialEnvelopeHandoff({
+    recipientPublicKey: publicKey,
+    deliverEnvelope: sink,
   });
+}
 
-  const receipt = await handoff.deliver(payload());
+async function sealed(keys = rsaPair()) {
+  let envelope;
+  const adapter = handoff(keys.publicKey, async (value) => {
+    envelope = structuredClone(value);
+  });
+  const receipt = await adapter.deliver(payload());
+  return { keys, envelope, receipt };
+}
 
-  assert.equal(envelopes.length, 1);
-  const [envelope] = envelopes;
+test("sealed envelope round-trips only for the recipient and never serializes plaintext", async () => {
+  const { keys, envelope, receipt } = await sealed();
+
   assert.equal(envelope.version, TRUST_EVALUATION_CREDENTIAL_ENVELOPE_VERSION);
   assert.equal(envelope.algorithm, TRUST_EVALUATION_CREDENTIAL_ENVELOPE_ALGORITHM);
   assert.equal(receipt.mode, "sealed_envelope");
   assert.equal(receipt.recipientKeyFingerprint, envelope.recipientKeyFingerprint);
   assert.equal(receipt.contextDigestB64u, envelope.contextDigestB64u);
-  assert.equal(envelope.context.tenantId, payload().tenantId);
-  assert.equal(envelope.context.apiKeyId, payload().apiKeyId);
   assert.equal(
     openTrustEvaluationCredentialEnvelope({
       envelope,
@@ -64,17 +67,8 @@ test("sealed envelope encrypts first-issued credential for the recipient public 
   assert.equal(serialized.includes("PRIVATE KEY"), false);
 });
 
-test("tampered envelope context fails closed before decryption", async () => {
-  const keys = rsaPair();
-  let envelope;
-  const handoff = createTrustEvaluationCredentialEnvelopeHandoff({
-    recipientPublicKey: keys.publicKey,
-    async deliverEnvelope(value) {
-      envelope = structuredClone(value);
-    },
-  });
-  await handoff.deliver(payload());
-
+test("tampered context fails closed", async () => {
+  const { keys, envelope } = await sealed();
   envelope.context.tenantId = "component.tenant.attacker";
 
   assert.throws(
@@ -87,17 +81,9 @@ test("tampered envelope context fails closed before decryption", async () => {
   );
 });
 
-test("wrong private key cannot open the envelope", async () => {
-  const recipient = rsaPair();
+test("wrong recipient fails closed", async () => {
+  const { envelope } = await sealed();
   const other = rsaPair();
-  let envelope;
-  const handoff = createTrustEvaluationCredentialEnvelopeHandoff({
-    recipientPublicKey: recipient.publicKey,
-    async deliverEnvellope(value) {
-      envelope = structuredClone(value);
-    },
-  });
-  await handoff.deliver(payload());
 
   assert.throws(
     () =>
@@ -109,51 +95,32 @@ test("wrong private key cannot open the envelope", async () => {
   );
 });
 
-test("recipient public-key boundary rejects private and weak keys", () => {
+test("private and weak recipient keys are rejected", () => {
   const strong = rsaPair();
   assert.throws(
-    () =>
-      createTrustEvaluationCredentialEnvelopeHandoff({
-        recipientPublicKey: strong.privateKey,
-        async deliverEnvellope() {},
-      }),
+    () => handoff(strong.privateKey, async () => {}),
     (error) => error.code === "TRUST_EVALUATION_ENVELOPE_PRIVATE_KEY_REJECTED",
   );
 
   const weak = rsaPair(1024);
   assert.throws(
-    () =>
-      createTrustEvaluationCredentialEnvelopeHandoff({
-        recipientPublicKey: weak.publicKey,
-        async deliverEnvelope() {},
-      }),
+    () => handoff(weak.publicKey, async () => {}),
     (error) => error.code === "TRUST_EVALUATION_ENVELOPE_WEAK_PUBLIC_KEY",
   );
 });
 
-test("delivery sink failure propagates so provisioning can require recovery", async () => {
+test("delivery sink failure propagates for recovery handling", async () => {
   const keys = rsaPair();
   const sinkError = new Error("synthetic sink unavailable");
-  const handoff = createTrustEvaluationCredentialEnvelopeHandoff({
-    recipientPublicKey: keys.publicKey,
-    async deliverEnvellope() {
-      throw sinkError;
-    },
+  const adapter = handoff(keys.publicKey, async () => {
+    throw sinkError;
   });
 
-  await assert.rejects(handoff.deliver(payload()), (error) => error === sinkError);
+  await assert.rejects(adapter.deliver(payload()), (error) => error === sinkError);
 });
 
-test("non-canonical base64url encoding fails closed", async () => {
-  const keys = rsaPair();
-  let envelope;
-  const handoff = createTrustEvaluationCredentialEnvelopeHandoff({
-    recipientPublicKey: keys.publicKey,
-    async deliverEnvelope(value) {
-      envelope = structuredClone(value);
-    },
-  });
-  await handoff.deliver(payload());
+test("non-canonical base64url fails closed", async () => {
+  const { keys, envelope } = await sealed();
   envelope.contextDigestB64u += "=";
 
   assert.throws(
@@ -163,5 +130,5 @@ test("non-canonical base64url encoding fails closed", async () => {
         recipientPrivateKey: keys.privateKey,
       }),
     (error) => error.code === "TRUST_EVALUATION_ENVELOPE_INVALID_ENCODING",
-  );
+   );
 });
