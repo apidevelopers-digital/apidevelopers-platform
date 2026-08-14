@@ -1,7 +1,10 @@
 import { createSaasRuntime } from "@apidevelopers/saas-runtime";
 
+import { createGlobalTrustEvaluationApprovedOnboardingService } from "./global-trust-evaluation-approved-onboarding.mjs";
 import { createGlobalTrustEvaluationHttpHandler } from "./global-trust-evaluation-http.mjs";
 import { createGlobalTrustEvaluationOperatorProvisioningService } from "./global-trust-evaluation-operator-provisioning.mjs";
+import { createGlobalTrustEvaluationRecipientKeyEnrollmentService } from "./global-trust-evaluation-recipient-key-enrollment.mjs";
+import { createTrustEvaluationRecipientKeyProofService } from "./global-trust-evaluation-recipient-key-proof.mjs";
 import { createGlobalTrustEvaluationTenantService } from "./global-trust-evaluation-tenant.mjs";
 import { createOperationalGateway } from "./operational-composition.mjs";
 
@@ -53,6 +56,7 @@ export function attachOperationalTrustEvaluationGateway({
   gateway: gatewayInput,
   clock,
   credentialHandoff,
+  deliverEvaluationEnvelope,
 } = {}) {
   const gateway = assertGateway(gatewayInput);
 
@@ -70,6 +74,15 @@ export function attachOperationalTrustEvaluationGateway({
     authenticator: gateway.authenticator,
     evaluationTenantService,
   });
+  const evaluationRecipientKeyProof = createTrustEvaluationRecipientKeyProofService({
+    store: gateway.store,
+    ...(clock ? { clock } : {}),
+  });
+  const evaluationRecipientKeyEnrollment =
+    createGlobalTrustEvaluationRecipientKeyEnrollmentService({
+      store: gateway.store,
+      ...(clock ? { clock } : {}),
+    });
   const app = wrapEvaluationApp({
     app: gateway.app,
     evaluationHttp,
@@ -83,12 +96,24 @@ export function attachOperationalTrustEvaluationGateway({
       })
     : null;
 
+  const evaluationApprovedOnboarding = deliverEvaluationEnvelope
+    ? createGlobalTrustEvaluationApprovedOnboardingService({
+        evaluationTenantService,
+        audit: gateway.audit,
+        recipientKeyEnrollmentService: evaluationRecipientKeyEnrollment,
+        deliverEnvelope: deliverEvaluationEnvelope,
+      })
+    : null;
+
   return Object.freeze({
     ...gateway,
     saasRuntime,
     evaluationTenantService,
     evaluationHttp,
+    evaluationRecipientKeyProof,
+    evaluationRecipientKeyEnrollment,
     ...(evaluationOperatorProvisioning ? { evaluationOperatorProvisioning } : {}),
+    ...(evaluationApprovedOnboarding ? { evaluationApprovedOnboarding } : {}),
     app,
   });
 }
@@ -99,5 +124,8 @@ export function createOperationalTrustEvaluationGateway(options = {}) {
     gateway,
     ...(options.clock ? { clock: options.clock } : {}),
     ...(options.credentialHandoff ? { credentialHandoff: options.credentialHandoff } : {}),
+    ...(options.deliverEvaluationEnvelope
+      ? { deliverEvaluationEnvelope: options.deliverEvaluationEnvelope }
+      : {}),
   });
 }
