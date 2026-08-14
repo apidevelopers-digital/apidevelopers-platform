@@ -1,0 +1,54 @@
+name: Global Trust Evaluation Envelope Transport CI
+
+on:
+  push:
+    branches:
+      - main
+      - "feat/trust-evaluation-tenant-20260814"
+    paths:
+      - "apps/api-gateway/src/global-trust-evaluation-envelope-transport.mjs"
+      - "apps/api-gateway/src/global-trust-evaluation-credential-envelope.mjs"
+      - "apps/api-gateway/test/global-trust-evaluation-envelope-transport.test.mjs"
+      - ".github/workflows/global-trust-evaluation-envelope-transport-ci.yml"
+  pull_request:
+    branches:
+      - main
+    paths:
+      - "apps/api-gateway/src/global-trust-evaluation-envelope-transport.mjs"
+      - "apps/api-gateway/src/global-trust-evaluation-credential-envelope.mjs"
+      - "apps/api-gateway/test/global-trust-evaluation-envelope-transport.test.mjs"
+      - ".github/workflows/global-trust-evaluation-envelope-transport-ci.yml"
+
+permissions:
+  contents: read
+
+jobs:
+  envelope-transport:
+    runs-on:
+      - self-hosted
+      - macOS
+      - X64
+    timeout-minutes: 10
+    env:
+      GLOBAL_TRUST_PAYMENT_MODE: dry-run
+      GLOBAL_TRUST_PAYMENT_EGRESS: blocked
+      GLOBAL_TRUST_REAL_MONEY: disabled
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+
+      - name: Validate syntax
+        run: |
+          set -euo pipefail
+          node --check apps/api-gateway/src/global-trust-evaluation-envelope-transport.mjs
+          node --check apps/api-gateway/test/global-trust-evaluation-envelope-transport.test.mjs
+
+      - name: Execute sealed envelope transport tests
+        working-directory: apps/api-gateway
+        run: node --test test/global-trust-evaluation-envelope-transport.test.mjs
