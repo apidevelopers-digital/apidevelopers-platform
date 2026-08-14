@@ -67,12 +67,18 @@ jobs:
           node --check apps/api-gateway/test/global-trust-biometric-payment-production-activation-execution.test.mjs
           node --check apps/api-gateway/test/global-trust-biometric-payment-production-activation-runtime.test.mjs
 
-      - name: Execute production activation fail-closed tests
+      - name: Test production activation evidence contract
         working-directory: apps/api-gateway
-        run: |
-          set -euo pipefail
-          node --test \
-            test/global-trust-biometric-payment-production-activation.test.mjs \
-            test/global-trust-biometric-payment-production-activation-bound-runtime.test.mjs \
-            test/global-trust-biometric-payment-production-activation-execution.test.mjs \
-            test/global-trust-biometric-payment-production-activation-runtime.test.mjs
+        run: node --test test/global-trust-biometric-payment-production-activation.test.mjs
+
+      - name: Test credential-bound runtime activation enforcement
+        working-directory: apps/api-gateway
+        run: node --test test/global-trust-biometric-payment-production-activation-bound-runtime.test.mjs
+
+      - name: Test external execution activation enforcement
+        working-directory: apps/api-gateway
+        run: node --test test/global-trust-biometric-payment-production-activation-execution.test.mjs
+
+      - name: Test raw runtime activation enforcement
+        working-directory: apps/api-gateway
+        run: node --test test/global-trust-biometric-payment-production-activation-runtime.test.mjs
