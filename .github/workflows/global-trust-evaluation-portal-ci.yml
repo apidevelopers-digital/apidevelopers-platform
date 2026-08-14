@@ -7,13 +7,16 @@ on:
       - "feat/trust-evaluation-tenant-20260814"
     paths:
       - "apps/api-gateway/src/global-trust-evaluation-portal-session.mjs"
+      - "apps/api-gateway/src/global-trust-evaluation-portal-session-core.mjs"
       - "apps/api-gateway/src/global-trust-evaluation-portal-inbox.mjs"
+      - "apps/api-gateway/src/global-trust-evaluation-portal-http.mjs"
       - "apps/api-gateway/src/global-trust-evaluation-recipient-key-proof.mjs"
       - "apps/api-gateway/src/global-trust-evaluation-credential-envelope.mjs"
       - "apps/api-gateway/src/global-trust-evaluation-approved-onboarding.mjs"
       - "apps/api-gateway/src/operational-trust-evaluation-portal-composition.mjs"
       - "apps/api-gateway/src/operational-trust-evaluation-composition.mjs"
       - "apps/api-gateway/test/global-trust-evaluation-portal.test.mjs"
+      - "apps/api-gateway/test/global-trust-evaluation-portal-http.test.mjs"
       - "apps/api-gateway/test/operational-trust-evaluation-portal-composition.test.mjs"
       - ".github/workflows/global-trust-evaluation-portal-ci.yml"
   pull_request:
@@ -21,13 +24,16 @@ on:
       - main
     paths:
       - "apps/api-gateway/src/global-trust-evaluation-portal-session.mjs"
+      - "apps/api-gateway/src/global-trust-evaluation-portal-session-core.mjs"
       - "apps/api-gateway/src/global-trust-evaluation-portal-inbox.mjs"
+      - "apps/api-gateway/src/global-trust-evaluation-portal-http.mjs"
       - "apps/api-gateway/src/global-trust-evaluation-recipient-key-proof.mjs"
       - "apps/api-gateway/src/global-trust-evaluation-credential-envelope.mjs"
       - "apps/api-gateway/src/global-trust-evaluation-approved-onboarding.mjs"
       - "apps/api-gateway/src/operational-trust-evaluation-portal-composition.mjs"
       - "apps/api-gateway/src/operational-trust-evaluation-composition.mjs"
       - "apps/api-gateway/test/global-trust-evaluation-portal.test.mjs"
+      - "apps/api-gateway/test/global-trust-evaluation-portal-http.test.mjs"
       - "apps/api-gateway/test/operational-trust-evaluation-portal-composition.test.mjs"
       - ".github/workflows/global-trust-evaluation-portal-ci.yml"
 
@@ -69,28 +75,33 @@ jobs:
           done
 
       - name: Validate syntax
+        shell: bash
         run: |
           set -euo pipefail
           node --check apps/api-gateway/src/global-trust-evaluation-portal-session.mjs
+          node --check apps/api-gateway/src/global-trust-evaluation-portal-session-core.mjs
           node --check apps/api-gateway/src/global-trust-evaluation-portal-inbox.mjs
+          node --check apps/api-gateway/src/global-trust-evaluation-portal-http.mjs
           node --check apps/api-gateway/src/global-trust-evaluation-approved-onboarding.mjs
           node --check apps/api-gateway/src/operational-trust-evaluation-portal-composition.mjs
           node --check apps/api-gateway/test/global-trust-evaluation-portal.test.mjs
+          node --check apps/api-gateway/test/global-trust-evaluation-portal-http.test.mjs
           node --check apps/api-gateway/test/operational-trust-evaluation-portal-composition.test.mjs
 
-      - name: Execute portal session inbox and in-product onboarding tests
+      - name: Execute portal session inbox HTTP and in-product onboarding tests
         working-directory: apps/api-gateway
         shell: bash
         run: |
           set +e
           node --test \
             test/global-trust-evaluation-portal.test.mjs \
+            test/global-trust-evaluation-portal-http.test.mjs \
             test/operational-trust-evaluation-portal-composition.test.mjs \
             2>&1 | tee /tmp/trust-evaluation-portal.log
           status=${PIPESTATUS[0]}
           set -e
           if [ "$status" -ne 0 ]; then
-            message="$(tail -n 120 /tmp/trust-evaluation-portal.log \
+            message="$(tail -n 140 /tmp/trust-evaluation-portal.log \
               | sed -E 's/trust_session_[A-Za-z0-9_.-]+/[REDACTED_SESSION_TOKEN]/g' \
               | sed -E 's/trust_eval_[A-Za-z0-9_-]+/[REDACTED_EVALUATION_SECRET]/g' \
               | sed -E 's/[A-Za-z0-9_-]{120,}/[REDACTED_LONG_VALUE]/g' \
