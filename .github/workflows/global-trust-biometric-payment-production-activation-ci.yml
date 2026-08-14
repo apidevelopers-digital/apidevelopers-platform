@@ -61,8 +61,10 @@ jobs:
           set -euo pipefail
           node --check apps/api-gateway/src/global-trust-biometric-payment-production-activation.mjs
           node --check apps/api-gateway/src/global-trust-biometric-payment-bound-runtime.mjs
+          node --check apps/api-gateway/src/global-trust-biometric-payment-execution.mjs"
           node --check apps/api-gateway/test/global-trust-biometric-payment-production-activation.test.mjs
           node --check apps/api-gateway/test/global-trust-biometric-payment-production-activation-bound-runtime.test.mjs
+          node --check apps/api-gateway/test/global-trust-biometric-payment-production-activation-execution.test.mjs
 
       - name: Execute production activation fail-closed tests
         working-directory: apps/api-gateway
@@ -70,4 +72,5 @@ jobs:
           set -euo pipefail
           node --test \
             test/global-trust-biometric-payment-production-activation.test.mjs \
-            test/global-trust-biometric-payment-production-activation-bound-runtime.test.mjs
+            test/global-trust-biometric-payment-production-activation-bound-runtime.test.mjs \
+            test/global-trust-biometric-payment-production-activation-execution.test.mjs
