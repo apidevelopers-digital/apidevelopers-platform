@@ -7,18 +7,20 @@ on:
       - "feat/global-trust-biometric-payments-20260813"
     paths:
       - "apps/api-gateway/src/global-trust-biometric-payment-production-activation.mjs"
-      - "apps/api-gateway/test/global-trust-biometric-payment-production-activation.test.mjs"
+      - "apps/api-gateway/src/global-trust-biometric-payment-bound-runtime.mjs"
       - "apps/api-gateway/src/global-trust-biometric-payment-runtime.mjs"
       - "apps/api-gateway/src/global-trust-biometric-payment-execution.mjs"
+      - "apps/api-gateway/test/global-trust-biometric-payment-production-activation*.test.mjs"
       - ".github/workflows/global-trust-biometric-payment-production-activation-ci.yml"
   pull_request:
     branches:
       - main
     paths:
       - "apps/api-gateway/src/global-trust-biometric-payment-production-activation.mjs"
-      - "apps/api-gateway/test/global-trust-biometric-payment-production-activation.test.mjs"
+      - "apps/api-gateway/src/global-trust-biometric-payment-bound-runtime.mjs"
       - "apps/api-gateway/src/global-trust-biometric-payment-runtime.mjs"
       - "apps/api-gateway/src/global-trust-biometric-payment-execution.mjs"
+      - "apps/api-gateway/test/global-trust-biometric-payment-production-activation*.test.mjs"
       - ".github/workflows/global-trust-biometric-payment-production-activation-ci.yml"
   workflow_dispatch:
 
@@ -46,12 +48,26 @@ jobs:
         with:
           node-version: "22"
 
+      - name: Bind local contracts package
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p apps/api-gateway/node_modules/@apidevelopers
+          ln -s "$GITHUB_WORKSPACE/packages/contracts" \
+            "$GITHUB_WORKSPACE/apps/api-gateway/node_modules/@apidevelopers/contracts"
+
       - name: Validate activation guard syntax
         run: |
           set -euo pipefail
           node --check apps/api-gateway/src/global-trust-biometric-payment-production-activation.mjs
+          node --check apps/api-gateway/src/global-trust-biometric-payment-bound-runtime.mjs
           node --check apps/api-gateway/test/global-trust-biometric-payment-production-activation.test.mjs
+          node --check apps/api-gateway/test/global-trust-biometric-payment-production-activation-bound-runtime.test.mjs
 
-      - name: Execute production activation guard tests
+      - name: Execute production activation fail-closed tests
         working-directory: apps/api-gateway
-        run: node --test test/global-trust-biometric-payment-production-activation.test.mjs
+        run: |
+          set -euo pipefail
+          node --test \
+            test/global-trust-biometric-payment-production-activation.test.mjs \
+            test/global-trust-biometric-payment-production-activation-bound-runtime.test.mjs
