@@ -1,4 +1,4 @@
-import { createSaaSRuntime } from "@apidevelopers/saas-runtime";
+import { createSaasRuntime } from "@apidevelopers/saas-runtime";
 
 import { createGlobalTrustEvaluationHttpHandler } from "./global-trust-evaluation-http.mjs";
 import { createGlobalTrustEvaluationTenantService } from "./global-trust-evaluation-tenant.mjs";
@@ -24,7 +24,7 @@ function wrapEvaluationApp({ app, evaluationHttp }) {
 
 export function createOperationalTrustEvaluationGateway(options = {}) {
   const gateway = createOperationalGateway(options);
-  const saasRuntime = createSaaSRuntime({
+  const saasRuntime = createSaasRuntime({
     store: gateway.store,
     ...(options.clock ? { clock: options.clock } : {}),
   });
