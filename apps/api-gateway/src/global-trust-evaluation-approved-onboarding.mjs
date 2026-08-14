@@ -85,7 +85,12 @@ export function createGlobalTrustEvaluationApprovedOnboardingService({
 
       const credentialHandoff = createTrustEvaluationCredentialEnvelopeHandoff({
         recipientPublicKey: enrollment.recipientPublicKeySpkiPem,
-        deliverEnvelope,
+        deliverEnvelope: (envelope) =>
+          deliverEnvelope(envelope, {
+            organizationId,
+            enrollmentId: enrollment.enrollmentId,
+            recipientKeyFingerprint: enrollment.recipientKeyFingerprint,
+          }),
       });
       if (credentialHandoff.recipientKeyFingerprint !== enrollment.recipientKeyFingerprint) {
         fail(
