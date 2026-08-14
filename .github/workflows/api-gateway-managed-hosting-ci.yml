@@ -39,8 +39,8 @@ jobs:
           grep -q "API_GATEWAY_PRODUCTION_DOMAIN" "$file"
           grep -q "API_GATEWAY_RUNTIME_READY" "$file"
           grep -q "HOSTINGER_API_TOKEN" "$file"
-          grep -q "--app-type express" "$file"
-          grep -q "--entry-file src/operational-server.mjs" "$file"
+          grep -q -- "--app-type express" "$file"
+          grep -q -- "--entry-file src/operational-server.mjs" "$file"
           if grep -Eq 'API_INSECURE|ssl_verify\u003dfalse|curl -k:' "$file"; then
             echo "Insecure transport guardrail detected." >&2
             exit 1
