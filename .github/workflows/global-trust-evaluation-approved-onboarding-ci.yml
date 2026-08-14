@@ -74,4 +74,14 @@ jobs:
 
       - name: Execute approved onboarding E2E
         working-directory: apps/api-gateway
-        run: node --test test/operational-trust-evaluation-approved-onboarding.test.mjs
+        shell: bash
+        run: |
+          set +e
+          node --test test/operational-trust-evaluation-approved-onboarding.test.mjs 2>&1 | tee /tmp/trust-approved-onboarding.log
+          status=${PIPESTATUS[0]}
+          set -e
+          if [ "$status" -ne 0 ]; then
+            message="$(tail -n 100 /tmp/trust-approved-onboarding.log | sed -E 's/trust_eval_[A-Za-z0-9_]+/[REDACTED_TEST_SECRET]/g' | tr '\n\r' '  ' | sed 's/%/%25/g')"
+            echo "::error title=Trust Evaluation approved onboarding E2E failure::$message"
+            exit "$status"
+          fi
