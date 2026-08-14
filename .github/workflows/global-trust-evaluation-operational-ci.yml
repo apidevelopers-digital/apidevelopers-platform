@@ -63,4 +63,14 @@ jobs:
 
       - name: Execute operational Evaluation E2E
         working-directory: apps/api-gateway
-        run: node --test test/operational-trust-evaluation-composition.test.mjs
+        shell: bash
+        run: |
+          set +e
+          node --test test/operational-trust-evaluation-composition.test.mjs 2>&1 | tee /tmp/trust-evaluation-operational.log
+          status=${PIPESTATUS[0]}
+          set -e
+          if [ "$status" -ne 0 ]; then
+            message="$(tail -n 60 /tmp/trust-evaluation-operational.log | sed -E 's/trust_eval_[A-Za-z0-9_]+/[REDACTED_TEST_SECRET]/g' | tr '\n\r' '  ' | sed 's/%/%25/g')"
+            echo "::error title=Trust Evaluation operational E2E failure::$message"
+            exit "$status"
+          fi
