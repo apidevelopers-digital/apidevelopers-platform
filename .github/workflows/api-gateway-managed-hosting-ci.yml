@@ -1,0 +1,47 @@
+name: API Gateway Managed Hosting CI
+
+on:
+  push:
+    branches:
+      - "fix/api-gateway-managed-deploy-20260814"
+    paths:
+      - "apps/api-gateway/**"
+      - ".github/workflows/api-gateway-managed-hosting-*.yml"
+  pull_request:
+    paths:
+      - "apps/api-gateway/**"
+      - ".github/workflows/api-gateway-managed-hosting-*.yml"
+
+permissions:
+  contents: read
+
+jobs:
+  validate:
+    runs-on: [self-hosted, macOS, X64]
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+      - name: Build and verify managed artifact
+        run: |
+          set -euo pipefail
+          node apps/api-gateway/scripts/build-managed-hosting-artifact.mjs
+          node apps/api-gateway/scripts/verify-managed-hosting-artifact.mjs
+      - name: Validate deploy guardrails
+        shell: bash
+        run: |
+          set -euo pipefail
+          file=".github/workflows/api-gateway-managed-hosting-production.yml"
+          grep -q "expected_sha" "$file"
+          grep -q "IGOR_APROVA_API_GATEWAY_PRODUCTION_DEPLOY" "$file"
+          grep -q "API_GATEWAY_PRODUCTION_DOMAIN" "$file"
+          grep -q "API_GATEWAY_RUNTIME_READY" "$file"
+          grep -q "HOSTINGER_API_TOKEN" "$file"
+          grep -q -- "--app-type express" "$file"
+          grep -q -- "--entry-file src/operational-server.mjs" "$file"
+          if grep -Eq 'API_INSECURE|ssl_verify\u003dfalse|curl -k:' "$file"; then
+            echo "Insecure transport guardrail detected." >&2
+            exit 1
+          fi
