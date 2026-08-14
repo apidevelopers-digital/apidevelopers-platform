@@ -1,6 +1,7 @@
 import { createSaasRuntime } from "@apidevelopers/saas-runtime";
 
 import { createGlobalTrustEvaluationHttpHandler } from "./global-trust-evaluation-http.mjs";
+import { createGlobalTrustEvaluationOperatorProvisioningService } from "./global-trust-evaluation-operator-provisioning.mjs";
 import { createGlobalTrustEvaluationTenantService } from "./global-trust-evaluation-tenant.mjs";
 import { createOperationalGateway } from "./operational-composition.mjs";
 
@@ -22,22 +23,38 @@ function wrapEvaluationApp({ app, evaluationHttp }) {
   });
 }
 
-export function attachOperationalTrustEvaluationGateway({
-  gateway,
-  clock,
-} = {}) {
+function assertGateway(gateway) {
   if (!gateway || typeof gateway !== "object") {
     throw new TypeError("gateway is required");
   }
-  if (!gateway.store || typeof gateway.store.read !== "function" || typeof gateway.store.transaction !== "function") {
+  if (
+    !gateway.store
+    || typeof gateway.store.read !== "function"
+    || typeof gateway.store.transaction !== "function"
+  ) {
     throw new TypeError("gateway.store must provide read and transaction");
   }
-  if (!gateway.apiKeyLifecycle || typeof gateway.apiKeyLifecycle.issueApiKey !== "function") {
+  if (
+    !gateway.apiKeyLifecycle
+    || typeof gateway.apiKeyLifecycle.issueApiKey !== "function"
+  ) {
     throw new TypeError("gateway.apiKeyLifecycle is unavailable");
   }
-  if (!gateway.authenticator || typeof gateway.authenticator.authenticate !== "function") {
+  if (
+    !gateway.authenticator
+    || typeof gateway.authenticator.authenticate !== "function"
+  ) {
     throw new TypeError("gateway.authenticator is unavailable");
   }
+  return gateway;
+}
+
+export function attachOperationalTrustEvaluationGateway({
+  gateway: gatewayInput,
+  clock,
+  credentialHandoff,
+} = {}) {
+  const gateway = assertGateway(gatewayInput);
 
   const saasRuntime = createSaasRuntime({
     store: gateway.store,
@@ -58,11 +75,20 @@ export function attachOperationalTrustEvaluationGateway({
     evaluationHttp,
   });
 
+  const evaluationOperatorProvisioning = credentialHandoff
+    ? createGlobalTrustEvaluationOperatorProvisioningService({
+        evaluationTenantService,
+        audit: gateway.audit,
+        credentialHandoff,
+      })
+    : null;
+
   return Object.freeze({
     ...gateway,
     saasRuntime,
     evaluationTenantService,
     evaluationHttp,
+    ...(evaluationOperatorProvisioning ? { evaluationOperatorProvisioning } : {}),
     app,
   });
 }
@@ -72,5 +98,6 @@ export function createOperationalTrustEvaluationGateway(options = {}) {
   return attachOperationalTrustEvaluationGateway({
     gateway,
     ...(options.clock ? { clock: options.clock } : {}),
+    ...(options.credentialHandoff ? { credentialHandoff: options.credentialHandoff } : {}),
   });
 }
