@@ -80,7 +80,22 @@ jobs:
 
       - name: Execute portal session inbox and in-product onboarding tests
         working-directory: apps/api-gateway
+        shell: bash
         run: |
+          set +e
           node --test \
             test/global-trust-evaluation-portal.test.mjs \
-            test/operational-trust-evaluation-portal-composition.test.mjs
+            test/operational-trust-evaluation-portal-composition.test.mjs \
+            2>&1 | tee /tmp/trust-evaluation-portal.log
+          status=${PIPESTATUS[0]}
+          set -e
+          if [ "$status" -ne 0 ]; then
+            message="$(tail -n 120 /tmp/trust-evaluation-portal.log \
+              | sed -E 's/trust_session_[A-Za-z0-9_.-]+/[REDACTED_SESSION_TOKEN]/g' \
+              | sed -E 's/trust_eval_[A-Za-z0-9_-]+/[REDACTED_EVALUATION_SECRET]/g' \
+              | sed -E 's/[A-Za-z0-9_-]{120,}/[REDACTED_LONG_VALUE]/g' \
+              | tr '\n\r' '  ' \
+              | sed 's/%/%25/g')"
+            echo "::error title=Trust Evaluation portal E2E failure::$message"
+            exit "$status"
+          fi
