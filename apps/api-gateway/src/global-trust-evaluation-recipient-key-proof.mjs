@@ -15,17 +15,14 @@ function fail(code, message, cause) {
   if (cause !== undefined) error.cause = cause;
   throw error;
 }
-
 function requireText(value, name) {
   const normalized = String(value ?? "").trim();
   if (!normalized) fail("TRUST_EVALUATION_KEY_PROOF_INVALID_INPUT", `${name} is required`);
   return normalized;
 }
-
 function toB64u(value) {
   return Buffer.from(value).toString("base64url");
 }
-
 function fromB64u(value, name) {
   const normalized = requireText(value, name);
   if (!/^[A-Za-z0-9_-]+$/.test(normalized)) {
@@ -37,75 +34,45 @@ function fromB64u(value, name) {
   }
   return decoded;
 }
-
 function normalizePublicKey(recipientPublicKey) {
-  if (
-    typeof recipientPublicKey === "string" &&
-    recipientPublicKey.includes("PRIVATE KEY")
-  ) {
-    fail(
-      "TRUST_EVALUATION_KEY_PROOF_PRIVATE_KEY_REJECTED",
-      "recipientPublicKey must not contain private-key material",
-    );
+  if (typeof recipientPublicKey === "string" && recipientPublicKey.includes("PRIVATE KEY")) {
+    fail("TRUST_EVALUATION_KEY_PROOF_PRIVATE_KEY_REJECTED", "recipientPublicKey must not contain private-key material");
   }
-
   let key;
   try {
     key = createPublicKey(recipientPublicKey);
   } catch (cause) {
-    fail(
-      "TRUST_EVALUATION_KEY_PROOF_INVALID_PUBLIC_KEY",
-      "recipientPublicKey is invalid",
-      cause,
-    );
+    fail("TRUST_EVALUATION_KEY_PROOF_INVALID_PUBLIC_KEY", "recipientPublicKey is invalid", cause);
   }
-
   if (key.asymmetricKeyType !== "rsa") {
-    fail(
-      "TRUST_EVALUATION_KEY_PROOF_UNSUPPORTED_PUBLIC_KEY",
-      "recipientPublicKey must be RSA",
-    );
+    fail("TRUST_EVALUATION_KEY_PROOF_UNSUPPORTED_PUBLIC_KEY", "recipientPublicKey must be RSA");
   }
-
   const modulusLength = Number(key.asymmetricKeyDetails?.modulusLength ?? 0);
   if (!Number.isSafeInteger(modulusLength) || modulusLength < 2048) {
-    fail(
-      "TRUST_EVALUATION_KEY_PROOF_WEAK_PUBLIC_KEY",
-      "recipientPublicKey must use an RSA modulus of at least 2048 bits",
-    );
+    fail("TRUST_EVALUATION_KEY_PROOF_WEAK_PUBLIC_KEY", "recipientPublicKey must use an RSA modulus of at least 2048 bits");
   }
-
   return key;
 }
-
 function fingerprintPublicKey(key) {
-  const spki = key.export({ type: "spki", format: "der" });
-  return createHash("sha256").update(spki).digest("base64url");
+  return createHash("sha256")
+    .update(key.export({ type: "spki", format: "der" }))
+    .digest("base64url");
 }
-
 function normalizeTtlMs(value) {
-  const ttlMs = value ?? DEFAULT_TTL_MS;
-  if (
-    "Number.isSafeInteger(ttlMs)" &&
-    ttlMs >= MIN_TTL_MS &&
-    ttlMs <= MAX_TTL_MS
-  ) {
-    return ttlMs;
+  const ttlMs = value ?? DEFAULT
+TTL_MS;
+  if (!Number.isSafeInteger(ttlMs) || ttlMs < MIN_TTL_MS || ttlMs > MAX_TTL_MS) {
+    fail("TRUST_EVALUATION_KEY_PROOF_INVALID_TTL", "ttlMs must be an integer between 1 and 15 minutes");
   }
-  fail(
-    "TRUST_EVALUATION_KEY_PROOF_INVALID_TTL",
-    "ttlMs must be an integer between 1 and 15 minutes",
-  );
+  return ttlMs;
 }
-
 function iso(value, name) {
   const normalized = requireText(value, name);
-  if (Number.isNaN(Date.parse(normalized)) {
+  if (Number.isNaN(Date.parse(normalized))) {
     fail("TRUST_EVALUATION_KEY_PROOF_INVALID_TIME", `${name} must be an ISO-8601 date`);
   }
   return normalized;
 }
-
 function coreStatement({
   organizationId,
   recipientKeyFingerprint,
@@ -118,33 +85,22 @@ function coreStatement({
     version: TRUST_EVALUATION_RECIPIENT_KEY_PROOF_VERSION,
     algorithm: TRUST_EVALUATION_RECIPIENT_KEY_PROOF_ALGORITHM,
     organizationId: requireText(organizationId, "organizationId"),
-    recipientKeyFingerprint: requireText(
-      recipientKeyFingerprint,
-      "recipientKeyFingerprint",
-    ),
+    recipientKeyFingerprint: requireText(recipientKeyFingerprint, "recipientKeyFingerprint"),
     challengeB64u: requireText(challengeB64u, "challengeB64u"),
     issuedAt: iso(issuedAt, "issuedAt"),
     expiresAt: iso(expiresAt, "expiresAt"),
     correlationId: requireText(correlationId, "correlationId"),
   });
 }
-
 function challengeIdFor(statement) {
-  return createHash("sha256")
-    .update(JSON.stringify(statement), "utf8")
-    .digest("base64url");
+  return createHash("sha256").update(JSON.stringify(statement), "utf8").digest("base64url");
 }
-
 function signingPayload(record) {
-  return Buffer.from(
-    JSON.stringify({
-      ...coreStatement(record),
-      challengeId: requireText(record.challengeId, "challengeId"),
-    }),
-    "utf8",
-  );
+  return Buffer.from(JSON.stringify({
+    ...coreStatement(record),
+    challengeId: requireText(record.challengeId, "challengeId"),
+  }), "utf8");
 }
-
 function publicChallenge(record) {
   return Object.freeze({
     version: record.version,
@@ -165,21 +121,11 @@ export function createTrustEvaluationRecipientKeyProofService({
   clock = () => new Date().toISOString(),
   randomBytesFn = randomBytes,
 } = {}) {
-  if (
-    !store ||
-    typeof store.read !== "function" ||
-    typeof store.transaction !== "function"
-  ) {
-    fail(
-      "TRUST_EVALUATION_KEY_PROOF_INVALID_STORE",
-      "store must provide read and transaction",
-    );
+  if (!store || typeof store.read !== "function" || typeof store.transaction !== "function") {
+    fail("TRUST_EVALUATION_KEY_PROOF_INVALID_STORE", "store must provide read and transaction");
   }
   if (typeof clock !== "function" || typeof randomBytesFn !== "function") {
-    fail(
-      "TRUST_EVALUATION_KEY_PROOF_INVALID_DEPENDENCY",
-      "clock and randomBytesFn must be functions",
-    );
+    fail("TRUST_EVALUATION_KEY_PROOF_INVALID_DEPENDENCY", "clock and randomBytesFn must be functions");
   }
 
   return Object.freeze({
@@ -195,10 +141,7 @@ export function createTrustEvaluationRecipientKeyProofService({
       const expiresAt = new Date(Date.parse(issuedAt) + ttlMs).toISOString();
       const nonce = Buffer.from(randomBytesFn(32));
       if (nonce.length < 32) {
-        fail(
-          "TRUST_EVALUATION_KEY_PROOF_WEAK_CHALLENGE",
-          "randomBytesFn must return at least 32 bytes",
-        );
+        fail("TRUST_EVALUATION_KEY_PROOF_WEAK_CHALLENGE", "randomBytesFn must return at least 32 bytes");
       }
 
       const statement = coreStatement({
@@ -220,15 +163,11 @@ export function createTrustEvaluationRecipientKeyProofService({
 
       const committed = await store.transaction((tx) => {
         if (tx.get(COLLECTION, challengeId)) {
-          fail(
-            "TRUST_EVALUATION_KEY_PROOF_CHALLENGE_CONFLICT",
-            "challenge already exists",
-          );
+          fail("TRUST_EVALUATION_KEY_PROOF_CHALLENGE_CONFLICT", "challenge already exists");
         }
         tx.put(COLLECTION, challengeId, record, { ifAbsent: true });
         return record;
       });
-
       return publicChallenge(committed.result);
     },
 
@@ -246,28 +185,16 @@ export function createTrustEvaluationRecipientKeyProofService({
       const committed = await store.transaction((tx) => {
         const record = tx.get(COLLECTION, id);
         if (!record) {
-          fail(
-            "TRUST_EVALUATION_KEY_PROOF_CHALLENGE_NOT_FOUND",
-            "recipient key challenge was not found",
-          );
+          fail("TRUST_EVALUATION_KEY_PROOF_CHALLENGE_NOT_FOUND", "recipient key challenge was not found");
         }
         if (record.status !== "active") {
-          fail(
-            "TRUST_EVALUATION_KEY_PROOF_REPLAY",
-            "recipient key challenge was already consumed",
-          );
+          fail("TRUST_EVALUATION_KEY_PROOF_REPLAY", "recipient key challenge was already consumed");
         }
         if (Date.parse(verifiedAt) >= Date.parse(record.expiresAt)) {
-          fail(
-            "TRUST_EVALUATION_KEY_PROOF_EXPIRED",
-            "recipient key challenge has expired",
-          );
+          fail("TRUST_EVALUATION_KEY_PROOF_EXPIRED", "recipient key challenge has expired");
         }
         if (record.recipientKeyFingerprint !== fingerprint) {
-          fail(
-            "TRUST_EVALUATION_KEY_PROOF_RECIPIENT_MISMATCH",
-            "recipient public key does not match the challenge",
-          );
+          fail("TRUST_EVALUATION_KEY_PROOF_RECIPIENT_MISMATCH", "recipient public key does not match the challenge");
         }
 
         const valid = verify(
@@ -281,10 +208,7 @@ export function createTrustEvaluationRecipientKeyProofService({
           signature,
         );
         if (!valid) {
-          fail(
-            "TRUST_EVALUATION_KEY_PROOF_INVALID_SIGNATURE",
-            "recipient key proof signature is invalid",
-          );
+          fail("TRUST_EVALUATION_KEY_PROOF_INVALID_SIGNATURE", "recipient key proof signature is invalid");
         }
 
         const proof = Object.freeze({
