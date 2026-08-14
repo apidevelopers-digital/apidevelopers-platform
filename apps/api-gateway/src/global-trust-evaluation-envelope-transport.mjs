@@ -36,7 +36,7 @@ function requireText(value, name) {
 
 function requireIso(value, name) {
   const normalized = requireText(value, name);
-  if (Number.isNaN(Date.parse(normalized)) {
+  if (Number.isNaN(Date.parse(normalized))) {
     fail("TRUST_EVALUATION_ENVELOPE_TRANSPORT_INVALID_TIME", `${name} must be an ISO-8601 date`);
   }
   return normalized;
@@ -59,7 +59,7 @@ function assertExactKeys(value, allowed, name) {
     if (!allowed.has(key)) {
       fail(
         "TRUST_EVALUATION_ENVELOPE_TRANSPORT_FORBIDDEN_FIELD",
-        ${name}.${key} is not permitted`,
+        `${name}.${key} is not permitted`,
       );
     }
   }
@@ -124,7 +124,7 @@ function normalizeApproval(approval, channelId, now) {
   ) {
     fail(
       "TRUST_EVALUATION_ENVELOPE_TRANSPORT_INVALID_APPROVAL_ASSERTION",
-      $`transport approval assertion must be ${TRUST_EVALUATION_ENVELOPE_TRANSPORT_APPROVAL_ASSERTION}`,
+      `transport approval assertion must be ${TRUST_EVALUATION_ENVELOPE_TRANSPORT_APPROVAL_ASSERTION}`,
     );
   }
   if (requireText(approval.channelId, "approval.channelId") !== channelId) {
