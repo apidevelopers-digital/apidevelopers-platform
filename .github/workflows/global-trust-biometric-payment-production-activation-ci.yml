@@ -79,6 +79,14 @@ jobs:
         working-directory: apps/api-gateway
         run: node --test test/global-trust-biometric-payment-production-activation-execution.test.mjs
 
-      - name: Test raw runtime activation enforcement
+      - name: Test raw runtime blocks missing activation evidence
         working-directory: apps/api-gateway
-        run: node --test test/global-trust-biometric-payment-production-activation-runtime.test.mjs
+        run: node --test --test-name-pattern="raw external runtime rejects boolean approval" test/global-trust-biometric-payment-production-activation-runtime.test.mjs
+
+      - name: Test raw runtime provider identity binding
+        working-directory: apps/api-gateway
+        run: node --test --test-name-pattern="raw external runtime binds activation evidence" test/global-trust-biometric-payment-production-activation-runtime.test.mjs
+
+      - name: Test raw runtime complete activation construction
+        working-directory: apps/api-gateway
+        run: node --test --test-name-pattern="complete synthetic activation evidence permits constructor" test/global-trust-biometric-payment-production-activation-runtime.test.mjs
