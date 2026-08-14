@@ -22,17 +22,32 @@ function wrapEvaluationApp({ app, evaluationHttp }) {
   });
 }
 
-export function createOperationalTrustEvaluationGateway(options = {}) {
-  const gateway = createOperationalGateway(options);
+export function attachOperationalTrustEvaluationGateway({
+  gateway,
+  clock,
+} = {}) {
+  if (!gateway || typeof gateway !== "object") {
+    throw new TypeError("gateway is required");
+  }
+  if (!gateway.store || typeof gateway.store.read !== "function" || typeof gateway.store.transaction !== "function") {
+    throw new TypeError("gateway.store must provide read and transaction");
+  }
+  if (!gateway.apiKeyLifecycle || typeof gateway.apiKeyLifecycle.issueApiKey !== "function") {
+    throw new TypeError("gateway.apiKeyLifecycle is unavailable");
+  }
+  if (!gateway.authenticator || typeof gateway.authenticator.authenticate !== "function") {
+    throw new TypeError("gateway.authenticator is unavailable");
+  }
+
   const saasRuntime = createSaasRuntime({
     store: gateway.store,
-    ...(options.clock ? { clock: options.clock } : {}),
+    ...(clock ? { clock } : {}),
   });
   const evaluationTenantService = createGlobalTrustEvaluationTenantService({
     store: gateway.store,
     saasRuntime,
     apiKeyLifecycle: gateway.apiKeyLifecycle,
-    ...(options.clock ? { clock: options.clock } : {}),
+    ...(clock ? { clock } : {}),
   });
   const evaluationHttp = createGlobalTrustEvaluationHttpHandler({
     authenticator: gateway.authenticator,
@@ -49,5 +64,13 @@ export function createOperationalTrustEvaluationGateway(options = {}) {
     evaluationTenantService,
     evaluationHttp,
     app,
+  });
+}
+
+export function createOperationalTrustEvaluationGateway(options = {}) {
+  const gateway = createOperationalGateway(options);
+  return attachOperationalTrustEvaluationGateway({
+    gateway,
+    ...(options.clock ? { clock: options.clock } : {}),
   });
 }
