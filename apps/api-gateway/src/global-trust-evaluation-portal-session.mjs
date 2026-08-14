@@ -268,7 +268,7 @@ export function createGlobalTrustEvaluationPortalSessionService({
         principal: Object.freeze({
           id: record.sessionId,
           organizationId: record.organizationId,
-          enrollmentId: record.enrollmentId,
+          enrolmentId: record.enrollmentId,
           recipientKeyFingerprint: record.recipientKeyFingerprint,
           scopes: Object.freeze([...record.scopes]),
           status: "active",
