@@ -1,0 +1,64 @@
+name: Global Trust Evaluation Recipient Key Enrollment CI
+
+on:
+  push:
+    branches:
+      - main
+      - "feat/trust-evaluation-tenant-20260814"
+    paths:
+      - "apps/api-gateway/src/global-trust-evaluation-recipient-key-enrollment.mjs"
+      - "apps/api-gateway/src/global-trust-evaluation-recipient-key-proof.mjs"
+      - "apps/api-gateway/test/global-trust-evaluation-recipient-key-enrollment.test.mjs"
+      - "apps/api-gateway/docs/GLOBAL_TRUST_EVALUATION_RECIPIENT_KEY_ENROLLMENT.md"
+      - ".github/workflows/global-trust-evaluation-recipient-key-enrollment-ci.yml"
+  pull_request:
+    branches:
+      - main
+    paths:
+      - "apps/api-gateway/src/global-trust-evaluation-recipient-key-enrollment.mjs"
+      - "apps/api-gateway/src/global-trust-evaluation-recipient-key-proof.mjs"
+      - "apps/api-gateway/test/global-trust-evaluation-recipient-key-enrollment.test.mjs"
+      - "apps/api-gateway/docs/GLOBAL_TRUST_EVALUATION_RECIPIENT_KEY_ENROLLMENT.md"
+      - ".github/workflows/global-trust-evaluation-recipient-key-enrollment-ci.yml"
+
+permissions:
+  contents: read
+
+jobs:
+  recipient-key-enrollment:
+    runs-on:
+      - self-hosted
+      - macOS
+      - X64
+    timeout-minutes: 10
+    env:
+      GLOBAL_TRUST_PAYMENT_MODE: dry-run
+      GLOBAL_TRUST_PAYMENT_EGRESS: blocked
+      GLOBAL_TRUST_REAL_MONEY: disabled
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+
+      - name: Bind persistence core
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p node_modules/@apidevelopers
+          ln -s "$GITHUB_WORKSPACE/packages/persistence-core" \
+            "$GITHUB_WORKSPACE/node_modules/@apidevelopers/persistence-core"
+
+      - name: Validate syntax
+        run: |
+          set -euo pipefail
+          node --check apps/api-gateway/src/global-trust-evaluation-recipient-key-enrollment.mjs
+          node --check apps/api-gateway/test/global-trust-evaluation-recipient-key-enrollment.test.mjs
+
+      - name: Execute approved recipient key enrollment tests
+        working-directory: apps/api-gateway
+        run: node --test test/global-trust-evaluation-recipient-key-enrollment.test.mjs
