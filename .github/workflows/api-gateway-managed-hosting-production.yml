@@ -36,18 +36,12 @@ jobs:
       HOSTINGER_DOMAIN: ${{ vars.API_GATEWAY_PRODUCTION_DOMAIN }}
       API_GATEWAY_RUNTIME_READY: ${{ vars.API_GATEWAY_RUNTIME_READY }}
     steps:
-      - name: Validate fail-closed deploy inputs
+      - name: Validate exact SHA
         shell: bash
         run: |
           set -euo pipefail
           test -n "${{ inputs.expected_sha }}"
           test "${{ inputs.expected_sha }}" = "${{ github.sha }}"
-          test -n "$HOSTINGER_USERNAME"
-          test -n "$HOSTINGER_DOMAIN"
-          test "$API_GATEWAY_RUNTIME_READY" = "true"
-          if [[ "${{ inputs.mode }}" == "apply" ]]; then
-            test "${{ inputs.approval }}" = "IGOR_APROVA_API_GATEWAY_PRODUCTION_DEPLOY"
-          fi
 
       - name: Checkout exact SHA
         uses: actions/checkout@v4
@@ -68,8 +62,24 @@ jobs:
           node apps/api-gateway/scripts/verify-managed-hosting-artifact.mjs
           artifact="apps/api-gateway/dist/api-gateway-managed"
           test -f "$artifact/release-manifest.json"
-           zip -q -r "$RUNNER_TEMP/api-gateway-${{`inputs.expected_sha`}}.zip" "$artifact"
-          echo "ARCHIVE_PATH=$RUNNER_TEMP/api-gateway-${{`inputs.expected_sha``}}.zip" >> "$GITHUB_ENV"
+          archive="$RUNNER_TEMP/api-gateway-${{ inputs.expected_sha }}.zip"
+          (
+            cd "$artifact"
+            zip -q -r "$archive" .
+          )
+          test -s "$archive"
+          echo "ARCHIVE_PATH=$archive" >> "$GITHUB_ENV"
+
+      - name: Validate production target guardrails
+        shell: bash
+        run: |
+          set -euo pipefail
+          test -n "$HOSTINGER_USERNAME"
+          test -n "$HOSTINGER_DOMAIN"
+          test "$API_GATEWAY_RUNTIME_READY" = "true"
+          if [[ "${{ inputs.mode }}" == "apply" ]]; then
+            test "${{ inputs.approval }}" = "IGOR_APROVA_API_GATEWAY_PRODUCTION_DEPLOY"
+          fi
 
       - name: Preflight or apply Hostinger Node build
         id: hostinger
@@ -83,7 +93,7 @@ jobs:
             --mode "${{ inputs.mode }}" \
             --username "$HOSTINGER_USERNAME" \
             --domain "$HOSTINGER_DOMAIN" \
-            --archive "$ARCHIVE_PATH \ 
+            --archive "$ARCHIVE_PATH" \
             --transport multipart \
             --node-version 22 \
             --app-type express \
