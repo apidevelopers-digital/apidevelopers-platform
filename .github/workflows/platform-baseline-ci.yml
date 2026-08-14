@@ -53,14 +53,19 @@ jobs:
         run: |
           set -euo pipefail
           found=0
+          failures=0
           while IFS= read -r file; do
             found=1
             echo "checking syntax: $file"
-            node --check "$file"
+            if ! node --check "$file" >/dev/null 2>&1; then
+              failures=1
+              echo "::error file=$file,title=JavaScript syntax failure::node --check failed"
+            fi
           done < <(find . -type f \( -name '*.js' -o -name '*.mjs' -o -name '*.cjs' \) -not -path './.git/*' | sort)
           if [ "$found" -eq 0 ]; then
             echo "No JavaScript files found."
           fi
+          exit "$failures"
 
       - name: Validate JSON files
         shell: bash
