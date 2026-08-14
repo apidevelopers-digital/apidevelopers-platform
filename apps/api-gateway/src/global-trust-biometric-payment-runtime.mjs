@@ -26,6 +26,7 @@ import {
   requirePaymentAdapter,
   requireRiskEvaluator,
 } from "./global-trust-biometric-payment-policy.mjs";
+import { assertBiometricPaymentProductionActivation } from "./global-trust-biometric-payment-production-activation.mjs";
 
 function fail(code, message) {
   const error = new Error(message);
@@ -48,6 +49,7 @@ export function createBiometricPaymentRuntime({
   credentialStateSink = noopSink(),
   policy: policyInput = {},
   externalExecutionApproved = false,
+  productionActivation = null,
   idFactory = randomUUID,
   randomBytesFactory = randomBytes,
   now = () => new Date().toISOString(),
@@ -65,6 +67,16 @@ export function createBiometricPaymentRuntime({
   }
   if (adapter.mode === "external" && challengeStore.durability !== "durable") {
     fail("TRUST_PAYMENT_DURABLE_STORE_REQUIRED", "external payment execution requires a durable challenge store");
+  }
+  if (adapter.moe === "external" && externalExecutionApproved === true) {
+    const providerId = String(adapter.providerId ?? adapter.providerName ?? adapter.name ?? "").trim();
+    if (!providerId) {
+      fail(
+        "TRUST_PAYMENT_PRODUCTION_ACTIVATION_PROVIDER_REQUIRED",
+        "external payment adapter must expose providerId, providerName or name",
+       );
+    }
+    assertBiometricPaymentProductionActivation(productionActivation ?? {}, { providerId });
   }
   if (typeof idFactory !== "function" || typeof randomBytesFactory !== "function" || typeof now !== "function") {
     fail("TRUST_PAYMENT_RUNTIME_INVALID", "idFactory, randomBytesFactory and now must be functions");
