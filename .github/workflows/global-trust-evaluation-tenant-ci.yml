@@ -47,10 +47,10 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          mkdir -p apps/api-gateway/node_modules/@apidevelopers
+          mkdir -p node_modules/@apidevelopers
           for pkg in contracts persistence-core apikey-core saas-runtime; do
             ln -s "$GITHUB_WORKSPACE/packages/$pkg" \
-              "$GITHUB_WORKSPACE/apps/api-gateway/node_modules/@apidevelopers/$pkg"
+              "$GITHUB_WORKSPACE/node_modules/@apidevelopers/$pkg"
           done
 
       - name: Validate syntax
