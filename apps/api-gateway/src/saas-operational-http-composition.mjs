@@ -1,5 +1,6 @@
 import { createSaasAccessComposition } from "./saas-access-composition.mjs";
 import { createDelegatedSaasAccessApp } from "./saas-delegated-access-v2.mjs";
+import { createSaasProvisioningApp } from "./saas-provisioning.mjs";
 import { createApp } from "./server.mjs";
 
 function pathnameOf(url) {
@@ -37,10 +38,20 @@ export function createSaasOperationalHttpComposition({
     saasAccess: saasComposition.saasAccess,
     federatedPrincipal: saasComposition.federatedPrincipal,
   });
+  const provisioningApp = createSaasProvisioningApp({
+    authenticator,
+    saasRuntime: saasComposition.saasRuntime,
+    saasAccess: saasComposition.saasAccess,
+    federatedPrincipal: saasComposition.federatedPrincipal,
+    ...(clock ? { clock } : {}),
+  });
 
   const wrappedApp = Object.freeze({
     async handleRequest(request = {}) {
       const pathname = pathnameOf(request.url);
+      if (pathname === "/v1/saas/provision") {
+        return provisioningApp.handleRequest(request);
+      }
       if (pathname === "/v1/saas/access/delegated") {
         return delegatedApp.handleRequest(request);
       }

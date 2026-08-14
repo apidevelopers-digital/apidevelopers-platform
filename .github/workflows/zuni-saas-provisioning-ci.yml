@@ -1,0 +1,69 @@
+name: Zuni SaaS Provisioning CI
+
+on:
+  push:
+    branches:
+      - "feat/zuni-saas-provisioning-http-20260814"
+    paths:
+      - "apps/api-gateway/src/saas-provisioning.mjs"
+      - "apps/api-gateway/src/saas-operational-http-composition.mjs"
+      - "apps/api-gateway/test/saas-provisioning.test.mjs"
+      - "packages/contracts/src/index.mjs"
+      - ".github/workflows/zuni-saas-provisioning-ci.yml"
+  pull_request:
+    paths:
+      - "apps/api-gateway/src/saas-provisioning.mjs"
+      - "apps/api-gateway/src/saas-operational-http-composition.mjs"
+      - "apps/api-gateway/test/saas-provisioning.test.mjs"
+      - "packages/contracts/src/index.mjs"
+      - ".github/workflows/zuni-saas-provisioning-ci.yml"
+
+permissions:
+  contents: read
+
+jobs:
+  validate:
+    runs-on:
+      group: organization-macos-ci
+      labels: [self-hosted, macOS, X64]
+    timeout-minutes: 8
+    defaults:
+      run:
+        working-directory: apps/api-gateway
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+
+      - name: Link local dependencies
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p "$GITHUB_WORKSPACE/apps/api-gateway/node_modules/@apidevelopers"
+          ln -sfn "$GITHUB_WORKSPACE/packages/contracts" "$GITHUB_WORKSPACE/apps/api-gateway/node_modules/@apidevelopers/contracts"
+          ln -sfn "$GITHUB_WORKSPACE/packages/auth-core" "$GITHUB_WORKSPACE/apps/api-gateway/node_modules/@apidevelopers/auth-core"
+          ln -sfn "$GITHUB_WORKSPACE/packages/apikey-core" "$GITHUB_WORKSPACE/apps/api-gateway/node_modules/@apidevelopers/apikey-core"
+          ln -sfn "$GITHUB_WORKSPACE/packages/persistence-core" "$GITHUB_WORKSPACE/apps/api-gateway/node_modules/@apidevelopers/persistence-core"
+          ln -sfn "$GITHUB_WORKSPACE/packages/saas-runtime" "$GITHUB_WORKSPACE/apps/api-gateway/node_modules/@apidevelopers/saas-runtime"
+          mkdir -p "$GITHUB_WORKSPACE/packages/auth-core/node_modules/@apidevelopers"
+          ln -sfn "$GITHUB_WORKSPACE/packages/apikey-core" "$GITHUB_WORKSPACE/packages/auth-core/node_modules/@apidevelopers/apikey-core"
+          mkdir -p "$GITHUB_WORKSPACE/packages/apikey-core/node_modules/@apidevelopers"
+          ln -sfn "$GITHUB_WORKSPACE/packages/persistence-core" "$GITHUB_WORKSPACE/packages/apikey-core/node_modules/@apidevelopers/persistence-core"
+          mkdir -p "$GITHUB_WORKSPACE/packages/saas-runtime/node_modules/@apidevelopers"
+          ln -sfn "$GITHUB_WORKSPACE/packages/contracts" "$GITHUB_WORKSPACE/packages/saas-runtime/node_modules/@apidevelopers/contracts"
+          ln -sfn "$GITHUB_WORKSPACE/packages/auth-core" "$GITHUB_WORKSPACE/packages/saas-runtime/node_modules/@apidevelopers/auth-core"
+          ln -sfn "$GITHUB_WORKSPACE/packages/persistence-core" "$GITHUB_WORKSPACE/packages/saas-runtime/node_modules/@apidevelopers/persistence-core"
+
+      - name: Validate provisioning syntax
+        run: |
+          node --check src/saas-provisioning.mjs
+          node --check src/saas-operational-http-composition.mjs
+
+      - name: Test Zuni SaaS provisioning
+        run: |
+          node --test test/saas-provisioning.test.mjs
+          node --test test/saas-operational-http-composition.test.mjs
