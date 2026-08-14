@@ -98,4 +98,14 @@ jobs:
 
       - name: Validate secure handoff injection boundary
         working-directory: apps/api-gateway
-        run: node --test test/operational-trust-evaluation-secure-handoff.test.mjs
+        shell: bash
+        run: |
+          set +e
+          node --test test/operational-trust-evaluation-secure-handoff.test.mjs 2>&1 | tee /tmp/trust-evaluation-secure-handoff.log
+          status=${PIPESTATUS[0]}
+          set -e
+          if [ "$status" -ne 0 ]; then
+            message="$(tail -n 80 /tmp/trust-evaluation-secure-handoff.log | sed -E 's/trust_eval_[A-Za-z0-9_]+/[REDACTED_TEST_SECRET]/g' | tr '\n\r' '  ' | sed 's/%/%25/g')"
+            echo "::error title=Trust Evaluation secure handoff failure::$message"
+            exit "$status"
+          fi
