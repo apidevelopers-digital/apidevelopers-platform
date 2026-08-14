@@ -8,6 +8,8 @@ on:
     paths:
       - "apps/api-gateway/src/global-trust-evaluation-tenant.mjs"
       - "apps/api-gateway/test/global-trust-evaluation-tenant.test.mjs"
+      - "apps/api-gateway/src/global-trust-evaluation-http.mjs"
+      - "apps/api-gateway/test/global-trust-evaluation-http.test.mjs"
       - "apps/api-gateway/docs/GLOBAL_TRUST_EVALUATION_TENANT.md"
       - ".github/workflows/global-trust-evaluation-tenant-ci.yml"
   pull_request:
@@ -16,6 +18,8 @@ on:
     paths:
       - "apps/api-gateway/src/global-trust-evaluation-tenant.mjs"
       - "apps/api-gateway/test/global-trust-evaluation-tenant.test.mjs"
+      - "apps/api-gateway/src/global-trust-evaluation-http.mjs"
+      - "apps/api-gateway/test/global-trust-evaluation-http.test.mjs"
       - "apps/api-gateway/docs/GLOBAL_TRUST_EVALUATION_TENANT.md"
       - ".github/workflows/global-trust-evaluation-tenant-ci.yml"
 
@@ -49,8 +53,7 @@ jobs:
           set -euo pipefail
           mkdir -p node_modules/@apidevelopers
           for pkg in contracts persistence-core apikey-core saas-runtime; do
-            ln -s "$GITHUB_WORKSPACE/packages/$pkg" \
-              "$GITHUB_WORKSPACE/node_modules/@apidevelopers/$pkg"
+            ln -s "$GITHUB_WORKSPACE/packages/$pkg" "$GITHUB_WORKSPACE/node_modules/@apidevelopers/$pkg"
           done
 
       - name: Validate syntax
@@ -58,6 +61,8 @@ jobs:
           set -euo pipefail
           node --check apps/api-gateway/src/global-trust-evaluation-tenant.mjs
           node --check apps/api-gateway/test/global-trust-evaluation-tenant.test.mjs
+          node --check apps/api-gateway/src/global-trust-evaluation-http.mjs
+          node --check apps/api-gateway/test/global-trust-evaluation-http.test.mjs
 
       - name: Test provisioning and one-time secret
         working-directory: apps/api-gateway
@@ -80,6 +85,10 @@ jobs:
       - name: Test expiry and credential revocation
         working-directory: apps/api-gateway
         run: node --test --test-name-pattern="fails closed after expiry" test/global-trust-evaluation-tenant.test.mjs
+
+      - name: Test authenticated evaluation context handler
+        working-directory: apps/api-gateway
+        run: node --test test/global-trust-evaluation-http.test.mjs
 
       - name: Test unsafe-limit rejection
         working-directory: apps/api-gateway
