@@ -10,6 +10,8 @@ on:
       - "apps/api-gateway/test/global-trust-evaluation-tenant.test.mjs"
       - "apps/api-gateway/src/global-trust-evaluation-http.mjs"
       - "apps/api-gateway/test/global-trust-evaluation-http.test.mjs"
+      - "apps/api-gateway/src/global-trust-evaluation-operator-provisioning.mjs"
+      - "apps/api-gateway/test/global-trust-evaluation-operator-provisioning.test.mjs"
       - "apps/api-gateway/docs/GLOBAL_TRUST_EVALUATION_TENANT.md"
       - ".github/workflows/global-trust-evaluation-tenant-ci.yml"
   pull_request:
@@ -20,6 +22,8 @@ on:
       - "apps/api-gateway/test/global-trust-evaluation-tenant.test.mjs"
       - "apps/api-gateway/src/global-trust-evaluation-http.mjs"
       - "apps/api-gateway/test/global-trust-evaluation-http.test.mjs"
+      - "apps/api-gateway/src/global-trust-evaluation-operator-provisioning.mjs"
+      - "apps/api-gateway/test/global-trust-evaluation-operator-provisioning.test.mjs"
       - "apps/api-gateway/docs/GLOBAL_TRUST_EVALUATION_TENANT.md"
       - ".github/workflows/global-trust-evaluation-tenant-ci.yml"
 
@@ -63,6 +67,8 @@ jobs:
           node --check apps/api-gateway/test/global-trust-evaluation-tenant.test.mjs
           node --check apps/api-gateway/src/global-trust-evaluation-http.mjs
           node --check apps/api-gateway/test/global-trust-evaluation-http.test.mjs
+          node --check apps/api-gateway/src/global-trust-evaluation-operator-provisioning.mjs
+          node --check apps/api-gateway/test/global-trust-evaluation-operator-provisioning.test.mjs
 
       - name: Test provisioning and one-time secret
         working-directory: apps/api-gateway
@@ -89,6 +95,10 @@ jobs:
       - name: Test authenticated evaluation context handler
         working-directory: apps/api-gateway
         run: node --test test/global-trust-evaluation-http.test.mjs
+
+      - name: Test operator-only provisioning and one-time handoff
+        working-directory: apps/api-gateway
+        run: node --test test/global-trust-evaluation-operator-provisioning.test.mjs
 
       - name: Test unsafe-limit rejection
         working-directory: apps/api-gateway
