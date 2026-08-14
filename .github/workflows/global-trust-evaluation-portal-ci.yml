@@ -10,7 +10,11 @@ on:
       - "apps/api-gateway/src/global-trust-evaluation-portal-inbox.mjs"
       - "apps/api-gateway/src/global-trust-evaluation-recipient-key-proof.mjs"
       - "apps/api-gateway/src/global-trust-evaluation-credential-envelope.mjs"
+      - "apps/api-gateway/src/global-trust-evaluation-approved-onboarding.mjs"
+      - "apps/api-gateway/src/operational-trust-evaluation-portal-composition.mjs"
+      - "apps/api-gateway/src/operational-trust-evaluation-composition.mjs"
       - "apps/api-gateway/test/global-trust-evaluation-portal.test.mjs"
+      - "apps/api-gateway/test/operational-trust-evaluation-portal-composition.test.mjs"
       - ".github/workflows/global-trust-evaluation-portal-ci.yml"
   pull_request:
     branches:
@@ -20,7 +24,11 @@ on:
       - "apps/api-gateway/src/global-trust-evaluation-portal-inbox.mjs"
       - "apps/api-gateway/src/global-trust-evaluation-recipient-key-proof.mjs"
       - "apps/api-gateway/src/global-trust-evaluation-credential-envelope.mjs"
+      - "apps/api-gateway/src/global-trust-evaluation-approved-onboarding.mjs"
+      - "apps/api-gateway/src/operational-trust-evaluation-portal-composition.mjs"
+      - "apps/api-gateway/src/operational-trust-evaluation-composition.mjs"
       - "apps/api-gateway/test/global-trust-evaluation-portal.test.mjs"
+      - "apps/api-gateway/test/operational-trust-evaluation-portal-composition.test.mjs"
       - ".github/workflows/global-trust-evaluation-portal-ci.yml"
 
 permissions:
@@ -48,21 +56,31 @@ jobs:
         with:
           node-version: "22"
 
-      - name: Bind persistence core
+      - name: Bind local platform packages
         shell: bash
         run: |
           set -euo pipefail
           mkdir -p node_modules/@apidevelopers
-          ln -s "$GITHUB_WORKSPACE/packages/persistence-core" \
-            "$GITHUB_WORKSPACE/node_modules/@apidevelopers/persistence-core"
+          for dir in packages/*; do
+            if [ -f "$dir/package.json" ]; then
+              pkg="$(basename "$dir")"
+              ln -s "$GITHUB_WORKSPACE/$dir" "$GITHUB_WORKSPACE/node_modules/@apidevelopers/$pkg"
+            fi
+          done
 
       - name: Validate syntax
         run: |
           set -euo pipefail
           node --check apps/api-gateway/src/global-trust-evaluation-portal-session.mjs
           node --check apps/api-gateway/src/global-trust-evaluation-portal-inbox.mjs
+          node --check apps/api-gateway/src/global-trust-evaluation-approved-onboarding.mjs
+          node --check apps/api-gateway/src/operational-trust-evaluation-portal-composition.mjs
           node --check apps/api-gateway/test/global-trust-evaluation-portal.test.mjs
+          node --check apps/api-gateway/test/operational-trust-evaluation-portal-composition.test.mjs
 
-      - name: Execute portal session and inbox tests
+      - name: Execute portal session inbox and in-product onboarding tests
         working-directory: apps/api-gateway
-        run: node --test test/global-trust-evaluation-portal.test.mjs
+        run: |
+          node --test \
+            test/global-trust-evaluation-portal.test.mjs \
+            test/operational-trust-evaluation-portal-composition.test.mjs
