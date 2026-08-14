@@ -51,4 +51,14 @@ jobs:
 
       - name: Execute sealed envelope transport tests
         working-directory: apps/api-gateway
-        run: node --test test/global-trust-evaluation-envelope-transport.test.mjs
+        shell: bash
+        run: |
+          set +e
+          node --test test/global-trust-evaluation-envelope-transport.test.mjs 2>&1 | tee /tmp/trust-envelope-transport.log
+          status=${PIPESTATUS[0]}
+          set -e
+          if [ "$status" -ne 0 ]; then
+            message="$(tail -n 80 /tmp/trust-envelope-transport.log               | sed -E 's/[A-Za-z0-9_-]{40,}/[REDACTED_LONG_VALUE]/g'               | sed 's/synthetic-evaluation-secret/[REDACTED_TEST_SECRET]/g'               | tr '\n\r' '  '               | sed 's/%/%25/g')"
+            echo "::error title=Trust Evaluation envelope transport failure::$message"
+            exit "$status"
+          fi
