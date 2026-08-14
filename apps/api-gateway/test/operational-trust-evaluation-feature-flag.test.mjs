@@ -197,6 +197,9 @@ test("real Trust Evaluation attachment preserves existing read-only operator sur
           },
         });
       },
+      async executeIdempotent() {
+        throw new Error("not called by attachment");
+      },
     }),
     apiKeyLifecycle: Object.freeze({
       async issueApiKey() {
