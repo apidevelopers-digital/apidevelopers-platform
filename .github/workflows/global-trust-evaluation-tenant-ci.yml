@@ -61,7 +61,17 @@ jobs:
 
       - name: Test provisioning and one-time secret
         working-directory: apps/api-gateway
-        run: node --test --test-name-pattern="provisions an isolated Trust evaluation tenant" test/global-trust-evaluation-tenant.test.mjs
+        shell: bash
+        run: |
+          set +e
+          node --test --test-name-pattern="provisions an isolated Trust evaluation tenant" test/global-trust-evaluation-tenant.test.mjs 2>&1 | tee /tmp/trust-evaluation-provision.log
+          status=${PIPESTATUS[0]}
+          set -e
+          if [ "$status" -ne 0 ]; then
+            message="$(tail -n 40 /tmp/trust-evaluation-provision.log | tr '\n\r' '  ' | sed 's/%/%25/g')"
+            echo "::error title=Trust evaluation provisioning failure::$message"
+            exit "$status"
+          fi
 
       - name: Test persisted sensitive-material boundary
         working-directory: apps/api-gateway
