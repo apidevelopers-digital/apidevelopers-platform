@@ -65,6 +65,7 @@ export function createOperationalRuntime({
   env = process.env,
   cwd = process.cwd(),
   gatewayFactory = createOperationalGatewayWithReadonlyOperator,
+  gatewayTransform = ({ gateway }) => gateway,
   githubRuntimeFactory = createOperatorGitHubRuntime,
   githubTransportFactory = createOperatorGitHubReadonlyTransport,
   githubSecretProviderFactory = createOperatorSecretResolverProvider,
@@ -76,6 +77,9 @@ export function createOperationalRuntime({
 } = {}) {
   if (typeof gatewayFactory !== "function") {
     throw new TypeError("gatewayFactory must be a function");
+  }
+  if (typeof gatewayTransform !== "function") {
+    throw new TypeError("gatewayTransform must be a function");
   }
   if (typeof githubRuntimeFactory !== "function") {
     throw new TypeError("githubRuntimeFactory must be a function");
@@ -124,7 +128,7 @@ export function createOperationalRuntime({
     transport: resolvedGitHubTransport,
   });
 
-  const gateway = gatewayFactory({
+  const baseGateway = gatewayFactory({
     stateFilePath: config.stateFilePath,
     ...(config.adminKey ? { adminKey: config.adminKey } : {}),
     ...(githubRuntime.configured
@@ -133,6 +137,13 @@ export function createOperationalRuntime({
           githubReadonlyOrganization: githubRuntime.organization,
         }
       : {}),
+  });
+
+  const gateway = gatewayTransform({
+    gateway: baseGateway,
+    env,
+    cwd,
+    config,
   });
 
   if (typeof gateway?.app?.handleRequest !== "function") {
