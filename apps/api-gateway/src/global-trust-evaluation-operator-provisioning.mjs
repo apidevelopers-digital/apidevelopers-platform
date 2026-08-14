@@ -22,7 +22,10 @@ function assertAdminIdentity(identity) {
     || !String(principal.id ?? "").trim()
     || !scopes.includes("admin:*")
   ) {
-    fail("TRUST_EVALUATION_OPERATOR_FORBIDDEN", "active platform admin identity is required");
+    fail(
+      "TRUST_EVALUATION_OPERATOR_FORBIDDEN",
+      "active platform admin identity is required",
+    );
   }
   return identity;
 }
@@ -33,7 +36,10 @@ function requireService(value, methods, name) {
   }
   for (const method of methods) {
     if (typeof value[method] !== "function") {
-      fail("TRUST_EVALUATION_OPERATOR_INVALID_DEPENDENCY", `${name}.${method} must be a function`);
+      fail(
+        "TRUST_EVALUATION_OPERATOR_INVALID_DEPENDENCY",
+        `${name}.${method} must be a function`,
+      );
     }
   }
   return value;
@@ -66,7 +72,7 @@ function safeAuditMetadata(receipt, correlationId) {
   return Object.freeze({
     correlationId,
     created: receipt.created,
-    secretDelivered: receipt.secretDelivered,
+    credentialDelivered: receipt.secretDelivered,
     workspaceId: receipt.workspaceId,
     subscriptionId: receipt.subscriptionId,
     productId: receipt.productId,
@@ -74,8 +80,6 @@ function safeAuditMetadata(receipt, correlationId) {
     environment: receipt.environment,
     status: receipt.status,
     expiresAt: receipt.expiresAt,
-    apiKeyId: receipt.apiKeyId,
-    apiKeyPrefix: receipt.apiKeyPrefix,
     scopeCount: receipt.scopes.length,
     capabilityCount: receipt.capabilities.length,
     limits: receipt.limits,
@@ -92,10 +96,10 @@ export function createGlobalTrustEvaluationOperatorProvisioningService({
     evaluationTenantService,
     ["createEvaluation"],
     "evaluationTenantService",
-   );
+  );
   const auditRecorder = requireService(
     audit,
-   ["recordOperatorCapabilityResult"],
+    ["recordOperatorCapabilityResult"],
     "audit",
   );
   const handoff = requireService(
@@ -126,14 +130,18 @@ export function createGlobalTrustEvaluationOperatorProvisioningService({
       });
 
       if (!result?.evaluation) {
-        fail("TRUST_EVALUATION_OPERATOR_PROVISIONING_FAILED", "evaluation result is unavailable");
+        fail(
+          "TRUST_EVALUATION_OPERATOR_PROVISIONING_FAILED",
+          "evaluation result is unavailable",
+        );
       }
 
+      const evaluation = result.evaluation;
       if (
-        result.evaluation.environment !== "sandbox"
-        || result.evaluation.controls?.financialEgress !== "blocked"
-        || result.evaluation.controls?.realMoney !== false
-        || result.evaluation.controls?.biometricMaterialAccepted !== false
+        evaluation.environment !== "sandbox"
+        || evaluation.controls?.financialEgress !== "blocked"
+        || evaluation.controls?.realMoney !== false
+        || evaluation.controls?.biometricMaterialAccepted !== false
       ) {
         fail(
           "TRUST_EVALUATION_OPERATOR_BOUNDARY_INVALID",
@@ -147,10 +155,10 @@ export function createGlobalTrustEvaluationOperatorProvisioningService({
         try {
           await handoff.deliver({
             secret,
-            tenantId: result.evaluation.tenantId,
-            apiKeyId: result.apiKey?.id ?? result.evaluation.apiKeyId,
-            apiKeyPrefix: result.apiKey?.prefix ?? result.evaluation.apiKeyPrefix,
-            expiresAt: result.evaluation.expiresAt,
+            tenantId: evaluation.tenantId,
+            apiKeyId: result.apiKey?.id ?? evaluation.apiKeyId,
+            apiKeyPrefix: result.apiKey?.prefix ?? evaluation.apiKeyPrefix,
+            expiresAt: evaluation.expiresAt,
             correlationId: resolvedCorrelationId,
           });
           secretDelivered = true;
@@ -161,18 +169,20 @@ export function createGlobalTrustEvaluationOperatorProvisioningService({
           });
           await auditRecorder.recordOperatorCapabilityResult({
             identity: operator,
-            tenantId: result.evaluation.tenantId,
+            tenantId: evaluation.tenantId,
             action: "operator.trust_evaluation.provision",
-            resource: `trust:evaluation:${result.evaluation.tenantId}`,
+            resource: `trust:evaluation:${evaluation.tenantId}`,
             outcome: "failed",
             correlationId: resolvedCorrelationId,
             metadata: {
               ...safeAuditMetadata(receipt, resolvedCorrelationId),
               errorCode: "credential_handoff_failed",
-              secretDelivered: false,
+              credentialDelivered: false,
             },
           });
-          const error = new Error("Trust Evaluation credential handoff failed; recovery is required");
+          const error = new Error(
+            "Trust Evaluation credential handoff failed; recovery is required",
+          );
           error.code = "TRUST_EVALUATION_OPERATOR_HANDOFF_FAILED";
           error.cause = cause;
           throw error;
