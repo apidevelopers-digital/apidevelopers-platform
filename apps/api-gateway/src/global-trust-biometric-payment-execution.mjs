@@ -1,4 +1,5 @@
 import { createHash, randomUUID } from "node:crypto";
+import { assertBiometricPaymentProductionActivation } from "./global-trust-biometric-payment-production-activation.mjs";
 
 const TERMINAL = new Set(["authorized", "declined"]);
 const RECONCILABLE = new Set(["submitting", "pending", "indeterminate"]);
@@ -121,7 +122,7 @@ export function createSandboxBiometricPaymentProvider({
   return Object.freeze({
     mode: "sandbox",
     name: providerName,
-    idempotencyGuaranteed: true,
+   idempotencyGuaranteed: true,
     financialExecutionCapable: false,
 
     async authorize({ idempotencyKey }) {
@@ -153,6 +154,7 @@ export function createBiometricPaymentExecutionAdapter({
   provider: providerInput,
   durability = null,
   externalExecutionApproved = false,
+  productionActivation = null,
   collectionName = "global_trust_biometric_payment_executions",
   leaseMs = 30_000,
   now = () => new Date().toISOString(),
@@ -173,6 +175,16 @@ export function createBiometricPaymentExecutionAdapter({
   }
   if (provider.mode === "external" && normalizedDurability !== "durable") {
     fail("TRUST_PAYMENT_EXECUTION_DURABLE_STORE_REQUIRED", "external financial execution requires durable execution state");
+  }
+  if (provider.mode === "external") {
+    const providerId = String(provider.providerId ?? provider.name ?? "").trim();
+    if (!providerId) {
+      fail(
+        "TRUST_PAYMENT_PRODUCTION_ACTIVATION_PROVIDER_REQUIRED",
+        "external provider must expose providerId or name",
+      );
+    }
+    assertBiometricPaymentProductionActivation(productionActivation ?? {}, { providerId });
   }
 
   async function getRecord(idempotencyKey) {
@@ -329,10 +341,10 @@ export function createBiometricPaymentExecutionAdapter({
     const txResult = await store.transaction(async (tx) => {
       const current = tx.get(collection, key);
       if (!current) fail("TRUST_PAYMENT_EXECUTION_NOT_FOUND", "payment execution was not found");
-      if (current.requestDigest !== existing.requestDigest) {
+     if (current.requestDigest !== existing.requestDigest) {
         fail("TRUST_PAYMENT_IDEMPOTENCY_CONFLICT", "execution changed before reconciliation");
-      }
-      const record = Object.freeze({
+    }
+    const record = Object.freeze({
         ...current,
         status: result.status,
         providerReference: result.providerReference,
@@ -349,7 +361,8 @@ export function createBiometricPaymentExecutionAdapter({
   return Object.freeze({
     mode: provider.mode === "external" ? "external" : "dry-run",
     providerMode: provider.mode,
-    providerName: String(provider.name ?? "unnamed"),
+    providerId: String(provider.providerId ?? provider.name ?? "unnamed"),
+    providerName: String(provider.name ?? provider.providerId ?? "unnamed"),
     durability: normalizedDurability,
     idempotencyGuaranteed: true,
     contactEnabled: provider.mode === "external",
