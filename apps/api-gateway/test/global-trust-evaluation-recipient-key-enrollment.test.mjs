@@ -6,7 +6,6 @@ import path from "node:path";
 import test from "node:test";
 
 import { createJsonFileStore } from "@apidevelopers/persistence-core";
-
 import { createGlobalTrustEvaluationRecipientKeyEnrollmentService } from "../src/global-trust-evaluation-recipient-key-enrollment.mjs";
 import { createTrustEvaluationRecipientKeyProofService } from "../src/global-trust-evaluation-recipient-key-proof.mjs";
 
@@ -74,24 +73,20 @@ async function fixture() {
   const filePath = path.join(dir, "state.json");
   let now = NOW;
   let writeCounter = 0;
-
   const store = createJsonFileStore({
     filePath,
     clock: () => now,
     idFactory: () => `write-${++writeCounter}`,
   });
-
   const proofService = createTrustEvaluationRecipientKeyProofService({
     store,
     clock: () => now,
   });
-
   const enrollmentService =
     createGlobalTrustEvaluationRecipientKeyEnrollmentService({
       store,
       clock: () => now,
     });
-
   return {
     dir,
     filePath,
@@ -110,13 +105,11 @@ async function provePossession(fx, keys, correlationId = "corr-key-proof-001") {
     recipientPublicKey: keys.publicKey,
     correlationId,
   });
-
   const proof = await fx.proofService.verifyAndConsume({
     challengeId: challenge.challengeId,
     recipientPublicKey: keys.publicKey,
     signatureB64u: signatureFor(challenge, keys.privateKey),
   });
-
   assert.equal(proof.keyPossessionVerified, true);
   assert.equal(proof.identityVerified, false);
   return challenge;
@@ -128,7 +121,6 @@ test("approved enrollment requires consumed PoP plus external institutional deci
 
   const keys = rsaPair();
   const challenge = await provePossession(fx, keys);
-
   const receipt = await fx.enrollmentService.recordApprovedEnrollment({
     identity: adminIdentity(),
     organizationId: ORGANIZATION_ID,
@@ -151,7 +143,6 @@ test("approved enrollment requires consumed PoP plus external institutional deci
     identity: adminIdentity(),
     organizationId: ORGANIZATION_ID,
   });
-
   assert.equal(enrolled.status, "approved");
   assert.equal(enrolled.recipientKeyFingerprint, receipt.recipientKeyFingerprint);
   assert.equal(enrolled.recipientPublicKeySpkiPem, keys.publicKey);
@@ -169,7 +160,6 @@ test("approved enrollment requires consumed PoP plus external institutional deci
 test("exact enrollment retry is idempotent and does not rewrite the approved recipient key", async (t) => {
   const fx = await fixture();
   t.after(() => rm(fx.dir, { recursive: true, force: true }));
-
   const keys = rsaPair();
   const challenge = await provePossession(fx, keys);
   const request = {
@@ -179,11 +169,9 @@ test("exact enrollment retry is idempotent and does not rewrite the approved rec
     keyProofChallengeId: challenge.challengeId,
     institutionalApproval: approval(),
   };
-
   const first = await fx.enrollmentService.recordApprovedEnrollment(request);
   fx.setNow("2026-08-14T12:01:00.000Z");
   const second = await fx.enrollmentService.recordApprovedEnrollment(request);
-
   assert.equal(first.created, true);
   assert.equal(second.created, false);
   assert.equal(second.enrollmentId, first.enrollmentId);
@@ -208,7 +196,6 @@ test("different key for the same organization requires rotation or revocation", 
   fx.setNow("2026-08-14T12:02:00.000Z");
   const secondKeys = rsaPair();
   const secondChallenge = await provePossession(fx, secondKeys, "corr-key-proof-second");
-
   await assert.rejects(
     fx.enrollmentService.recordApprovedEnrollment({
       identity: adminIdentity(),
@@ -227,7 +214,6 @@ test("different key for the same organization requires rotation or revocation", 
 test("unconsumed PoP cannot be converted into an approved enrollment", async (t) => {
   const fx = await fixture();
   t.after(() => rm(fx.dir, { recursive: true, force: true }));
-
   const keys = rsaPair();
   const challenge = await fx.proofService.issueChallenge({
     organizationId: ORGANIZATION_ID,
@@ -250,7 +236,6 @@ test("unconsumed PoP cannot be converted into an approved enrollment", async (t)
 test("non-admin is rejected before enrollment and approved enrollment read is also operator-only", async (t) => {
   const fx = await fixture();
   t.after(() => rm(fx.dir, { recursive: true, force: true }));
-
   await assert.rejects(
     fx.enrollmentService.recordApprovedEnrollment({
       identity: clientIdentity(),
@@ -261,7 +246,6 @@ test("non-admin is rejected before enrollment and approved enrollment read is al
     }),
     (error) => error.code === "TRUST_EVALUATION_KEY_ENROLLMENT_FORBIDDEN",
   );
-
   await assert.rejects(
     fx.enrollmentService.getApprovedEnrollment({
       identity: clientIdentity(),
@@ -274,12 +258,11 @@ test("non-admin is rejected before enrollment and approved enrollment read is al
 test("approval subject, assertion and time are validated without pretending to perform identity verification", async (t) => {
   const fx = await fixture();
   t.after(() => rm(fx.dir, { recursive: true, force: true }));
-
   const keys = rsaPair();
   const challenge = await provePossession(fx, keys);
 
   await assert.rejects(
-    fx.enrolmentService.recordApprovedEnrollment({
+    fx.enrollmentService.recordApprovedEnrollment({
       identity: adminIdentity(),
       organizationId: ORGANIZATION_ID,
       recipientPublicKey: keys.publicKey,
@@ -293,7 +276,7 @@ test("approval subject, assertion and time are validated without pretending to p
   );
 
   await assert.rejects(
-    fx.enrollmentService.recordApprovedEnrollment({
+    fx.enrolmentService.recordApprovedEnrollment({
       identity: adminIdentity(),
       organizationId: ORGANIZATION_ID,
       recipientPublicKey: keys.publicKey,
