@@ -56,5 +56,6 @@ export function createCredentialBoundBiometricPaymentRuntime({
     credentialStateSink: credentialState,
     paymentAdapter,
     externalExecutionApproved,
+    productionActivation,
   });
 }
