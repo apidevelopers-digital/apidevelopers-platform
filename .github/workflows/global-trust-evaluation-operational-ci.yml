@@ -63,7 +63,7 @@ jobs:
           for dir in packages/*; do
             if [ -f "$dir/package.json" ]; then
               pkg="$(basename "$dir")"
-              ln -s "$GITHUB_WORKSSPACE/$dir" "$GITHUB_WORKSPACE/node_modules/@apidevelopers/$pkg"
+              ln -s "$GITHUB_WORKSPACE/$dir" "$GITHUB_WORKSPACE/node_modules/@apidevelopers/$pkg"
             fi
           done
 
