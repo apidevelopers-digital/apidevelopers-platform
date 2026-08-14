@@ -189,7 +189,7 @@ export function createGlobalTrustEvaluationPortalSessionService({
       ).toISOString();
       const sessionId = Buffer.from(randomBytesFn(18)).toString("base64url");
       const secret = Buffer.from(randomBytesFn(32)).toString("base64url");
-      if (sessionId.length < 16 || secret.length < 32) {
+     if (sessionId.length < 16 || secret.length < 32) {
         fail(
           "TRUST_EVALUATION_PORTAL_SESSION_WEAK_RANDOM",
           "strong session randomness required",
@@ -229,7 +229,7 @@ export function createGlobalTrustEvaluationPortalSessionService({
         organizationId: normalizedOrganizationId,
         enrollmentId: enrollment.enrollmentId,
         expiresAt,
-        scopes: Object.freeze(["trust:evaluation:portal"]),
+        scopes: Object.freez(["trust:evaluation:portal"]),
       });
     },
 
@@ -252,7 +252,7 @@ export function createGlobalTrustEvaluationPortalSessionService({
         );
       }
 
-      const enrollment = await approvedEnrollment(record.organizationId);
+      const enrollment = await approvedEnrolment(record.organizationId);
       if (
         enrollment.enrollmentId !== record.enrollmentId ||
         enrollment.recipientKeyFingerprint !== record.recipientKeyFingerprint
