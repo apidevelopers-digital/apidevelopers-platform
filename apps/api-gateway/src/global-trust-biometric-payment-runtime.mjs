@@ -27,7 +27,6 @@ import {
   requireRiskEvaluator,
 } from "./global-trust-biometric-payment-policy.mjs";
 import { assertBiometricPaymentProductionActivation } from "./global-trust-biometric-payment-production-activation.mjs";
-
 function fail(code, message) {
   const error = new Error(message);
   error.code = code;
@@ -38,7 +37,6 @@ function required(value, name) {
   if (value == null || String(value).trim() === "") fail("TRUST_PAYMENT_INVALID_INPUT", `${name} is required`);
   return String(value).trim();
 }
-
 export function createBiometricPaymentRuntime({
   credentialResolver,
   riskEvaluator,
@@ -58,7 +56,6 @@ export function createBiometricPaymentRuntime({
   const assessRisk = requireRiskEvaluator(riskEvaluator);
   const adapter = requirePaymentAdapter(paymentAdapter);
   const policy = normalizeRuntimePolicy(policyInput);
-
   if (typeof challengeStore?.issue !== "function" || typeof challengeStore?.get !== "function" || typeof challengeStore?.consume !== "function") {
     fail("TRUST_PAYMENT_CHALLENGE_STORE_INVALID", "challengeStore must implement issue/get/consume");
   }
@@ -68,7 +65,7 @@ export function createBiometricPaymentRuntime({
   if (adapter.mode === "external" && challengeStore.durability !== "durable") {
     fail("TRUST_PAYMENT_DURABLE_STORE_REQUIRED", "external payment execution requires a durable challenge store");
   }
-  if (adapter.moe === "external" && externalExecutionApproved === true) {
+  if (adapter.mode === "external" && externalExecutionApproved === true) {
     const providerId = String(adapter.providerId ?? adapter.providerName ?? adapter.name ?? "").trim();
     if (!providerId) {
       fail(
@@ -81,11 +78,9 @@ export function createBiometricPaymentRuntime({
   if (typeof idFactory !== "function" || typeof randomBytesFactory !== "function" || typeof now !== "function") {
     fail("TRUST_PAYMENT_RUNTIME_INVALID", "idFactory, randomBytesFactory and now must be functions");
   }
-
   return Object.freeze({
     mode: adapter.mode,
     policy,
-
     async issueChallenge({
       intent,
       credentialId,
@@ -101,7 +96,6 @@ export function createBiometricPaymentRuntime({
       if (Date.parse(now()) >= Date.parse(intent.expiresAt)) {
         fail("TRUST_PAYMENT_INTENT_EXPIRED", "payment intent has expired");
       }
-
       const credential = normalizeBiometricPaymentCredential(await resolveCredential({
         credentialId: required(credentialId, "credentialId"),
         subjectId: intent.subjectId,
@@ -113,7 +107,6 @@ export function createBiometricPaymentRuntime({
       if (ceremony === "secure_payment_confirmation" && !credential.paymentCredential) {
         fail("TRUST_PAYMENT_SPC_CREDENTIAL_REQUIRED", "SPC requires a payment-enabled credential");
       }
-
       const issuedAt = now();
       const rawChallenge = randomBytesFactory(32);
       if (!Buffer.isBuffer(rawChallenge) || rawChallenge.length < 32) {
@@ -124,7 +117,6 @@ export function createBiometricPaymentRuntime({
       const expiresAt = Date.parse(requestedExpiry) < Date.parse(intent.expiresAt)
         ? requestedExpiry
         : intent.expiresAt;
-
       const challenge = createBiometricPaymentChallenge({
         challengeId: idFactory(),
         paymentIntentId: intent.paymentIntentId,
@@ -148,11 +140,9 @@ export function createBiometricPaymentRuntime({
         createdAt: issuedAt,
         expiresAt,
       });
-
       await challengeStore.issue(challenge);
       return challenge;
     },
-
     async authorize({
       intent,
       challengeId,
@@ -169,7 +159,6 @@ export function createBiometricPaymentRuntime({
       if (createPaymentContextDigest(intent) !== challenge.paymentContextDigest) {
         fail("TRUST_PAYMENT_CONTEXT_MISMATCH", "payment intent was modified after challenge issuance");
       }
-
       const credential = normalizeBiometricPaymentCredential(await resolveCredential({
         credentialId: challenge.credentialId,
         subjectId: intent.subjectId,
@@ -181,14 +170,12 @@ export function createBiometricPaymentRuntime({
         credential,
         challenge,
       });
-
       const verifiedAt = now();
       await challengeStore.consume({
         challengeId: challenge.challengeId,
         challengeDigest: challenge.challengeDigest,
         now: verifiedAt,
       });
-
       const authenticationContext = createAuthenticationContext({
         authenticationId: idFactory(),
         subjectId: intent.subjectId,
@@ -198,7 +185,6 @@ export function createBiometricPaymentRuntime({
         authenticatedAt: verifiedAt,
         expiresAt: new Date(Date.parse(verifiedAt) + 5 * 60_000).toISOString(),
       });
-
       const proof = createBiometricPaymentProof({
         proofId: idFactory(),
         challengeId: challenge.challengeId,
@@ -212,14 +198,12 @@ export function createBiometricPaymentRuntime({
         localVerificationMethodHint,
         verifiedAt,
       });
-
       assertBiometricPaymentCeremony({
         intent,
         challenge,
         proof,
         authenticationContext,
       });
-
       const riskAssessment = await assessRisk.assess({
         useCase: "payment.biometric.authorize",
         intent,
@@ -236,7 +220,6 @@ export function createBiometricPaymentRuntime({
         }),
       });
       assertRiskAssessmentContract(riskAssessment, "riskAssessment");
-
       const decision = paymentDecision({
         intent,
         challenge,
