@@ -1,0 +1,66 @@
+name: Global Trust Evaluation Operational CI
+
+on:
+  push:
+    branches:
+      - main
+      - "feat/trust-evaluation-tenant-20260814"
+    paths:
+      - "apps/api-gateway/src/global-trust-evaluation-tenant.mjs"
+      - "apps/api-gateway/src/global-trust-evaluation-http.mjs"
+      - "apps/api-gateway/src/operational-trust-evaluation-composition.mjs"
+      - "apps/api-gateway/test/operational-trust-evaluation-composition.test.mjs"
+      - ".github/workflows/global-trust-evaluation-operational-ci.yml"
+  pull_request:
+    branches:
+      - main
+    paths:
+      - "apps/api-gateway/src/global-trust-evaluation-tenant.mjs"
+      - "apps/api-gateway/src/global-trust-evaluation-http.mjs"
+      - "apps/api-gateway/src/operational-trust-evaluation-composition.mjs"
+      - "apps/api-gateway/test/operational-trust-evaluation-composition.test.mjs"
+      - ".github/workflows/global-trust-evaluation-operational-ci.yml"
+
+permissions:
+  contents: read
+
+jobs:
+  operational-evaluation:
+    runs-on:
+      - self-hosted
+      - macOS
+      - X64
+    timeout-minutes: 10
+    env:
+      GLOBAL_TRUST_PAYMENT_MODE: dry-run
+      GLOBAL_TRUST_PAYMENT_EGRESS: blocked
+      GLOBAL_TRUST_REAL_MONEY: disabled
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+
+      - name: Bind local platform packages
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p node_modules/@apidevelopers
+          for pkg in contracts persistence-core apikey-core auth-core saas-runtime; do
+            ln -s "$GITHUB_WORKSPACE/packages/$pkg" \
+              "$GITHUB_WORKSPACE/node_modules/@apidevelopers/$pkg"
+          done
+
+      - name: Validate syntax
+        run: |
+          set -euo pipefail
+          node --check apps/api-gateway/src/operational-trust-evaluation-composition.mjs
+          node --check apps/api-gateway/test/operational-trust-evaluation-composition.test.mjs
+
+      - name: Execute operational Evaluation E2E
+        working-directory: apps/api-gateway
+        run: node --test test/operational-trust-evaluation-composition.test.mjs
