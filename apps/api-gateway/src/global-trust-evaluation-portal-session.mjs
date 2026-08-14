@@ -14,7 +14,9 @@ function fail(code, message) {
 
 function text(value, name) {
   const normalized = String(value ?? "").trim();
-  if (!normalized) fail("TRUST_EVALUATION_PORTAL_SESSION_INVALID_INPUT", `${name} is required`);
+  if (!normalized) {
+    fail("TRUST_EVALUATION_PORTAL_SESSION_INVALID_INPUT", `${name} is required`);
+  }
   return normalized;
 }
 
@@ -42,8 +44,8 @@ function digest(value) {
 }
 
 function safeEqual(left, right) {
-  const a = Buffer.from(left, "utf8");
-  const b = Buffer.from(right, "utf8");
+  const a = Buffer.from(String(left ?? ""), "utf8");
+  const b = Buffer.from(String(right ?? ""), "utf8");
   return a.length === b.length && timingSafeEqual(a, b);
 }
 
@@ -128,14 +130,14 @@ export function createGlobalTrustEvaluationPortalSessionService({
     fail(
       "TRUST_EVALUATION_PORTAL_SESSION_INVALID_DEPENDENCY",
       "clock/randomBytesFn required",
-   );
+    );
   }
 
   const configuredTtlMs = normalizeTtl(sessionTtlMs);
 
   async function approvedEnrollment(organizationId) {
     const normalizedOrganizationId = text(organizationId, "organizationId");
-    const enrollmentId = trustEvaluationEnrolmentIdFor(normalizedOrganizationId);
+    const enrollmentId = trustEvaluationEnrollmentIdFor(normalizedOrganizationId);
     const state = await store.read();
     const record =
       state.collections?.[ENROLLMENT_COLLECTION]?.[enrollmentId] ?? null;
@@ -152,6 +154,7 @@ export function createGlobalTrustEvaluationPortalSessionService({
         correlationId: text(correlationId, "correlationId"),
         ttlMs: 120_000,
       });
+
       return Object.freeze({
         version: TRUST_EVALUATION_PORTAL_SESSION_VERSION,
         organizationId: normalizedOrganizationId,
@@ -189,7 +192,7 @@ export function createGlobalTrustEvaluationPortalSessionService({
       ).toISOString();
       const sessionId = Buffer.from(randomBytesFn(18)).toString("base64url");
       const secret = Buffer.from(randomBytesFn(32)).toString("base64url");
-     if (sessionId.length < 16 || secret.length < 32) {
+      if (sessionId.length < 16 || secret.length < 32) {
         fail(
           "TRUST_EVALUATION_PORTAL_SESSION_WEAK_RANDOM",
           "strong session randomness required",
@@ -292,6 +295,7 @@ export function createGlobalTrustEvaluationPortalSessionService({
             "portal session is invalid",
           );
         }
+
         const next = Object.freeze({
           ...current,
           status: "revoked",
@@ -300,6 +304,7 @@ export function createGlobalTrustEvaluationPortalSessionService({
         tx.put(SESSION_COLLECTION, parsed.sessionId, next);
         return next;
       });
+
       return Object.freeze({
         sessionId: committed.result.sessionId,
         revoked: true,
