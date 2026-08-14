@@ -178,7 +178,7 @@ export function createGlobalTrustEvaluationPortalSessionService({
         token,
         sessionId,
         organizationId: org,
-        enrollmentId: enrollment.enrolmentId,
+        enrollmentId: enrollment.enrollmentId,
         expiresAt,
         scopes: Object.freeze(["trust:evaluation:portal"]),
       });
@@ -188,7 +188,7 @@ export function createGlobalTrustEvaluationPortalSessionService({
       const parsed = parseToken(token);
       const now = iso(clock(), "clock()");
       const state = await store.read();
-      const record = state.collections?.[SESSIONS)?.[parsed.sessionId] ?? null;
+      const record = state.collections?.[SESSIONS]?.[parsed.sessionId] ?? null;
       if (
         !record ||
         record.status !== "active" ||
