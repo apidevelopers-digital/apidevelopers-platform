@@ -1,0 +1,57 @@
+name: Global Trust Biometric Payment Production Activation CI
+
+on:
+  push:
+    branches:
+      - main
+      - "feat/global-trust-biometric-payments-20260813"
+    paths:
+      - "apps/api-gateway/src/global-trust-biometric-payment-production-activation.mjs"
+      - "apps/api-gateway/test/global-trust-biometric-payment-production-activation.test.mjs"
+      - "apps/api-gateway/src/global-trust-biometric-payment-runtime.mjs"
+      - "apps/api-gateway/src/global-trust-biometric-payment-execution.mjs"
+      - ".github/workflows/global-trust-biometric-payment-production-activation-ci.yml"
+  pull_request:
+    branches:
+      - main
+    paths:
+      - "apps/api-gateway/src/global-trust-biometric-payment-production-activation.mjs"
+      - "apps/api-gateway/test/global-trust-biometric-payment-production-activation.test.mjs"
+      - "apps/api-gateway/src/global-trust-biometric-payment-runtime.mjs"
+      - "apps/api-gateway/src/global-trust-biometric-payment-execution.mjs"
+      - ".github/workflows/global-trust-biometric-payment-production-activation-ci.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  activation-guard:
+    runs-on:
+      - self-hosted
+      - macOS
+      - X64
+    timeout-minutes: 10
+    env:
+      GLOBAL_TRUST_PAYMENT_MODE: dry-run
+      GLOBAL_TRUST_PAYMENT_EGRESS: blocked
+      GLOBAL_TRUST_REAL_MONEY: disabled
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+
+      - name: Validate activation guard syntax
+        run: |
+          set -euo pipefail
+          node --check apps/api-gateway/src/global-trust-biometric-payment-production-activation.mjs
+          node --check apps/api-gateway/test/global-trust-biometric-payment-production-activation.test.mjs
+
+      - name: Execute production activation guard tests
+        working-directory: apps/api-gateway
+        run: node --test test/global-trust-biometric-payment-production-activation.test.mjs
