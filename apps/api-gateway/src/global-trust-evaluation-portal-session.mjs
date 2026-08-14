@@ -14,9 +14,7 @@ function fail(code, message) {
 
 function text(value, name) {
   const normalized = String(value ?? "").trim();
-  if (!normalized) {
-    fail("TRUST_EVALUATION_PORTAL_SESSION_INVALID_INPUT", `${name} is required`);
-  }
+  if (!normalized) fail("TRUST_EVALUATION_PORTAL_SESSION_INVALID_INPUT", `${name} is required`);
   return normalized;
 }
 
@@ -31,7 +29,10 @@ function iso(value, name) {
 function normalizeTtl(value) {
   const normalized = value ?? 900_000;
   if (!Number.isSafeInteger(normalized) || normalized < 60_000 || normalized > 3_600_000) {
-    fail("TRUST_EVALUATION_PORTAL_SESSION_INVALID_TTL", "sessionTtlMs must be 60000..3600000");
+    fail(
+      "TRUST_EVALUATION_PORTAL_SESSION_INVALID_TTL",
+      "sessionTtlMs must be 60000..3600000",
+    );
   }
   return normalized;
 }
@@ -52,7 +53,7 @@ function parseToken(token) {
   if (!match) {
     fail("TRUST_EVALUATION_PORTAL_SESSION_INVALID_TOKEN", "invalid portal session token");
   }
-  return { token: normalized, sessionId: match[1] };
+  return Object.freeze({ token: normalized, sessionId: match[1] });
 }
 
 export function trustEvaluationEnrollmentIdFor(organizationId) {
@@ -78,9 +79,9 @@ function normalizeEnrollment(record, organizationId) {
     record.organizationId !== organizationId ||
     !possessionVerified ||
     !identityNotVerifiedByService ||
+    !record.enrollmentId ||
     !record.recipientPublicKeySpkiPem ||
-    !record.recipientKeyFingerprint ||
-    !record.enrollmentId
+    !record.recipientKeyFingerprint
   ) {
     fail(
       "TRUST_EVALUATION_PORTAL_SESSION_ENROLLMENT_REQUIRED",
@@ -129,11 +130,12 @@ export function createGlobalTrustEvaluationPortalSessionService({
       "clock/randomBytesFn required",
    );
   }
+
   const configuredTtlMs = normalizeTtl(sessionTtlMs);
 
-  async function approvedEnrolment(organizationId) {
+  async function approvedEnrollment(organizationId) {
     const normalizedOrganizationId = text(organizationId, "organizationId");
-    const enrollmentId = trustEvaluationEnrollmentIdFor(normalizedOrganizationId);
+    const enrollmentId = trustEvaluationEnrolmentIdFor(normalizedOrganizationId);
     const state = await store.read();
     const record =
       state.collections?.[ENROLLMENT_COLLECTION]?.[enrollmentId] ?? null;
@@ -143,7 +145,7 @@ export function createGlobalTrustEvaluationPortalSessionService({
   return Object.freeze({
     async begin({ organizationId, correlationId } = {}) {
       const normalizedOrganizationId = text(organizationId, "organizationId");
-      const enrollment = await approvedEnrolment(normalizedOrganizationId);
+      const enrollment = await approvedEnrollment(normalizedOrganizationId);
       const challenge = await recipientKeyProofService.issueChallenge({
         organizationId: normalizedOrganizationId,
         recipientPublicKey: enrollment.recipientPublicKeySpkiPem,
@@ -250,7 +252,7 @@ export function createGlobalTrustEvaluationPortalSessionService({
         );
       }
 
-      const enrollment = await approvedEnrolment(record.organizationId);
+      const enrollment = await approvedEnrollment(record.organizationId);
       if (
         enrollment.enrollmentId !== record.enrollmentId ||
         enrollment.recipientKeyFingerprint !== record.recipientKeyFingerprint
