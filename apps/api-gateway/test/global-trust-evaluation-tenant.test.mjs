@@ -137,8 +137,8 @@ test("persists only hashed API-key material and never raw biometric material", a
   assert.equal(snapshot.toLowerCase().includes("face image"), false);
   assert.equal(snapshot.toLowerCase().includes("iris scan"), false);
   assert.equal(snapshot.toLowerCase().includes("palm image"), false);
-  assert.equal(snapshot.includes('"realMoney":false'), true);
-  assert.equal(snapshot.includes('"financialEgress":"blocked"'), true);
+  assert.match(snapshot, /"realMoney"\s*:\s*false/);
+  assert.match(snapshot, /"financialEgress"\s*:\s*"blocked"/);
 });
 
 test("fails closed after expiry and revokes the evaluation API key", async (t) => {
