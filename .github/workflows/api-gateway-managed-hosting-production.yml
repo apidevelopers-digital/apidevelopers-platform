@@ -32,8 +32,10 @@ jobs:
     runs-on: [self-hosted, macOS, X64]
     timeout-minutes: 30
     env:
-      HOSTINGER_USERNAME: ${{ vars.HOSTINGER_USENAME }}
-      HOSTINGER_DOMAIN: ${{ vars.API_GATEWAY_PRODUCTION_DOMAIN }}
+      # Canonical production target. GitHub repository variables may override
+      # these non-secret defaults, but preflight must not depend on manual setup.
+      HOSTINGER_USERNAME: ${{ vars.HOSTINGER_USERNAME || 'u242521810' }}
+      HOSTINGER_DOMAIN: ${{ vars.API_GATEWAY_PRODUCTION_DOMAIN || 'gateway.apidevelopers.digital' }}
       API_GATEWAY_RUNTIME_READY: ${{ vars.API_GATEWAY_RUNTIME_READY }}
     steps:
       - name: Validate exact SHA
@@ -75,11 +77,19 @@ jobs:
         run: |
           set -euo pipefail
           if [[ -z "$HOSTINGER_USERNAME" ]]; then
-            echo "::error title=Missing GitHub variable::HOSTINGER_USERNAME must be configured for preflight/apply." >&2
+            echo "::error title=Missing Hostinger username::HOSTINGER_USERNAME resolved empty. Configure vars.HOSTINGER_USENAME or restore the canonical workflow default." >&2
             exit 1
           fi
           if [[ -z "$HOSTINGER_DOMAIN" ]]; then
-            echo "::error title=Missing GitHub variable::API_GATEWAY_PRODUCTION_DOMAIN must be configured for preflight/apply." >&2
+            echo "::error title=Missing API Gateway domain::HOSTINGER_DOMAIN resolved empty. Configure vars.API_GATEWAY_PRODUCTION_DOMAIN or restore the canonical workflow default." >&2
+            exit 1
+          fi
+          if [[ "$HOSTINGER_USERNAME" != "u242521810" ]]; then
+            echo "::error title=Unexpected Hostinger username::Resolved target does not match the verified production account." >&2
+            exit 1
+          fi
+          if [[ "$HOSTINGER_DOMAIN" != "gateway.apidevelopers.digital" ]]; then
+            echo "::error title=Unexpected API Gateway domain::Resolved target does not match gateway.apidevelopers.digital." >&2
             exit 1
           fi
 
@@ -93,7 +103,7 @@ jobs:
               exit 1
             fi
           else
-            echo "Preflight guardrails validated without enabling the production runtime."
+            echo "Preflight guardrails validated against canonical production target without enabling the production runtime."
           fi
 
       - name: Preflight or apply Hostinger Node build
@@ -104,9 +114,9 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          node apps/site-factory/src/run-hostincer-node-build-api-only.mjs \
+          node apps/site-factory/src/run-hostinger-node-build-api-only.mjs \
             --mode "${{ inputs.mode }}" \
-            --username "$HOSTINGER_USERNAME" \
+            --username "$HOSTINGER_USENAME" \
             --domain "$HOSTINGER_DOMAIN" \
             --archive "$ARCHIVE_PATH" \
             --transport multipart \
