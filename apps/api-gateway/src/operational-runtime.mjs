@@ -172,7 +172,9 @@ export function createOperationalRuntime({
       stateStore: "json-file",
       adminKeyConfigured: Boolean(config.adminKey),
       githubReadonly: githubRuntime.descriptor,
-      delegatedBindingSignerConfigured: Boolean(delegatedBindingSigner),
+      ...(delegatedBindingSigner
+        ? { delegatedBindingSignerConfigured: true }
+        : {}),
     }),
   });
 }
