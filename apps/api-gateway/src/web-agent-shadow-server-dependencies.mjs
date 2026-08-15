@@ -22,8 +22,15 @@ export function createWebAgentShadowServerDependencies({
   commercialContext,
   clock,
 } = {}) {
-  if (!store || typeof store.read !== "function" || typeof store.transaction !== "function") {
-    throw new TypeError("store must provide read and transaction");
+  if (
+    !store ||
+    typeof store.read !== "function" ||
+    typeof store.transaction !== "function" ||
+    typeof store.executeIdempotent !== "function"
+  ) {
+    throw new TypeError(
+      "store must provide read, transaction and executeIdempotent",
+    );
   }
 
   requireFunction(resolveSessionByHash, "resolveSessionByHash");
