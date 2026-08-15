@@ -25,6 +25,13 @@ export function resolveTrustEvaluationEnabled(env = process.env) {
   );
 }
 
+export function resolveTrustEvaluationPortalEnabled(env = process.env) {
+  return parseBooleanFlag(
+    env.GLOBAL_TRUST_EVALUATION_PORTAL_ENABLED,
+    "GLOBAL_TRUST_EVALUATION_PORTAL_ENABLED",
+  );
+}
+
 export function isDirectExecution(options = {}) {
   const moduleUrl = Object.hasOwn(options, "moduleUrl")
     ? options.moduleUrl
@@ -53,6 +60,8 @@ export async function startOperationalGateway({
   serverFactory = startOperationalHttpServer,
   trustEvaluationLoader = () =>
     import("./operational-trust-evaluation-composition.mjs"),
+  trustEvaluationPortalLoader = () =>
+    import("./operational-trust-evaluation-portal-composition.mjs"),
 } = {}) {
   if (typeof runtimeFactory !== "function") {
     throw new TypeError("runtimeFactory must be a function");
@@ -62,6 +71,15 @@ export async function startOperationalGateway({
   }
 
   const trustEvaluationEnabled = resolveTrustEvaluationEnabled(env);
+  const trustEvaluationPortalEnabled =
+    resolveTrustEvaluationPortalEnabled(env);
+
+  if (trustEvaluationPortalEnabled && !trustEvaluationEnabled) {
+    throw new TypeError(
+      "GLOBAL_TRUST_EVALUATION_PORTAL_ENABLED requires GLOBAL_TRUST_EVALUATION_ENABLED=true",
+    );
+  }
+
   let gatewayTransform;
 
   if (trustEvaluationEnabled) {
@@ -69,15 +87,38 @@ export async function startOperationalGateway({
       throw new TypeError("trustEvaluationLoader must be a function");
     }
 
-    const module = await trustEvaluationLoader();
-    const attach = module?.attachOperationalTrustEvaluationGateway;
-    if (typeof attach !== "function") {
+    const evaluationModule = await trustEvaluationLoader();
+    const attachEvaluation =
+      evaluationModule?.attachOperationalTrustEvaluationGateway;
+    if (typeof attachEvaluation !== "function") {
       throw new TypeError(
         "Trust Evaluation module must export attachOperationalTrustEvaluationGateway",
       );
     }
 
-    gatewayTransform = ({ gateway }) => attach({ gateway });
+    let attachPortal = null;
+    if (trustEvaluationPortalEnabled) {
+      if (typeof trustEvaluationPortalLoader !== "function") {
+        throw new TypeError(
+          "trustEvaluationPortalLoader must be a function",
+        );
+      }
+      const portalModule = await trustEvaluationPortalLoader();
+      attachPortal =
+        portalModule?.attachOperationalTrustEvaluationPortal;
+      if (typeof attachPortal !== "function") {
+        throw new TypeError(
+          "Trust Evaluation Portal module must export attachOperationalTrustEvaluationPortal",
+        );
+      }
+    }
+
+    gatewayTransform = ({ gateway }) => {
+      const evaluationGateway = attachEvaluation({ gateway });
+      return attachPortal
+        ? attachPortal({ gateway: evaluationGateway })
+        : evaluationGateway;
+    };
   }
 
   const runtime = runtimeFactory({
@@ -105,6 +146,15 @@ export async function startOperationalGateway({
             provisioning: "operator-only",
             financialEgress: "blocked",
             realMoney: false,
+            ...(trustEvaluationPortalEnabled
+              ? {
+                  portal: {
+                    enabled: true,
+                    deliveryChannel: "in_product_portal",
+                    externalEnvelopeEgress: false,
+                  },
+                }
+              : {}),
           },
         }
       : {}),
