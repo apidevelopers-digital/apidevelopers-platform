@@ -19,7 +19,9 @@ function parseTtlSeconds(value) {
 export function resolveZuniDelegatedBindingRuntimeConfig(env = process.env) {
   const directPem = optionalText(env.ZUNI_DELEGATED_BINDING_PRIVATE_KEY_PEM);
   if (directPem) {
-    throw new TypeError("ZUNI_DELEGATED_BINDING_PRIVATE_KEY_PEM is forbidden; use an opaque secret reference");
+    throw new TypeError(
+      "ZUNI_DELEGATED_BINDING_PRIVATE_KEY_PEM is forbidden; use an opaque secret reference",
+    );
   }
 
   const privateKeyRef = optionalText(env.ZUNI_DELEGATED_BINDING_PRIVATE_KEY_REF);
@@ -33,7 +35,9 @@ export function resolveZuniDelegatedBindingRuntimeConfig(env = process.env) {
   }
 
   if (!privateKeyRef || !keyId) {
-    throw new TypeError("Zuni delegated binding runtime requires private key ref and key id together");
+    throw new TypeError(
+      "Zuni delegated binding runtime requires private key ref and key id together",
+    );
   }
 
   return Object.freeze({
@@ -66,6 +70,12 @@ export async function resolveZuniDelegatedBindingSigner({
         privateKeyMaterialConfigured: false,
       }),
     });
+  }
+
+  if (typeof secretProvider?.withSecret !== "function") {
+    throw new TypeError(
+      "delegated binding secret provider is required when Zuni delegated binding is configured",
+    );
   }
 
   const signer = await loader({
