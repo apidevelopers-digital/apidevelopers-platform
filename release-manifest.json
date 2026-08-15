@@ -3,7 +3,7 @@
   "format": "managed-node-zip",
   "service": "api-gateway",
   "version": "0.7.0",
-  "sourceRevision": "e51d23bebe3bfa994c24dc41511f32d3552ad925",
+  "sourceRevision": "6c79fce4cfde4c851e0044b371d5f054f43eaf8c",
   "runtime": {
     "node": ">=22",
     "entrypoint": "src/operational-server.mjs",
@@ -520,8 +520,8 @@
     },
     {
       "path": "src/operational-server.mjs",
-      "bytes": 4104,
-      "sha256": "4c07e9170ef3fc0928990f68c1f76784eb2506ae1b010594382b608f7d14deeb"
+      "bytes": 5782,
+      "sha256": "13c00d2828ee89bd4f201fafeb08c89423f46ab1b47353ce76435cfd9a913e74"
     },
     {
       "path": "src/operational-tool-invocation-composition.mjs",
