@@ -104,7 +104,7 @@ export async function getAgencyWebsiteSetupStatus({
 }) {
   const path = endpoint(SETUP_STATUS_ENDPOINT, {
     order_id: orderId,
-    setup_uuid: setupUud,
+    setup_uuid: setupUuid,
   });
   const response = await fetchImpl(new URL(path, baseUrl), {
     method: "GET",
@@ -128,7 +128,7 @@ export async function getAgencyWebsiteSetupStatus({
   if (!["running", "completed"].includes(status)) {
     throw new Error(`hostinger_agency_setup_status_unexpected:${status ?? "null"}`);
   }
-  if (status === "completed" && "websiteUid) {
+  if (status === "completed" && !websiteUid) {
     throw new Error("hostinger_agency_setup_completed_without_website_uid");
   }
 
@@ -142,7 +142,7 @@ export async function getAgencyWebsiteSetupStatus({
 export async function waitForAgencyWebsiteSetup({
   token,
   orderId,
-  setupUud,
+  setupUuid,
   fetchImpl = fetch,
   baseUrl = "https://developers.hostinger.com",
   attempts = 10,

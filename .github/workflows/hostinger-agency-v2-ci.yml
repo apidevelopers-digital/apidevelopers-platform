@@ -1,0 +1,65 @@
+name: Hostinger Agency Hosting v2 CI
+
+on:
+  push:
+    branches:
+      - "feat/hostinger-agency-contract-v2-20260814"
+      - "fix/hostinger-agency-async-setup-20260814"
+      - "fix/hostinger-agency-api-v130-20260814"
+    paths:
+      - "apps/site-factory/src/hostinger-agency-*.mjs"
+      - "apps/site-factory/test/hostinger-agency-*.test.mjs"
+      - ".github/workflows/hostinger-agency-v2-ci.yml"
+  pull_request:
+    paths:
+      - "apps/site-factory/src/hostinger-agency-*.mjs"
+      - "apps/site-factory/test/hostinger-agency-*.test.mjs"
+      - ".github/workflows/hostinger-agency-v2-ci.yml"
+
+permissions:
+  contents: read
+
+jobs:
+  validate:
+    runs-on: [self-hosted, macOS, X64]
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+
+      - name: Validate syntax
+        run: |
+          node --check apps/site-factory/src/hostinger-agency-preflight.mjs
+          node --check apps/site-factory/src/hostinger-agency-website-setup.mjs
+          node --check apps/site-factory/src/hostinger-agency-website-create-draft-v2.mjs
+
+      - name: Validate Agency Hosting contracts
+        run: |
+          node --test apps/site-factory/test/hostinger-agency-preflight.test.mjs
+          node --test apps/site-factory/test/hostinger-agency-website-setup.test.mjs
+          node --test apps/site-factory/test/hostinger-agency-website-create-draft-v2.test.mjs
+
+      - name: Validate fail-closed guardrails
+        shell: bash
+        run: |
+          set -Eeuo pipefail
+          draft="apps/site-factory/src/hostinger-agency-website-create-draft-v2.mjs"
+          setup="apps/site-factory/src/hostinger-agency-website-setup.mjs"
+
+          grep -q 'executable: false' "$draft"
+          grep -q 'writesEnabled: false' "$draft"
+          grep -q 'dnsEnabled: false' "$draft"
+          grep -q 'nodeBuildEnabled: false' "$draft"
+          grep -q 'deployEnabled: false' "$draft"
+          grep -q 'execute: false' "$draft"
+          grep -q 'setup_uuid' "$draft"
+          grep -q 'website_uid' "$draft"
+          grep -q 'method: "POST"' "$setup"
+          grep -q 'method: "GET"' "$setup"
+
+          if grep -Eq 'HOSTINGER_API_TOKEN\s*=|Bearer [A-Za-z0-9._-]{20,}' "$draft" "$setup"; then
+            echo "Potential secret material detected."
+            exit 1
+          fi
