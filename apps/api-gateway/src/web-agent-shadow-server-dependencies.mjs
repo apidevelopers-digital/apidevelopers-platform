@@ -1,4 +1,4 @@
-import { createSaaSAccessComposition } from "./saas-access-composition.mjs";
+import { createSaasAccessComposition } from "./saas-access-composition.mjs";
 
 function requireFunction(value, name) {
   if (typeof value !== "function") {
@@ -37,7 +37,7 @@ export function createWebAgentShadowServerDependencies({
   requireResolver(tenantInternationalProfile, "tenantInternationalProfile");
   requireResolver(commercialContext, "commercialContext");
 
-  const { saasAccess } = createSaaSAccessComposition({
+  const { saasAccess } = createSaasAccessComposition({
     store,
     ...(clock ? { clock } : {}),
   });
