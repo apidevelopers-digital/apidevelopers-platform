@@ -74,6 +74,7 @@ export function createOperationalRuntime({
   githubVaultClient,
   githubSecretProvider,
   githubTransport,
+  delegatedBindingSigner,
 } = {}) {
   if (typeof gatewayFactory !== "function") {
     throw new TypeError("gatewayFactory must be a function");
@@ -83,6 +84,14 @@ export function createOperationalRuntime({
   }
   if (typeof githubRuntimeFactory !== "function") {
     throw new TypeError("githubRuntimeFactory must be a function");
+  }
+  if (
+    delegatedBindingSigner !== undefined &&
+    typeof delegatedBindingSigner?.signBinding !== "function"
+  ) {
+    throw new TypeError(
+      "delegatedBindingSigner.signBinding must be a function",
+    );
   }
 
   const config = resolveOperationalRuntimeConfig({ env, cwd });
@@ -131,6 +140,7 @@ export function createOperationalRuntime({
   const baseGateway = gatewayFactory({
     stateFilePath: config.stateFilePath,
     ...(config.adminKey ? { adminKey: config.adminKey } : {}),
+    ...(delegatedBindingSigner ? { delegatedBindingSigner } : {}),
     ...(githubRuntime.configured
       ? {
           githubReadonlyClient: githubRuntime.client,
@@ -162,6 +172,7 @@ export function createOperationalRuntime({
       stateStore: "json-file",
       adminKeyConfigured: Boolean(config.adminKey),
       githubReadonly: githubRuntime.descriptor,
+      delegatedBindingSignerConfigured: Boolean(delegatedBindingSigner),
     }),
   });
 }
