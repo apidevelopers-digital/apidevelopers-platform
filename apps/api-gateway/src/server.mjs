@@ -9,6 +9,7 @@ import {
   createWebAgentConversationHttpRoute,
   webAgentConversationHttpPath,
 } from "./web-agent-conversation-http.mjs";
+import { createWebAgentServerBootstrap } from "./web-agent-shadow-server-bootstrap.mjs";
 
 const JSON_HEADERS = Object.freeze({
   "content-type": "application/json; charset=utf-8",
@@ -271,8 +272,22 @@ export async function startServer({
   host = process.env.HOST ?? "127.0.0.1",
   app,
   webAgentConversationRoute,
+  webAgentServerBootstrapOptions,
 } = {}) {
-  const server = createHttpServer({ app, webAgentConversationRoute });
+  let selectedWebAgentRoute = webAgentConversationRoute;
+
+  if (selectedWebAgentRoute === undefined) {
+    const bootstrap = createWebAgentServerBootstrap({
+      env: process.env,
+      ...(webAgentServerBootstrapOptions ?? {}),
+    });
+    selectedWebAgentRoute = bootstrap.route;
+  }
+
+  const server = createHttpServer({
+    app,
+    webAgentConversationRoute: selectedWebAgentRoute,
+  });
 
   await new Promise((resolve, reject) => {
     server.once("error", reject);
