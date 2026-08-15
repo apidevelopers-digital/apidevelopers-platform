@@ -19,7 +19,7 @@ jobs:
   deploy:
     if: >-
       github.ref == 'refs/heads/main' &&
-      github.event.inputs.example == 'IGOR APROVA A EXECUÇÃO REAL DO GATEWAY E DA TRUST EM PRODUÇÃO'
+      github.event.inputs.example == 'IGOR_APROVA_GATEWAY_TRUST_PRODUCAO_20260814'
     runs-on:
       - self-hosted
       - macOS
@@ -36,7 +36,7 @@ jobs:
           set -euo pipefail
           test "$GITHUB_SHA" = "$EXPECTED_SHA"
           test "$HOSTINGER_DOMAIN" = "gateway.apidevelopers.digital"
-          test "${{ github.event.inputs.example }}" = "IGOR APROVA A EXECU��ÃO REAL DO GATEWAY E DA TRUST EM PRODUÇÃO"
+          test "${{ github.event.inputs.example }}" = "IGOR_APROVA_GATEWAY_TRUST_PRODUCAO_20260814"
 
       - name: Checkout exact SHA
         uses: actions/checkout@v4
