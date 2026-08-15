@@ -65,6 +65,8 @@
         "ok": true,
         "requestId": "request:wire:001",
         "result": {
+          "ok": true,
+          "status": 200,
           "agentId": "uni.co",
           "runtime": "uni-co-runtime",
           "mode": "web_shadow",
@@ -158,6 +160,8 @@
         "ok": true,
         "requestId": "request:wire:002",
         "result": {
+          "ok": true,
+          "status": 200,
           "agentId": "nexus",
           "runtime": "nexus-runtime",
           "mode": "web_shadow",
