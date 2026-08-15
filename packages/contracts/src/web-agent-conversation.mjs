@@ -50,10 +50,14 @@ function scanSecrets(value, path = "request") {
   if (!value || typeof value !== "object") return;
   for (const [key, child] of Object.entries(value)) {
     const normalizedKey = key.replace(/[-_]/g, "").toLowerCase();
+    const safeSecurityMetadata = normalizedKey === "secretsexposed";
+    const containsSensitiveMaterial =
+      ["apikey", "authorization", "password", "credential", "bearer"].includes(normalizedKey) ||
+      normalizedKey.includes("token") ||
+      normalizedKey.includes("secret");
     const explicitlySensitive =
       FORBIDDEN_KEYS.has(key) ||
-      ["apikey", "authorization", "password", "secret", "token", "accesstoken",
-       "refreshtoken", "credential", "bearer"].includes(normalizedKey);
+      (!safeSecurityMetadata && containsSensitiveMaterial);
     if (explicitlySensitive) {
       throw new Error(`${path}.${key} is forbidden in the browser contract`);
     }
@@ -169,7 +173,8 @@ export function createWebAgentConversationRequest(input = {}) {
       automaticExternalExecutionAllowed: false,
     },
   };
-  assertWebAgentConversationRequest(request);  return freeze(structuredClone(request));
+  assertWebAgentConversationRequest(request);
+  return freeze(structuredClone(request));
 }
 
 export function assertSameWebAgentBoundary(left, right) {
@@ -184,8 +189,7 @@ export function assertSameWebAgentBoundary(left, right) {
   return true;
 }
 
-export function createWebAgentConversationResponse(input = {})
- {
+export function createWebAgentConversationResponse(input = {}) {
   const response = {
     schemaVersion: VERSION,
     requestId: safeId(input.requestId, "requestId"),
