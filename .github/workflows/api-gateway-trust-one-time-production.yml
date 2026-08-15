@@ -4,7 +4,7 @@ on:
   workflow_dispatch:
     inputs:
       example:
-        description: "Exact Igor approval phrase"
+        description: "Exact Igor approval token"
         required: true
         type: string
 
@@ -82,13 +82,27 @@ jobs:
             --expected-text 'api_gateway_operational_started' \
             --evidence "$RUNNER_TEMP/api-gateway-hostinger-preflight-evidence.json"
 
-      - name: Apply Hostinger Node build
+      - name: Confirm Hostinger credential availability
         env:
           HOSTINGER_API_TOKEN: ${{ secrets.HOSTINGER_API_TOKEN }}
         shell: bash
         run: |
           set -euo pipefail
-          test -n "$HOSTINGER_API_TOKEN"
+          if [ -z "${HOSTINGER_API_TOKEN:-}" ]; then
+            echo "::error title=Hostinger credential missing::Repository secret HOSTINGER_API_TOKEN is not configured for this workflow."
+            exit 1
+          fi
+          echo "Hostinger credential is configured."
+
+      - name: Apply Hostinger Node build
+        env:
+          HOSTINGER_API_TOKEN: ${{ secrets.HOSTINGER_API_TOKEN }}
+        shell: bash
+        run: |
+          set -uo pipefail
+          evidence="$RUNNER_TEMP/api-gateway-hostinger-apply-evidence.json"
+          log="$RUNNER_TEMP/api-gateway-hostinger-apply.log"
+          set +e
           node apps/site-factory/src/run-hostinger-node-build-api-only.mjs \
             --mode apply \
             --username "$HOSTINGER_USERNAME" \
@@ -100,7 +114,21 @@ jobs:
             --entry-file src/operational-server.mjs \
             --package-manager npm \
             --expected-text 'api_gateway_operational_started' \
-            --evidence "$RUNNER_TEMP/api-gateway-hostinger-apply-evidence.json"
+            --evidence "$evidence" >"$log" 2>&1
+          status=$?
+          set -e
+          if [ "$status" -ne 0 ]; then
+            if [ -s "$evidence" ]; then
+              message="$(node -e "const fs=require('fs'); const p=JSON.parse(fs.readFileSync(process.argv[1],'utf8')); const e=p.error||{}; process.stdout.write(String(e.message||p.status||'hostinger_apply_failed').slice(0,800))" "$evidence")"
+            else
+              message="hostinger_apply_failed_without_evidence"
+            fi
+            message="${message//'%'/'%25'}"
+            message="${message//$'\n'/' '}"
+            message="${message//$'\r'/' '}"
+            echo "::error title=Hostinger Node apply failed::$message"
+            exit "$status"
+          fi
 
       - name: Verify deployment evidence
         shell: bash
