@@ -25,7 +25,7 @@ export function resolveTrustEvaluationEnabled(env = process.env) {
   );
 }
 
-export function resolveTrustEvaluationPortalEnabled(env = process.env) {
+export function resolveTrustEvaluationPortalEnabled(env = process.env ) {
   return parseBooleanFlag(
     env.GLOBAL_TRUST_EVALUATION_PORTAL_ENABLED,
     "GLOBAL_TRUST_EVALUATION_PORTAL_ENABLED",
@@ -58,6 +58,7 @@ export async function startOperationalGateway({
   logger = console,
   runtimeFactory = createOperationalRuntime,
   serverFactory = startOperationalHttpServer,
+  delegatedBindingSigner,
   trustEvaluationLoader = () =>
     import("./operational-trust-evaluation-composition.mjs"),
   trustEvaluationPortalLoader = () =>
@@ -69,6 +70,14 @@ export async function startOperationalGateway({
   if (typeof serverFactory !== "function") {
     throw new TypeError("serverFactory must be a function");
   }
+  if (
+    delegatedBindingSigner !== undefined &&
+    typeof delegatedBindingSigner?.signBinding !== "function"
+  ) {
+    throw new TypeError(
+      "delegatedBindingSigner.signBinding must be a function",
+    );
+  }
 
   const trustEvaluationEnabled = resolveTrustEvaluationEnabled(env);
   const trustEvaluationPortalEnabled =
@@ -77,7 +86,7 @@ export async function startOperationalGateway({
   if (trustEvaluationPortalEnabled && !trustEvaluationEnabled) {
     throw new TypeError(
       "GLOBAL_TRUST_EVALUATION_PORTAL_ENABLED requires GLOBAL_TRUST_EVALUATION_ENABLED=true",
-    );
+   );
   }
 
   let gatewayTransform;
@@ -124,6 +133,7 @@ export async function startOperationalGateway({
   const runtime = runtimeFactory({
     env,
     cwd,
+    ...(delegatedBindingSigner ? { delegatedBindingSigner } : {}),
     ...(gatewayTransform ? { gatewayTransform } : {}),
   });
   const server = await serverFactory({
