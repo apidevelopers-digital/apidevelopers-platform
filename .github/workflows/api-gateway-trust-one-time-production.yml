@@ -1,0 +1,109 @@
+name: API Gateway Trust One-Time Production Deploy
+
+on:
+  workflow_dispatch:
+    inputs:
+      example:
+        description: "Exact Igor approval phrase"
+        required: true
+        type: string
+
+permissions:
+  contents: read
+
+concurrency:
+  group: api-gateway-trust-one-time-production
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    if: >-
+      github.ref == 'refs/heads/main' &&
+      github.event.inputs.example == 'IGOR_APROVA_GATEWAY_TRUST_PRODUCAO_20260814'
+    runs-on:
+      - self-hosted
+      - macOS
+      - X64
+    timeout-minutes: 30
+    env:
+      HOSTINGER_USERNAME: u242521810
+      HOSTINGER_DOMAIN: gateway.apidevelopers.digital
+      EXPECTED_SHA: ${{ github.sha }}
+    steps:
+      - name: Validate exact approved target
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$GITHUB_SHA" = "$EXPECTED_SHA"
+          test "$HOSTINGER_DOMAIN" = "gateway.apidevelopers.digital"
+          test "${{ github.event.inputs.example }}" = "IGOR_APROVA_GATEWAY_TRUST_PRODUCAO_20260814"
+
+      - name: Checkout exact SHA
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ env.EXPECTED_SHA }}
+          persist-credentials: false
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+
+      - name: Build and verify managed artifact
+        shell: bash
+        run: |
+          set -euo pipefail
+          node apps/api-gateway/scripts/build-managed-hosting-artifact.mjs
+          node apps/api-gateway/scripts/verify-managed-hosting-artifact.mjs
+          artifact="apps/api-gateway/dist/api-gateway-managed"
+          test -f "$artifact/release-manifest.json"
+          archive="$RUNNER_TEMP/api-gateway-$EXPECTED_SHA.zip"
+          (
+            cd "$artifact"
+            zip -q -r "$archive" .
+          )
+          test -s "$archive"
+          echo "ARCHIVE_PATH=$archive" >> "$GITHUB_ENV"
+
+      - name: Hostinger preflight
+        shell: bash
+        run: |
+          set -euo pipefail
+          node apps/site-factory/src/run-hostinger-node-build-api-only.mjs \
+            --mode preflight \
+            --username "$HOSTINGER_USERNAME" \
+            --domain "$HOSTINGER_DOMAIN" \
+            --archive "$ARCHIVE_PATH" \
+            --transport multipart \
+            --node-version 22 \
+            --app-type express \
+            --entry-file src/operational-server.mjs \
+            --package-manager npm \
+            --expected-text 'api_gateway_operational_started' \
+            --evidence "$RUNNER_TEMP/api-gateway-hostinger-preflight-evidence.json"
+
+      - name: Apply Hostinger Node build
+        env:
+          HOSTINGER_API_TOKEN: ${{ secrets.HOSTINGER_API_TOKEN }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          test -n "$HOSTINGER_API_TOKEN"
+          node apps/site-factory/src/run-hostinger-node-build-api-only.mjs \
+            --mode apply \
+            --username "$HOSTINGER_USERNAME" \
+            --domain "$HOSTINGER_DOMAIN" \
+            --archive "$ARCHIVE_PATH" \
+            --transport multipart \
+            --node-version 22 \
+            --app-type express \
+            --entry-file src/operational-server.mjs \
+            --package-manager npm \
+            --expected-text 'api_gateway_operational_started' \
+            --evidence "$RUNNER_TEMP/api-gateway-hostinger-apply-evidence.json"
+
+      - name: Verify deployment evidence
+        shell: bash
+        run: |
+          set -euo pipefail
+          test -s "$RUNNER_TEMP/api-gateway-hostinger-apply-evidence.json"
