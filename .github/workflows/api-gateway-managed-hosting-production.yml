@@ -33,7 +33,7 @@ jobs:
     timeout-minutes: 30
     env:
       # Canonical production target. GitHub repository variables may override
-      # these non-secret defaults, but preflight must not depend on manual setup.
+      # these non-secret defaults, but the guardrail below still pins the target.
       HOSTINGER_USERNAME: ${{ vars.HOSTINGER_USERNAME || 'u242521810' }}
       HOSTINGER_DOMAIN: ${{ vars.API_GATEWAY_PRODUCTION_DOMAIN || 'gateway.apidevelopers.digital' }}
       API_GATEWAY_RUNTIME_READY: ${{ vars.API_GATEWAY_RUNTIME_READY }}
@@ -77,11 +77,11 @@ jobs:
         run: |
           set -euo pipefail
           if [[ -z "$HOSTINGER_USERNAME" ]]; then
-            echo "::error title=Missing Hostinger username::HOSTINGER_USERNAME resolved empty. Configure vars.HOSTINGER_USENAME or restore the canonical workflow default." >&2
+            echo "::error title=Missing Hostinger username::HOSTINGER_USERNAME resolved empty." >&2
             exit 1
           fi
           if [[ -z "$HOSTINGER_DOMAIN" ]]; then
-            echo "::error title=Missing API Gateway domain::HOSTINGER_DOMAIN resolved empty. Configure vars.API_GATEWAY_PRODUCTION_DOMAIN or restore the canonical workflow default." >&2
+            echo "::error title=Missing API Gateway domain::HOSTINGER_DOMAIN resolved empty." >&2
             exit 1
           fi
           if [[ "$HOSTINGER_USERNAME" != "u242521810" ]]; then
@@ -116,7 +116,7 @@ jobs:
           set -euo pipefail
           node apps/site-factory/src/run-hostinger-node-build-api-only.mjs \
             --mode "${{ inputs.mode }}" \
-            --username "$HOSTINGER_USENAME" \
+            --username "$HOSTINGER_USERNAME" \
             --domain "$HOSTINGER_DOMAIN" \
             --archive "$ARCHIVE_PATH" \
             --transport multipart \
@@ -126,6 +126,38 @@ jobs:
             --package-manager npm \
             --expected-text 'api_gateway_operational_started' \
             --evidence "$RUNNER_TEMP/api-gateway-hostinger-evidence.json"
+
+      - name: Surface sanitized Hostinger evidence
+        if: ${{ always() }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          evidence="$RUNNER_TEMP/api-gateway-hostinger-evidence.json"
+          if [[ ! -f "$evidence" ]]; then
+            echo "::error title=Missing Hostinger evidence::Executor did not create the sanitized evidence file at the expected path."
+            exit 0
+          fi
+
+          node - "$evidence" <<'NODE'
+          const fs = require("node:fs");
+          const path = process.argv[2];
+          const evidence = JSON.parse(fs.readFileSync(path, "utf8"));
+          const compact = {
+            mode: evidence.mode ?? null,
+            status: evidence.status ?? null,
+            writeExecuted: evidence.writeExecuted ?? null,
+            target: evidence.target ?? null,
+            request: evidence.request ?? null,
+            error: evidence.error ?? null,
+          };
+          console.log(JSON.stringify(compact, null, 2));
+
+          const message = evidence?.error?.message;
+          if (message) {
+            const safe = String(message).replace(/[%\r\n]/g, " ").slice(0, 800);
+            console.log(`::error title=Hostinger executor preflight::${safe}`);
+          }
+          NODE
 
       - name: Enforce executor result
         if: ${{ steps.hostinger.outcome != 'success' }}
