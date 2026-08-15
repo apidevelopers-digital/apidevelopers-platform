@@ -6,12 +6,16 @@ on:
       - "feat/web-agent-shadow-server-bootstrap-20260815"
     paths:
       - "apps/api-gateway/src/web-agent-shadow-server-bootstrap.mjs"
+      - "apps/api-gateway/src/server.mjs"
       - "apps/api-gateway/test/web-agent-shadow-server-bootstrap.test.mjs"
+      - "apps/api-gateway/test/web-agent-shadow-server-integration.test.mjs"
       - ".github/workflows/web-agent-shadow-server-bootstrap-ci.yml"
   pull_request:
     paths:
       - "apps/api-gateway/src/web-agent-shadow-server-bootstrap.mjs"
+      - "apps/api-gateway/src/server.mjs"
       - "apps/api-gateway/test/web-agent-shadow-server-bootstrap.test.mjs"
+      - "apps/api-gateway/test/web-agent-shadow-server-integration.test.mjs"
       - ".github/workflows/web-agent-shadow-server-bootstrap-ci.yml"
 
 permissions:
@@ -43,7 +47,7 @@ jobs:
           mkdir -p node_modules/@apidevelopers
           ln -sfn "$GITHUB_WORKSPACE/packages/contracts" node_modules/@apidevelopers/contracts
           ln -sfn "$GITHUB_WORKSPACE/packages/auth-core" node_modules/@apidevelopers/auth-core
-          ln -sfn "$GITHUB_WORKSPACE/packages/apikey-core" node_modules/@apidevelopers/apikey-core
+          ln -sfn "$GITHUB_WORKSPACE/packages/apikey-core" noe_modules/@apidevelopers/apikey-core
           ln -sfn "$GITHUB_WORKSPACE/packages/persistence-core" node_modules/@apidevelopers/persistence-core
           ln -sfn "$GITHUB_WORKSPACE/packages/saas-runtime" node_modules/@apidevelopers/saas-runtime
 
@@ -62,7 +66,12 @@ jobs:
         run: |
           node --check src/web-agent-shadow-runtime-config.mjs
           node --check src/web-agent-shadow-server-bootstrap.mjs
+          node --check src/server.mjs
           node --check test/web-agent-shadow-server-bootstrap.test.mjs
+          node --check test/web-agent-shadow-server-integration.test.mjs
 
       - name: Bootstrap contract
         run: node --test test/web-agent-shadow-server-bootstrap.test.mjs
+
+      - name: Server integration
+        run: node --test test/web-agent-shadow-server-integration.test.mjs
