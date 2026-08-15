@@ -1,0 +1,59 @@
+name: Validate Zuni Delegated Binding Proof
+
+on:
+  push:
+    branches:
+      - "feat/zuni-delegated-binding-proof-v1-20260815"
+    paths:
+      - "apps/api-gateway/src/saas-delegated-binding-proof.mjs"
+      - "apps/api-gateway/src/saas-delegated-access-v2.mjs"
+      - "apps/api-gateway/src/saas-operational-http-composition.mjs"
+      - "apps/api-gateway/test/saas-delegated-binding-proof.test.mjs"
+      - "apps/api-gateway/test/saas-delegated-access-binding-proof.test.mjs"
+      - ".github/workflows/validate-zuni-delegated-binding-proof.yml"
+  pull_request:
+    paths:
+      - "apps/api-gateway/src/saas-delegated-binding-proof.mjs"
+      - "apps/api-gateway/src/saas-delegated-access-v2.mjs"
+      - "apps/api-gateway/src/saas-operational-http-composition.mjs"
+      - "apps/api-gateway/test/saas-delegated-binding-proof.test.mjs"
+      - "apps/api-gateway/test/saas-delegated-access-binding-proof.test.mjs"
+      - ".github/workflows/validate-zuni-delegated-binding-proof.yml"
+
+permissions:
+  contents: read
+
+jobs:
+  validate:
+    runs-on:
+      - self-hosted
+      - macOS
+      - X64
+    timeout-minutes: 5
+    defaults:
+      run:
+        working-directory: apps/api-gateway
+    steps:
+      - uses: actions/checkout@v5
+      - name: Install workspace dependencies
+        run: npm ci
+      - name: Validate syntax
+        run: |
+          set -Eeuo pipefail
+          node --check src/saas-delegated-binding-proof.mjs
+          node --check src/saas-delegated-access-v2.mjs
+          node --check src/saas-operational-http-composition.mjs
+      - name: Run focused binding proof tests
+        run: |
+          node --test test/saas-delegated-binding-proof.test.mjs
+          node --test test/saas-delegated-access-binding-proof.test.mjs
+      - name: Guard cryptographic contract
+        run: |
+          set -Eeuo pipefail
+          grep -q 'RSA-PSS-SHA256' src/saas-delegated-binding-proof.mjs
+          grep -q 'unico-api-platform:zuni-documents' src/saas-delegated-binding-proof.mjs
+          grep -q 'decision.allowed && bindingSigner' src/saas-delegated-access-v2.mjs
+          if grep -EQ' 'BEGIN (RSA )?PRIVATE KEY' src/saas-delegated-binding-proof.mjs test/saas-delegated-binding-proof.test.mjs; then
+            echo "Private key material must not be committed."
+            exit 1
+          fi
