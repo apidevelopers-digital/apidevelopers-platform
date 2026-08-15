@@ -1,0 +1,105 @@
+name: Global Trust Evaluation Tenant CI
+
+on:
+  push:
+    branches:
+      - main
+      - "feat/trust-evaluation-tenant-20260814"
+    paths:
+      - "apps/api-gateway/src/global-trust-evaluation-tenant.mjs"
+      - "apps/api-gateway/test/global-trust-evaluation-tenant.test.mjs"
+      - "apps/api-gateway/src/global-trust-evaluation-http.mjs"
+      - "apps/api-gateway/test/global-trust-evaluation-http.test.mjs"
+      - "apps/api-gateway/src/global-trust-evaluation-operator-provisioning.mjs"
+      - "apps/api-gateway/test/global-trust-evaluation-operator-provisioning.test.mjs"
+      - "apps/api-gateway/docs/GLOBAL_TRUST_EVALUATION_TENANT.md"
+      - ".github/workflows/global-trust-evaluation-tenant-ci.yml"
+  pull_request:
+    branches:
+      - main
+    paths:
+      - "apps/api-gateway/src/global-trust-evaluation-tenant.mjs"
+      - "apps/api-gateway/test/global-trust-evaluation-tenant.test.mjs"
+      - "apps/api-gateway/src/global-trust-evaluation-http.mjs"
+      - "apps/api-gateway/test/global-trust-evaluation-http.test.mjs"
+      - "apps/api-gateway/src/global-trust-evaluation-operator-provisioning.mjs"
+      - "apps/api-gateway/test/global-trust-evaluation-operator-provisioning.test.mjs"
+      - "apps/api-gateway/docs/GLOBAL_TRUST_EVALUATION_TENANT.md"
+      - ".github/workflows/global-trust-evaluation-tenant-ci.yml"
+
+permissions:
+  contents: read
+
+jobs:
+  evaluation-tenant:
+    runs-on:
+      - self-hosted
+      - macOS
+      - X64
+    timeout-minutes: 10
+    env:
+      GLOBAL_TRUST_PAYMENT_MODE: dry-run
+      GLOBAL_TRUST_PAYMENT_EGRESS: blocked
+      GLOBAL_TRUST_REAL_MONEY: disabled
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+
+      - name: Bind local platform packages
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p node_modules/@apidevelopers
+          for pkg in contracts persistence-core apikey-core saas-runtime; do
+            ln -s "$GITHUB_WORKSPACE/packages/$pkg" "$GITHUB_WORKSPACE/node_modules/@apidevelopers/$pkg"
+          done
+
+      - name: Validate syntax
+        run: |
+          set -euo pipefail
+          node --check apps/api-gateway/src/global-trust-evaluation-tenant.mjs
+          node --check apps/api-gateway/test/global-trust-evaluation-tenant.test.mjs
+          node --check apps/api-gateway/src/global-trust-evaluation-http.mjs
+          node --check apps/api-gateway/test/global-trust-evaluation-http.test.mjs
+          node --check apps/api-gateway/src/global-trust-evaluation-operator-provisioning.mjs
+          node --check apps/api-gateway/test/global-trust-evaluation-operator-provisioning.test.mjs
+
+      - name: Test provisioning and one-time secret
+        working-directory: apps/api-gateway
+        shell: bash
+        run: |
+          set +e
+          node --test --test-name-pattern="provisions an isolated Trust evaluation tenant" test/global-trust-evaluation-tenant.test.mjs 2>&1 | tee /tmp/trust-evaluation-provision.log
+          status=${PIPESTATUS[0]}
+          set -e
+          if [ "$status" -ne 0 ]; then
+            message="$(tail -n 40 /tmp/trust-evaluation-provision.log | tr '\n\r' '  ' | sed 's/%/%25/g')"
+            echo "::error title=Trust evaluation provisioning failure::$message"
+            exit "$status"
+          fi
+
+      - name: Test persisted sensitive-material boundary
+        working-directory: apps/api-gateway
+        run: node --test --test-name-pattern="persists only hashed API-key material" test/global-trust-evaluation-tenant.test.mjs
+
+      - name: Test expiry and credential revocation
+        working-directory: apps/api-gateway
+        run: node --test --test-name-pattern="fails closed after expiry" test/global-trust-evaluation-tenant.test.mjs
+
+      - name: Test authenticated evaluation context handler
+        working-directory: apps/api-gateway
+        run: node --test test/global-trust-evaluation-http.test.mjs
+
+      - name: Test operator-only provisioning and one-time handoff
+        working-directory: apps/api-gateway
+        run: node --test test/global-trust-evaluation-operator-provisioning.test.mjs
+
+      - name: Test unsafe-limit rejection
+        working-directory: apps/api-gateway
+        run: node --test --test-name-pattern="rejects unsafe evaluation limits" test/global-trust-evaluation-tenant.test.mjs
