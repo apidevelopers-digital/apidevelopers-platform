@@ -3,7 +3,7 @@
   "format": "managed-node-zip",
   "service": "api-gateway",
   "version": "0.7.0",
-  "sourceRevision": "2f197040120871b40aec203b6be619610a9a2c52",
+  "sourceRevision": "93245eb84556744762c6f88a9077d34e3972d9e9",
   "runtime": {
     "node": ">=22",
     "entrypoint": "src/operational-server.mjs",
