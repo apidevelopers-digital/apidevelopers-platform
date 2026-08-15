@@ -28,7 +28,7 @@ jobs:
     env:
       HOSTINGER_USERNAME: u242521810
       HOSTINGER_DOMAIN: gateway.apidevelopers.digital
-      EXPECTED_SHA: f1d67e803cb12e7507c44f417568cfade8e8c9ae
+      EXPECTED_SHA: ${{ github.sha }}
     steps:
       - name: Validate exact approved target
         shell: bash
@@ -36,7 +36,7 @@ jobs:
           set -euo pipefail
           test "$GITHUB_SHA" = "$EXPECTED_SHA"
           test "$HOSTINGER_DOMAIN" = "gateway.apidevelopers.digital"
-          test "${{ github.event.inputs.example }}" = "IGOR APROVA A EXECUÇÃO REAL DO GATEWAY E DA TRUST EM PRODUÇÃO"
+          test "${{ github.event.inputs.example }}" = "IGOR APROVA A EXECU��ÃO REAL DO GATEWAY E DA TRUST EM PRODUÇÃO"
 
       - name: Checkout exact SHA
         uses: actions/checkout@v4
