@@ -1,0 +1,94 @@
+name: API Gateway Runtime Publish
+
+on:
+  workflow_dispatch:
+    inputs:
+      example:
+        description: "Exact Igor approval token"
+        required: true
+        type: string
+
+permissions:
+  contents: write
+
+concurrency:
+  group: api-gateway-runtime-publish
+  cancel-in-progress: false
+
+jobs:
+  publish:
+    if: >-
+      github.ref == 'refs/heads/main' &&
+      github.event.inputs.example == 'IGOR_APROVA_GATEWAY_RUNTIME_BRANCH_20260814'
+    runs-on:
+      - self-hosted
+      - macOS
+      - X64
+    timeout-minutes: 20
+    env:
+      RUNTIME_BRANCH: deploy/hostinger-gateway-runtime
+    steps:
+      - name: Checkout exact main SHA
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.sha }}
+          fetch-depth: 0
+          persist-credentials: true
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+
+      - name: Build and verify managed runtime artifact
+        shell: bash
+        run: |
+          set -euo pipefail
+          node apps/api-gateway/scripts/build-managed-hosting-artifact.mjs
+          node apps/api-gateway/scripts/verify-managed-hosting-artifact.mjs
+          artifact="apps/api-gateway/dist/api-gateway-managed"
+          test -f "$artifact/package.json"
+          test -f "$artifact/src/operational-server.mjs"
+          test -f "$artifact/release-manifest.json"
+          runtime="$RUNNER_TEMP/api-gateway-runtime-$GITHUB_SHA"
+          rm -rf "$runtime"
+          mkdir -p "$runtime"
+          cp -R "$artifact/." "$runtime/"
+          echo "RUNTIME_DIR=$runtime" >> "$GITHUB_ENV"
+
+      - name: Publish deploy-only branch
+        shell: bash
+        run: |
+          set -euo pipefail
+          git config user.name "api-developers-runtime-publisher"
+          git config user.email "runtime-publisher@users.noreply.github.com"
+
+          if git ls-remote --exit-code origin "refs/heads/$RUNTIME_BRANCH" >/dev/null 2>&1; then
+            git fetch origin "$RUNTIME_BRANCH:$RUNTIME_BRANCH"
+            git switch "$RUNTIME_BRANCH"
+            git rm -rf .
+          else
+            git switch --orphan "$RUNTIME_BRANCH"
+            git rm -rf . || true
+          fi
+
+          find . -mindepth 1 -maxdepth 1 -not -name .git -exec rm -rf {} +
+          cp -R "$RUNTIME_DIR/." .
+          printf '%s\n' "$GITHUB_SHA" > SOURCE_SHA
+          git add -A
+
+          if git diff --cached --quiet; then
+            echo "Runtime branch already matches source SHA $GITHUB_SHA."
+            exit 0
+          fi
+
+          git commit -m "deploy(gateway): runtime from $GITHUB_SHA"
+          git push origin "HEAD:refs/heads/$RUNTIME_BRANCH"
+
+      - name: Verify published branch
+        shell: bash
+        run: |
+          set -euo pipefail
+          published="$(git ls-remote origin "refs/heads/$RUNTIME_BRANCH" | awk '{print $1}')"
+          test -n "$published"
+          echo "Published runtime branch $RUNTIME_BRANCH at $published from source $GITHUB_SHA."
