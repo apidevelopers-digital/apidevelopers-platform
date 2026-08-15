@@ -17,7 +17,7 @@ test("runtime binding config rejects direct private key material", () => {
     () => resolveZuniDelegatedBindingRuntimeConfig({
       ZUNI_DELEGATED_BINDING_PRIVATE_KEY_PEM: "-----BEGIN PRIVATE KEY-----",
     }),
-    /private key reference/i,
+    /opaque secret reference/i,
   );
 });
 
@@ -26,7 +26,7 @@ test("runtime binding config requires ref and key id together", () => {
     () => resolveZuniDelegatedBindingRuntimeConfig({
       ZUNI_DELEGATED_BINDING_PRIVATE_KEY_REF: "vault://zuni/binding",
     }),
-     /requires private key ref and key id together/i,
+    /requires private key ref and key id together/i,
   );
 });
 
@@ -50,8 +50,21 @@ test("runtime binding signer resolves only from opaque ref", async () => {
   assert.equal(result.signer, fakeSigner);
   assert.equal(result.descriptor.mode, "secret-reference");
   assert.equal(result.descriptor.privateKeyMaterialConfigured, false);
-  assert.deepEqual(observed, assert.partialDeepStrictEqual ? observed : observed);
+  assert.equal(result.descriptor.privateKeyReferenceConfigured, true);
+  assert.equal(result.descriptor.keyId, "zuni-binding-2026-08");
+  assert.equal(result.descriptor.ttlSeconds, 90);
   assert.equal(observed.privateKeyRef, "vault://zme/binding");
   assert.equal(observed.keyId, "zuni-binding-2026-08");
   assert.equal(observed.ttlSeconds, 90);
+});
+
+test("runtime binding config enforces bounded TTL", () => {
+  assert.throws(
+    () => resolveZuniDelegatedBindingRuntimeConfig({
+      ZUNI_DELEGATED_BINDING_PRIVATE_KEY_REF: "vault://zuni/binding",
+      ZUNI_DELEGATED_BINDING_KEY_ID: "zuni-binding-2026-08",
+      ZUNI_DELEGATED_BINDING_TTL_SECONDS: "301",
+    }),
+    /between 15 and 300/i,
+  );
 });
