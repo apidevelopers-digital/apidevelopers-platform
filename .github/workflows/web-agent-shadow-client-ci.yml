@@ -43,6 +43,8 @@ jobs:
           node --check test/web-agent-shadow-client.test.mjs
           node --check test/web-agent-shadow-browser-composition.test.mjs
 
-      - name: Shadow client contract
-        run: |
-          node --test test/web-agent-shadow-client.test.mjs test/web-agent-shadow-browser-composition.test.mjs
+      - name: Shadow client isolated contract
+        run: node --test test/web-agent-shadow-client.test.mjs
+
+      - name: Browser to shadow composition contract
+        run: node --test test/web-agent-shadow-browser-composition.test.mjs
