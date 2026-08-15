@@ -9,6 +9,7 @@ import {
   sanitizeEvidence,
   waitForNodeBuild,
 } from "./hostinger-node-build-api-only.mjs";
+import { assertHostingerNodeBuildArchiveContract } from "./hostinger-node-build-contract.mjs";
 
 function parseArgs(argv) {
   const result = {};
@@ -102,6 +103,12 @@ try {
   if (mode !== "apply") throw new Error(`unsupported:mode:${mode}`);
   required("HOSTINGER_API_TOKEN", token);
 
+  assertHostingerNodeBuildArchiveContract({
+    transport,
+    archiveRepresentationVerified:
+      args["archive-representation-verified"] === "true",
+  });
+
   const before = await listNodeBuilds({
     token,
     username: common.username,
@@ -172,7 +179,7 @@ try {
       },
     },
     token,
-   );
+  );
   await writeEvidence(evidencePath, failure);
   console.error(JSON.stringify(failure));
   process.exitCode = 1;
