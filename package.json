@@ -1,0 +1,19 @@
+{
+  "name": "@apidevelopers/api-gateway-managed",
+  "version": "0.7.0",
+  "private": true,
+  "type": "module",
+  "engines": {
+    "node": ">=22"
+  },
+  "scripts": {
+    "start": "node src/operational-server.mjs"
+  },
+  "dependencies": {
+    "@apidevelopers/apikey-core": "file:vendor/apikey-core",
+    "@apidevelopers/auth-core": "file:vendor/auth-core",
+    "@apidevelopers/contracts": "file:vendor/contracts",
+    "@apidevelopers/persistence-core": "file:vendor/persistence-core",
+    "@apidevelopers/saas-runtime": "file:vendor/saas-runtime"
+  }
+}

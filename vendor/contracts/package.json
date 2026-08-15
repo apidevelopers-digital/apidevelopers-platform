@@ -1,0 +1,13 @@
+{
+  "name": "@apidevelopers/contracts",
+  "version": "0.2.0",
+  "private": true,
+  "type": "module",
+  "description": "Versioned shared contracts and explicit adapters for API Developers.digital.",
+  "exports": {
+    ".": "./src/index.mjs"
+  },
+  "engines": {
+    "node": ">=22"
+  }
+}
