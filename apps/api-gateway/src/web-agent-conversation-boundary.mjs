@@ -1,4 +1,12 @@
-import { createWebAgentConversationRequest } from "@apidevelopers/contracts";
+import {
+  createWebAgentConversationRequest,
+  createWebAgentConversationResponse,
+} from "@apidevelopers/contracts";
+
+const SENSITIVE_KEYS = new Set([
+  "apikey", "authorization", "password", "secret", "token",
+  "accesstoken", "refreshtoken", "credential", "bearer", "xunicoapikey",
+]);
 
 function jsonResponse(status, payload) {
   return Object.freeze({ status, payload: structuredClone(payload) });
@@ -16,6 +24,17 @@ function requireText(value, name) {
     throw new TypeError(`${name} must be a non-empty string`);
   }
   return value.trim();
+}
+
+function assertNoBrowserSecrets(value, path = "body") {
+  if (!value || typeof value !== "object") return;
+  for (const [key, child] of Object.entries(value)) {
+    const normalized = key.replace(/[-_]/g, "").toLowerCase();
+    if (SENSITIVE_KEYS.has(normalized)) {
+      throw new Error(`${path}.${key} is forbidden in a browser request`);
+    }
+    assertNoBrowserSecrets(child, `${path}.${key}`);
+  }
 }
 
 function toPublicDenial(decision) {
@@ -55,6 +74,7 @@ export function createWebAgentConversationBoundary({
       let input;
       try {
         input = requireObject(body, "body");
+        assertNoBrowserSecrets(input);
       } catch (error) {
         return jsonResponse(400, { error: "invalid_request", message: error.message });
       }
@@ -100,14 +120,26 @@ export function createWebAgentConversationBoundary({
         return jsonResponse(400, { error: "invalid_conversation_request", message: error.message });
       }
 
-      const result = await conversationService.handle(request);
-      return jsonResponse(200, {
-        requestId: request.requestId,
-        correlationId: request.correlationId,
-        conversationId: request.conversationId,
-        agent: request.agent,
-        result,
-      });
+      const raw = await conversationService.handle(request);
+      let result;
+      try {
+        result = createWebAgentConversationResponse({
+          requestId: request.requestId,
+          correlationId: request.correlationId,
+          conversationId: request.conversationId,
+          agentId: request.agent.id,
+          runtime: request.agent.runtime,
+          parts: raw?.parts,
+          memoryRead: raw?.memoryRead,
+          memoryWriteProposed: raw?.memoryWriteProposed,
+          toolProposals: raw?.toolProposals,
+          externalExecutionProposed: raw?.externalExecutionProposed,
+        });
+      } catch (error) {
+        return jsonResponse(502, { error: "invalid_cognitive_response", message: error.message });
+      }
+
+      return jsonResponse(200, result);
     },
   });
 }
