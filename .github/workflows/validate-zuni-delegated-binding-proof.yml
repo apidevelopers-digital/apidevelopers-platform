@@ -3,36 +3,51 @@ name: Validate Zuni Delegated Binding Proof
 on:
   push:
     branches:
-      - "feat/zuni-delegated-binding-proof-v1-20260815"
+      - "main"
     paths:
       - "apps/api-gateway/src/saas-delegated-binding-proof.mjs"
       - "apps/api-gateway/src/saas-delegated-access-v2.mjs"
       - "apps/api-gateway/src/saas-operational-http-composition.mjs"
+      - "apps/api-gateway/src/saas-delegated-binding-secret-loader.mjs"
+      - "apps/api-gateway/src/saas-delegated-binding-runtime-config.mjs"
+      - "apps/api-gateway/src/operator-readonly-composition.mjs"
+      - "apps/api-gateway/src/operational-runtime.mjs"
+      - "apps/api-gateway/src/operational-server.mjs"
       - "apps/api-gateway/test/saas-delegated-binding-proof.test.mjs"
       - "apps/api-gateway/test/saas-delegated-access-binding-proof.test.mjs"
+      - "apps/api-gateway/test/saas-delegated-binding-secret-loader.test.mjs"
+      - "apps/api-gateway/test/saas-delegated-binding-runtime-config.test.mjs"
+      - "apps/api-gateway/test/saas-delegated-binding-secret-provider-required.test.mjs"
+      - "apps/api-gateway/test/zuni-delegated-binding-runtime-wiring.test.mjs"
       - ".github/workflows/validate-zuni-delegated-binding-proof.yml"
   pull_request:
     paths:
       - "apps/api-gateway/src/saas-delegated-binding-proof.mjs"
       - "apps/api-gateway/src/saas-delegated-access-v2.mjs"
       - "apps/api-gateway/src/saas-operational-http-composition.mjs"
+      - "apps/api-gateway/src/saas-delegated-binding-secret-loader.mjs"
+      - "apps/api-gateway/src/saas-delegated-binding-runtime-config.mjs"
+      - "apps/api-gateway/src/operator-readonly-composition.mjs"
+      - "apps/api-gateway/src/operational-runtime.mjs"
+      - "apps/api-gateway/src/operational-server.mjs"
       - "apps/api-gateway/test/saas-delegated-binding-proof.test.mjs"
       - "apps/api-gateway/test/saas-delegated-access-binding-proof.test.mjs"
+      - "apps/api-gateway/test/saas-delegated-binding-secret-loader.test.mjs"
+      - "apps/api-gateway/test/saas-delegated-binding-runtime-config.test.mjs"
+      - "apps/api-gateway/test/saas-delegated-binding-secret-provider-required.test.mjs"
+      - "apps/api-gateway/test/zuni-delegated-binding-runtime-wiring.test.mjs"
       - ".github/workflows/validate-zuni-delegated-binding-proof.yml"
 
 permissions:
   contents: read
 
-x-runner: &runner
-  runs-on:
-    - self-hosted
-    - macOS
-    - X64
-  timeout-minutes: 5
-
 jobs:
   syntax:
-    <<: *runner
+    runs-on:
+      - self-hosted
+      - macOS
+      - X64
+    timeout-minutes: 5
     steps:
       - uses: actions/checkout@v5
       - name: Validate syntax
@@ -42,9 +57,18 @@ jobs:
           node --check src/saas-delegated-binding-proof.mjs
           node --check src/saas-delegated-access-v2.mjs
           node --check src/saas-operational-http-composition.mjs
+          node --check src/saas-delegated-binding-secret-loader.mjs
+          node --check src/saas-delegated-binding-runtime-config.mjs
+          node --check src/operator-readonly-composition.mjs
+          node --check src/operational-runtime.mjs
+          node --check src/operational-server.mjs
 
   tests:
-    <<: *runner
+    runs-on:
+      - self-hosted
+      - macOS
+      - X64
+    timeout-minutes: 5
     steps:
       - uses: actions/checkout@v5
       - name: Set up Node.js
@@ -61,33 +85,53 @@ jobs:
           ln -sfn "$GITHUB_WORKSPACE/packages/apikey-core" "$GITHUB_WORKSPACE/apps/api-gateway/node_modules/@apidevelopers/apikey-core"
           ln -sfn "$GITHUB_WORKSPACE/packages/persistence-core" "$GITHUB_WORKSPACE/apps/api-gateway/node_modules/@apidevelopers/persistence-core"
           ln -sfn "$GITHUB_WORKSPACE/packages/saas-runtime" "$GITHUB_WORKSPACE/apps/api-gateway/node_modules/@apidevelopers/saas-runtime"
+
           mkdir -p "$GITHUB_WORKSPACE/packages/auth-core/node_modules/@apidevelopers"
           ln -sfn "$GITHUB_WORKSPACE/packages/apikey-core" "$GITHUB_WORKSPACE/packages/auth-core/node_modules/@apidevelopers/apikey-core"
+
           mkdir -p "$GITHUB_WORKSPACE/packages/apikey-core/node_modules/@apidevelopers"
           ln -sfn "$GITHUB_WORKSPACE/packages/persistence-core" "$GITHUB_WORKSPACE/packages/apikey-core/node_modules/@apidevelopers/persistence-core"
+
           mkdir -p "$GITHUB_WORKSPACE/packages/saas-runtime/node_modules/@apidevelopers"
           ln -sfn "$GITHUB_WORKSPACE/packages/contracts" "$GITHUB_WORKSPACE/packages/saas-runtime/node_modules/@apidevelopers/contracts"
           ln -sfn "$GITHUB_WORKSPACE/packages/auth-core" "$GITHUB_WORKSPACE/packages/saas-runtime/node_modules/@apidevelopers/auth-core"
           ln -sfn "$GITHUB_WORKSPACE/packages/persistence-core" "$GITHUB_WORKSPACE/packages/saas-runtime/node_modules/@apidevelopers/persistence-core"
-      - name: Run focused binding proof tests
+      - name: Run focused delegated binding tests
         working-directory: apps/api-gateway
         run: |
           set -Eeuo pipefail
           node --test test/saas-delegated-binding-proof.test.mjs
           node --test test/saas-delegated-access-binding-proof.test.mjs
+          node --test test/saas-delegated-binding-secret-loader.test.mjs
+          node --test test/saas-delegated-binding-runtime-config.test.mjs
+          node --test test/saas-delegated-binding-secret-provider-required.test.mjs
+          node --test test/zuni-delegated-binding-runtime-wiring.test.mjs
 
   guards:
-    <<: *runner
+    runs-on:
+      - self-hosted
+      - macOS
+      - X64
+    timeout-minutes: 5
     steps:
       - uses: actions/checkout@v5
-      - name: Guard cryptographic contract
+      - name: Guard cryptographic and secret-reference contract
         working-directory: apps/api-gateway
         run: |
           set -Eeuo pipefail
           grep -Fq 'RSA-PSS-SHA256' src/saas-delegated-binding-proof.mjs
           grep -Fq 'unico-api-platform:zuni-documents' src/saas-delegated-binding-proof.mjs
           grep -Fq 'decision.allowed && bindingSigner' src/saas-delegated-access-v2.mjs
-          if grep -Eq 'BEGIN (RSA )?PRIVATE KEY' src/saas-delegated-binding-proof.mjs test/saas-delegated-binding-proof.test.mjs; then
-            echo "Private key material must not be committed."
+          grep -Fq 'ZUNI_DELEGATED_BINDING_PRIVATE_KEY_REF' src/saas-delegated-binding-runtime-config.mjs
+          grep -Fq 'ZUNI_DELEGATED_BINDING_PRIVATE_KEY_PEM' src/saas-delegated-binding-runtime-config.mjs
+          grep -Fq 'withOperatorSecret' src/saas-delegated-binding-secret-loader.mjs
+          grep -Fq 'secret provider is required' src/saas-delegated-binding-runtime-config.mjs
+          if grep -ERq 'BEGIN (RSA )?PRIVATE KEY' \
+            src/saas-delegated-binding-proof.mjs \
+            src/saas-delegated-binding-secret-loader.mjs \
+            src/saas-delegated-binding-runtime-config.mjs \
+            src/operational-runtime.mjs \
+            src/operational-server.mjs; then
+            echo "Private key material must not be committed in runtime source."
             exit 1
           fi
