@@ -12,7 +12,7 @@ permissions:
   contents: read
 
 jobs:
-  diagnose:
+  probe:
     if: github.ref == 'refs/heads/main' && github.event.inputs.example == 'IGOR_DIAG_HOSTINGER_GATEWAY_20260814'
     runs-on:
       - self-hosted
@@ -23,33 +23,69 @@ jobs:
       HOSTINGER_API_TOKEN: ${{ secrets.HOSTINGER_API_TOKEN }}
       HOSTINGER_USERNAME: u242521810
       HOSTINGER_DOMAIN: gateway.apidevelopers.digital
+    outputs:
+      status: ${{ steps.http.outputs.status }}
     steps:
       - name: Confirm credential presence
         shell: bash
         run: |
           set -euo pipefail
-          if [ -z "${HOSTINGER_API_TOKEN:-}" ]; then
-            echo "::error title=Hostinger credential missing::Repository secret HOSTINGER_API_TOKEN is not configured."
-            exit 1
-          fi
-          echo "Hostinger credential is configured."
+          test -n "${HOSTINGER_API_TOKEN:-}"
 
-      - name: Read Node builds with same credential
+      - id: http
+        name: Probe Node builds read endpoint
         shell: bash
         run: |
           set -euo pipefail
           url="https://developers.hostinger.com/api/hosting/v1/accounts/${HOSTINGER_USERNAME}/websites/${HOSTINGER_DOMAIN}/nodejs/builds?page=1&per_page=5"
-          body="$RUNNER_TEMP/hostinger-node-read.json"
-          status="$(curl --silent --show-error --output "$body" --write-out '%{http_code}' \
+          status="$(curl --silent --show-error --output /dev/null --write-out '%{http_code}' \
             --request GET \
             --header 'Accept: application/json' \
             --header "Authorization: Bearer ${HOSTINGER_API_TOKEN}" \
             --header 'User-Agent: apidevelopers-platform/hostinger-token-diagnostic' \
             "$url")"
-          echo "Hostinger Node builds GET status: ${status}"
-          if [ "$status" != "200" ]; then
-            summary="$(node -e "const fs=require('fs');let t=fs.readFileSync(process.argv[1],'utf8');try{const j=JSON.parse(t);t=String(j.message||j.error||j.status|whostinger_read_failed_')}catch(){};process.stdout.write(t.slice(0,500).replace(/[\r\n]+/g,' '))" "$body")"
-            echo "::error title=Hostinger Node read failed::HTTP ${status}: ${summary}"
-            exit 1
-          fi
-          node -e "const fs=require('fs');const j=JSON.parse(fs.readFileSync(process.argv[1],'utf8'));const a=Array.isArray(j)?j:(Array.isArray(j.data)?j.data:[]);console.log('Hostinger Node builds visible:'(a.length))" "$body"
+          case "$status" in
+            200|401|403) ;;
+            *) status="other" ;;
+          esac
+          echo "status=$status" >> "$GITHUB_OUTPUT"
+
+  read-200:
+    needs: probe
+    if: needs.probe.outputs.status == '200'
+    runs-on:
+      - self-hosted
+      - macOS
+      - X64
+    steps:
+      - run: echo "HOSTINGER_GATEWAY_TOKEN_READ_200"
+
+  read-401:
+    needs: probe
+    if: needs.probe.outputs.status == '401'
+    runs-on:
+      - self-hosted
+      - macOS
+      - X64
+    steps:
+      - run: echo "HOSTINGER_GATEWAY_TOKEN_READ_401"
+
+  read-403:
+    needs: probe
+    if: needs.probe.outputs.status == '403'
+    runs-on:
+      - self-hosted
+      - macOS
+      - X64
+    steps:
+      - run: echo "HOSTINGER_GATEWAY_TOKEN_READ_403"
+
+  read-other:
+    needs: probe
+    if: needs.probe.outputs.status == 'other'
+    runs-on:
+      - self-hosted
+      - macOS
+      - X64
+    steps:
+      - run: echo "HOSTINGER_GATEWAY_TOKEN_READ_OTHER"
