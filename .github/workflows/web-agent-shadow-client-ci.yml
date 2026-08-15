@@ -46,5 +46,8 @@ jobs:
       - name: Shadow client isolated contract
         run: node --test test/web-agent-shadow-client.test.mjs
 
-      - name: Browser to shadow composition contract
-        run: node --test test/web-agent-shadow-browser-composition.test.mjs
+      - name: Browser shadow happy path
+        run: node --test --test-name-pattern="browser session reaches uni.co shadow" test/web-agent-shadow-browser-composition.test.mjs
+
+      - name: Browser shadow missing-config guard
+        run: node --test --test-name-pattern="shadow browser composition requires server-side runtime config" test/web-agent-shadow-browser-composition.test.mjs
