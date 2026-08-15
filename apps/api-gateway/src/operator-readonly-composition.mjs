@@ -50,6 +50,9 @@ export function createOperationalGatewayWithReadonlyOperator({
     audit: base.audit,
     store: base.store,
     ...(operationalOptions.clock ? { clock: operationalOptions.clock } : {}),
+    ...(operationalOptions.delegatedBindingSigner
+      ? { delegatedBindingSigner: operationalOptions.delegatedBindingSigner }
+      : {}),
   });
 
   const adapters =
