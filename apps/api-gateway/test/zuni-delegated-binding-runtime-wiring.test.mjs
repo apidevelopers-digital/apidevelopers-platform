@@ -71,6 +71,100 @@ test("operational server forwards delegated binding signer into runtime factory"
   assert.equal(receivedSigner, signer);
 });
 
+test("operational server resolves delegated binding signer from secure bootstrap seam", async () => {
+  let resolverInput = null;
+  let receivedSigner = null;
+  const secretProvider = Object.freeze({ withSecret() {} });
+  const logs = [];
+
+  const server = {
+    address() {
+      return { address: "127.0.0.1", port: 3000 };
+    },
+  };
+
+  await startOperationalGateway({
+    env: {
+      ZUNI_DELEGATED_BINDING_PRIVATE_KEY_REF: "vault://zuni/binding",
+      ZUNI_DELEGATED_BINDING_KEY_ID: "zuni-binding-2026-08",
+    },
+    cwd: "/tmp",
+    logger: { log(line) { logs.push(JSON.parse(line)); } },
+    delegatedBindingSecretProvider: secretProvider,
+    delegatedBindingSignerResolver: async (input) => {
+      resolverInput = input;
+      return Object.freeze({
+        configured: true,
+        signer,
+        descriptor: Object.freeze({
+          configured: true,
+          mode: "secret-reference",
+          keyId: "zuni-binding-2026-08",
+          privateKeyReferenceConfigured: true,
+          privateKeyMaterialConfigured: false,
+        }),
+      });
+    },
+    runtimeFactory: (options) => {
+      receivedSigner = options.delegatedBindingSigner;
+      return {
+        app: Object.freeze({ handleRequest() {} }),
+        host: "127.0.0.1",
+        port: 0,
+        descriptor: Object.freeze({
+          delegatedBindingSignerConfigured: Boolean(
+            options.delegatedBindingSigner,
+          ),
+        }),
+      };
+    },
+    serverFactory: async () => server,
+  });
+
+  assert.equal(resolverInput.secretProvider, secretProvider);
+  assert.equal(receivedSigner, signer);
+  assert.equal(logs[0].delegatedBinding.mode, "secret-reference");
+  assert.equal(logs[0].delegatedBinding.privateKeyMaterialConfigured, false);
+});
+
+test("operational server keeps delegated binding disabled when resolver is unconfigured", async () => {
+  let receivedSigner = "unset";
+
+  const server = {
+    address() {
+      return { address: "127.0.0.1", port: 3000 };
+    },
+  };
+
+  await startOperationalGateway({
+    env: {},
+    cwd: "/tmp",
+    logger: { log() {} },
+    delegatedBindingSignerResolver: async () =>
+      Object.freeze({
+        configured: false,
+        signer: null,
+        descriptor: Object.freeze({
+          configured: false,
+          mode: "deny-by-default",
+          privateKeyMaterialConfigured: false,
+        }),
+      }),
+    runtimeFactory: (options) => {
+      receivedSigner = options.delegatedBindingSigner;
+      return {
+        app: Object.freeze({ handleRequest() {} }),
+        host: "127.0.0.1",
+        port: 0,
+        descriptor: Object.freeze({}),
+      };
+    },
+    serverFactory: async () => server,
+  });
+
+  assert.equal(receivedSigner, undefined);
+});
+
 test("runtime and server reject malformed delegated binding signer", async () => {
   assert.throws(
     () =>
