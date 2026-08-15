@@ -56,6 +56,23 @@ jobs:
           cp -R "$artifact/." "$runtime/"
           echo "RUNTIME_DIR=$runtime" >> "$GITHUB_ENV"
 
+      - name: Build and verify runtime ZIP
+        shell: bash
+        run: |
+          set -euo pipefail
+          zip_path="$RUNNER_TEMP/api-gateway-runtime-$GITHUB_SHA.zip"
+          rm -f "$zip_path"
+          (
+            cd "$RUNTIME_DIR"
+            /usr/bin/zip -X -q -r "$zip_path" . -x ".DS_Store" "__MACOSX/*"
+          )
+          /usr/bin/unzip -t "$zip_path" >/dev/null
+          sha256="$(shasum -a 256 "$zip_path" | awk '{print $1}')"
+          bytes="$(stat -f '%z' "$zip_path")"
+          echo "RUNTIME_ZIP=$zip_path" >> "$GITHUB_ENV"
+          echo "RUNTIME_ZIP_SHA256=$sha256" >> "$GITHUB_ENV"
+          echo "RUNTIME_ZIP_BYTES=$bytes" >> "$GITHUB_ENV"
+
       - name: Publish deploy-only branch
         shell: bash
         run: |
@@ -74,7 +91,10 @@ jobs:
 
           find . -mindepth 1 -maxdepth 1 -not -name .git -exec rm -rf {} +
           cp -R "$RUNTIME_DIR/." .
+          cp "$RUNTIME_ZIP" ./api-gateway-runtime.zip
           printf '%s\n' "$GITHUB_SHA" > SOURCE_SHA
+          printf '%s\n' "$RUNTIME_ZIP_SHA256" > RUNTIME_ZIP_SHA256
+          printf '%s\n' "$RUNTIME_ZIP_BYTES" > RUNTIME_ZIP_BYTES
           git add -A
 
           if git diff --cached --quiet; then
@@ -91,4 +111,8 @@ jobs:
           set -euo pipefail
           published="$(git ls-remote origin "refs/heads/$RUNTIME_BRANCH" | awk '{print $1}')"
           test -n "$published"
-          echo "Published runtime branch $RUNTIME_BRANCH at $published from source $GITHUB_SHA."
+          git fetch origin "$RUNTIME_BRANCH"
+          git show "origin/$RUNTIME_BRANCH:SOURCE_SHA" | grep -Fx "$GITHUB_SHA"
+          git show "origin/$RUNTIME_BRANCH:RUNTIME_ZIP_SHA256" | grep -Fx "$RUNTIME_ZIP_SHA256"
+          git show "origin/$RUNTIME_BRANCH:RUNTIME_ZIP_BYTES" | grep -Fx "$RUNTIME_ZIP_BYTES"
+          echo "Published runtime branch $RUNTIME_BRANCH at $published from source $GITHUB_SHA with ZIP SHA-256 $RUNTIME_ZIP_SHA256."
