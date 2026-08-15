@@ -4,6 +4,7 @@ import { fileURLToPath } from "node:url";
 
 import { startOperationalHttpServer } from "./operational-http-transport.mjs";
 import { createOperationalRuntime } from "./operational-runtime.mjs";
+import { resolveZuniDelegatedBindingSigner } from "./saas-delegated-binding-runtime-config.mjs";
 
 function writeLog(logger, payload) {
   if (typeof logger?.log === "function") {
@@ -25,7 +26,7 @@ export function resolveTrustEvaluationEnabled(env = process.env) {
   );
 }
 
-export function resolveTrustEvaluationPortalEnabled(env = process.env ) {
+export function resolveTrustEvaluationPortalEnabled(env = process.env) {
   return parseBooleanFlag(
     env.GLOBAL_TRUST_EVALUATION_PORTAL_ENABLED,
     "GLOBAL_TRUST_EVALUATION_PORTAL_ENABLED",
@@ -59,6 +60,8 @@ export async function startOperationalGateway({
   runtimeFactory = createOperationalRuntime,
   serverFactory = startOperationalHttpServer,
   delegatedBindingSigner,
+  delegatedBindingSecretProvider,
+  delegatedBindingSignerResolver = resolveZuniDelegatedBindingSigner,
   trustEvaluationLoader = () =>
     import("./operational-trust-evaluation-composition.mjs"),
   trustEvaluationPortalLoader = () =>
@@ -78,6 +81,35 @@ export async function startOperationalGateway({
       "delegatedBindingSigner.signBinding must be a function",
     );
   }
+  if (
+    delegatedBindingSignerResolver !== undefined &&
+    typeof delegatedBindingSignerResolver !== "function"
+  ) {
+    throw new TypeError(
+      "delegatedBindingSignerResolver must be a function",
+    );
+  }
+
+  let resolvedDelegatedBindingSigner = delegatedBindingSigner;
+  let delegatedBindingDescriptor;
+
+  if (!resolvedDelegatedBindingSigner) {
+    const resolvedBinding = await delegatedBindingSignerResolver({
+      env,
+      secretProvider: delegatedBindingSecretProvider,
+    });
+
+    if (resolvedBinding?.configured) {
+      if (typeof resolvedBinding.signer?.signBinding !== "function") {
+        throw new TypeError(
+          "resolved delegated binding signer must expose signBinding",
+        );
+      }
+      resolvedDelegatedBindingSigner = resolvedBinding.signer;
+    }
+
+    delegatedBindingDescriptor = resolvedBinding?.descriptor;
+  }
 
   const trustEvaluationEnabled = resolveTrustEvaluationEnabled(env);
   const trustEvaluationPortalEnabled =
@@ -86,7 +118,7 @@ export async function startOperationalGateway({
   if (trustEvaluationPortalEnabled && !trustEvaluationEnabled) {
     throw new TypeError(
       "GLOBAL_TRUST_EVALUATION_PORTAL_ENABLED requires GLOBAL_TRUST_EVALUATION_ENABLED=true",
-   );
+    );
   }
 
   let gatewayTransform;
@@ -133,7 +165,9 @@ export async function startOperationalGateway({
   const runtime = runtimeFactory({
     env,
     cwd,
-    ...(delegatedBindingSigner ? { delegatedBindingSigner } : {}),
+    ...(resolvedDelegatedBindingSigner
+      ? { delegatedBindingSigner: resolvedDelegatedBindingSigner }
+      : {}),
     ...(gatewayTransform ? { gatewayTransform } : {}),
   });
   const server = await serverFactory({
@@ -148,13 +182,16 @@ export async function startOperationalGateway({
     host: address.address,
     port: address.port,
     ...runtime.descriptor,
+    ...(delegatedBindingDescriptor
+      ? { delegatedBinding: delegatedBindingDescriptor }
+      : {}),
     ...(trustEvaluationEnabled
       ? {
           trustEvaluation: {
             enabled: true,
             environment: "sandbox",
             provisioning: "operator-only",
-            financialEgress: "blocked",
+            financialEgress : "blocked",
             realMoney: false,
             ...(trustEvaluationPortalEnabled
               ? {
