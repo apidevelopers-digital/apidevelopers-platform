@@ -1,0 +1,46 @@
+name: Hostinger Agency Async Setup CI
+
+on:
+  push:
+    branches:
+      - "fix/hostinger-agency-async-setup-20260814"
+    paths:
+      - "apps/site-factory/src/hostinger-agency-website-setup.mjs"
+      - "apps/site-factory/test/hostinger-agency-website-setup.test.mjs"
+      - ".github/workflows/hostinger-agency-async-setup-ci.yml"
+  pull_request:
+    paths:
+      - "apps/site-factory/src/hostinger-agency-website-setup.mjs"
+      - "apps/site-factory/test/hostinger-agency-website-setup.test.mjs"
+      - ".github/workflows/hostinger-agency-async-setup-ci.yml"
+
+permissions:
+  contents: read
+
+jobs:
+  validate:
+    runs-on: [self-hosted, macOS, X64]
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+      - name: Validate syntax
+        run: node --check apps/site-factory/src/hostinger-agency-website-setup.mjs
+      - name: Validate async setup contract
+        run: node --test apps/site-factory/test/hostinger-agency-website-setup.test.mjs
+      - name: Validate no production side effects
+        shell: bash
+        run: |
+          set -Eeuo pipefail
+          file="apps/site-factory/src/hostinger-agency-website-setup.mjs"
+          grep -q '/api/agency-hosting/v1/orders/{order_id}/websites/setups' "$file"
+          grep -q 'setup_uuid' "$file"
+          grep -q 'website_uid' "$file"
+          grep -q 'method: "POST"' "$file"
+          grep -q 'method: "GET"' "$file"
+          if grep -Eq 'dns|nodejs/builds|from-archive|deployArtifact' "$file"; then
+            echo "Async setup adapter must not include DNS, Node build, or deploy operations."
+            exit 1
+          fi
