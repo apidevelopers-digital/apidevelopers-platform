@@ -3,7 +3,7 @@
   "format": "managed-node-zip",
   "service": "api-gateway",
   "version": "0.7.0",
-  "sourceRevision": "6c79fce4cfde4c851e0044b371d5f054f43eaf8c",
+  "sourceRevision": "ee1de4cc942580c79c5c3f5515a31f1c0151ba25",
   "runtime": {
     "node": ">=22",
     "entrypoint": "src/operational-server.mjs",
@@ -515,13 +515,13 @@
     },
     {
       "path": "src/operational-runtime.mjs",
-      "bytes": 5053,
-      "sha256": "75945dd24ac4d3a7d0f53d87e1bb08512fdb2bc443d92655767c189e96048a84"
+      "bytes": 5465,
+      "sha256": "3629c9ba8c02216036083aec746243ef726ec92e4bc8eee69cf8e5f96f92ac13"
     },
     {
       "path": "src/operational-server.mjs",
-      "bytes": 5782,
-      "sha256": "13c00d2828ee89bd4f201fafeb08c89423f46ab1b47353ce76435cfd9a913e74"
+      "bytes": 7315,
+      "sha256": "ef172816cdae38e510fb3d9fa9e00dda46eba2cb7d1fbe2f23e76d701e18c0d1"
     },
     {
       "path": "src/operational-tool-invocation-composition.mjs",
@@ -655,8 +655,8 @@
     },
     {
       "path": "src/operator-readonly-composition.mjs",
-      "bytes": 3234,
-      "sha256": "0382c850a70475604a5483ac3bee3ae5032d27bd6563da132010176c1b7a4be9"
+      "bytes": 3375,
+      "sha256": "9f61256b66a1164b2601a4b32894fc836ebf473b2f97ed1524168b9c99b78c5d"
     },
     {
       "path": "src/operator-readonly-contract.mjs",
@@ -710,8 +710,8 @@
     },
     {
       "path": "src/saas-delegated-access-v2.mjs",
-      "bytes": 4238,
-      "sha256": "127420d34edefaef90aaf03035bba064502fca43310ed1a1f1209e45ff3f3433"
+      "bytes": 4731,
+      "sha256": "35625f16fb759ebd3d29ca3241b8bea824c88dec846769954574b2c66ac173a6"
     },
     {
       "path": "src/saas-delegated-access.mjs",
@@ -719,9 +719,24 @@
       "sha256": "1111aa3f4317bb62c70d784ee80269321b1534ebe3bafea149fdddb87d0a80d8"
     },
     {
+      "path": "src/saas-delegated-binding-proof.mjs",
+      "bytes": 3478,
+      "sha256": "aebf5bc74c39ba1d73579346727b42f14ce02326920b116fbec23d96936a7968"
+    },
+    {
+      "path": "src/saas-delegated-binding-runtime-config.mjs",
+      "bytes": 2819,
+      "sha256": "84ff8f76b6d101f9af44d3e07c5aa36de3f1c8fbfa22f118d9b7ffd0596493a2"
+    },
+    {
+      "path": "src/saas-delegated-binding-secret-loader.mjs",
+      "bytes": 1098,
+      "sha256": "f06ffbdc50d3256697c5a35d3334dd17f733184865fd1d78381b84c47556be01"
+    },
+    {
       "path": "src/saas-operational-http-composition.mjs",
-      "bytes": 2217,
-      "sha256": "be153a33f6360c7d037907d38e19e8d4cbd52b50c8512264cf0121ef86179b02"
+      "bytes": 2325,
+      "sha256": "6b07b3c9df8fdf691195387d60ad65d9dd508a5b4870abc2e5f5d39c28000b2f"
     },
     {
       "path": "src/saas-provisioning.mjs",

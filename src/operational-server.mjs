@@ -4,6 +4,7 @@ import { fileURLToPath } from "node:url";
 
 import { startOperationalHttpServer } from "./operational-http-transport.mjs";
 import { createOperationalRuntime } from "./operational-runtime.mjs";
+import { resolveZuniDelegatedBindingSigner } from "./saas-delegated-binding-runtime-config.mjs";
 
 function writeLog(logger, payload) {
   if (typeof logger?.log === "function") {
@@ -58,6 +59,9 @@ export async function startOperationalGateway({
   logger = console,
   runtimeFactory = createOperationalRuntime,
   serverFactory = startOperationalHttpServer,
+  delegatedBindingSigner,
+  delegatedBindingSecretProvider,
+  delegatedBindingSignerResolver = resolveZuniDelegatedBindingSigner,
   trustEvaluationLoader = () =>
     import("./operational-trust-evaluation-composition.mjs"),
   trustEvaluationPortalLoader = () =>
@@ -68,6 +72,43 @@ export async function startOperationalGateway({
   }
   if (typeof serverFactory !== "function") {
     throw new TypeError("serverFactory must be a function");
+  }
+  if (
+    delegatedBindingSigner !== undefined &&
+    typeof delegatedBindingSigner?.signBinding !== "function"
+  ) {
+    throw new TypeError(
+      "delegatedBindingSigner.signBinding must be a function",
+    );
+  }
+  if (
+    delegatedBindingSignerResolver !== undefined &&
+    typeof delegatedBindingSignerResolver !== "function"
+  ) {
+    throw new TypeError(
+      "delegatedBindingSignerResolver must be a function",
+    );
+  }
+
+  let resolvedDelegatedBindingSigner = delegatedBindingSigner;
+  let delegatedBindingDescriptor;
+
+  if (!resolvedDelegatedBindingSigner) {
+    const resolvedBinding = await delegatedBindingSignerResolver({
+      env,
+      secretProvider: delegatedBindingSecretProvider,
+    });
+
+    if (resolvedBinding?.configured) {
+      if (typeof resolvedBinding.signer?.signBinding !== "function") {
+        throw new TypeError(
+          "resolved delegated binding signer must expose signBinding",
+        );
+      }
+      resolvedDelegatedBindingSigner = resolvedBinding.signer;
+    }
+
+    delegatedBindingDescriptor = resolvedBinding?.descriptor;
   }
 
   const trustEvaluationEnabled = resolveTrustEvaluationEnabled(env);
@@ -124,6 +165,9 @@ export async function startOperationalGateway({
   const runtime = runtimeFactory({
     env,
     cwd,
+    ...(resolvedDelegatedBindingSigner
+      ? { delegatedBindingSigner: resolvedDelegatedBindingSigner }
+      : {}),
     ...(gatewayTransform ? { gatewayTransform } : {}),
   });
   const server = await serverFactory({
@@ -138,13 +182,16 @@ export async function startOperationalGateway({
     host: address.address,
     port: address.port,
     ...runtime.descriptor,
+    ...(delegatedBindingDescriptor
+      ? { delegatedBinding: delegatedBindingDescriptor }
+      : {}),
     ...(trustEvaluationEnabled
       ? {
           trustEvaluation: {
             enabled: true,
             environment: "sandbox",
             provisioning: "operator-only",
-            financialEgress: "blocked",
+            financialEgress : "blocked",
             realMoney: false,
             ...(trustEvaluationPortalEnabled
               ? {

@@ -22,6 +22,7 @@ export function createDelegatedSaasAccessApp({
   authenticator,
   saasAccess,
   federatedPrincipal,
+  bindingSigner,
   provider = "unico-operator-session",
 } = {}) {
   if (typeof authenticator?.authenticate !== "function") {
@@ -35,6 +36,9 @@ export function createDelegatedSaasAccessApp({
   }
   if (typeof federatedPrincipal?.resolveFederatedPrincipal !== "function") {
     throw new TypeError("federatedPrincipal.resolveFederatedPrincipal must be a function");
+  }
+  if (bindingSigner !== undefined && typeof bindingSigner?.signBinding !== "function") {
+    throw new TypeError("bindingSigner.signBinding must be a function");
   }
 
   return Object.freeze({
@@ -126,15 +130,26 @@ export function createDelegatedSaasAccessApp({
         productId: grant.productId,
       });
 
+      const publicBinding = Object.freeze({
+        tenantId,
+        workspaceId: grant.workspaceId,
+        accessGrantId: grant.accessGrantId,
+        productId: grant.productId,
+      });
+
+      const bindingProof =
+        decision.allowed && bindingSigner
+          ? bindingSigner.signBinding({
+              ...publicBinding,
+              principalId: principal.principalId,
+            })
+          : null;
+
       return jsonResponse(decision.allowed ? 200 : 403, {
         ...decision,
         principalId: principal.principalId,
-        binding: Object.freeze({
-          tenantId,
-          workspaceId: grant.workspaceId,
-          accessGrantId: grant.accessGrantId,
-          productId: grant.productId,
-        }),
+        binding: publicBinding,
+        ...(bindingProof ? { bindingProof } : {}),
       });
     },
   });
