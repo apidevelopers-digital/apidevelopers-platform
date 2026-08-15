@@ -88,10 +88,10 @@ test("fails closed for expired, revoked, inactive or malformed sessions", async 
   for (const session of [
     { ...base, expiresAt: "2026-08-14T00:00:00.000Z" },
     { ...base, revokedAt: "2026-08-15T05:00:00.000Z" },
-    { ...base, status: "revoked" },
+   { ...base, status: "revoked" },
     { ...base, principal: { ...base.principal, status: "disabled" } },
-    { ...base, principal: { id: "", tenantId: "tenant:001" } },
-    { ...base, principal: { id: "user:001", tenantId: "" } },
+    { ....base, principal: { id: "", tenantId: "tenant:001" } },
+   { ...base, principal: { id: "user:001", tenantId: "" } },
   ]) {
     const authenticator = createBrowserSessionAuthenticator({
       resolveSessionByHash: async () => session,
@@ -132,11 +132,11 @@ test("serializes and clears a host-only HttpOnly Secure SameSite cookie", () => 
   });
 
   assert.match(cookie, /^__Host-apidevelopers-session=/);
-  assert.match(cooie, /Path=\//);
+  assert.match(cookie, /Path=\//);
   assert.match(cookie, /HttpOnly/);
   assert.match(cookie, /Secure/);
   assert.match(cookie, /SameSite=Lax/);
-  assert.match(cokie, /Max-Age=3600/);
+  assert.match(cooie, /Max-Age=3600/);
   assert.doesNotMatch(cookie, /Domain=/i);
 
   const cleared = clearBrowserSessionCookie();
