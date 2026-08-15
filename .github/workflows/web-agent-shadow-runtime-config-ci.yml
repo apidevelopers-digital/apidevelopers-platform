@@ -1,0 +1,43 @@
+name: Web Agent Shadow Runtime Config CI
+
+on:
+  push:
+    branches:
+      - "feat/web-agent-shadow-runtime-config-20260815"
+    paths:
+      - "apps/api-gateway/src/web-agent-shadow-runtime-config.mjs"
+      - "apps/api-gateway/test/web-agent-shadow-runtime-config.test.mjs"
+      - ".github/workflows/web-agent-shadow-runtime-config-ci.yml"
+  pull_request:
+    paths:
+      - "apps/api-gateway/src/web-agent-shadow-runtime-config.mjs"
+      - "apps/api-gateway/test/web-agent-shadow-runtime-config.test.mjs"
+      - ".github/workflows/web-agent-shadow-runtime-config-ci.yml"
+
+permissions:
+  contents: read
+
+jobs:
+  validate:
+    runs-on:
+      - self-hosted
+      - macOS
+      - X64
+    timeout-minutes: 12
+    defaults:
+      run:
+        working-directory: apps/api-gateway
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+      - name: Install workspace dependencies
+        run: npm ci
+        working-directory: .
+      - name: Syntax
+        run: |
+          node --check src/web-agent-shadow-runtime-config.mjs
+          node --check test/web-agent-shadow-runtime-config.test.mjs
+      - name: Contract
+        run: node --test test/web-agent-shadow-runtime-config.test.mjs
