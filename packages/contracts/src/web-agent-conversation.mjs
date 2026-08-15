@@ -62,7 +62,7 @@ function scanSecrets(value, path = "request") {
 }
 
 function freeze(value) {
-  if (!value || typeof value !== "object" || Object.isFrozen(value))) return value;
+  if (!value || typeof value !== "object" || Object.isFrozen(value)) return value;
   Object.freeze(value);
   for (const child of Object.values(value)) freeze(child);
   return value;
@@ -169,8 +169,7 @@ export function createWebAgentConversationRequest(input = {}) {
       automaticExternalExecutionAllowed: false,
     },
   };
-  assertWebAgentConversationRequest(request);
-  return freeze(structuredClone(request));
+  assertWebAgentConversationRequest(request);  return freeze(structuredClone(request));
 }
 
 export function assertSameWebAgentBoundary(left, right) {
@@ -185,7 +184,8 @@ export function assertSameWebAgentBoundary(left, right) {
   return true;
 }
 
-export function createWebAgentConversationResponse(input = {}) {
+export function createWebAgentConversationResponse(input = {})
+ {
   const response = {
     schemaVersion: VERSION,
     requestId: safeId(input.requestId, "requestId"),
