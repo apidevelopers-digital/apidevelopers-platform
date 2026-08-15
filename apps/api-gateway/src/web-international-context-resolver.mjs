@@ -20,7 +20,6 @@ const LANGUAGE_DEFAULT = Object.freeze({
   zh: "zh-CN",
   ar: "ar",
 });
-
 function nonEmpty(value, name) {
   if (typeof value !== "string" || !value.trim()) {
     throw new TypeError(`${name} must be a non-empty string`);
@@ -34,7 +33,6 @@ function object(value, name) {
   }
   return value;
 }
-
 function freeze(value) {
   if (!value || typeof value !== "object" || Object.isFrozen(value)) return value;
   Object.freeze(value);
@@ -48,7 +46,6 @@ export function normalizeSupportedWebLocale(value) {
   const raw = value.trim().replaceAll("_", "-");
   const exact = SUPPORTED.get(raw.toLowerCase());
   if (exact) return exact;
-
   let language;
   try {
     language = new Intl.Locale(raw).language.toLowerCase();
@@ -57,7 +54,6 @@ export function normalizeSupportedWebLocale(value) {
   }
   return LANGUAGE_DEFAULT[language] ?? null;
 }
-
 export function createWebInternationalContextResolver({
   tenantInternationalProfile,
   commercialContext,
@@ -68,7 +64,6 @@ export function createWebInternationalContextResolver({
   if (typeof commercialContext?.resolve !== "function") {
     throw new TypeError("commercialContext.resolve must be a function");
   }
-
   return Object.freeze({
     async resolve({
       identity,
@@ -82,7 +77,6 @@ export function createWebInternationalContextResolver({
       accessGrantId = nonEmpty(accessGrantId, "accessGrantId");
       workspaceId = nonEmpty(workspaceId, "workspaceId");
       productId = nonEmpty(productId, "productId");
-
       const profile = object(
         await tenantInternationalProfile.resolve({
           identity,
@@ -93,7 +87,6 @@ export function createWebInternationalContextResolver({
         }),
         "tenant international profile",
       );
-
       const defaultLocale = normalizeSupportedWebLocale(
         nonEmpty(profile.defaultLocale, "tenant profile defaultLocale"),
       );
@@ -103,9 +96,8 @@ export function createWebInternationalContextResolver({
 
       const fallbackLocale = normalizeSupportedWebLocale(profile.fallbackLocale ?? "en");
       if (!fallbackLocale) {
-        throw new RangeError(tenant profile fallbackLocale is not supported by the web surface");
+        throw new RangeError("tenant profile fallbackLocale is not supported by the web surface");
       }
-
       const requested = normalizeSupportedWebLocale(requestedLocale);
       const locale = requested ?? defaultLocale;
 
@@ -120,7 +112,6 @@ export function createWebInternationalContextResolver({
         }),
         "commercial context",
       );
-
       const context = createWebInternationalContext({
         locale,
         fallbackLocale,
@@ -128,7 +119,6 @@ export function createWebInternationalContextResolver({
         currency: nonEmpty(commercial.currency, "commercial currency"),
         legalRegion: nonEmpty(profile.legalRegion, "tenant profile legalRegion"),
       });
-
       return freeze({
         context,
         resolution: {
