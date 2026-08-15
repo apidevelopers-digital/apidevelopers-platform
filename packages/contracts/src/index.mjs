@@ -9,6 +9,7 @@ export * from "./saas-provisioning.mjs";
 export * from "./saas-access.mjs";
 export * from "./auth-context.mjs";
 export * from "./cognitive-pipeline.mjs";
+export * from "./web-agent-conversation.mjs";
 export * from "./decision-policy.mjs";
 export * from "./policy-runtime.mjs";
 export * from "./runtime-evidence.mjs";
