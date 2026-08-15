@@ -32,7 +32,7 @@ jobs:
     runs-on: [self-hosted, macOS, X64]
     timeout-minutes: 30
     env:
-      HOSTINGER_USERNAME: ${{ vars.HOSTINGER_USERNAME }}
+      HOSTINGER_USERNAME: ${{ vars.HOSTINGER_USENAME }}
       HOSTINGER_DOMAIN: ${{ vars.API_GATEWAY_PRODUCTION_DOMAIN }}
       API_GATEWAY_RUNTIME_READY: ${{ vars.API_GATEWAY_RUNTIME_READY }}
     steps:
@@ -74,11 +74,26 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          test -n "$HOSTINGER_USERNAME"
-          test -n "$HOSTINGER_DOMAIN"
-          test "$API_GATEWAY_RUNTIME_READY" = "true"
+          if [[ -z "$HOSTINGER_USERNAME" ]]; then
+            echo "::error title=Missing GitHub variable::HOSTINGER_USERNAME must be configured for preflight/apply." >&2
+            exit 1
+          fi
+          if [[ -z "$HOSTINGER_DOMAIN" ]]; then
+            echo "::error title=Missing GitHub variable::API_GATEWAY_PRODUCTION_DOMAIN must be configured for preflight/apply." >&2
+            exit 1
+          fi
+
           if [[ "${{ inputs.mode }}" == "apply" ]]; then
-            test "${{ inputs.approval }}" = "IGOR_APROVA_API_GATEWAY_PRODUCTION_DEPLOY"
+            if [[ "$API_GATEWAY_RUNTIME_READY" != "true" ]]; then
+              echo "::error title=Runtime not approved::API_GATEWAY_RUNTIME_READY must equal true for apply." >&2
+              exit 1
+            fi
+            if [[ "${{ inputs.approval }}" != "IGOR_APROVA_API_GATEWAY_PRODUCTION_DEPLOY" ]]; then
+              echo "::error title=Missing explicit approval::Apply requires the exact production deployment approval token." >&2
+              exit 1
+            fi
+          else
+            echo "Preflight guardrails validated without enabling the production runtime."
           fi
 
       - name: Preflight or apply Hostinger Node build
@@ -89,7 +104,7 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          node apps/site-factory/src/run-hostinger-node-build-api-only.mjs \
+          node apps/site-factory/src/run-hostincer-node-build-api-only.mjs \
             --mode "${{ inputs.mode }}" \
             --username "$HOSTINGER_USERNAME" \
             --domain "$HOSTINGER_DOMAIN" \
