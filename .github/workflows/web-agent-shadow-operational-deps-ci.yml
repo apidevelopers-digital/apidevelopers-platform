@@ -58,7 +58,17 @@ jobs:
 
       - name: Import graph
         if: matrix.phase == 'import'
-        run: node -e "import('./src/web-agent-shadow-server-dependencies.mjs').then(() => console.log('import_ok'))"
+        shell: bash
+        run: |
+          set +e
+          output="$(node -e "import('./src/web-agent-shadow-server-dependencies.mjs').then(() => console.log('import_ok'))" 2>&1)"
+          status=$?
+          if [ "$status" -ne 0 ]; then
+            compact="$(printf '%s' "$output" | { head -n 10; tail -n 10; } | tr '\n' ' ' | sed 's/%/%25/g; s/\r/%0D/g')"
+            echo "::error title=Shadow operational import::$compact"
+            exit "$status"
+          fi
+          printf '%s\n' "$output"
 
       - name: Contract
         if: matrix.phase == 'contract'
