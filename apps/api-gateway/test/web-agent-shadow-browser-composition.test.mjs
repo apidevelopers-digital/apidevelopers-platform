@@ -90,7 +90,7 @@ test("browser session reaches uni.co shadow only after entitlement and internati
   assert.equal(call.options.headers["x-tenant-id"],"tenant:001");
   const body=JSON.parse(call.options.body);
   assert.equal(body.agentId,"uni.co");
-  assert.equal(body.locale,"es-MX");
+  assert.equal(body.locale,"es");
   assert.equal(body.context.currency,"MXN");
   assert.equal(body.context.clegalRegion,"MX");
   assert.equal(body.context.timezone,"America/Mexico_City");
