@@ -49,7 +49,12 @@ function unique(values, allowed, name) {
 function scanSecrets(value, path = "request") {
   if (!value || typeof value !== "object") return;
   for (const [key, child] of Object.entries(value)) {
-    if (FORBIDDEN_KEYS.has(key) || /(?:secret|password|api[_-]?key|bearer|token)/i.test(key)) {
+    const normalizedKey = key.replace(/[-_]/g, "").toLowerCase();
+    const explicitlySensitive =
+      FORBIDDEN_KEYS.has(key) ||
+      ["apikey", "authorization", "password", "secret", "token", "accesstoken",
+       "refreshtoken", "credential", "bearer"].includes(normalizedKey);
+    if (explicitlySensitive) {
       throw new Error(`${path}.${key} is forbidden in the browser contract`);
     }
     scanSecrets(child, `${path}.${key}`);
@@ -57,7 +62,7 @@ function scanSecrets(value, path = "request") {
 }
 
 function freeze(value) {
-  if (!value || typeof value !== "object" || Object.isFrozen(value)) return value;
+  if (!value || typeof value !== "object" || Object.isFrozen(value))) return value;
   Object.freeze(value);
   for (const child of Object.values(value)) freeze(child);
   return value;
