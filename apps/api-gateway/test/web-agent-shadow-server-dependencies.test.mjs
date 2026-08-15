@@ -17,6 +17,17 @@ function createStore() {
       };
       return { result: await fn(tx), revision: 1 };
     },
+    async executeIdempotent(_key, fn) {
+      const tx = {
+        get() { return null; },
+        put() { return null; },
+        delete() { return null; },
+      };
+      return {
+        executed: true,
+        result: await fn(tx),
+      };
+    },
   };
 }
 
@@ -63,16 +74,16 @@ test("fails closed when the operational store is absent or incomplete", () => {
 
   assert.throws(
     () => createWebAgentShadowServerDependencies({ ...input }),
-    /store must provide read and transaction/,
+    /store must provide read, transaction and executeIdempotent/,
   );
 
   assert.throws(
     () =>
       createWebAgentShadowServerDependencies({
-        store: { read() {} },
+        store: { read() {}, transaction() {} },
         ...input,
       }),
-    /store must provide read and transaction/,
+    /store must provide read, transaction and executeIdempotent/,
   );
 });
 
