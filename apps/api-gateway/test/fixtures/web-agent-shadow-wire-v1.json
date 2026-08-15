@@ -1,0 +1,196 @@
+{
+  "version": "web-agent-shadow-wire-v1",
+  "endpointPath": "/v1/cognitive/web-agent/shadow",
+  "vectors": [
+    {
+      "name": "uni.co-pt-BR",
+      "gatewayEnvelope": {
+        "conversation": {
+          "agent": {
+            "id": "uni.co",
+            "runtime": "uni-co-runtime"
+          },
+          "tenantId": "tenant:wire:001",
+          "workspaceId": "workspace:wire:001",
+          "principalId": "user:wire:001",
+          "sessionId": "session:wire:001",
+          "conversationId": "conv:wire:001",
+          "requestId": "request:wire:001",
+          "correlationId": "correlation:wire:001",
+          "locale": "pt-BR",
+          "input": {
+            "parts": [
+              {
+                "type": "text",
+                "text": "Olá, uni.co"
+              }
+            ]
+          }
+        },
+        "internationalContext": {
+          "locale": "pt-BR",
+          "timeZone": "America/Sao_Paulo",
+          "currency": "BRL",
+          "legalRegion": "BR"
+        },
+        "accessContext": {
+          "productId": "product:uni-co"
+        }
+      },
+      "upstreamRequest": {
+        "agentId": "uni.co",
+        "tenantId": "tenant:wire:001",
+        "conversationId": "conv:wire:001",
+        "locale": "pt-BR",
+        "workspaceId": "workspace:wire:001",
+        "parts": [
+          {
+            "type": "text",
+            "text": "Olá, uni.co"
+          }
+        ],
+        "context": {
+          "workspaceId": "workspace:wire:001",
+          "legalRegion": "BR",
+          "currency": "BRL",
+          "timezone": "America/Sao_Paulo"
+        }
+      },
+      "upstreamHeaders": {
+        "x-tenant-id": "tenant:wire:001",
+        "x-request-id": "request:wire:001",
+        "x-correlation-id": "correlation:wire:001"
+      },
+      "upstreamResponse": {
+        "ok": true,
+        "requestId": "request:wire:001",
+        "result": {
+          "ok": true,
+          "status": 200,
+          "agentId": "uni.co",
+          "runtime": "uni-co-runtime",
+          "mode": "web_shadow",
+          "executed": false,
+          "sendAllowed": false,
+          "parts": [
+            {
+              "type": "text",
+              "text": "Resposta wire uni.co"
+            }
+          ],
+          "memoryRead": false,
+          "memoryWriteProposed": false,
+          "toolProposals": [],
+          "externalExecutionProposed": false
+        }
+      },
+      "expectedGatewayOutput": {
+        "parts": [
+          {
+            "type": "text",
+            "text": "Resposta wire uni.co"
+          }
+        ],
+        "memoryRead": false,
+        "memoryWriteProposed": false,
+        "toolProposals": [],
+        "externalExecutionProposed": false
+      }
+    },
+    {
+      "name": "nexus-en",
+      "gatewayEnvelope": {
+        "conversation": {
+          "agent": {
+            "id": "nexus",
+            "runtime": "nexus-runtime"
+          },
+          "tenantId": "tenant:wire:002",
+          "workspaceId": "workspace:wire:002",
+          "principalId": "user:wire:002",
+          "sessionId": "session:wire:002",
+          "conversationId": "conv:wire:002",
+          "requestId": "request:wire:002",
+          "correlationId": "correlation:wire:002",
+          "locale": "en",
+          "input": {
+            "parts": [
+              {
+                "type": "text",
+                "text": "Hello, NEXUS"
+              }
+            ]
+          }
+        },
+        "internationalContext": {
+          "locale": "en",
+          "timeZone": "America/New_York",
+          "currency": "USD",
+          "legalRegion": "US"
+        },
+        "accessContext": {
+          "productId": "product:nexus"
+        }
+      },
+      "upstreamRequest": {
+        "agentId": "nexus",
+        "tenantId": "tenant:wire:002",
+        "conversationId": "conv:wire:002",
+        "locale": "en",
+        "workspaceId": "workspace:wire:002",
+        "parts": [
+          {
+            "type": "text",
+            "text": "Hello, NEXUS"
+          }
+        ],
+        "context": {
+          "workspaceId": "workspace:wire:002",
+          "legalRegion": "US",
+          "currency": "USD",
+          "timezone": "America/New_York"
+        }
+      },
+      "upstreamHeaders": {
+        "x-tenant-id": "tenant:wire:002",
+        "x-request-id": "request:wire:002",
+        "x-correlation-id": "correlation:wire:002"
+      },
+      "upstreamResponse": {
+        "ok": true,
+        "requestId": "request:wire:002",
+        "result": {
+          "ok": true,
+          "status": 200,
+          "agentId": "nexus",
+          "runtime": "nexus-runtime",
+          "mode": "web_shadow",
+          "executed": false,
+          "sendAllowed": false,
+          "parts": [
+            {
+              "type": "text",
+              "text": "NEXUS wire response"
+            }
+          ],
+          "memoryRead": false,
+          "memoryWriteProposed": false,
+          "toolProposals": [],
+          "externalExecutionProposed": false
+        }
+      },
+      "expectedGatewayOutput": {
+        "parts": [
+          {
+            "type": "text",
+            "text": "NEXUS wire response"
+          }
+        ],
+        "memoryRead": false,
+        "memoryWriteProposed": false,
+        "toolProposals": [],
+        "externalExecutionProposed": false
+      }
+    }
+  ]
+}
