@@ -1,0 +1,42 @@
+name: Web Agent Shadow Lazy Managed Startup CI
+
+on:
+  push:
+    branches:
+      - "feat/web-agent-shadow-lazy-managed-startup-20260815"
+    paths:
+      - "apps/api-gateway/src/web-agent-shadow-lazy-managed-startup.mjs"
+      - "apps/api-gateway/test/web-agent-shadow-lazy-managed-startup.test.mjs"
+      - ".github/workflows/web-agent-shadow-lazy-managed-startup-ci.yml"
+  pull_request:
+    paths:
+      - "apps/api-gateway/src/web-agent-shadow-lazy-managed-startup.mjs"
+      - "apps/api-gateway/test/web-agent-shadow-lazy-managed-startup.test.mjs"
+      - ".github/workflows/web-agent-shadow-lazy-managed-startup-ci.yml"
+
+permissions:
+  contents: read
+
+jobs:
+  validate:
+    runs-on:
+      - self-hosted
+      - macOS
+      - X64
+    timeout-minutes: 12
+    defaults:
+      run:
+        working-directory: apps/api-gateway
+    steps:
+      - uses: "actions/checkout@v4"
+      - uses: "actions/setup-node@v4"
+        with:
+          node-version: "22"
+
+      - name: Syntax
+        run: |
+          node --check src/web-agent-shadow-lazy-managed-startup.mjs
+          node --check test/web-agent-shadow-lazy-managed-startup.test.mjs
+
+      - name: Contract
+        run: node --test test/web-agent-shadow-lazy-managed-startup.test.mjs

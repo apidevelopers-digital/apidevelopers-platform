@@ -9,6 +9,7 @@ import {
   createWebAgentConversationHttpRoute,
   webAgentConversationHttpPath,
 } from "./web-agent-conversation-http.mjs";
+import { resolveWebAgentShadowLazyManagedStartup } from "./web-agent-shadow-lazy-managed-startup.mjs";
 import { createWebAgentServerBootstrap } from "./web-agent-shadow-server-bootstrap.mjs";
 
 const JSON_HEADERS = Object.freeze({
@@ -270,16 +271,26 @@ export function createHttpServer({
 export async function startServer({
   port = Number(process.env.PORT ?? 3000),
   host = process.env.HOST ?? "127.0.0.1",
+  env = process.env,
   app,
   webAgentConversationRoute,
   webAgentServerBootstrapOptions,
+  resolveLazyManagedStartup = resolveWebAgentShadowLazyManagedStartup,
 } = {}) {
   let selectedWebAgentRoute = webAgentConversationRoute;
 
   if (selectedWebAgentRoute === undefined) {
+    let selectedBootstrapOptions = webAgentServerBootstrapOptions;
+
+    if (selectedBootstrapOptions === undefined) {
+      const lazyManagedStartup = await resolveLazyManagedStartup({ env });
+      selectedBootstrapOptions =
+        lazyManagedStartup?.webAgentServerBootstrapOptions;
+    }
+
     const bootstrap = createWebAgentServerBootstrap({
-      env: process.env,
-      ...(webAgentServerBootstrapOptions ?? {}),
+      env,
+      ...(selectedBootstrapOptions ?? {}),
     });
     selectedWebAgentRoute = bootstrap.route;
   }
