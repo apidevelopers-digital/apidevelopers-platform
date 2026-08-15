@@ -55,7 +55,7 @@ jobs:
 
           mkdir -p "$GITHUB_WORKSPACE/packages/saas-runtime/node_modules/@apidevelopers"
           ln -sfn "$GITHUB_WORKSPACE/packages/contracts" "$GITHUB_WORKSPACE/packages/saas-runtime/node_modules/@apidevelopers/contracts"
-          ln -sfn "$GITHUB_WORKSPAACE/packages/auth-core" "$GITHUB_WORKSPACE/packages/saas-runtime/node_modules/@apidevelopers/auth-core"
+          ln -sfn "$GITHUB_WORKSPACE/packages/auth-core" "$GITHUB_WORKSPACE/packages/saas-runtime/node_modules/@apidevelopers/auth-core"
           ln -sfn "$GITHUB_WORKSPACE/packages/persistence-core" "$GITHUB_WORKSPACE/packages/saas-runtime/node_modules/@apidevelopers/persistence-core"
 
       - name: Syntax
