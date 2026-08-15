@@ -72,3 +72,12 @@ export {
   createDurableApiKeyAuthenticator,
   resolveTenantIdFromHeaders,
 } from "./durable-api-key-authenticator.mjs";
+
+export {
+  browserSessionCookieName,
+  clearBrowserSessionCookie,
+  createBrowserSessionAuthenticator,
+  extractBrowserSessionSecret,
+  hashBrowserSessionSecret,
+  serializeBrowserSessionCookie,
+} from "./browser-session-authenticator.mjs";
