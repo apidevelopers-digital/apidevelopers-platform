@@ -67,7 +67,7 @@ jobs:
           output="$(node --test --test-name-pattern="browser session reaches uni.co shadow" test/web-agent-shadow-browser-composition.test.mjs 2>&1)"
           status=$?
           if [ "$status" -ne 0 ]; then
-            compact="$(printf '%s' "$output" | tail -n 24 | tr '\n' ' ' | sed 's/%/%25/g; s/\r/%0D/g')"
+            compact="$(printf '%s' "$output" | { head -n 14; tail -n 14; } | tr '\n' ' ' | sed 's/%/%25/g; s/\r/%0D/g')"
             echo "::error title=Browser shadow happy path::$compact"
             exit "$status"
           fi
