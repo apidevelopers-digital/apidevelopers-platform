@@ -1,0 +1,75 @@
+name: Web Agent Shadow Operational Dependencies CI
+
+on:
+  push:
+    branches:
+      - "feat/web-agent-shadow-operational-deps-20260815"
+    paths:
+      - "apps/api-gateway/src/web-agent-shadow-server-dependencies.mjs"
+      - "apps/api-gateway/test/web-agent-shadow-server-dependencies.test.mjs"
+      - ".github/workflows/web-agent-shadow-operational-deps-ci.yml"
+  pull_request:
+    paths:
+      - "apps/api-gateway/src/web-agent-shadow-server-dependencies.mjs"
+      - "apps/api-gateway/test/web-agent-shadow-server-dependencies.test.mjs"
+      - ".github/workflows/web-agent-shadow-operational-deps-ci.yml"
+
+permissions:
+  contents: read
+
+jobs:
+  validate:
+    strategy:
+      fail-fast: false
+      matrix:
+        phase:
+          - syntax
+          - import
+          - contract
+    name: validate (${{ matrix.phase }})
+    runs-on:
+      - self-hosted
+      - macOS
+      - X64
+    timeout-minutes: 12
+    defaults:
+      run:
+        working-directory: apps/api-gateway
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+
+      - name: Link required local package
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p node_modules/@apidevelopers
+          rm -rf node_modules/@apidevelopers/saas-runtime
+          ln -s "$GITHUB_WORKSPACE/packages/saas-runtime" node_modules/@apidevelopers/saas-runtime
+          test -e node_modules/@apidevelopers/saas-runtime/src/index.mjs
+
+      - name: Syntax
+        if: matrix.phase == 'syntax'
+        run: |
+          node --check src/web-agent-shadow-server-dependencies.mjs
+          node --check test/web-agent-shadow-server-dependencies.test.mjs
+
+      - name: Import graph
+        if: matrix.phase == 'import'
+        shell: bash
+        run: |
+          set +e
+          output="$(node -e "import('./src/web-agent-shadow-server-dependencies.mjs').then(() => console.log('import_ok'))" 2>&1)"
+          status=$?
+          if [ "$status" -ne 0 ]; then
+            compact="$(printf '%s' "$output" | { head -n 10; tail -n 10; } | tr '\n' ' ' | sed 's/%/%25/g; s/\r/%0D/g')"
+            echo "::error title=Shadow operational import::$compact"
+            exit "$status"
+          fi
+          printf '%s\n' "$output"
+
+      - name: Contract
+        if: matrix.phase == 'contract'
+        run: node --test test/web-agent-shadow-server-dependencies.test.mjs
