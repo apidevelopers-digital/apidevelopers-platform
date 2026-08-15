@@ -10,9 +10,8 @@ import { createWebAgentShadowBrowserComposition } from "../src/web-agent-shadow-
 const SESSION = "a".repeat(43);
 const TECHNICAL_KEY = "fixture-key";
 
-test("browser session reaches uni.co shadow only after entitlement and international context", async () => {
-  const seen = { access: [], upstream: [] };
-  const composition = createWebAgentShadowBrowserComposition({
+function buildComposition(seen) {
+  return createWebAgentShadowBrowserComposition({
     async resolveSessionByHash(hash) {
       assert.equal(hash, hashBrowserSessionSecret(SESSION));
       return {
@@ -51,7 +50,7 @@ test("browser session reaches uni.co shadow only after entitlement and internati
     shadowRuntime: {
       baseUrl: "https://runtime.example/",
       apiKey: TECHNICAL_KEY,
-      fetchImpl: async (url, options) => {
+      async fetchImpl(url, options) {
         seen.upstream.push({ url, options });
         return {
           ok: true,
@@ -76,11 +75,18 @@ test("browser session reaches uni.co shadow only after entitlement and internati
       },
     },
   });
+}
+
+test("browser session reaches uni.co shadow only after entitlement and international context", async () => {
+  const seen = { access: [], upstream: [] };
+  const composition = buildComposition(seen);
 
   const result = await composition.route.handle({
     method: "POST",
     url: "/v1/web-agent/conversations",
-    headers: { cookie: `${browserSessionCookieName}=${SESSION}` },
+    headers: {
+      cookie: `${browserSessionCookieName}=${SESSION}`,
+    },
     body: {
       accessGrantId: "grant:001",
       workspaceId: "workspace:001",
@@ -97,7 +103,15 @@ test("browser session reaches uni.co shadow only after entitlement and internati
   });
 
   assert.equal(result.status, 200);
-  assert.equal(result.payload.output.parts[0].text, "Hola desde uni.co");
+  const payload = JSON.parse(result.body);
+  assert.equal(payload.output.parts[0].text, "Hola desde uni.co");
+  assert.equal(payload.agent.id, "uni.co");
+  assert.equal(payload.agent.runtime, "uni-co-runtime");
+  assert.equal(payload.internationalContext.locale, "es");
+  assert.equal(payload.internationalContext.currency, "MXN");
+  assert.equal(payload.internationalContext.legalRegion, "MX");
+  assert.equal(payload.internationalContext.timeZone, "America/Mexico_City");
+
   assert.equal(seen.access.length, 1);
   assert.equal(seen.access[0].productId, "product:uni-co");
   assert.equal(seen.access[0].tenantId, "tenant:001");
@@ -107,17 +121,22 @@ test("browser session reaches uni.co shadow only after entitlement and internati
   assert.equal(call.options.headers["x-unico-api-key"], TECHNICAL_KEY);
   assert.equal(call.options.headers["x-tenant-id"], "tenant:001");
 
-  const body = JSON.parse(call.options.body);
-  assert.equal(body.agentId, "uni.co");
-  assert.equal(body.locale, "es");
-  assert.equal(body.context.currency, "MXN");
-  assert.equal(body.context.legalRegion, "MX");
-  assert.equal(body.context.timezone, "America/Mexico_City");
-  assert.equal("productId" in body, false);
-  assert.equal("principalId" in body, false);
-  assert.equal("sessionId" in body, false);
+  const upstreamBody = JSON.parse(call.options.body);
+  assert.equal(upstreamBody.agentId, "uni.co");
+  assert.equal(upstreamBody.tenantId, "tenant:001");
+  assert.equal(upstreamBody.workspaceId, "workspace:001");
+  assert.equal(upstreamBody.locale, "es");
+  assert.equal(upstreamBody.context.currency, "MXN");
+  assert.equal(upstreamBody.context.legalRegion, "MX");
+  assert.equal(upstreamBody.context.timezone, "America/Mexico_City");
+  assert.equal("productId" in upstreamBody, false);
+  assert.equal("principalId" in upstreamBody, false);
+  assert.equal("sessionId" in upstreamBody, false);
 });
 
 test("shadow browser composition requires server-side runtime config", () => {
-  assert.throws(() => createWebAgentShadowBrowserComposition({}), /shadowRuntime/);
+  assert.throws(
+    () => createWebAgentShadowBrowserComposition({}),
+    /shadowRuntime/,
+  );
 });
