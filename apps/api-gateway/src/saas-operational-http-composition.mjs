@@ -13,6 +13,7 @@ export function createSaasOperationalHttpComposition({
   audit,
   store,
   clock,
+  delegatedBindingSigner,
 } = {}) {
   if (typeof app?.handleRequest !== "function") {
     throw new TypeError("app.handleRequest must be a function");
@@ -37,6 +38,7 @@ export function createSaasOperationalHttpComposition({
     authenticator,
     saasAccess: saasComposition.saasAccess,
     federatedPrincipal: saasComposition.federatedPrincipal,
+    ...(delegatedBindingSigner ? { bindingSigner: delegatedBindingSigner } : {}),
   });
   const provisioningApp = createSaasProvisioningApp({
     authenticator,
