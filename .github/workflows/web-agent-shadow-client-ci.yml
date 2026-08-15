@@ -54,6 +54,7 @@ jobs:
         run: |
           node --check src/web-agent-shadow-client.mjs
           node --check src/web-agent-shadow-browser-composition.mjs
+          node --check src/web-international-context-resolver.mjs
           node --check test/web-agent-shadow-client.test.mjs
           node --check test/web-agent-shadow-browser-composition.test.mjs
 
