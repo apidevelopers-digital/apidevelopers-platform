@@ -3,7 +3,7 @@
   "format": "managed-node-zip",
   "service": "api-gateway",
   "version": "0.7.0",
-  "sourceRevision": "df8c6b4050aff6b67faa96576003138ae8f3e36d",
+  "sourceRevision": "7f7553782785e50e5d8d913387f4b16e854ff0ee",
   "runtime": {
     "node": ">=22",
     "entrypoint": "src/hostinger-entry.mjs",
@@ -450,8 +450,8 @@
     },
     {
       "path": "src/hostinger-entry.mjs",
-      "bytes": 197,
-      "sha256": "ccd992d975e1d46373849fe52144e143edaf2f506e5cc48872ae0b294c8c8497"
+      "bytes": 205,
+      "sha256": "254f1f9009d3ca3bb0f478b9a5efd572f009e7909f8cb0d2dd8cfec26cf2546b"
     },
     {
       "path": "src/observable-operational-composition.mjs",
@@ -524,9 +524,14 @@
       "sha256": "3629c9ba8c02216036083aec746243ef726ec92e4bc8eee69cf8e5f96f92ac13"
     },
     {
-      "path": "src/operational-server.mjs",
+      "path": "src/operational-server-runtime.mjs",
       "bytes": 7315,
       "sha256": "ef172816cdae38e510fb3d9fa9e00dda46eba2cb7d1fbe2f23e76d701e18c0d1"
+    },
+    {
+      "path": "src/operational-server.mjs",
+      "bytes": 32,
+      "sha256": "fea012c22e69838040016f22fcb4185ef6d69aa59f6d0b67d19baa2739e0082e"
     },
     {
       "path": "src/operational-tool-invocation-composition.mjs",
@@ -1070,13 +1075,23 @@
     },
     {
       "path": "vendor/saas-runtime/src/index.mjs",
-      "bytes": 104,
-      "sha256": "65ba92d91100fc90ed8fd6083145059a367d966cd02817065180506db3f5f63d"
+      "bytes": 212,
+      "sha256": "a6e908cd5e4ed8e86323c9b2f2a783897cadfa71c8aa9761f9981bc7481c0cef"
     },
     {
       "path": "vendor/saas-runtime/src/runtime.mjs",
       "bytes": 7445,
       "sha256": "321c8b296dca702e227dfaa749ee95d8edddf24e12d096c1aaade034ba4eab56"
+    },
+    {
+      "path": "vendor/saas-runtime/src/zuni-commercial-activation-runtime.mjs",
+      "bytes": 8073,
+      "sha256": "159b7f6efb7283e95eba2a2ead7b3fc130737a47637ebfdd4f32789084e41dda"
+    },
+    {
+      "path": "vendor/saas-runtime/src/zuni-commercial-activation.mjs",
+      "bytes": 6350,
+      "sha256": "529d9c1c997187dd083836c5672b35d81891a2dafdcf285d43dfe70618859c33"
     }
   ]
 }

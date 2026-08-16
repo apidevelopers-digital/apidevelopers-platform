@@ -1,7 +1,7 @@
 import {
   registerOperationalShutdown,
   startOperationalGateway,
-} from "./operational-server.mjs";
+} from "./operational-server-runtime.mjs";
 
 const { server } = await startOperationalGateway();
 
