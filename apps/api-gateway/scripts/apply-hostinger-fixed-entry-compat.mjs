@@ -55,6 +55,19 @@ async function describeFile(root, path) {
   });
 }
 
+function rewriteOperationalServerImport(source, label) {
+  const rewritten = source.replace(
+    '"./operational-server.mjs"',
+    '"./operational-server-runtime.mjs"',
+  );
+  if (rewritten === source) {
+    throw new TypeError(
+      `${label} did not reference ./operational-server.mjs as expected`,
+    );
+  }
+  return rewritten;
+}
+
 export async function applyHostingerFixedEntryCompatibility({
   artifactDirectory = DEFAULT_ARTIFACT_DIRECTORY,
 } = {}) {
@@ -62,22 +75,29 @@ export async function applyHostingerFixedEntryCompatibility({
   const serverPath = join(root, "src", "operational-server.mjs");
   const runtimePath = join(root, "src", "operational-server-runtime.mjs");
   const hostingerEntryPath = join(root, "src", "hostinger-entry.mjs");
+  const webAgentStartupPath = join(
+    root,
+    "src",
+    "web-agent-operational-startup.mjs",
+  );
   const manifestPath = join(root, "release-manifest.json");
 
   const originalServer = await readFile(serverPath, "utf8");
   await writeFile(runtimePath, originalServer, "utf8");
 
   const hostingerEntry = await readFile(hostingerEntryPath, "utf8");
-  const rewrittenEntry = hostingerEntry.replace(
-    '"./operational-server.mjs"',
-    '"./operational-server-runtime.mjs"',
+  await writeFile(
+    hostingerEntryPath,
+    rewriteOperationalServerImport(hostingerEntry, "Hostinger entrypoint"),
+    "utf8",
   );
-  if (rewrittenEntry === hostingerEntry) {
-    throw new TypeError(
-      "Hostinger entrypoint did not reference ./operational-server.mjs as expected",
-    );
-  }
-  await writeFile(hostingerEntryPath, rewrittenEntry, "utf8");
+
+  const webAgentStartup = await readFile(webAgentStartupPath, "utf8");
+  await writeFile(
+    webAgentStartupPath,
+    rewriteOperationalServerImport(webAgentStartup, "Web Agent startup"),
+    "utf8",
+  );
 
   await writeFile(
     serverPath,
