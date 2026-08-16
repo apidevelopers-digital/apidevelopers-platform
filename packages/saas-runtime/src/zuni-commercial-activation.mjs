@@ -48,7 +48,7 @@ function normalizeCapabilities(plan) {
   }
 
   for (const [name, value] of Object.entries(limits)) {
-    const capability = `limit.${requireText(name, "limit").toLowerCase()}`;
+    const capability = `limit-${requireText(name, "limit").toLowerCase()}`;
     entries.push(Object.freeze({
       capability,
       kind: "limit",
@@ -80,6 +80,9 @@ export function validateZuniCommercialPlanSnapshot(plan) {
   if (!ACTIVE_COMMERCIAL_STATES.has(commercialState)) {
     throw new Error(`unsupported commercial state for activation: ${commercialState}`);
   }
+  if (monthlyCents % 100 !== 0) {
+    throw new Error("plan.pricing.monthly_cents must map exactly to whole BRL units");
+  }
 
   return Object.freeze({
     schemaVersion: 1,
@@ -89,7 +92,7 @@ export function validateZuniCommercialPlanSnapshot(plan) {
     pricingStatus,
     sellable,
     currency: "BRL",
-    monthlyAmount: Math.trunc(monthlyCents / 100),
+    monthlyAmount: monthlyCents / 100,
     monthlyAmountCents: monthlyCents,
     capabilities: normalizeCapabilities(plan),
   });
@@ -120,6 +123,7 @@ export function createZuniActivationPlan({
     status: "active",
     createdAt,
   });
+
   const workspace = createWorkspace({
     workspaceId,
     tenantId,
