@@ -1,0 +1,56 @@
+name: Web Agent Shadow NEXUS Isolation Single Product CI
+
+on:
+  push:
+    branches:
+      - "test/web-agent-shadow-nexus-isolation-e2e-20260815"
+    paths:
+      - "apps/api-gateway/test/web-agent-shadow-nexus-isolation-single-product.test.mjs"
+      - ".github/workflows/web-agent-shadow-nexus-isolation-single-product-ci.yml"
+  pull_request:
+    paths:
+      - "apps/api-gateway/test/web-agent-shadow-nexus-isolation-single-product.test.mjs"
+      - ".github/workflows/web-agent-shadow-nexus-isolation-single-product-ci.yml"
+
+permissions:
+  contents: read
+
+jobs:
+  validate:
+    strategy:
+      fail-fast: false
+      matrix:
+        phase:
+          - uni-only
+          - nexus-only
+          - dual-product
+    name: validate (${{ matrix.phase }})
+    runs-on:
+      - self-hosted
+      - macOS
+      - X64
+    timeout-minutes: 12
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+      - name: Install
+        run: npm ci
+      - name: Syntax
+        run: node --check apps/api-gateway/test/web-agent-shadow-nexus-isolation-single-product.test.mjs
+      - name: Phase
+        shell: bash
+        run: |
+          set -euo pipefail
+          case "${{ matrix.phase }}" in
+            uni-only)
+              node --test --test-name-pattern="uni-only lifecycle" apps/api-gateway/test/web-agent-shadow-nexus-isolation-single-product.test.mjs
+              ;;
+            nexus-only)
+              node --test --test-name-pattern="nexus-only lifecycle" apps/api-gateway/test/web-agent-shadow-nexus-isolation-single-product.test.mjs
+              ;;
+            dual-product)
+              node --test --test-name-pattern="dual-product lifecycle" apps/api-gateway/test/web-agent-shadow-nexus-isolation-single-product.test.mjs
+              ;;
+          esac
