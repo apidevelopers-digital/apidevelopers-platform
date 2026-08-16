@@ -1,0 +1,62 @@
+name: Zuni Remote Signer macOS Read-Only Preflight
+
+on:
+  workflow_dispatch:
+    inputs:
+      expected_sha:
+        description: Exact main SHA approved for the read-only preflight
+        required: true
+        type: string
+      confirmation:
+        description: Exact approval phrase for the read-only Mac preflight
+        required: true
+        type: string
+
+permissions:
+  contents: read
+
+concurrency:
+  group: zuni-remote-signer-macos-read-only-preflight
+  cancel-in-progress: false
+
+jobs:
+  preflight:
+    runs-on:
+      - self-hosted
+      - macOS
+      - X64
+    timeout-minutes: 10
+    steps:
+      - name: Validate frozen revision and explicit read-only approval
+        shell: bash
+        env:
+          EXPECTED_SHA: ${{ inputs.expected_sha }}
+          CONFIRMATION: ${{ inputs.confirmation }}
+        run: |
+          set -euo pipefail
+          test "$CONFIRMATION" = "IGOR_APROVA_ZUNI_REMOTE_SIGNER_MAC_PREFLIGHT_READ_ONLY"
+          test "$GITHUB_SHA" = "$EXPECTED_SHA"
+
+      - name: Checkout frozen revision
+        uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+
+      - name: Revalidate read-only contract
+        shell: bash
+        working-directory: apps/api-gateway
+        run: |
+          set -euo pipefail
+          node --test test/saas-delegated-binding-remote-signer-macos-preflight.test.mjs
+
+      - name: Execute read-only Mac preflight
+        shell: bash
+        working-directory: apps/api-gateway
+        run: |
+          set -euo pipefail
+          node scripts/preflight-zuni-remote-signer-macos-test.mjs
