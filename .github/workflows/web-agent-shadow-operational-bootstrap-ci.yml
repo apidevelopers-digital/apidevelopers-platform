@@ -1,0 +1,55 @@
+name: Web Agent Shadow Operational Bootstrap CI
+
+on:
+  push:
+    branches:
+      - "feat/web-agent-shadow-operational-bootstrap-20260815"
+    paths:
+      - "apps/api-gateway/src/web-agent-shadow-operational-bootstrap.mjs"
+      - "apps/api-gateway/test/web-agent-shadow-operational-bootstrap.test.mjs"
+      - ".github/workflows/web-agent-shadow-operational-bootstrap-ci.yml"
+  pull_request:
+    paths:
+      - "apps/api-gateway/src/web-agent-shadow-operational-bootstrap.mjs"
+      - "apps/api-gateway/test/web-agent-shadow-operational-bootstrap.test.mjs"
+      - ".github/workflows/web-agent-shadow-operational-bootstrap-ci.yml"
+
+permissions:
+  contents: read
+
+jobs:
+  validate:
+    runs-on:
+      - self-hosted
+      - macOS
+      - X64
+    timeout-minutes: 12
+    defaults:
+      run:
+        working-directory: apps/api-gateway
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+
+      - name: Link required local package
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p node_modules/@apidevelopers
+          rm -rf node_modules/@apidevelopers/saas-runtime
+          ln -s "$GITHUB_WORKSPACE/packages/saas-runtime" node_modules/@apidevelopers/saas-runtime
+          test -e node_modules/@apidevelopers/saas-runtime/src/index.mjs
+
+      - name: Syntax
+        run: |
+          node --check src/web-agent-shadow-server-dependencies.mjs
+          node --check src/web-agent-shadow-operational-bootstrap.mjs
+          node --check test/web-agent-shadow-operational-bootstrap.test.mjs
+
+      - name: Import graph
+        run: node -e "import('./src/web-agent-shadow-operational-bootstrap.mjs').then(() => console.log('import_ok'))"
+
+      - name: Contract
+        run: node --test test/web-agent-shadow-operational-bootstrap.test.mjs

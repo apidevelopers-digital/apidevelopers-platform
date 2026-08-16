@@ -5,6 +5,12 @@ import { createGatewayGlobalTrustAudit } from "./global-trust-audit.mjs";
 import { createGatewayGlobalTrustTenantContext } from "./global-trust-context.mjs";
 import { getOpenApiDocument } from "./openapi.mjs";
 import { createReadinessService } from "./readiness.mjs";
+import {
+  createWebAgentConversationHttpRoute,
+  webAgentConversationHttpPath,
+} from "./web-agent-conversation-http.mjs";
+import { resolveWebAgentShadowLazyManagedStartup } from "./web-agent-shadow-lazy-managed-startup.mjs";
+import { createWebAgentServerBootstrap } from "./web-agent-shadow-server-bootstrap.mjs";
 
 const JSON_HEADERS = Object.freeze({
   "content-type": "application/json; charset=utf-8",
@@ -29,7 +35,7 @@ function toPublicIdentity(identity) {
       ...(principal.tenantId !== undefined ? { tenantId: principal.tenantId } : {}),
       ...(principal.name !== undefined ? { name: principal.name } : {}),
       ...(principal.status !== undefined ? { status: principal.status } : {}),
-      ...(Array.isArray(principal.scopes) ? { scopes: [...principal.scopes] } : {}),
+      ...(Array.isAsray(principal.scopes) ? { scopes: [...principal.scopes] } : {}),
       ...(principal.prefix !== undefined ? { prefix: principal.prefix } : {}),
     }),
   });
@@ -191,24 +197,72 @@ export function createApp({
   };
 }
 
-export function createHttpServer({ app = createApp() } = {}) {
+export function createHttpServer({
+  app = createApp(),
+  webAgentConversationRoute = createWebAgentConversationHttpRoute(),
+} = {}) {
+  if (
+    typeof webAgentConversationRoute?.handle !== "function" ||
+    typeof webAgentConversationRoute?.readBody !== "function"
+  ) {
+    throw new TypeError(
+      "webAgentConversationRoute must provide handle and readBody",
+    );
+  }
+
   return http.createServer(async (request, response) => {
     try {
-      const result = await app.handleRequest({
-        method: request.method,
-        url: request.url,
-        headers: request.headers,
-      });
+      const method = String(request.method ?? "GET").toUpperCase();
+      const requestUrl = new URL(
+        String(request.url ?? "/"),
+        "http://api-gateway.local",
+      );
+
+      let result;
+      if (
+        method === "POST" &&
+        requestUrl.pathname === webAgentConversationHttpPath
+      ) {
+        const body = await webAgentConversationRoute.readBody(request);
+        result = await webAgentConversationRoute.handle({
+          method,
+          url: request.url,
+          headers: request.headers,
+          body,
+        });
+      } else {
+        result = await app.handleRequest({
+          method,
+          url: request.url,
+          headers: request.headers,
+        });
+      }
 
       response.writeHead(result.status, result.headers);
       response.end(result.body);
     } catch (error) {
-      response.writeHead(500, JSON_HEADERS);
+      const transportStatus =
+        Number.isInteger(error?.status) &&
+        [400, 413, 415].includes(error.status)
+          ? error.status
+          : null;
+
+      response.writeHead(transportStatus ?? 500, JSON_HEADERS);
       response.end(
-        JSON.stringify({
-          error: "internal_error",
-          message: error instanceof Error ? error.message : "Unknown error",
-        }),
+        JSON.stringify(
+          transportStatus
+            ? {
+                error:
+                  typeof error?.code === "string"
+                    ? error.code
+                    : "invalid_request",
+              }
+            : {
+                error: "internal_error",
+                message:
+                  error instanceof Error ? error.message : "Unknown error",
+              },
+        ),
       );
     }
   });
@@ -217,9 +271,34 @@ export function createHttpServer({ app = createApp() } = {}) {
 export async function startServer({
   port = Number(process.env.PORT ?? 3000),
   host = process.env.HOST ?? "127.0.0.1",
+  env = process.env,
   app,
+  webAgentConversationRoute,
+  webAgentServerBootstrapOptions,
+  resolveLazyManagedStartup = resolveWebAgentShadowLazyManagedStartup,
 } = {}) {
-  const server = createHttpServer({ app });
+  let selectedWebAgentRoute = webAgentConversationRoute;
+
+  if (selectedWebAgentRoute === undefined) {
+    let selectedBootstrapOptions = webAgentServerBootstrapOptions;
+
+    if (selectedBootstrapOptions === undefined) {
+      const lazyManagedStartup = await resolveLazyManagedStartup({ env });
+      selectedBootstrapOptions =
+        lazyManagedStartup?.webAgentServerBootstrapOptions;
+    }
+
+    const bootstrap = createWebAgentServerBootstrap({
+      env,
+      ...(selectedBootstrapOptions ?? {}),
+    });
+    selectedWebAgentRoute = bootstrap.route;
+  }
+
+  const server = createHttpServer({
+    app,
+    webAgentConversationRoute: selectedWebAgentRoute,
+  });
 
   await new Promise((resolve, reject) => {
     server.once("error", reject);

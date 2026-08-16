@@ -1,0 +1,38 @@
+name: Web Agent Shadow Wire v1 CI
+
+on:
+  push:
+    branches:
+      - "test/web-agent-shadow-wire-v1-20260815"
+    paths:
+      - "apps/api-gateway/test/fixtures/web-agent-shadow-wire-v1.json"
+      - "apps/api-gateway/test/web-agent-shadow-wire-v1.test.mjs"
+      - ".github/workflows/web-agent-shadow-wire-v1-ci.yml"
+  pull_request:
+    paths:
+      - "apps/api-gateway/test/fixtures/web-agent-shadow-wire-v1.json"
+      - "apps/api-gateway/test/web-agent-shadow-wire-v1.test.mjs"
+      - ".github/workflows/web-agent-shadow-wire-v1-ci.yml"
+
+permissions:
+  contents: read
+
+jobs:
+  validate:
+    runs-on:
+      - self-hosted
+      - macOS
+      - X64
+    timeout-minutes: 10
+    defaults:
+      run:
+        working-directory: apps/api-gateway
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+      - name: Syntax
+        run: node --check test/web-agent-shadow-wire-v1.test.mjs
+      - name: Wire contract
+        run: node --test test/web-agent-shadow-wire-v1.test.mjs

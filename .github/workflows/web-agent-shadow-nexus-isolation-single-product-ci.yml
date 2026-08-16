@@ -1,0 +1,81 @@
+name: Web Agent Shadow NEXUS Isolation Single Product CI
+
+on:
+  push:
+    branches:
+      - "test/web-agent-shadow-nexus-isolation-e2e-20260815"
+    paths:
+      - "apps/api-gateway/test/web-agent-shadow-nexus-isolation-single-product.test.mjs"
+      - ".github/workflows/web-agent-shadow-nexus-isolation-single-product-ci.yml"
+  pull_request:
+    paths:
+      - "apps/api-gateway/test/web-agent-shadow-nexus-isolation-single-product.test.mjs"
+      - ".github/workflows/web-agent-shadow-nexus-isolation-single-product-ci.yml"
+
+permissions:
+  contents: read
+
+jobs:
+  validate:
+    strategy:
+      fail-fast: false
+      matrix:
+        phase:
+          - uni-only
+          - nexus-only
+          - dual-product
+    name: validate (${{ matrix.phase }})
+    runs-on:
+      - self-hosted
+      - macOS
+      - X64
+    timeout-minutes: 12
+    defaults:
+      run:
+        working-directory: apps/api-gateway
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+
+      - name: Link local packages
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p node_modules/@apidevelopers
+          ln -sfn "$GITHUB_WORKSPACE/packages/contracts" node_modules/@apidevelopers/contracts
+          ln -sfn "$GITHUB_WORKSPACE/packages/auth-core" node_modules/@apidevelopers/auth-core
+          ln -sfn "$GITHUB_WORKSPACE/packages/apikey-core" node_modules/@apidevelopers/apikey-core
+          ln -sfn "$GITHUB_WORKSPACE/packages/persistence-core" node_modules/@apidevelopers/persistence-core
+          ln -sfn "$GITHUB_WORKSPACE/packages/saas-runtime" node_modules/@apidevelopers/saas-runtime
+
+          mkdir -p "$GITHUB_WORKSPACE/packages/auth-core/node_modules/@apidevelopers"
+          ln -sfn "$GITHUB_WORKSPACE/packages/apikey-core" "$GITHUB_WORKSPACE/packages/auth-core/node_modules/@apidevelopers/apikey-core"
+
+          mkdir -p "$GITHUB_WORKSPACE/packages/apikey-core/node_modules/@apidevelopers"
+          ln -sfn "$GITHUB_WORKSPACE/packages/persistence-core" "$GITHUB_WORKSPACE/packages/apikey-core/node_modules/@apidevelopers/persistence-core"
+
+          mkdir -p "$GITHUB_WORKSPACE/packages/saas-runtime/node_modules/@apidevelopers"
+          ln -sfn "$GITHUB_WORKSPACE/packages/contracts" "$GITHUB_WORKSPACE/packages/saas-runtime/node_modules/@apidevelopers/contracts"
+          ln -sfn "$GITHUB_WORKSPACE/packages/auth-core" "$GITHUB_WORKSPACE/packages/saas-runtime/node_modules/@apidevelopers/auth-core"
+          ln -sfn "$GITHUB_WORKSPACE/packages/persistence-core" "$GITHUB_WORKSPACE/packages/saas-runtime/node_modules/@apidevelopers/persistence-core"
+
+      - name: Syntax
+        run: node --check test/web-agent-shadow-nexus-isolation-single-product.test.mjs
+
+      - name: Phase
+        shell: bash
+        run: |
+          set -euo pipefail
+          case "${{ matrix.phase }}" in
+            uni-only)
+              node --test --test-name-pattern="uni-only lifecycle" test/web-agent-shadow-nexus-isolation-single-product.test.mjs
+              ;;
+            nexus-only)
+              node --test --test-name-pattern="nexus-only lifecycle" test/web-agent-shadow-nexus-isolation-single-product.test.mjs
+              ;;
+            dual-product)
+              node --test --test-name-pattern="dual-product lifecycle" test/web-agent-shadow-nexus-isolation-single-product.test.mjs
+              ;;
+          esac
