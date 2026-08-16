@@ -45,10 +45,13 @@ jobs:
         run: |
           set -euo pipefail
           node apps/api-gateway/scripts/build-managed-hosting-artifact.mjs
+          node apps/api-gateway/scripts/apply-hostinger-fixed-entry-compat.mjs
           node apps/api-gateway/scripts/verify-managed-hosting-artifact.mjs
           artifact="apps/api-gateway/dist/api-gateway-managed"
           test -f "$artifact/package.json"
           test -f "$artifact/src/operational-server.mjs"
+          test -f "$artifact/src/operational-server-runtime.mjs"
+          test -f "$artifact/src/hostinger-entry.mjs"
           test -f "$artifact/release-manifest.json"
           runtime="$RUNNER_TEMP/api-gateway-runtime-$GITHUB_SHA"
           rm -rf "$runtime"
@@ -93,7 +96,7 @@ jobs:
           cp -R "$RUNTIME_DIR/." .
           cp "$RUNTIME_ZIP" ./api-gateway-runtime.zip
           printf '%s\n' "$GITHUB_SHA" > SOURCE_SHA
-          printf '%s\n' "$RUNTIME_ZIP_SHA256" > RUNTIME_ZIP_SHA256
+          printf '%s\n' "$RUNTIM_ZIP_SHA256" > RUNTIME_ZIP_SHA256
           printf '%s\n' "$RUNTIME_ZIP_BYTES" > RUNTIME_ZIP_BYTES
           git add -A
 
