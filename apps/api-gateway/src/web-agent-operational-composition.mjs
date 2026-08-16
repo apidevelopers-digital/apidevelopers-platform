@@ -22,24 +22,6 @@ function pathnameOf(url) {
   return new URL(String(url ?? "/"), "http://api-gateway.local").pathname;
 }
 
-function toOperationalResponse(response) {
-  if (!response || typeof response !== "object" || !Number.isInteger(response.status)) {
-    return { status: 502, payload: { error: "invalid_web_agent_http_response" } };
-  }
-  if (typeof response.body !== "string") {
-    return { status: 502, payload: { error: "invalid_web_agent_http_response" } };
-  }
-  try {
-    const payload = JSON.parse(response.body);
-    if (!payload || typeof payload !== "object" || Array.isArray(payload)) {
-      return { status: 502, payload: { error: "invalid_web_agent_http_response" } };
-    }
-    return { status: response.status, payload };
-  } catch {
-    return { status: 502, payload: { error: "invalid_web_agent_http_response" } };
-  }
-}
-
 export function createWebAgentOperationalComposition({
   app,
   store,
@@ -99,8 +81,7 @@ export function createWebAgentOperationalComposition({
   const wrappedApp = Object.freeze({
     async handleRequest(request = {}) {
       if (pathnameOf(request.url) === "/v1/web-agent/conversations") {
-        const response = await browser.route.handle(request);
-        return toOperationalResponse(response);
+        return browser.route.handle(request);
       }
       return app.handleRequest(request);
     },
