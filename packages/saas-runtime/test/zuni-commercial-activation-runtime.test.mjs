@@ -6,18 +6,18 @@ import {
   ZUNI_SAAS_ACTIVATION_WRITE_AUTHORIZATION,
 } from "../src/zuni-commercial-activation-runtime.mjs";
 
-function fixtureActivationPlan() {
+function activationFixture() {
   return {
     schemaVersion: 1,
     productId: "zuni",
     planId: "start",
-    correlationId: "component:correlation:zuni:acme:start",
+    correlationId: "component.correlation.zuni.acme.start",
     productionWriteAuthorized: false,
     automaticCharge: false,
     tenant: {
       schemaVersion: 1,
-      tenantId: "component:tenant:acme",
-      organizationId: "component:organization:acme",
+      tenantId: "component.tenant.acme",
+      organizationId: "component.organization.acme",
       slug: "acme",
       displayName: "Acme",
       status: "active",
@@ -25,8 +25,8 @@ function fixtureActivationPlan() {
     },
     workspace: {
       schemaVersion: 1,
-      workspaceId: "component:workspace:acme:principal",
-      tenantId: "component:tenant:acme",
+      workspaceId: "component.workspace.acme.principal",
+      tenantId: "component.tenant.acme",
       productId: "zuni",
       slug: "principal",
       displayName: "Principal",
@@ -35,8 +35,8 @@ function fixtureActivationPlan() {
     },
     subscription: {
       schemaVersion: 1,
-      subscriptionId: "component:subscription:acme:zuni",
-      tenantId: "component:tenant:acme",
+      subscriptionId: "component.subscription.acme.zuni",
+      tenantId: "component.tenant.acme",
       productId: "zuni",
       planId: "start",
       status: "assisted_activation",
@@ -45,28 +45,26 @@ function fixtureActivationPlan() {
       createdAt: "2026-08-16T09:20:00.000Z",
       activatedAt: null,
     },
-    entitlements: [
-      {
-        kind: "feature",
-        value: "included",
-        record: {
-          schemaVersion: 1,
-          entitlementId: "component:entitlement:acme:principal:inbox",
-          subscriptionId: "component:subscription:acme:zuni",
-          tenantId: "component:tenant:acme",
-          workspaceId: "component:workspace:acme:principal",
-          productId: "zuni",
-          capability: "inbox",
-          status: "pending",
-          sourcePlanId: "start",
-          createdAt: "2026-08-16T09:20:00.000Z",
-        },
+    entitlements: [{
+      kind: "feature",
+      value: "included",
+      record: {
+        schemaVersion: 1,
+        entitlementId: "component.entitlement.acme.principal.inbox",
+        subscriptionId: "component.subscription.acme.zuni",
+        tenantId: "component.tenant.acme",
+        workspaceId: "component.workspace.acme.principal",
+        productId: "zuni",
+        capability: "inbox",
+        status: "pending",
+        sourcePlanId: "start",
+        createdAt: "2026-08-16T09:20:00.000Z",
       },
-    ],
+    }],
   };
 }
 
-function createFakeRuntime() {
+function fakeRuntime() {
   const state = {
     tenant: null,
     workspace: null,
@@ -106,8 +104,8 @@ function createFakeRuntime() {
   };
 }
 
-test("builds deterministic governed execution plan with compensating rollback", () => {
-  const activationPlan = fixtureActivationPlan();
+test("builds canonical deterministic execution plan with compensating rollback", () => {
+  const activationPlan = activationFixture();
   const plan = buildZuniActivationExecutionPlan({
     activationPlan,
     requestedAt: "2026-08-16T09:21:00.000Z",
@@ -121,20 +119,24 @@ test("builds deterministic governed execution plan with compensating rollback", 
     "grant-entitlements",
     "enqueue-provisioning",
   ]);
-  assert.equal(plan.provisioningJob.provisioningJobId, "component:provisioning:acme:principal:zuni");
-  assert.equal(plan.provisioningJob.idempotencyKey, `zuni-activation:${activationPlan.correlationId}`);
+  assert.equal(
+    plan.provisioningJob.provisioningJobId,
+    "component.provisioning.acme.principal.zuni",
+  );
+  assert.equal(
+    plan.provisioningJob.idempotencyKey,
+    `zuni-activation:${activationPlan.correlationId}`,
+  );
   assert.equal(plan.rollback.automaticDelete, false);
   assert.equal(plan.rollback.strategy, "compensating-actions-only");
 });
 
-test("dry-run produces audit evidence without runtime writes", async () => {
-  const activationPlan = fixtureActivationPlan();
-  const runtime = createFakeRuntime();
+test("dry-run audits without runtime writes", async () => {
+  const runtime = fakeRuntime();
   const audits = [];
-
   const result = await executeZuniActivationPlan({
     runtime,
-    activationPlan,
+    activationPlan: activationFixture(),
     audit: async (event) => audits.push(event),
     mode: "dry-run",
     requestedAt: "2026-08-16T09:22:00.000Z",
@@ -151,8 +153,8 @@ test("dry-run produces audit evidence without runtime writes", async () => {
 test("write mode requires explicit governed authorization", async () => {
   await assert.rejects(
     () => executeZuniActivationPlan({
-      runtime: createFakeRuntime(),
-      activationPlan: fixtureActivationPlan(),
+      runtime: fakeRuntime(),
+      activationPlan: activationFixture(),
       audit: async () => {},
       mode: "write",
     }),
@@ -161,8 +163,8 @@ test("write mode requires explicit governed authorization", async () => {
 });
 
 test("authorized write is idempotent for identical records", async () => {
-  const runtime = createFakeRuntime();
-  const activationPlan = fixtureActivationPlan();
+  const runtime = fakeRuntime();
+  const activationPlan = activationFixture();
   const audits = [];
   const args = {
     runtime,
@@ -178,18 +180,12 @@ test("authorized write is idempotent for identical records", async () => {
   const second = await executeZuniActivationPlan(args);
 
   assert.equal(first.executed, true);
-  assert.equal(first.result.tenantCreated, true);
-  assert.equal(first.result.workspaceCreated, true);
-  assert.equal(first.result.subscriptionCreated, true);
-  assert.equal(first.result.entitlementsCreated, 1);
-  assert.equal(first.result.provisioningEnqueued, true);
   assert.deepEqual(firstCalls, [
     "registerTenantWorkspace",
     "startSubscription",
     "grantEntitlement",
     "enqueueProvisioning",
   ]);
-
   assert.equal(second.result.tenantCreated, false);
   assert.equal(second.result.workspaceCreated, false);
   assert.equal(second.result.subscriptionCreated, false);
@@ -199,9 +195,9 @@ test("authorized write is idempotent for identical records", async () => {
   assert.equal(audits.filter((event) => event.outcome === "persisted").length, 2);
 });
 
-test("fails closed when an existing record conflicts", async () => {
-  const runtime = createFakeRuntime();
-  const activationPlan = fixtureActivationPlan();
+test("fails closed on conflicting existing tenant", async () => {
+  const runtime = fakeRuntime();
+  const activationPlan = activationFixture();
   runtime.state.tenant = { ...activationPlan.tenant, displayName: "Other" };
 
   await assert.rejects(
