@@ -3,10 +3,10 @@
   "format": "managed-node-zip",
   "service": "api-gateway",
   "version": "0.7.0",
-  "sourceRevision": "baf7e86ab21364bec8ccd06900ae80de84414a72",
+  "sourceRevision": "df8c6b4050aff6b67faa96576003138ae8f3e36d",
   "runtime": {
     "node": ">=22",
-    "entrypoint": "src/operational-server.mjs",
+    "entrypoint": "src/hostinger-entry.mjs",
     "startCommand": "npm start",
     "expectedPort": 3000
   },
@@ -55,8 +55,8 @@
     },
     {
       "path": "package.json",
-      "bytes": 551,
-      "sha256": "cc9a6c786b11a00d60f46d1eb1e8ca2563a9dd09e96a425a455e996d73a02fd7"
+      "bytes": 548,
+      "sha256": "431dad9bcb374b8609d4e07230b1d538ce7c2f4165952dd3dcacdb07dcbd701f"
     },
     {
       "path": "src/audit-query-http.mjs",
@@ -447,6 +447,11 @@
       "path": "src/global-trust-use-case-registry.mjs",
       "bytes": 12668,
       "sha256": "77a1e43535c29b8878dbc97a4640217fbd40190012e7e8156456affff1215c10"
+    },
+    {
+      "path": "src/hostinger-entry.mjs",
+      "bytes": 197,
+      "sha256": "ccd992d975e1d46373849fe52144e143edaf2f506e5cc48872ae0b294c8c8497"
     },
     {
       "path": "src/observable-operational-composition.mjs",

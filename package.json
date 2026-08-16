@@ -7,7 +7,7 @@
     "node": ">=22"
   },
   "scripts": {
-    "start": "node src/operational-server.mjs"
+    "start": "node src/hostinger-entry.mjs"
   },
   "dependencies": {
     "@apidevelopers/apikey-core": "file:vendor/apikey-core",
