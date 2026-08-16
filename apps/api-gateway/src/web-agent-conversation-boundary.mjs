@@ -4,6 +4,8 @@ import {
   createWebAgentInternationalEnvelope,
 } from "@apidevelopers/contracts";
 
+import { assertAuthorizedAgentForProduct } from "./web-agent-product-binding.mjs";
+
 const SENSITIVE_KEYS = new Set([
   "apikey",
   "authorization",
@@ -59,12 +61,12 @@ function toPublicDenial(decision) {
   };
 }
 
-function publicLocaleResolution(resolution = {}) {
+function publicLocaleResolution(resolution = {})  {
   return Object.freeze({
     requestedLocaleSupported: Boolean(resolution.requestedLocaleSupported),
     localeSource:
       resolution.localeSource === "user_preference"
-        ? "user_preference"
+        ?" user_preference"
         : "tenant_default",
   });
 }
@@ -124,15 +126,20 @@ export function createWebAgentConversationBoundary({
         });
       }
 
-      const accessDecision = await saasAccess.evaluateAccess({
-        identity,
-        accessGrantId,
-        tenantId,
-        workspaceId,
-        productId,
-      });
+      const accessDecision = await saasAccess.evaluateAccess({identity, accessGrantId, tenantId, workspaceId, productId});
       if (!accessDecision?.allowed) {
         return jsonResponse(403, toPublicDenial(accessDecision));
+      }
+
+      let agentId;
+      try {
+        agentId = requireText(input.agentId, "body.agentId");
+        assertAuthorizedAgentForProduct({ productId, agentId });
+      } catch (error) {
+        if (error?.code === "product_agent_mismatch") {
+          return jsonResponse(403, { error: "product_agent_mismatch" });
+        }
+        return jsonResponse(400, { error: "invalid_conversation_request", message: error.message });
       }
 
       let international;
@@ -145,16 +152,14 @@ export function createWebAgentConversationBoundary({
           requestedLocale: input.locale,
         });
       } catch {
-        return jsonResponse(503, {
-          error: "international_context_unavailable",
-        });
+        return jsonResponse(503, { error: "international_context_unavailable" });
       }
 
       let request;
       let envelope;
       try {
         request = createWebAgentConversationRequest({
-          agentId: input.agentId,
+          agentId,
           conversationId: input.conversationId,
           sessionId: input.sessionId,
           principalId,
@@ -171,10 +176,7 @@ export function createWebAgentConversationBoundary({
           internationalContext: international.context,
         });
       } catch (error) {
-        return jsonResponse(400, {
-          error: "invalid_conversation_request",
-          message: error.message,
-        });
+        return jsonResponse(400, { error: "invalid_conversation_request", message: error.message });
       }
 
       const raw = await conversationService.handle(envelope);
@@ -193,9 +195,7 @@ export function createWebAgentConversationBoundary({
           externalExecutionProposed: raw?.externalExecutionProposed,
         });
       } catch {
-        return jsonResponse(502, {
-          error: "invalid_cognitive_response",
-        });
+        return jsonResponse(502, { error: "invalid_cognitive_response" });
       }
 
       return jsonResponse(200, {

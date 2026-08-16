@@ -229,3 +229,32 @@ test("binds NEXUS to nexus-runtime through the same multinational boundary", asy
   });
   assert.equal(response.payload.internationalContext.direction, "rtl");
 });
+
+test("blocks cross-product agent mismatches before international resolution and conversation service", async () => {
+  const cases = [
+    { name: "uni.co product cannot invoke NEXUS", productId: "product:uni-co", agentId: "nexus" },
+    { name: "NEXUS product cannot invoke uni.co", productId: "product:nexus", agentId: "uni.co" },
+  ];
+
+  for (const scenario of cases) {
+    const { boundary, calls } = createFixture();
+    const response = await boundary.handle({
+      body: { ...baseBody, productId: scenario.productId, agentId: scenario.agentId },
+    });
+
+    assert.equal(response.status, 403, scenario.name);
+    assert.equal(response.payload.error, "product_agent_mismatch", scenario.name);
+    assert.equal(calls.some((call) => call.type === "international"), false, `${scenario.name}: international resolver must not run`);
+    assert.equal(calls.some((call) => call.type === "conversation"), false, `${scenario.name}: conversation service must not run`);
+  }
+});
+
+test("keeps malformed agentId as a 400 request error before downstream resolution", async () => {
+  const { boundary, calls } = createFixture();
+  const response = await boundary.handle({ body: { ...baseBody, agentId: "   " } });
+
+  assert.equal(response.status, 400);
+  assert.equal(response.payload.error, "invalid_conversation_request");
+  assert.equal(calls.some((call) => call.type === "international"), false);
+  assert.equal(calls.some((call) => call.type === "conversation"), false);
+});
