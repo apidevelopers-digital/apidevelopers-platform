@@ -1,15 +1,7 @@
 import assert from "node:assert/strict";
 import { createHash } from "node:crypto";
 import { execFile, spawn } from "node:child_process";
-import {
-  cp,
-  lstat,
-  mkdtemp,
-  readFile,
-  readdir,
-  rm,
-  stat,
-} from "node:fs/promises";
+import { cp, lstat, mkdtemp, readFile, readdir, rm, stat } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { dirname, join, relative, resolve, sep } from "node:path";
 import { promisify } from "node:util";
@@ -17,10 +9,8 @@ import { fileURLToPath, pathToFileURL } from "node:url";
 
 const execFileAsync = promisify(execFile);
 const SCRIPT_DIRECTORY = dirname(fileURLToPath(import.meta.url));
-const DEFAULT_ARTIFACT_DIRECTORY = resolve(
-  SCRIPT_DIRECTORY,
-  "../dist/api-gateway-managed",
-);
+const DEFAULT_ARTIFACT_DIRECTORY = resolve(SCRIPT_DIRECTORY, "../dist/api-gateway-managed");
+const HOSTINGER_ENTRYPOINT = "src/hostinger-entry.mjs";
 const EXPECTED_DEPENDENCIES = Object.freeze({
   "@apidevelopers/auth-core": "file:vendor/auth-core",
   "@apidevelopers/apikey-core": "file:vendor/apikey-core",
@@ -35,31 +25,19 @@ function portablePath(value) {
 
 async function listFiles(root, { excludeNodeModules = false } = {}) {
   const files = [];
-
   async function visit(directory) {
     const entries = await readdir(directory, { withFileTypes: true });
     entries.sort((left, right) => left.name.localeCompare(right.name));
-
     for (const entry of entries) {
-      if (excludeNodeModules && entry.isDirectory() && entry.name === "node_modules") {
-        continue;
-      }
-
+      if (excludeNodeModules && entry.isDirectory() && entry.name === "node_modules") continue;
       const path = join(directory, entry.name);
       const metadata = await lstat(path);
-      if (metadata.isSymbolicLink()) {
-        throw new TypeError(`artifact cannot contain symlink: ${path}`);
-      }
-      if (entry.isDirectory()) {
-        await visit(path);
-      } else if (entry.isFile()) {
-        files.push(path);
-      } else {
-        throw new TypeError(`unsupported artifact entry: ${path}`);
-      }
+      if (metadata.isSymbolicLink()) throw new TypeError(`artifact cannot contain symlink: ${path}`);
+      if (entry.isDirectory()) await visit(path);
+      else if (entry.isFile()) files.push(path);
+      else throw new TypeError(`unsupported artifact entry: ${path}`);
     }
   }
-
   await visit(root);
   return files;
 }
@@ -69,9 +47,8 @@ async function sha256(path) {
 }
 
 function assertNoRegistryReference(value, label) {
-  const serialized = JSON.stringify(value);
   assert.equal(
-    serialized.includes("registry.npmjs.org"),
+    JSON.stringify(value).includes("registry.npmjs.org"),
     false,
     `${label} must not depend on the public npm registry`,
   );
@@ -81,41 +58,30 @@ export async function verifyManagedHostingManifest({
   artifactDirectory = DEFAULT_ARTIFACT_DIRECTORY,
 } = {}) {
   const root = resolve(artifactDirectory);
-  const manifest = JSON.parse(
-    await readFile(join(root, "release-manifest.json"), "utf8"),
-  );
-  const packageMetadata = JSON.parse(
-    await readFile(join(root, "package.json"), "utf8"),
-  );
-  const lockMetadata = JSON.parse(
-    await readFile(join(root, "package-lock.json"), "utf8"),
-  );
+  const manifest = JSON.parse(await readFile(join(root, "release-manifest.json"), "utf8"));
+  const packageMetadata = JSON.parse(await readFile(join(root, "package.json"), "utf8"));
+  const lockMetadata = JSON.parse(await readFile(join(root, "package-lock.json"), "utf8"));
 
   assert.equal(manifest.schemaVersion, 2);
   assert.equal(manifest.format, "managed-node-zip");
   assert.equal(manifest.service, "api-gateway");
   assert.equal(manifest.runtime.node, ">=22");
-  assert.equal(
-    manifest.runtime.entrypoint,
-    "src/operational-server.mjs",
-  );
+  assert.equal(manifest.runtime.entrypoint, HOSTINGER_ENTRYPOINT);
   assert.equal(manifest.runtime.startCommand, "npm start");
   assert.equal(manifest.runtime.expectedPort, 3000);
 
   assert.equal(packageMetadata.name, "@apidevelopers/api-gateway-managed");
   assert.equal(packageMetadata.private, true);
   assert.equal(packageMetadata.type, "module");
-  assert.equal(
-    packageMetadata.scripts.start,
-    "node src/operational-server.mjs",
-  );
+  assert.equal(packageMetadata.scripts.start, `node ${HOSTINGER_ENTRYPOINT}`);
   assert.deepEqual(packageMetadata.dependencies, EXPECTED_DEPENDENCIES);
-  assert.deepEqual(
-    lockMetadata.packages?.[""]?.dependencies,
-    EXPECTED_DEPENDENCIES,
-  );
+  assert.deepEqual(lockMetadata.packages?.[""]?.dependencies, EXPECTED_DEPENDENCIES);
   assertNoRegistryReference(packageMetadata, "package.json");
   assertNoRegistryReference(lockMetadata, "package-lock.json");
+
+  const entryText = await readFile(join(root, ...HOSTINGER_ENTRYPOINT.split("/")), "utf8");
+  assert.match(entryText, /startOperationalGateway/);
+  assert.match(entryText, /registerOperationalShutdown/);
 
   const actualFiles = (await listFiles(root))
     .map((path) => portablePath(relative(root, path)))
@@ -135,11 +101,7 @@ export async function verifyManagedHostingManifest({
     const path = join(root, ...entry.path.split("/"));
     const metadata = await stat(path);
     assert.equal(metadata.size, entry.bytes, `size mismatch: ${entry.path}`);
-    assert.equal(
-      await sha256(path),
-      entry.sha256,
-      `checksum mismatch: ${entry.path}`,
-    );
+    assert.equal(await sha256(path), entry.sha256, `checksum mismatch: ${entry.path}`);
   }
 
   for (const [name, dependencyPath] of Object.entries(EXPECTED_DEPENDENCIES)) {
@@ -151,7 +113,6 @@ export async function verifyManagedHostingManifest({
     assert.equal(vendorMetadata.private, true);
     assert.equal(vendorMetadata.devDependencies, undefined);
     assert.equal(vendorMetadata.scripts, undefined);
-
     for (const dependency of Object.values(vendorMetadata.dependencies ?? {})) {
       if (typeof dependency === "string" && dependency.startsWith("file:")) {
         assert.match(dependency, /^file:\.\.\/[a-z0-9-]+$/);
@@ -159,30 +120,17 @@ export async function verifyManagedHostingManifest({
     }
   }
 
-  return Object.freeze({
-    root,
-    manifest,
-    packageMetadata,
-    lockMetadata,
-  });
+  return Object.freeze({ root, manifest, packageMetadata, lockMetadata });
 }
 
 async function installWithoutRegistry(sourceDirectory, destinationDirectory) {
   await cp(sourceDirectory, destinationDirectory, { recursive: true });
   const npmCommand = process.platform === "win32" ? "npm.cmd" : "npm";
   const cacheDirectory = join(destinationDirectory, ".npm-offline-cache");
-
   try {
     await execFileAsync(
       npmCommand,
-      [
-        "install",
-        "--omit=dev",
-        "--ignore-scripts",
-        "--no-audit",
-        "--no-fund",
-        "--offline",
-      ],
+      ["install", "--omit=dev", "--ignore-scripts", "--no-audit", "--no-fund", "--offline"],
       {
         cwd: destinationDirectory,
         env: {
@@ -195,18 +143,14 @@ async function installWithoutRegistry(sourceDirectory, destinationDirectory) {
       },
     );
   } catch (error) {
-    const detail = [error?.message, error?.stdout, error?.stderr]
-      .filter(Boolean)
-      .join("\n");
+    const detail = [error?.message, error?.stdout, error?.stderr].filter(Boolean).join("\n");
     throw new Error(`managed artifact offline install failed: ${detail}`);
   } finally {
     await rm(cacheDirectory, { recursive: true, force: true });
   }
 
   for (const name of Object.keys(EXPECTED_DEPENDENCIES)) {
-    await stat(
-      join(destinationDirectory, "node_modules", ...name.split("/"), "package.json"),
-    );
+    await stat(join(destinationDirectory, "node_modules", ...name.split("/"), "package.json"));
   }
 }
 
@@ -214,39 +158,29 @@ function waitForStart(child, timeoutMs = 15_000) {
   return new Promise((resolveStart, rejectStart) => {
     let stdout = "";
     let stderr = "";
-
     const timeout = setTimeout(() => {
       cleanup();
-      rejectStart(
-        new Error(`managed runtime startup timed out: ${stderr || stdout}`),
-      );
+      rejectStart(new Error(`managed runtime startup timed out: ${stderr || stdout}`));
     }, timeoutMs);
-
     const cleanup = () => {
       clearTimeout(timeout);
       child.stdout.off("data", onStdout);
       child.stderr.off("data", onStderr);
       child.off("exit", onExit);
     };
-
     const onStderr = (chunk) => {
       stderr = `${stderr}${chunk}`.slice(-8_000);
     };
-
     const onExit = (code, signal) => {
       cleanup();
       rejectStart(
-        new Error(
-          `managed runtime exited before startup: code=${code} signal=${signal} stderr=${stderr}`,
-        ),
+        new Error(`managed runtime exited before startup: code=${code} signal=${signal} stderr=${stderr}`),
       );
     };
-
     const onStdout = (chunk) => {
       stdout += chunk;
       const lines = stdout.split("\n");
       stdout = lines.pop() ?? "";
-
       for (const line of lines) {
         if (!line.trim()) continue;
         let event;
@@ -255,7 +189,6 @@ function waitForStart(child, timeoutMs = 15_000) {
         } catch {
           continue;
         }
-
         if (event.event === "api_gateway_operational_started") {
           cleanup();
           resolveStart(Object.freeze({ event, stdout, stderr }));
@@ -263,7 +196,6 @@ function waitForStart(child, timeoutMs = 15_000) {
         }
       }
     };
-
     child.stdout.on("data", onStdout);
     child.stderr.on("data", onStderr);
     child.once("exit", onExit);
@@ -272,10 +204,7 @@ function waitForStart(child, timeoutMs = 15_000) {
 
 function waitForExit(child, timeoutMs = 15_000) {
   return new Promise((resolveExit, rejectExit) => {
-    const timeout = setTimeout(() => {
-      rejectExit(new Error("managed runtime shutdown timed out"));
-    }, timeoutMs);
-
+    const timeout = setTimeout(() => rejectExit(new Error("managed runtime shutdown timed out")), timeoutMs);
     child.once("exit", (code, signal) => {
       clearTimeout(timeout);
       resolveExit(Object.freeze({ code, signal }));
@@ -285,21 +214,14 @@ function waitForExit(child, timeoutMs = 15_000) {
 
 async function getJson(baseUrl, path, options = {}) {
   const response = await fetch(`${baseUrl}${path}`, options);
-  return Object.freeze({
-    status: response.status,
-    body: await response.json(),
-  });
+  return Object.freeze({ status: response.status, body: await response.json() });
 }
 
 export async function smokeManagedHostingArtifact({
   artifactDirectory = DEFAULT_ARTIFACT_DIRECTORY,
 } = {}) {
-  const verification = await verifyManagedHostingManifest({
-    artifactDirectory,
-  });
-  const temporaryDirectory = await mkdtemp(
-    join(tmpdir(), "api-gateway-managed-artifact-"),
-  );
+  const verification = await verifyManagedHostingManifest({ artifactDirectory });
+  const temporaryDirectory = await mkdtemp(join(tmpdir(), "api-gateway-managed-artifact-"));
   const installedDirectory = join(temporaryDirectory, "application");
   const stateFile = join(temporaryDirectory, "state", "gateway.json");
   const adminKey = "managed-artifact-verification-non-production";
@@ -307,23 +229,18 @@ export async function smokeManagedHostingArtifact({
 
   try {
     await installWithoutRegistry(verification.root, installedDirectory);
-
-    child = spawn(
-      process.execPath,
-      [join(installedDirectory, "src/operational-server.mjs")],
-      {
-        cwd: installedDirectory,
-        env: {
-          ...process.env,
-          NODE_ENV: "production",
-          API_GATEWAY_STATE_FILE: stateFile,
-          API_GATEWAY_ADMIN_KEY: adminKey,
-          HOST: "127.0.0.1",
-          PORT: "0",
-        },
-        stdio: ["ignore", "pipe", "pipe"],
+    child = spawn(process.execPath, [join(installedDirectory, HOSTINGER_ENTRYPOINT)], {
+      cwd: installedDirectory,
+      env: {
+        ...process.env,
+        NODE_ENV: "production",
+        API_GATEWAY_STATE_FILE: stateFile,
+        API_GATEWAY_ADMIN_KEY: adminKey,
+        HOST: "127.0.0.1",
+        PORT: "0",
       },
-    );
+      stdio: ["ignore", "pipe", "pipe"],
+    });
 
     const started = await waitForStart(child);
     assert.equal(started.event.mode, "operational");
@@ -367,6 +284,7 @@ export async function smokeManagedHostingArtifact({
         "checksums",
         "no_node_modules",
         "offline_install",
+        "hostinger_entrypoint",
         "health",
         "readiness",
         "openapi",
@@ -375,9 +293,7 @@ export async function smokeManagedHostingArtifact({
       ]),
     });
   } finally {
-    if (child && child.exitCode === null && child.signalCode === null) {
-      child.kill("SIGKILL");
-    }
+    if (child && child.exitCode === null && child.signalCode === null) child.kill("SIGKILL");
     await rm(temporaryDirectory, { recursive: true, force: true });
   }
 }
