@@ -1,0 +1,82 @@
+name: Web Agent Official Surface E2E CI
+
+on:
+  push:
+    branches:
+      - "feat/web-agent-official-surface-e2e-20260816"
+    paths:
+      - "apps/api-gateway/src/web-agent-shadow-browser-composition.mjs"
+      - "apps/api-gateway/src/web-agent-shadow-server-dependencies.mjs"
+      - "apps/api-gateway/src/web-agent-shadow-operational-bootstrap.mjs"
+      - "apps/api-gateway/src/web-agent-shadow-managed-bootstrap.mjs"
+      - "apps/api-gateway/test/web-agent-official-surface-e2e.test.mjs"
+      - ".github/workflows/web-agent-official-surface-e2e-ci.yml"
+  pull_request:
+    paths:
+      - "apps/api-gateway/src/web-agent-shadow-browser-composition.mjs"
+      - "apps/api-gateway/src/web-agent-shadow-server-dependencies.mjs"
+      - "apps/api-gateway/src/web-agent-shadow-operational-bootstrap.mjs"
+      - "apps/api-gateway/src/web-agent-shadow-managed-bootstrap.mjs"
+      - "apps/api-gateway/test/web-agent-official-surface-e2e.test.mjs"
+      - ".github/workflows/web-agent-official-surface-e2e-ci.yml"
+
+permissions:
+  contents: read
+
+jobs:
+  validate:
+    runs-on:
+      - self-hosted
+      - macOS
+      - X64
+    timeout-minutes: 15
+    defaults:
+      run:
+        working-directory: apps/api-gateway
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+
+      - name: Link required local packages
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p node_modules/@apidevelopers
+          ln -sfn "$GITHUB_WORKSPACE/packages/contracts" node_modules/@apidevelopers/contracts
+          ln -sfn "$GITHUB_WORKSPACE/packages/auth-core" node_modules/@apidevelopers/auth-core
+          ln -sfn "$GITHUB_WORKSPACE/packages/apikey-core" node_modules/@apidevelopers/apikey-core
+          ln -sfn "$GITHUB_WORKSPACE/packages/persistence-core" node_modules/@apidevelopers/persistence-core
+          ln -sfn "$GITHUB_WORKSPACE/packages/saas-runtime" node_modules/@apidevelopers/saas-runtime
+
+          mkdir -p "$GITHUB_WORKSPACE/packages/auth-core/node_modules/@apidevelopers"
+          ln -sfn "$GITHUB_WORKSPACE/packages/apikey-core" "$GITHUB_WORKSPACE/packages/auth-core/node_modules/@apidevelopers/apikey-core"
+
+          mkdir -p "$GITHUB_WORKSPACE/packages/apikey-core/node_modules/@apidevelopers"
+          ln -sfn "$GITHUB_WORKSPACE/packages/persistence-core" "$GITHUB_WORKSPACE/packages/apikey-core/node_modules/@apidevelopers/persistence-core"
+
+          mkdir -p "$GITHUB_WORKSPACE/packages/saas-runtime/node_modules/@apidevelopers"
+          ln -sfn "$GITHUB_WORKSPACE/packages/contracts" "$GITHUB_WORKSPACE/packages/saas-runtime/node_modules/@apidevelopers/contracts"
+          ln -sfn "$GITHUB_WORKSPACE/packages/auth-core" "$GITHUB_WORKSPACE/packages/saas-runtime/node_modules/@apidevelopers/auth-core"
+          ln -sfn "$GITHUB_WORKSPACE/packages/persistence-core" "$GITHUB_WORKSPACE/packages/saas-runtime/node_modules/@apidevelopers/persistence-core"
+
+      - name: Syntax
+        run: |
+          node --check src/web-agent-shadow-browser-composition.mjs
+          node --check src/web-agent-shadow-server-dependencies.mjs
+          node --check src/web-agent-shadow-operational-bootstrap.mjs
+          node --check src/web-agent-shadow-managed-bootstrap.mjs
+          node --check test/web-agent-official-surface-e2e.test.mjs
+
+      - name: Managed E2E regression
+        run: node --test test/web-agent-shadow-managed-e2e.test.mjs
+
+      - name: NEXUS isolation regression
+        run: node --test test/web-agent-shadow-nexus-isolation-e2e.test.mjs
+
+      - name: Read-only memory regression
+        run: node --test test/web-agent-shadow-memory-readonly-boundary.test.mjs
+
+      - name: Official surface SaaS memory E2E
+        run: node --test test/web-agent-official-surface-e2e.test.mjs

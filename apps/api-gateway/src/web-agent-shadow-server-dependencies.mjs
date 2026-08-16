@@ -20,6 +20,7 @@ export function createWebAgentShadowServerDependencies({
   resolveSessionByHash,
   tenantInternationalProfile,
   commercialContext,
+  memoryProvider,
   clock,
 } = {}) {
   if (
@@ -36,6 +37,12 @@ export function createWebAgentShadowServerDependencies({
   requireFunction(resolveSessionByHash, "resolveSessionByHash");
   requireResolver(tenantInternationalProfile, "tenantInternationalProfile");
   requireResolver(commercialContext, "commercialContext");
+  if (memoryProvider !== undefined) {
+    if (!memoryProvider || typeof memoryProvider !== "object" || Array.isArray(memoryProvider)) {
+      throw new TypeError("memoryProvider must be an object");
+    }
+    requireFunction(memoryProvider.recall, "memoryProvider.recall");
+  }
 
   const { saasAccess } = createSaasAccessComposition({
     store,
@@ -47,5 +54,6 @@ export function createWebAgentShadowServerDependencies({
     saasAccess,
     tenantInternationalProfile,
     commercialContext,
+    ...(memoryProvider ? { memoryProvider } : {}),
   });
 }
