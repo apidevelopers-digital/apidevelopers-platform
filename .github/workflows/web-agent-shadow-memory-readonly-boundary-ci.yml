@@ -37,7 +37,7 @@ jobs:
         run: |
           set -euo pipefail
           mkdir -p node_modules/@apidevelopers
-          ln -sfn "$GITHUB_WORKSPACE/packages/contracts" noe_modules/@apidevelopers/contracts
+          ln -sfn "$GITHUB_WORKSPACE/packages/contracts" node_modules/@apidevelopers/contracts
       - name: Syntax
         run: |
           node --check src/web-agent-shadow-memory-readonly-service.mjs
