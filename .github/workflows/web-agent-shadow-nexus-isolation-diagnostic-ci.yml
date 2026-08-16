@@ -1,0 +1,49 @@
+name: Web Agent Shadow NEXUS Isolation Diagnostic CI
+
+on:
+  push:
+    branches:
+      - "test/web-agent-shadow-nexus-isolation-e2e-20260815"
+    paths:
+      - "apps/api-gateway/test/web-agent-shadow-nexus-isolation-diagnostic.test.mjs"
+      - ".github/workflows/web-agent-shadow-nexus-isolation-diagnostic-ci.yml"
+  pull_request:
+    paths:
+      - "apps/api-gateway/test/web-agent-shadow-nexus-isolation-diagnostic.test.mjs"
+      - ".github/workflows/web-agent-shadow-nexus-isolation-diagnostic-ci.yml"
+
+permissions:
+  contents: read
+
+jobs:
+  validate:
+    strategy:
+      fail-fast: false
+      matrix:
+        phase:
+          - lifecycle
+          - access-matrix
+    name: validate (${{ matrix.phase }})
+    runs-on:
+      - self-hosted
+      - macOS
+      - X64
+    timeout-minutes: 12
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+      - name: Install
+        run: npm ci
+      - name: Syntax
+        run: node --check apps/api-gateway/test/web-agent-shadow-nexus-isolation-diagnostic.test.mjs
+      - name: Phase
+        shell: bash
+        run: |
+          set -euo pipefail
+          if [ "${{ matrix.phase }}" = "lifecycle" ]; then
+            node --test --test-name-pattern="dual-product lifecycle" apps/api-gateway/test/web-agent-shadow-nexus-isolation-diagnostic.test.mjs
+          else
+            node --test --test-name-pattern="access matrix" apps/api-gateway/test/web-agent-shadow-nexus-isolation-diagnostic.test.mjs
+          fi
