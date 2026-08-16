@@ -1,0 +1,43 @@
+name: Web Agent Surface Binding CI
+
+on:
+  push:
+    branches:
+      - "feat/web-agent-surface-binding-20260816"
+    paths:
+      - "apps/api-gateway/src/web-agent-surface-policy.mjs"
+      - "apps/api-gateway/src/web-agent-conversation-http.mjs"
+      - "apps/api-gateway/test/web-agent-surface-binding.test.mjs"
+      - ".github/workflows/web-agent-surface-binding-ci.yml"
+  pull_request:
+    paths:
+      - "apps/api-gateway/src/web-agent-surface-policy.mjs"
+      - "apps/api-gateway/src/web-agent-conversation-http.mjs"
+      - "apps/api-gateway/test/web-agent-surface-binding.test.mjs"
+      - ".github/workflows/web-agent-surface-binding-ci.yml"
+
+permissions:
+  contents: read
+
+jobs:
+  validate:
+    runs-on:
+      - self-hosted
+      - macOS
+      - X64
+    timeout-minutes: 10
+    defaults:
+      run:
+        working-directory: apps/api-gateway
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+      - name: Syntax
+        run: |
+          node --check src/web-agent-surface-policy.mjs
+          node --check src/web-agent-conversation-http.mjs
+          node --check test/web-agent-surface-binding.test.mjs
+      - name: Surface binding tests
+        run: node --test test/web-agent-surface-binding.test.mjs
