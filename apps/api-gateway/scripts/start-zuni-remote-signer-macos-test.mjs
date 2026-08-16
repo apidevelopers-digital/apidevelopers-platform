@@ -11,6 +11,13 @@ import {
 
 const execFileAsync = promisify(execFile);
 
+function optionalAbsolutePath(value, name) {
+  const normalized = String(value ?? "").trim();
+  if (!normalized) return null;
+  if (!normalized.startsWith("/")) throw new TypeError(`${name} must be an absolute path`);
+  return normalized;
+}
+
 async function keychainReader({ service, account }) {
   if (
     service !== ZUNI_REMOTE_SIGNER_KEYCHAIN_SERVICE ||
@@ -19,16 +26,24 @@ async function keychainReader({ service, account }) {
     throw new Error("keychain_descriptor_denied");
   }
 
+  const keychainPath = optionalAbsolutePath(
+    process.env.ZUNI_REMOTE_SIGNER_TEST_KEYCHAIN_PATH,
+    "ZUNI_REMOTE_SIGNER_TEST_KEYCHAIN_PATH",
+  );
+
+  const args = [
+    "find-generic-password",
+    "-s",
+    service,
+    "-a",
+    account,
+    "-w",
+  ];
+  if (keychainPath) args.push(keychainPath);
+
   const { stdout } = await execFileAsync(
     "/usr/bin/security",
-    [
-      "find-generic-password",
-      "-s",
-      service,
-      "-a",
-      account,
-      "-w",
-    ],
+    args,
     {
       encoding: "buffer",
       maxBuffer: 16 * 1024,
@@ -38,7 +53,7 @@ async function keychainReader({ service, account }) {
 
   return {
     bytes: Buffer.from(stdout).subarray(0, Math.max(0, stdout.length - (stdout.at(-1) === 10 ? 1 : 0))),
-    version: "macos-keychain-test-item",
+    version: keychainPath ? "macos-keychain-test-file" : "macos-keychain-test-item",
   };
 }
 
