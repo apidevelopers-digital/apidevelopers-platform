@@ -21,6 +21,44 @@ function endpoint(baseUrl,path,allowHttp){
   if(u.protocol!=="https:"&&!(allowHttp&&u.protocol==="http:")) throw new TypeError("baseUrl must use https");
   return new URL(path,u).toString();
 }
+function stringList(val}e,name(max=8,width=180){
+  if(value===undefined) return undefined;
+  if(!Array.isArray(value)) fail(`invalid_${name}`);
+  const out=[];
+  for(const item of value){
+    if(typeof item!=="string" || !item.trim()) fail(`invalid_${name}`);
+    const normalized=item.trim().slice(0,width);
+    if(!out.includes(normalized)) out.push(normalized);
+    if(out.length>=max) break;
+  }
+  return Object.freeze(out);
+}
+function readonlyMemory(root,{agentId,tenantId,workspaceId}){
+  if(root.memoryContext===undefined) return undefined;
+  const memory=obj(root.memoryContext,"memory_context");
+  if(memory.mode!=="read_only") fail("web_agent_shadow_memory_not_read_only");
+  if(memory.agentId!==agentId||memory.tenantId!==tenantId||memory.workspaceId!==workspaceId)
+    fail("web_agent_shadow_memory_identity_mismatch");
+  const source=obj(memory.data??{},"memory_context_data");
+  const allowed=new Set(["summary","nextBestAction","openLoops","topics"]);
+  if(Object.keys(source).some(key=>!allowed.has(key))) fail("web_agent_shadow_memory_not_minimized");
+  const data={};
+  for(const key of ["summary","nextBestAction"]){
+    if(source[key]!==undefined){
+      if(typeof source[key]!=="string" || !source[key].trim()) fail(`invalid_memory_${key}`);
+      data[key]=source[key].trim().slice(0,key==="summary"?700:280);
+    }
+  }
+  for(const [key,width] of [["openLoops",160],["topics",100]]){
+    const normalized=stringList(source[key],`memory_${key}`,8,width);
+    if(normalized?.length) data[key]=normalized;
+  }
+  return Object.freeze({
+    schema:typeof memory.schema==="string"&&memory.schema.trim()?memory.schema.trim():"apidevelopers.web-agent-memory-context.v1",
+    mode:"read_only",
+    data:Object.freeze(data)
+  });
+}
 function outbound(envelope){
   const root=obj(envelope,"international_envelope");
   const c=obj(root.conversation,"conversation");
@@ -31,6 +69,8 @@ function outbound(envelope){
   const context={workspaceId};
   for(const [k,v] of [["legalRegion",international.legalRegion],["currency",international.currency],["timezone",international.timeZone]])
     if(typeof v==="string"&&v.trim()) context[k]=v.trim();
+  const memoryContext=readonlyMemory(root,{agentId,tenantId,workspaceId});
+  if(memoryContext) context.memoryContext=memoryContext;
   return {
     tenantId,
     requestId:typeof c.requestId==="string"?c.requestId.trim():"",
@@ -58,8 +98,8 @@ function normalized(payload,agentId){
 export function createWebAgentShadowConversationService({
   baseUrl,apiKey,fetchImpl=globalThis.fetch,timeoutMs=8000,endpointPath=PATH,allowInsecureHttp=false
 }={}){
-  if(typeof baseUrl!=="string"||!baseUrl.trim()) throw new TypeError("baseUrl is required");
-  if(typeof apiKey!=="string"||!apiKey.trim()) throw new TypeError("apiKey is required");
+  if(typeof baseUrl!=="string" || !baseUrl.trim()) throw new TypeError("baseUrl is required");
+  if(typeof apiKey!=="string" || !apiKey.trim()) throw new TypeError("apiKey is required");
   if(typeof fetchImpl!=="function") throw new TypeError("fetchImpl must be a function");
   if(!Number.isInteger(timeoutMs)||timeoutMs<=0||timeoutMs>60000) throw new TypeError("invalid timeoutMs");
   if(typeof endpointPath!=="string"||!endpointPath.startsWith("/")) throw new TypeError("invalid endpointPath");
