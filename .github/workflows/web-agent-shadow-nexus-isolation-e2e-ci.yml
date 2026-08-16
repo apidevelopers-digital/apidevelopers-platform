@@ -1,0 +1,35 @@
+name: Web Agent Shadow NEXUS Isolation E2E CI
+
+on:
+  push:
+    branches:
+      - "test/web-agent-shadow-nexus-isolation-e2e-20260815"
+    paths:
+      - "apps/api-gateway/test/web-agent-shadow-nexus-isolation-e2e.test.mjs"
+      - ".github/workflows/web-agent-shadow-nexus-isolation-e2e-ci.yml"
+  pull_request:
+    paths:
+      - "apps/api-gateway/test/web-agent-shadow-nexus-isolation-e2e.test.mjs"
+      - ".github/workflows/web-agent-shadow-nexus-isolation-e2e-ci.yml"
+
+permissions:
+  contents: read
+
+jobs:
+  validate:
+    runs-on:
+      - self-hosted
+      - macOS
+      - X64
+    timeout-minutes: 12
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+      - name: Install
+        run: npm ci
+      - name: Syntax
+        run: node --check apps/api-gateway/test/web-agent-shadow-nexus-isolation-e2e.test.mjs
+      - name: Isolation E2E
+        run: node --test apps/api-gateway/test/web-agent-shadow-nexus-isolation-e2e.test.mjs
