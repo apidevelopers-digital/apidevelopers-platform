@@ -41,6 +41,14 @@ test("managed-hosting artifact is vendored, registry-independent and tamper-evid
     packageMetadata.dependencies["@apidevelopers/saas-runtime"],
     "file:vendor/saas-runtime",
   );
+  assert.equal(packageMetadata.scripts.start, "node src/hostinger-entry.mjs");
+  assert.equal(result.manifest.runtime.entrypoint, "src/hostinger-entry.mjs");
+  const hostingerEntrypoint = await readFile(
+    join(outputDirectory, "src/hostinger-entry.mjs"),
+    "utf8",
+  );
+  assert.match(hostingerEntrypoint, /startOperationalGateway/);
+  assert.match(hostingerEntrypoint, /registerOperationalShutdown/);
 
   const lockMetadata = JSON.parse(
     await readFile(join(outputDirectory, "package-lock.json"), "utf8"),
