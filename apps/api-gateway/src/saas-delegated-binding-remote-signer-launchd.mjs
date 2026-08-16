@@ -1,4 +1,3 @@
-
 export const ZUNI_REMOTE_SIGNER_LAUNCHD_LABEL =
   "digital.apidevelopers.zuni-remote-signer.test";
 
@@ -19,6 +18,12 @@ function requiredAbsolutePath(value, name) {
   return normalized;
 }
 
+function optionalAbsolutePath(value, name) {
+  const normalized = String(value ?? "").trim();
+  if (!normalized) return null;
+  return requiredAbsolutePath(normalized, name);
+}
+
 export function renderZuniRemoteSignerTestLaunchdPlist({
   nodePath,
   entrypointPath,
@@ -27,12 +32,14 @@ export function renderZuniRemoteSignerTestLaunchdPlist({
   port = 8765,
   stdoutPath,
   stderrPath,
+  keychainPath,
 } = {}) {
   const node = requiredAbsolutePath(nodePath, "nodePath");
   const entrypoint = requiredAbsolutePath(entrypointPath, "entrypointPath");
   const cwd = requiredAbsolutePath(workingDirectory, "workingDirectory");
   const out = requiredAbsolutePath(stdoutPath, "stdoutPath");
   const err = requiredAbsolutePath(stderrPath, "stderrPath");
+  const testKeychainPath = optionalAbsolutePath(keychainPath, "keychainPath");
   const normalizedKeyId = String(keyId ?? "").trim();
   if (!normalizedKeyId) throw new TypeError("keyId is required");
 
@@ -40,6 +47,12 @@ export function renderZuniRemoteSignerTestLaunchdPlist({
   if (!Number.isSafeInteger(normalizedPort) || normalizedPort < 1 || normalizedPort > 65535) {
     throw new TypeError("port must be an integer between 1 and 65535");
   }
+
+  const keychainEnvironment = testKeychainPath
+    ? `
+    <key>ZUNI_REMOTE_SIGNER_TEST_KEYCHAIN_PATH</key>
+    <string>${xmlEscape(testKeychainPath)}</string>`
+    : "";
 
   return `<?xml version="1.0" encoding="UTF-8"?>
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
@@ -63,7 +76,7 @@ export function renderZuniRemoteSignerTestLaunchdPlist({
     <key>ZUNI_REMOTE_SIGNER_PORT</key>
     <string>${normalizedPort}</string>
     <key>ZUNI_REMOTE_SIGNER_KEY_ID</key>
-    <string>${xmlEscape(normalizedKeyId)}</string>
+    <string>${xmlEscape(normalizedKeyId)}</string>${keychainEnvironment}
   </dict>
   <key>RunAtLoad</key>
   <true/>
