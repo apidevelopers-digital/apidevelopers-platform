@@ -22,14 +22,39 @@ jobs:
       - macOS
       - X64
     timeout-minutes: 12
+    defaults:
+      run:
+        working-directory: apps/api-gateway
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
         with:
           node-version: "22"
-      - name: Install
-        run: npm ci
+
+      - name: Link local packages
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p node_modules/@apidevelopers
+          ln -sfn "$GITHUB_WORKSPACE/packages/contracts" node_modules/@apidevelopers/contracts
+          ln -sfn "$GITHUB_WORKSPACE/packages/auth-core" node_modules/@apidevelopers/auth-core
+          ln -sfn "$GITHUB_WORKSPACE/packages/apikey-core" node_modules/@apidevelopers/apikey-core
+          ln -sfn "$GITHUB_WORKSPACE/packages/persistence-core" node_modules/@apidevelopers/persistence-core
+          ln -sfn "$GITHUB_WORKSPACE/packages/saas-runtime" node_modules/@apidevelopers/saas-runtime
+
+          mkdir -p "$GITHUB_WORKSPACE/packages/auth-core/node_modules/@apidevelopers"
+          ln -sfn "$GITHUB_WORKSPACE/packages/apikey-core" "$GITHUB_WORKSPACE/packages/auth-core/node_modules/@apidevelopers/apikey-core"
+
+          mkdir -p "$GITHUB_WORKSPACE/packages/apikey-core/node_modules/@apidevelopers"
+          ln -sfn "$GITHUB_WORKSPACE/packages/persistence-core" "$GITHUB_WORKSPACE/packages/apikey-core/node_modules/@apidevelopers/persistence-core"
+
+          mkdir -p "$GITHUB_WORKSPACE/packages/saas-runtime/node_modules/@apidevelopers"
+          ln -sfn "$GITHUB_WORKSPACE/packages/contracts" "$GITHUB_WORKSPACE/packages/saas-runtime/node_modules/@apidevelopers/contracts"
+          ln -sfn "$GITHUB_WORKSPACE/packages/auth-core" "$GITHUB_WORKSPACE/packages/saas-runtime/node_modules/@apidevelopers/auth-core"
+          ln -sfn "$GITHUB_WORKSPACE/packages/persistence-core" "$GITHUB_WORKSPACE/packages/saas-runtime/node_modules/@apidevelopers/persistence-core"
+
       - name: Syntax
-        run: node --check apps/api-gateway/test/web-agent-shadow-nexus-isolation-e2e.test.mjs
+        run: node --check test/web-agent-shadow-nexus-isolation-e2e.test.mjs
+
       - name: Isolation E2E
-        run: node --test apps/api-gateway/test/web-agent-shadow-nexus-isolation-e2e.test.mjs
+        run: node --test test/web-agent-shadow-nexus-isolation-e2e.test.mjs
