@@ -96,7 +96,7 @@ jobs:
           cp -R "$RUNTIME_DIR/." .
           cp "$RUNTIME_ZIP" ./api-gateway-runtime.zip
           printf '%s\n' "$GITHUB_SHA" > SOURCE_SHA
-          printf '%s\n' "$RUNTIM_ZIP_SHA256" > RUNTIME_ZIP_SHA256
+          printf '%s\n' "$RUNTIME_ZIP_SHA256" > RUNTIME_ZIP_SHA256
           printf '%s\n' "$RUNTIME_ZIP_BYTES" > RUNTIME_ZIP_BYTES
           git add -A
 
