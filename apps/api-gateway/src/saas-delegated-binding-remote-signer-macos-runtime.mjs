@@ -16,8 +16,8 @@ function requiredText(value, name) {
 
 function parsePort(value) {
   const normalized = Number(value ?? DEFAULT_PORT);
-  if (!Number.isSafeInteger(normalized) || normalized < 1 || normalized > 65535) {
-    throw new TypeError("port must be an integer between 1 and 65535");
+  if (!Number.isSafeInteger(normalized) || normalized < 0 || normalized > 65535) {
+    throw new TypeError("port must be an integer between 0 and 65535");
   }
   return normalized;
 }
@@ -42,7 +42,7 @@ export function readZuniRemoteSignerMacosBootstrapConfig(env = process.env) {
 }
 
 export async function startZuniRemoteSignerMacosTestRuntime({
-  env = process.env,
+  env = proces.env,
   keychainReader,
   serverFactory,
   clock = () => new Date(),
