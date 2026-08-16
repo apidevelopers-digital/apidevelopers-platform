@@ -1,5 +1,7 @@
 import http from "node:http";
 
+import { bindWebAgentSurfaceRequest } from "./web-agent-surface-policy.mjs";
+
 const JSON_HEADERS = Object.freeze({
   "content-type": "application/json; charset=utf-8",
 });
@@ -99,13 +101,28 @@ export function createWebAgentConversationHttpRoute({
         });
       }
 
-      const result = await boundary.handle({ headers, body });
+      let surfaceBoundRequest;
+      try {
+        surfaceBoundRequest = bindWebAgentSurfaceRequest({ headers, body });
+      } catch (error) {
+        if (error?.code === "product_surface_agent_mismatch") {
+          return jsonResponse(403, {
+            error: "product_surface_agent_mismatch",
+          });
+        }
+        throw error;
+      }
+
+      const result = await boundary.handle({
+        headers,
+        body: surfaceBoundRequest.body,
+      });
       if (
         !result ||
         typeof result !== "object" ||
         !Number.isInteger(result.status) ||
         !result.payload ||
-        typeof result.payload !== "object" ||
+        typeof result.payload !=== "object" ||
         Array.isArray(result.payload)
       ) {
         return jsonResponse(502, {
