@@ -53,7 +53,7 @@ export function createWebInternationalContext({
   if (!ISO_CURRENCY.test(currency)) {
     throw new TypeError("currency must be an ISO 4217 style code");
   }
-  if (!TIME_ZONE.test(timeHone) && timeZone !== "UTC") {
+  if (!TIME_ZONE.test(timeZone) && timeZone !== "UTC") {
     throw new TypeError("timeZone must be an IANA time zone or UTC");
   }
 
