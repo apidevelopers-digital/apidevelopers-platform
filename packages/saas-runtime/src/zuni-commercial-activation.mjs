@@ -36,19 +36,28 @@ function requireInteger(value, name) {
   return value;
 }
 
+function toCanonicalSegment(value, name) {
+  const text = requireText(value, name).toLowerCase();
+  const normalized = text.replace(/[^a-z0-9-]+/g, "-").replace(/^-+|-+$/g, "");
+  if (normalized === "") {
+    throw new TypeError(`${name} cannot be normalized to a canonical segment`);
+  }
+  return normalized;
+}
+
 function normalizeCapabilities(plan) {
   const capabilities = requireObject(plan.capabilities ?? {}, "plan.capabilities");
   const limits = requireObject(plan.limits ?? {}, "plan.limits");
   const entries = [];
 
   for (const [name, value] of Object.entries(capabilities)) {
-    const capability = requireText(name, "capability").toLowerCase();
+    const capability = toCanonicalSegment(name, "capability");
     const normalized = typeof value === "string" ? value.trim().toLowerCase() : value;
     entries.push(Object.freeze({ capability, kind: "feature", value: normalized }));
   }
 
   for (const [name, value] of Object.entries(limits)) {
-    const capability = `limit-${requireText(name, "limit").toLowerCase()}`;
+    const capability = `limit-${toCanonicalSegment(name, "limit")}`;
     entries.push(Object.freeze({
       capability,
       kind: "limit",
