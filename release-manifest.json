@@ -3,7 +3,7 @@
   "format": "managed-node-zip",
   "service": "api-gateway",
   "version": "0.7.0",
-  "sourceRevision": "6e447550b37142002c0ca4f03f0e5c8cdef9e3a9",
+  "sourceRevision": "baf7e86ab21364bec8ccd06900ae80de84414a72",
   "runtime": {
     "node": ">=22",
     "entrypoint": "src/operational-server.mjs",
@@ -722,6 +722,36 @@
       "path": "src/saas-delegated-binding-proof.mjs",
       "bytes": 3478,
       "sha256": "aebf5bc74c39ba1d73579346727b42f14ce02326920b116fbec23d96936a7968"
+    },
+    {
+      "path": "src/saas-delegated-binding-remote-signer-daemon.mjs",
+      "bytes": 6839,
+      "sha256": "876eddc9cb4c4f04766f8b0f87fbf8897e7999b6cd92c027a0f3e80fb141d47c"
+    },
+    {
+      "path": "src/saas-delegated-binding-remote-signer-keychain.mjs",
+      "bytes": 3757,
+      "sha256": "ed0611fa2fc292528aed26e5eda7f369f13b5f5a3d7887cacae60f31a1bcbc16"
+    },
+    {
+      "path": "src/saas-delegated-binding-remote-signer-launchd.mjs",
+      "bytes": 2920,
+      "sha256": "2d64901bfac8e1b338096ea6561ba8a203e6fcd68487aa5c8d1fc7090e4bcc31"
+    },
+    {
+      "path": "src/saas-delegated-binding-remote-signer-macos-preflight.mjs",
+      "bytes": 3790,
+      "sha256": "2a4a25edf27d3094c6a56cb789ca84081cb714608a6f1385241dbdbd49da4f6e"
+    },
+    {
+      "path": "src/saas-delegated-binding-remote-signer-macos-runtime.mjs",
+      "bytes": 2127,
+      "sha256": "d49ec0dfc421d924fca18ec50c1155c1319c2e486822151417136245406f1bfd"
+    },
+    {
+      "path": "src/saas-delegated-binding-remote-signer.mjs",
+      "bytes": 5169,
+      "sha256": "bb370be271ed0cbf01e39c95864a39c2863830f5eead7362040666ee7c6cef92"
     },
     {
       "path": "src/saas-delegated-binding-runtime-config.mjs",
