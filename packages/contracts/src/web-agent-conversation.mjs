@@ -150,7 +150,7 @@ export function createWebAgentConversationRequest(input = {}) {
       runtime: input.agentId === "uni.co" ? "uni-co-runtime" :
         input.agentId === "nexus" ? "nexus-runtime" : input.runtime,
     },
-    conversationId: ainput.conversationId,
+    conversationId: input.conversationId,
     sessionId: input.sessionId,
     principalId: input.principalId,
     tenantId: input.tenantId,
@@ -161,7 +161,7 @@ export function createWebAgentConversationRequest(input = {}) {
     input: {
       parts: (input.parts ?? []).map(normalizePart),
     },
-    capabilities: unique(input.capabilities ?? ["text"], CAPABILITIES,"capabilities"),
+    capabilities: unique(input.capabilities ?? ["text"], CAPABILITIES, "capabilities"),
     createdAt: input.createdAt ?? new Date().toISOString(),
     policy: {
       authenticated: true,
