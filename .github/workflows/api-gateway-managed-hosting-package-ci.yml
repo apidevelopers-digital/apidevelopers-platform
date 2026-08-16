@@ -73,6 +73,21 @@ jobs:
           set -euo pipefail
           cat "$RUNTIME_EVIDENCE"
 
+      - name: Publish package evidence summary
+        shell: bash
+        run: |
+          set -euo pipefail
+          {
+            echo "## Managed Hosting package evidence"
+            echo
+            echo "- sourceRevision: \`$GITHUB_SHA\"
+            echo "- zipSha256: \`$ZIP_SHA256\`"
+            echo "- zipBytes: \`$ZIP_BYTES\`"
+            echo "- releaseManifestSha256: \`$MANIFEST_SHA256\`"
+            echo "- entrypoint: \`src/operational-server.mjs\`"
+            echo "- promoted: \`false\`"
+          } >> "$GITHUB_STEP_SUMMARY"
+
       - name: Upload package evidence only
         uses: actions/upload-artifact@v4
         with:
