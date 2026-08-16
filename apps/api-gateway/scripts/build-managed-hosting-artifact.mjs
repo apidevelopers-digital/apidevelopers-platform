@@ -259,7 +259,7 @@ export async function buildManagedHostingArtifact({
     type: "module",
     engines: Object.freeze({ node: ">=22" }),
     scripts: Object.freeze({
-      start: "node src/operational-server.mjs",
+      start: "node src/hostinger-entry.mjs",
     }),
     dependencies: rootDependencies,
   });
@@ -287,7 +287,7 @@ export async function buildManagedHostingArtifact({
     sourceRevision: String(sourceRevision),
     runtime: Object.freeze({
       node: ">=22",
-      entrypoint: "src/operational-server.mjs",
+      entrypoint: "src/hostinger-entry.mjs",
       startCommand: "npm start",
       expectedPort: 3000,
     }),
