@@ -132,21 +132,50 @@ async function seedProduct({ saasRuntime, saasAccess, profile, slug, displayName
 
 async function seedPersistentContext(store) {
   const sessionHash = hashBrowserSessionSecret(SESSION);
-  const uniCommercialId = createWebAgentShadowCommercialContextId({tenantId:ids.tenant,workspaceId:ids.uni.workspace,productId:ids.uni.product});
-  const nexusCommercialId = createWebAgentShadowCommercialContextId({tenantId:ids.tenant,workspaceId:ids.nexus.workspace,productId:ids.nexus.product});
+  const uniCommercialId = createWebAgentShadowCommercialContextId({
+    tenantId: ids.tenant,
+    workspaceId: ids.uni.workspace,
+    productId: ids.uni.product,
+  });
+  const nexusCommercialId = createWebAgentShadowCommercialContextId({
+    tenantId: ids.tenant,
+    workspaceId: ids.nexus.workspace,
+    productId: ids.nexus.product,
+  });
 
   await store.transaction((tx) => {
-    tx.put(webAgentShadowPersistenceCollections.browserSessions,sessionHash,{
+    tx.put(webAgentShadowPersistenceCollections.browserSessions, sessionHash, {
       sessionHash,
       status: "active",
       expiresAt: "2026-08-16T23:59:59.000Z",
-      principal: { id: ids.principal, tenantId: ids.tenant, status: "active", scopes: ["web:chat"] },
+      principal: {
+        id: ids.principal,
+        tenantId: ids.tenant,
+        status: "active",
+        scopes: ["web:chat"],
+      },
     });
-    tx.put(webAgentShadowPersistenceCollections.tenantInternationalProfiles, ids.tenant,{
-      tenantId: ids.tenant, defaultLocale: "pt-BR", fallbackLocale: "en", timeZone: "America/Sao_Paulo", legalRegion: "BR",
+    tx.put(webAgentShadowPersistenceCollections.tenantInternationalProfiles, ids.tenant, {
+      tenantId: ids.tenant,
+      defaultLocale: "pt-BR",
+      fallbackLocale: "en",
+      timeZone: "America/Sao_Paulo",
+      legalRegion: "BR",
     });
-    tx.put(webAgentShadowPersistenceCollections.commercialContexts, uniCommercialId, { commercialContextId:uniCommercialId,tenantId:ids.tenant,workspaceId:ids.uni.workspace,productId:ids.uni.product,currency:"BRL" });
-    tx.put(webAgentShadowPersistenceCollections.commercialContexts, nexusCommercialId, { commercialContextId:nexusCommercialId,tenantId:ids.tenant,workspaceId:ids.nexus.workspace,productId:ids.nexus.product,currency:"USD" });
+    tx.put(webAgentShadowPersistenceCollections.commercialContexts, uniCommercialId, {
+      commercialContextId: uniCommercialId,
+      tenantId: ids.tenant,
+      workspaceId: ids.uni.workspace,
+      productId: ids.uni.product,
+      currency: "BRL",
+    });
+    tx.put(webAgentShadowPersistenceCollections.commercialContexts, nexusCommercialId, {
+      commercialContextId: nexusCommercialId,
+      tenantId: ids.tenant,
+      workspaceId: ids.nexus.workspace,
+      productId: ids.nexus.product,
+      currency: "USD",
+    });
   });
 }
 
@@ -272,7 +301,7 @@ test("official hosts drive session SaaS memory and backend shadow for uni.co and
     const payload = JSON.parse(response.body);
     assert.equal(payload.agent.id, profile.agent);
     assert.equal(payload.output.parts[0].text, expectedText);
-    assert.equal(payload.memoryRead, true);
+    assert.equal(payload.memory.read, true);
   }
 
   for (const { host, grant, workspace } of [
