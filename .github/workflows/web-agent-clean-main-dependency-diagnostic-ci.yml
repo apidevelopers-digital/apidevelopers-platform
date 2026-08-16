@@ -6,6 +6,7 @@ on:
       - "feat/web-agent-clean-main-reanchor-20260816"
     paths:
       - "apps/api-gateway/src/web-agent-*.mjs"
+      - "packages/auth-core/**"
       - ".github/workflows/web-agent-clean-main-dependency-diagnostic-ci.yml"
 
 permissions:
@@ -58,7 +59,7 @@ jobs:
       - name: Import Web Agent shadow client
         run: node -e 'await import("./src/web-agent-shadow-client.mjs")'
 
-      - name: Import Web Agent memory provider
+      - name: Iimport Web Agent memory provider
         run: node -e 'await import("./src/web-agent-shadow-memory-provider.mjs")'
 
       - name: Import Web Agent memory readonly service
