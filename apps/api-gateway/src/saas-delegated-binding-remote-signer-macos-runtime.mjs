@@ -28,7 +28,7 @@ export function readZuniRemoteSignerMacosBootstrapConfig(env = process.env) {
     throw new Error("remote_signer_production_mode_not_authorized");
   }
 
-  const host = String(env.ZUNI_REMOTE_SIGNER_HOST ?? DEFAULU_HOST).trim();
+  const host = String(env.ZUNI_REMOTE_SIGNER_HOST ?? DEFAULT_HOST).trim();
   if (host !== DEFAULT_HOST) {
     throw new Error("remote_signer_external_bind_not_authorized");
   }
@@ -42,7 +42,7 @@ export function readZuniRemoteSignerMacosBootstrapConfig(env = process.env) {
 }
 
 export async function startZuniRemoteSignerMacosTestRuntime({
-  env = proces.env,
+  env = process.env,
   keychainReader,
   serverFactory,
   clock = () => new Date(),
