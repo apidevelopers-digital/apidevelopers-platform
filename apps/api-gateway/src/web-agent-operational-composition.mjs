@@ -40,6 +40,17 @@ function toOperationalResponse(response) {
   }
 }
 
+function browserNow(clock) {
+  return () => {
+    const value = clock();
+    const current = value instanceof Date ? value : new Date(value);
+    if (Number.isNaN(current.getTime())) {
+      throw new TypeError("clock must return a valid Date-compatible value");
+    }
+    return current;
+  };
+}
+
 export function createWebAgentOperationalComposition({
   app,
   store,
@@ -93,7 +104,7 @@ export function createWebAgentOperationalComposition({
     tenantInternationalProfile: providers.tenantInternationalProfile,
     commercialContext: providers.commercialContext,
     conversationService,
-    ...(clock ? { now: clock } : {}),
+    ...(clock ? { now: browserNow(clock) } : {}),
   });
 
   const wrappedApp = Object.freeze({
