@@ -11,7 +11,7 @@ const T0 = "2026-08-15T18:00:00.000Z";
 const T1 = "2026-08-15T18:01:00.000Z";
 const T2 = "2026-08-15T18:02:00.000Z";
 
-const base = Object.freeze({
+const tenant = Object.freeze({
   tenantId: "component.tenant.web-agent-isolation-single",
   organizationId: "component.organization.web-agent-isolation-single",
   principalId: "user:web-agent-isolation-single",
@@ -38,7 +38,7 @@ const products = Object.freeze({
   }),
 });
 
-async function withComposition(t) {
+async function composition(t) {
   const dir = await mkdtemp(join(tmpdir(), "apd-web-agent-isolation-single-"));
   t.after(() => rm(dir, { recursive: true, force: true }));
   const store = createJsonFileStore({
@@ -52,8 +52,8 @@ async function withComposition(t) {
 async function seed({ saasRuntime, saasAccess, p }) {
   await saasRuntime.registerTenantWorkspace({
     tenant: {
-      tenantId: base.tenantId,
-      organizationId: base.organizationId,
+      tenantId: tenant.tenantId,
+      organizationId: tenant.organizationId,
       slug: "web-agent-isolation-single",
       displayName: "Web Agent Isolation Single",
       status: "active",
@@ -61,7 +61,7 @@ async function seed({ saasRuntime, saasAccess, p }) {
     },
     workspace: {
       workspaceId: p.workspaceId,
-      tenantId: base.tenantId,
+      tenantId: tenant.tenantId,
       productId: p.productId,
       slug: p.slug,
       displayName: p.slug,
@@ -69,9 +69,10 @@ async function seed({ saasRuntime, saasAccess, p }) {
       createdAt: T0,
     },
   });
+
   await saasRuntime.startSubscription({
     subscriptionId: p.subscriptionId,
-    tenantId: base.tenantId,
+    tenantId: tenant.tenantId,
     productId: p.productId,
     planId: "shadow-e2e",
     status: "assisted_activation",
@@ -80,10 +81,11 @@ async function seed({ saasRuntime, saasAccess, p }) {
     createdAt: T0,
   });
   await saasRuntime.activateSubscription({ subscriptionId: p.subscriptionId, activatedAt: T1 });
+
   await saasRuntime.grantEntitlement({
     entitlementId: p.entitlementId,
     subscriptionId: p.subscriptionId,
-    tenantId: base.tenantId,
+    tenantId: tenant.tenantId,
     workspaceId: p.workspaceId,
     productId: p.productId,
     capability: "web-agent",
@@ -91,10 +93,11 @@ async function seed({ saasRuntime, saasAccess, p }) {
     sourcePlanId: "shadow-e2e",
     createdAt: T0,
   });
+
   await saasRuntime.enqueueProvisioning({
     provisioningJobId: p.provisioningJobId,
     subscriptionId: p.subscriptionId,
-    tenantId: base.tenantId,
+    tenantId: tenant.tenantId,
     workspaceId: p.workspaceId,
     productId: p.productId,
     entitlementIds: [p.entitlementId],
@@ -107,4 +110,89 @@ async function seed({ saasRuntime, saasAccess, p }) {
     result: { productReady: true },
     at: T2,
   });
-  await saasAccess.grantAccess({vaccessGrantId: p.accessGrantId });
+
+  await saasAccess.grantAccess({
+    accessGrantId: p.accessGrantId,
+    principalId: tenant.principalId,
+    tenantId: tenant.tenantId,
+    workspaceId: p.workspaceId,
+    productId: p.productId,
+    subscriptionId: p.subscriptionId,
+    entitlementId: p.entitlementId,
+    requiredScopes: ["web:chat"],
+    status: "pending",
+    createdAt: T0,
+  });
+  await saasAccess.activateAccess({
+    accessGrantId: p.accessGrantId,
+    provisioningJobId: p.provisioningJobId,
+    at: T2,
+  });
+}
+
+function identity() {
+  return Object.freeze({
+    principal: Object.freeze({
+      id: tenant.principalId,
+      tenantId: tenant.tenantId,
+      status: "active",
+      scopes: Object.freeze(["web:chat"]),
+    }),
+  });
+}
+
+async function assertAllowed({ saasAccess, p }) {
+  const result = await saasAccess.evaluateAccess({
+    identity: identity(),
+    accessGrantId: p.accessGrantId,
+    tenantId: tenant.tenantId,
+    workspaceId: p.workspaceId,
+    productId: p.productId,
+  });
+  assert.equal(result.allowed, true);
+}
+
+test("uni-only lifecycle", async (t) => {
+  const { saasRuntime, saasAccess } = await composition(t);
+  await seed({ saasRuntime, saasAccess, p: products.uni });
+  await assertAllowed({ saasAccess, p: products.uni });
+});
+
+test("nexus-only lifecycle", async (t) => {
+  const { saasRuntime, saasAccess } = await composition(t);
+  await seed({ saasRuntime, saasAccess, p: products.nexus });
+  await assertAllowed({ saasAccess, p: products.nexus });
+});
+
+test("dual-product lifecycle", async (t) => {
+  const { saasRuntime, saasAccess } = await composition(t);
+  await seed({ saasRuntime, saasAccess, p: products.uni });
+  await seed({ saasRuntime, saasAccess, p: products.nexus });
+
+  await assertAllowed({ saasAccess, p: products.uni });
+  await assertAllowed({ saasAccess, p: products.nexus });
+
+  const crossUniToNexus = await saasAccess.evaluateAccess({
+    identity: identity(),
+    accessGrantId: products.uni.accessGrantId,
+    tenantId: tenant.tenantId,
+    workspaceId: products.nexus.workspaceId,
+    productId: products.nexus.productId,
+  });
+  assert.deepEqual(
+    { allowed: crossUniToNexus.allowed, reason: crossUniToNexus.reason },
+    { allowed: false, reason: "access_context_mismatch" },
+  );
+
+  const crossNexusToUni = await saasAccess.evaluateAccess({
+    identity: identity(),
+    accessGrantId: products.nexus.accessGrantId,
+    tenantId: tenant.tenantId,
+    workspaceId: products.uni.workspaceId,
+    productId: products.uni.productId,
+  });
+  assert.deepEqual(
+    { allowed: crossNexusToUni.allowed, reason: crossNexusToUni.reason },
+    { allowed: false, reason: "access_context_mismatch" },
+  );
+});
