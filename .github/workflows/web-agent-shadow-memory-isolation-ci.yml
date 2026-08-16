@@ -1,0 +1,49 @@
+name: Web Agent Shadow Memory Isolation CI
+
+on:
+  push:
+    branches:
+      - "feat/web-agent-shadow-memory-isolation-20260815"
+    paths:
+      - "apps/api-gateway/src/web-agent-shadow-memory-provider.mjs"
+      - "apps/api-gateway/test/web-agent-shadow-memory-isolation.test.mjs"
+      - ".github/workflows/web-agent-shadow-memory-isolation-ci.yml"
+  pull_request:
+    paths:
+      - "apps/api-gateway/src/web-agent-shadow-memory-provider.mjs"
+      - "apps/api-gateway/test/web-agent-shadow-memory-isolation.test.mjs"
+      - ".github/workflows/web-agent-shadow-memory-isolation-ci.yml"
+
+permissions:
+  contents: read
+
+jobs:
+  validate:
+    runs-on:
+      - self-hosted
+      - macOS
+      - X64
+    timeout-minutes: 12
+    defaults:
+      run:
+        working-directory: apps/api-gateway
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+
+      - name: Link local persistence package
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p node_modules/@apidevelopers
+          ln -sfn "$GITHUB_WORKSPACE/packages/persistence-core" node_modules/@apidevelopers/persistence-core
+
+      - name: Syntax
+        run: |
+          node --check src/web-agent-shadow-memory-provider.mjs
+          node --check test/web-agent-shadow-memory-isolation.test.mjs
+
+      - name: Memory isolation
+        run: node --test test/web-agent-shadow-memory-isolation.test.mjs
