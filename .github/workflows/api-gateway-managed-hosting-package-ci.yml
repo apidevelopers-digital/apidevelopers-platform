@@ -80,7 +80,7 @@ jobs:
           {
             echo "## Managed Hosting package evidence"
             echo
-            echo "- sourceRevision: \`$GITHUB_SHA\"
+            echo "- sourceRevision: \`$GITHUB_SHA\`"
             echo "- zipSha256: \`$ZIP_SHA256\`"
             echo "- zipBytes: \`$ZIP_BYTES\`"
             echo "- releaseManifestSha256: \`$MANIFEST_SHA256\`"
