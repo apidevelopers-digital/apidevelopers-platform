@@ -35,7 +35,7 @@ function freezeIdentity(principal) {
 
 function assertCookieName(cookieName) {
   if (typeof cookieName !== "string" || !HOST_COOKIE.test(cookieName)) {
-    throw new TypeError("browser session cookie name must use the __Host-prefix");
+    throw new TypeError(borowser session cookie name must use the __Host-prefix");
   }
   return cookieName;
 }
