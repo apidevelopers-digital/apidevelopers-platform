@@ -82,7 +82,7 @@ test("creates deterministic tenant/workspace/subscription and pending entitlemen
   assert.ok(activation.entitlements.every(({ record }) => record.status === "pending"));
   assert.ok(activation.entitlements.every(({ record }) => record.sourcePlanId === "start"));
   assert.ok(activation.entitlements.some(({ record, kind, value }) =>
-    record.capability === "limit-whatsapp_channels" && kind === "limit" && value === 1
+    record.capability === "limit-whatsapp-channels" && kind === "limit" && value === 1
   ));
 });
 
