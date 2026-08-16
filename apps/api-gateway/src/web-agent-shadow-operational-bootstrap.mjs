@@ -5,6 +5,7 @@ export function createWebAgentShadowOperationalBootstrapOptions({
   resolveSessionByHash,
   tenantInternationalProfile,
   commercialContext,
+  memoryProvider,
   clock,
   fetchImpl,
 } = {}) {
@@ -19,6 +20,7 @@ export function createWebAgentShadowOperationalBootstrapOptions({
     resolveSessionByHash,
     tenantInternationalProfile,
     commercialContext,
+    ...(memoryProvider ? { memoryProvider } : {}),
     ...(clock ? { clock } : {}),
   });
 
