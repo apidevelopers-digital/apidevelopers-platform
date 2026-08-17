@@ -1,137 +1,28 @@
-name: API Gateway Trust One-Time Production Deploy
+name: API Gateway Trust Production Status
 
 on:
   workflow_dispatch:
-    inputs:
-      example:
-        description: "Exact Igor approval token"
-        required: true
-        type: string
 
 permissions:
   contents: read
 
 concurrency:
-  group: api-gateway-trust-one-time-production
+  group: api-gateway-trust-production-status
   cancel-in-progress: false
 
 jobs:
-  deploy:
-    if: >-
-      github.ref == 'refs/heads/main' &&
-      github.event.inputs.example == 'IGOR_APROVA_GATEWAY_TRUST_PRODUCAO_20260814'
+  status:
+    if: github.ref == 'refs/heads/main'
     runs-on:
       - self-hosted
       - macOS
       - X64
-    timeout-minutes: 30
-    env:
-      HOSTINGER_USERNAME: u242521810
-      HOSTINGER_DOMAIN: gateway.apidevelopers.digital
-      EXPECTED_SHA: ${{ github.sha }}
+    timeout-minutes: 5
     steps:
-      - name: Validate exact approved target
+      - name: Trust production remains fail-closed
         shell: bash
         run: |
           set -euo pipefail
-          test "$GITHUB_SHA" = "$EXPECTED_SHA"
-          test "$HOSTINGER_DOMAIN" = "gateway.apidevelopers.digital"
-          test "${{ github.event.inputs.example }}" = "IGOR_APROVA_GATEWAY_TRUST_PRODUCAO_20260814"
-
-      - name: Checkout exact SHA
-        uses: actions/checkout@v4
-        with:
-          ref: ${{ env.EXPECTED_SHA }}
-          persist-credentials: false
-
-      - name: Set up Node.js
-        uses: actions/setup-node@v4
-        with:
-          node-version: "22"
-
-      - name: Build and verify managed artifact
-        shell: bash
-        run: |
-          set -euo pipefail
-          node apps/api-gateway/scripts/build-managed-hosting-artifact.mjs
-          node apps/api-gateway/scripts/verify-managed-hosting-artifact.mjs
-          artifact="apps/api-gateway/dist/api-gateway-managed"
-          test -f "$artifact/release-manifest.json"
-          archive="$RUNNER_TEMP/api-gateway-$EXPECTED_SHA.zip"
-          (
-            cd "$artifact"
-            zip -q -r "$archive" .
-          )
-          test -s "$archive"
-          echo "ARCHIVE_PATH=$archive" >> "$GITHUB_ENV"
-
-      - name: Hostinger preflight
-        shell: bash
-        run: |
-          set -euo pipefail
-          node apps/site-factory/src/run-hostinger-node-build-api-only.mjs \
-            --mode preflight \
-            --username "$HOSTINGER_USERNAME" \
-            --domain "$HOSTINGER_DOMAIN" \
-            --archive "$ARCHIVE_PATH" \
-            --transport multipart \
-            --node-version 22 \
-            --app-type express \
-            --entry-file src/operational-server.mjs \
-            --package-manager npm \
-            --expected-text 'api_gateway_operational_started' \
-            --evidence "$RUNNER_TEMP/api-gateway-hostinger-preflight-evidence.json"
-
-      - name: Confirm Hostinger credential availability
-        env:
-          HOSTINGER_API_TOKEN: ${{ secrets.HOSTINGER_API_TOKEN }}
-        shell: bash
-        run: |
-          set -euo pipefail
-          if [ -z "${HOSTINGER_API_TOKEN:-}" ]; then
-            echo "::error title=Hostinger credential missing::Repository secret HOSTINGER_API_TOKEN is not configured for this workflow."
-            exit 1
-          fi
-          echo "Hostinger credential is configured."
-
-      - name: Apply Hostinger Node build
-        env:
-          HOSTINGER_API_TOKEN: ${{ secrets.HOSTINGER_API_TOKEN }}
-        shell: bash
-        run: |
-          set -uo pipefail
-          evidence="$RUNNER_TEMP/api-gateway-hostinger-apply-evidence.json"
-          log="$RUNNER_TEMP/api-gateway-hostinger-apply.log"
-          set +e
-          node apps/site-factory/src/run-hostinger-node-build-api-only.mjs \
-            --mode apply \
-            --username "$HOSTINGER_USERNAME" \
-            --domain "$HOSTINGER_DOMAIN" \
-            --archive "$ARCHIVE_PATH" \
-            --transport multipart \
-            --node-version 22 \
-            --app-type express \
-            --entry-file src/operational-server.mjs \
-            --package-manager npm \
-            --expected-text 'api_gateway_operational_started' \
-            --evidence "$evidence" >"$log" 2>&1
-          status=$?
-          set -e
-          if [ "$status" -ne 0 ]; then
-            if [ -s "$evidence" ]; then
-              message="$(node -e "const fs=require('fs'); const p=JSON.parse(fs.readFileSync(process.argv[1],'utf8')); const e=p.error||{}; process.stdout.write(String(e.message||p.status||'hostinger_apply_failed').slice(0,800))" "$evidence")"
-            else
-              message="hostinger_apply_failed_without_evidence"
-            fi
-            message="${message//'%'/'%25'}"
-            message="${message//$'\n'/' '}"
-            message="${message//$'\r'/' '}"
-            echo "::error title=Hostinger Node apply failed::$message"
-            exit "$status"
-          fi
-
-      - name: Verify deployment evidence
-        shell: bash
-        run: |
-          set -euo pipefail
-          test -s "$RUNNER_TEMP/api-gateway-hostinger-apply-evidence.json"
+          echo "Trust production activation is intentionally disabled in this workflow."
+          echo "No Hostinger mutation, archive deploy, DNS change, environment write, or Trust flag activation is performed."
+          echo "Any future Trust activation requires its own reviewed implementation and explicit approval immediately before execution."
