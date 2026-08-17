@@ -1,0 +1,92 @@
+name: API Gateway Approved Runtime Materialization
+
+on:
+  push:
+    branches:
+      - ops/gateway-runtime-export-b4cfbcb8
+    paths:
+      - .github/workflows/api-gateway-approved-runtime-materialization.yml
+
+permissions:
+  contents: write
+
+jobs:
+  materialize:
+    runs-on:
+      - self-hosted
+      - macOS
+      - X64
+    timeout-minutes: 15
+    env:
+      APPROVED_SHA: b4cfbcb835d459ab4aec37a9a10213451784c864
+      EXPORT_BRANCH: ops/gateway-runtime-export-b4cfbcb8
+      EXPORT_PATH: operator-export/api-gateway-runtime-b4cfbcb835d459ab4aec37a9a10213451784c864.zip
+    steps:
+      - name: Checkout exact approved SHA
+        uses: actions/checkout@v4
+        with:
+          ref: b4cfbcb835d459ab4aec37a9a10213451784c864
+          persist-credentials: false
+
+      - name: Validate exact approved SHA
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$(git rev-parse HEAD)" = "$APPROVED_SHA"
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+
+      - name: Build and verify managed runtime
+        shell: bash
+        run: |
+          set -euo pipefail
+          node apps/api-gateway/scripts/build-managed-hosting-artifact.mjs
+          node apps/api-gateway/scripts/apply-hostinger-fixed-entry-compat.mjs
+          node apps/api-gateway/scripts/verify-managed-hosting-artifact.mjs
+          artifact="apps/api-gateway/dist/api-gateway-managed"
+          zip_path="$RUNNER_TEMP/api-gateway-runtime-$APPROVED_SHA.zip"
+          (
+            cd "$artifact"
+            /usr/bin/zip -X -q -r "$zip_path" . -x ".DS_Store" "__MACOSX/*"
+          )
+          /usr/bin/unzip -t "$zip_path" >/dev/null
+          echo "ZIP_PATH=$zip_path" >> "$GITHUB_ENV"
+
+      - name: Commit verified ZIP to technical export branch
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          node --input-type=module <<'NODE'
+          import fs from "node:fs";
+          const ownerRepo = process.env.GITHUB_REPOSITORY;
+          const path = process.env.EXPORT_PATH;
+          const branch = process.env.EXPORT_BRANCH;
+          const zipPath = process.env.ZIP_PATH;
+          const token = process.env.GH_TOKEN;
+          const content = fs.readFileSync(zipPath).toString("base64");
+          const url = `https://api.github.com/repos/${ownerRepo}/contents/${path}`;
+          const response = await fetch(url, {
+            method: "PUT",
+            headers: {
+              Accept: "application/vnd.github+json",
+              Authorization: `Bearer ${token}`,
+              "X-GitHub-Api-Version": "2022-11-28",
+              "Content-Type": "application/json",
+            },
+            body: JSON.stringify({
+              message: `ops(gateway): materialize approved runtime ${process.env.APPROVED_SHA}`,
+              content,
+              branch,
+            }),
+          });
+          const body = await response.text();
+          if (!response.ok) {
+            throw new Error(`GitHub contents upload failed ${response.status}: ${body}`);
+          }
+          console.log(JSON.stringify({ event: "approved_runtime_materialized", path, branch }));
+          NODE
