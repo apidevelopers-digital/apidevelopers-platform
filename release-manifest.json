@@ -3,7 +3,7 @@
   "format": "managed-node-zip",
   "service": "api-gateway",
   "version": "0.7.0",
-  "sourceRevision": "8d6a74414c46f806b2a302f589f7758d7e37ea13",
+  "sourceRevision": "b43a25a9ecfd5eaea966d699e249d774cbf61bdf",
   "runtime": {
     "node": ">=22",
     "entrypoint": "src/hostinger-entry.mjs",
@@ -450,8 +450,8 @@
     },
     {
       "path": "src/hostinger-entry.mjs",
-      "bytes": 339,
-      "sha256": "3245778486e03cb9f7847cc333ef7d11732e843f6412185ee0712b9c9165300f"
+      "bytes": 637,
+      "sha256": "59ffb34a391b042b6dbbf2d74599ee9df3803e2b434bb9b94c1d99d1bb3eea4f"
     },
     {
       "path": "src/hostinger-runtime-env.mjs",
@@ -714,6 +714,11 @@
       "sha256": "3e8a83816ddd8d55b62c480d4fae3ab8ce8f99afae4d930dad60e9a0946e2574"
     },
     {
+      "path": "src/product-agent-policy.mjs",
+      "bytes": 644,
+      "sha256": "a730ae12fed306abbbd970dce9cd07a0877634f875f11653b469f031e6c11b65"
+    },
+    {
       "path": "src/readiness.mjs",
       "bytes": 2678,
       "sha256": "9733b8714018f9e82a6a38919df776ebf848ed96f0bae1fc19c0105a2a0ac5fd"
@@ -794,6 +799,66 @@
       "sha256": "a95e99d92947bf7ad643a5ac9e311e9ddc3d73391d953b17f2bafd1157d318b8"
     },
     {
+      "path": "src/web-agent-browser-composition.mjs",
+      "bytes": 2032,
+      "sha256": "7ca0119a4ed9255ba6c2abd2e36bda0c4eb3289c3a7f4f6ec2e96e31663756d5"
+    },
+    {
+      "path": "src/web-agent-conversation-boundary.mjs",
+      "bytes": 6509,
+      "sha256": "b13457a56d8b09f840b4e0ba22d000196ff9c6ad72fa42fcd5945ecc43797312"
+    },
+    {
+      "path": "src/web-agent-conversation-http.mjs",
+      "bytes": 5131,
+      "sha256": "7024f926a432ed5ba32df32b50caf0eb3492a2bdeb1f2a007b89beff25d24195"
+    },
+    {
+      "path": "src/web-agent-operational-composition.mjs",
+      "bytes": 4612,
+      "sha256": "56dcc6f72a58c5c4238153c50f10aaaa8175062e9e9ca6dab06b28d70f5dc464"
+    },
+    {
+      "path": "src/web-agent-operational-startup.mjs",
+      "bytes": 2045,
+      "sha256": "d771802de46a40a202e9caa636f82d9be2d1bacaae9c33e830f2e351bf00ca2e"
+    },
+    {
+      "path": "src/web-agent-product-binding.mjs",
+      "bytes": 217,
+      "sha256": "e8fea7677495d53df5f1895c33cf9c761fae8df16c1b24971f7dd4b75023903f"
+    },
+    {
+      "path": "src/web-agent-shadow-client.mjs",
+      "bytes": 6291,
+      "sha256": "43ac332104b29f400be4556f55fde0af72ead2338a436f9ea385a6c56bd07326"
+    },
+    {
+      "path": "src/web-agent-shadow-memory-provider.mjs",
+      "bytes": 2456,
+      "sha256": "7150d5cce657c18e699488fc4a8edbed933d223c4a6923efde794efa7520359c"
+    },
+    {
+      "path": "src/web-agent-shadow-memory-readonly-service.mjs",
+      "bytes": 2618,
+      "sha256": "3faf57630a5aaa49473d6f593c6cb7fe0977dd92e67e95ce367bc4e3afdfefee"
+    },
+    {
+      "path": "src/web-agent-shadow-persistence-providers.mjs",
+      "bytes": 3640,
+      "sha256": "2e93c3fb0a7ea3c2c116719f7c3e53ffd1f2cd45fd3e0a3096c9c84bbb6d8385"
+    },
+    {
+      "path": "src/web-agent-surface-policy.mjs",
+      "bytes": 1775,
+      "sha256": "e769129ae4dfb2d6006c947fb9bffc87476bad980efac5270779cd2fa8e5fe44"
+    },
+    {
+      "path": "src/web-international-context-resolver.mjs",
+      "bytes": 4289,
+      "sha256": "5245b95a4470d3a1d7093024ccf36246ffa1074e9cd865dd6858f075e27bcc90"
+    },
+    {
       "path": "vendor/apikey-core/package.json",
       "bytes": 513,
       "sha256": "881703383bfce77fdfb7297344b7a446c12095dc6bc37e3e0232d088d26519ad"
@@ -815,8 +880,8 @@
     },
     {
       "path": "vendor/auth-core/package.json",
-      "bytes": 538,
-      "sha256": "969f4936b6bfb17e989734eed77569531d30435c727f49659858fedcde6aa299"
+      "bytes": 620,
+      "sha256": "733051f2eac2b2861344d87188699e412dda137d954d12210f56abaa70e37386"
     },
     {
       "path": "vendor/auth-core/src/async-authenticator.mjs",
@@ -827,6 +892,11 @@
       "path": "vendor/auth-core/src/authorize.mjs",
       "bytes": 901,
       "sha256": "1c9670bde054e8b93860def19994f17602799a08b838b9dd32d5a700b81b8507"
+    },
+    {
+      "path": "vendor/auth-core/src/browser-session-authenticator.mjs",
+      "bytes": 3706,
+      "sha256": "07df3f1b00dcd7e482808a8a7db82b82feaf296f2a657daaf8df73949719aa3e"
     },
     {
       "path": "vendor/auth-core/src/durable-api-key-authenticator.mjs",
@@ -920,8 +990,8 @@
     },
     {
       "path": "vendor/contracts/src/index.mjs",
-      "bytes": 1797,
-      "sha256": "30b93d32be13c49b38e929df5120de1a9be8a11e50ce785853de6062b80e9575"
+      "bytes": 1948,
+      "sha256": "c2e0479603c639061bc18463bfd0e46c9cf9d6acb20652097be4fbf959f972af"
     },
     {
       "path": "vendor/contracts/src/multi-agent-orchestration.mjs",
@@ -1012,6 +1082,21 @@
       "path": "vendor/contracts/src/tenancy-context.mjs",
       "bytes": 3157,
       "sha256": "ffb6dad4a43dd6c1311eaeec69ef90700bfd8b46a0ab823caec61b88557f8e94"
+    },
+    {
+      "path": "vendor/contracts/src/web-agent-conversation.mjs",
+      "bytes": 8717,
+      "sha256": "6c16b4ab04e061a6232bee0eee09a0d7ca8bdb3e5c57d9890da09fde0019828d"
+    },
+    {
+      "path": "vendor/contracts/src/web-agent-international-envelope.mjs",
+      "bytes": 1670,
+      "sha256": "409f13aaf4a56de1c8c0857614d68761edb545e3cc55767bfd46452aad123eef"
+    },
+    {
+      "path": "vendor/contracts/src/web-international-context.mjs",
+      "bytes": 2345,
+      "sha256": "2dea89e2d862694d528665ab8cb744c3fd8d1457a207c398f798c5a871a06806"
     },
     {
       "path": "vendor/persistence-core/package.json",
