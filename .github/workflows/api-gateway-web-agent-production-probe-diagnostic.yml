@@ -1,0 +1,101 @@
+name: API Gateway Web Agent Production Probe Diagnostic
+
+on:
+  pull_request:
+    paths:
+      - ".github/workflows/api-gateway-web-agent-production-probe-diagnostic.yml"
+
+permissions:
+  contents: read
+
+jobs:
+  probe:
+    runs-on:
+      - self-hosted
+      - macOS
+      - X64
+    outputs:
+      state: ${{ steps.probe.outputs.state }}
+      http_status: ${{ steps.probe.outputs.http_status }}
+      curl_exit_code: ${{ steps.probe.outputs.curl_exit_code }}
+    steps:
+      - name: Probe production route read-only
+        id: probe
+        shell: bash
+        env:
+          URL: "https://gateway.apidevelopers.digital/v1/web-agent/conversations"
+        run: |
+          set +e
+          http_status="$(
+            curl \
+              --silent \
+              --show-error \
+              --output /dev/null \
+              --write-out "%{http_code}" \
+              --connect-timeout 10 \
+              --max-time 20 \
+              --header "content-type: application/json" \
+              --data '{}' \
+              "$URL"
+          )"
+          curl_exit_code=$?
+          set -e
+
+          if [ "$curl_exit_code" -ne 0 ]; then
+            state="transport_error"
+            http_status="${http_status:-000}"
+          else
+            case "$http_status" in
+              401) state="enabled_protected" ;;
+              200|201|202|204) state="unexpected_success" ;;
+              *) state="not_proven" ;;
+            esac
+          fi
+
+          echo "state=$state" >> "$GITHUB_OUTPUT"
+          echo "http_status=$http_status" >> "$GITHUB_OUTPUT"
+          echo "curl_exit_code=$curl_exit_code" >> "$GITHUB_OUTPUT"
+
+  enabled_protected:
+    name: Web Agent probe — enabled_protected
+    needs: probe
+    if: needs.probe.outputs.state == 'enabled_protected'
+    runs-on:
+      - self-hosted
+      - macOS
+      - X64
+    steps:
+      - run: echo "401"
+
+  not_proven:
+    name: Web Agent probe — not_proven
+    needs: probe
+    if: needs.probe.outputs.state == 'not_proven'
+    runs-on:
+      - self-hosted
+      - macOS
+      - X64
+    steps:
+      - run: echo "${{ needs.probe.outputs.http_status }}"
+
+  transport_error:
+    name: Web Agent probe — transport_error
+    needs: probe
+    if: needs.probe.outputs.state == 'transport_error'
+    runs-on:
+      - self-hosted
+      - macOS
+      - X64
+    steps:
+      - run: echo "${{ needs.probe.outputs.curl_exit_code }}"
+
+  unexpected_success:
+    name: Web Agent probe — unexpected_success
+    needs: probe
+    if: needs.probe.outputs.state == 'unexpected_successs'
+    runs-on:
+      - self-hosted
+      - macOS
+      - X64
+    steps:
+      - run: exit 1
