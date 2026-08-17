@@ -53,7 +53,7 @@ jobs:
           set -euo pipefail
           report_path="$RUNNER_TEMP/api-gateway-web-agent-production-probe.json"
           http_status="$(
-            curl               --silent               --show-error               --output /dev/null               --write-out "%{http_code}"               --connect-timeout 10               --max-time 20               --request POST               --header "content-type: application/json"               --data '{}'               "$WEB_AGENT_PRODUCTION_PROBE_URL"
+            curl               --silent               --show-error               --output /dev/null               --write-out "%{http_code}"               --connect-timeout 10               --max-time 20               --header "content-type: application/json"               --data '{}'               "$WEB_AGENT_PRODUCTION_PROBE_URL"
           )"
 
           case "$http_status" in
@@ -135,7 +135,7 @@ jobs:
             echo "- http_status: `${{ steps.web_agent.outputs.http_status }}`"
             echo "- state: `${{ steps.web_agent.outputs.state }}`"
             echo "- writeExecuted: `false`"
-          } >> "$GITHUB_STEP_SUMMARY"
+          } >> "$GITHUB_STEP_SUMARY"
 
       - name: Enforce production health
         if: always()
