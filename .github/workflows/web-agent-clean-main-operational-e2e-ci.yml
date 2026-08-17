@@ -1,0 +1,81 @@
+name: Web Agent Clean Main Operational E2E CI
+
+on:
+  push:
+    branches:
+      - "feat/web-agent-clean-main-reanchor-20260816"
+  pull_request:
+    paths:
+      - "packages/contracts/src/web-agent-*.mjs"
+      - "packages/contracts/src/web-international-context.mjs"
+      - "packages/contracts/src/index.mjs"
+      - "apps/api-gateway/src/product-agent-policy.mjs"
+      - "apps/api-gateway/src/web-agent-*.mjs"
+      - "apps/api-gateway/test/web-agent-clean-main-operational-e2e.test.mjs"
+      - ".github/workflows/web-agent-clean-main-operational-e2e-ci.yml"
+
+permissions:
+  contents: read
+
+jobs:
+  validate:
+    runs-on:
+      - self-hosted
+      - macOS
+      - X64
+    timeout-minutes: 15
+    defaults:
+      run:
+        working-directory: apps/api-gateway
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+
+      - name: Link required local packages
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p node_modules/@apidevelopers
+          ln -sfn "$GITHUB_WORKSPACE/packages/contracts" node_modules/@apidevelopers/contracts
+          ln -sfn "$GITHUB_WORKSPACE/packages/auth-core" node_modules/@apidevelopers/auth-core
+          ln -sfn "$GITHUB_WORKSPACE/packages/apikey-core" node_modules/@apidevelopers/apikey-core
+          ln -sfn "$GITHUB_WORKSPACE/packages/persistence-core" node_modules/@apidevelopers/persistence-core
+          ln -sfn "$GITHUB_WORKSPACE/packages/saas-runtime" node_modules/@apidevelopers/saas-runtime
+
+          mkdir -p "$GITHUB_WORKSPACE/packages/auth-core/node_modules/@apidevelopers"
+          ln -sfn "$GITHUB_WORKSPACE/packages/apikey-core" "$GITHUB_WORKSPACE/packages/auth-core/node_modules/@apidevelopers/apikey-core"
+
+          mkdir -p "$GITHUB_WORKSPACE/packages/apikey-core/node_modules/@apidevelopers"
+          ln -sfn "$GITHUB_WORKSPACE/packages/persistence-core" "$GITHUB_WORKSPACE/packages/apikey-core/node_modules/@apidevelopers/persistence-core"
+
+          mkdir -p "$GITHUB_WORKSPACE/packages/saas-runtime/node_modules/@apidevelopers"
+          ln -sfn "$GITHUB_WORKSPACE/packages/contracts" "$GITHUB_WORKSPACE/packages/saas-runtime/node_modules/@apidevelopers/contracts"
+          ln -sfn "$GITHUB_WORKSPACE/packages/auth-core" "$GITHUB_WORKSPACE/packages/saas-runtime/node_modules/@apidevelopers/auth-core"
+          ln -sfn "$GITHUB_WORKSPACE/packages/persistence-core" "$GITHUB_WORKSPACE/packages/saas-runtime/node_modules/@apidevelopers/persistence-core"
+
+      - name: Syntax
+        run: |
+          node --check src/product-agent-policy.mjs
+          node --check src/web-agent-product-binding.mjs
+          node --check src/web-agent-surface-policy.mjs
+          node --check src/web-international-context-resolver.mjs
+          node --check src/web-agent-conversation-boundary.mjs
+          node --check src/web-agent-conversation-http.mjs
+          node --check src/web-agent-shadow-client.mjs
+          node --check src/web-agent-shadow-memory-provider.mjs
+          node --check src/web-agent-shadow-memory-readonly-service.mjs
+          node --check src/web-agent-shadow-persistence-providers.mjs
+          node --check src/web-agent-browser-composition.mjs
+          node --check src/web-agent-operational-composition.mjs
+          node --check src/web-agent-operational-startup.mjs
+          node --check test/web-agent-clean-main-operational-e2e.test.mjs
+
+      - name: Import clean operational modules
+        run: |
+          node -e 'await import("./src/web-agent-operational-composition.mjs"); await import("./src/web-agent-operational-startup.mjs")'
+
+      - name: Clean main operational E2E
+        run: node --test test/web-agent-clean-main-operational-e2e.test.mjs
