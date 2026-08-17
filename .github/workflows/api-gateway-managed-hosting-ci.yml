@@ -1,12 +1,6 @@
 name: API Gateway Managed Hosting CI
 
 on:
-  push:
-    branches:
-      - "fix/api-gateway-managed-deploy-20260814"
-    paths:
-      - "apps/api-gateway/**"
-      - ".github/workflows/api-gateway-managed-hosting-*.yml"
   pull_request:
     paths:
       - "apps/api-gateway/**"
@@ -24,24 +18,40 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: "22"
+
       - name: Build and verify managed artifact
         run: |
           set -euo pipefail
           node apps/api-gateway/scripts/build-managed-hosting-artifact.mjs
           node apps/api-gateway/scripts/verify-managed-hosting-artifact.mjs
-      - name: Validate deploy guardrails
+
+      - name: Validate canonical Git production guardrails
         shell: bash
         run: |
           set -euo pipefail
           file=".github/workflows/api-gateway-managed-hosting-production.yml"
-          grep -q "expected_sha" "$file"
-          grep -q "IGOR_APROVA_API_GATEWAY_PRODUCTION_DEPLOY" "$file"
-          grep -q "API_GATEWAY_PRODUCTION_DOMAIN" "$file"
-          grep -q "API_GATEWAY_RUNTIME_READY" "$file"
-          grep -q "HOSTINGER_API_TOKEN" "$file"
-          grep -q -- "--app-type express" "$file"
-          grep -q -- "--entry-file src/operational-server.mjs" "$file"
-          if grep -Eq 'API_INSECURE|ssl_verify\u003dfalse|curl -k:' "$file"; then
-            echo "Insecure transport guardrail detected." >&2
+
+          grep -q "expected_main_sha" "$file"
+          grep -q "expected_runtime_sha" "$file"
+          grep -q "deploy/hostinger-gateway-runtime" "$file"
+          grep -q "PRODUCTION_READY_URL" "$file"
+          grep -q "gateway.apidevelopers.digital/ready" "$file"
+          grep -q "persistence" "$file"
+
+          if grep -Eq 'HOSTINGER_API_TOKEN|--mode apply|--transport multipart|from-archive|IGOR_APROVA_API_GATEWAY_PRODUCTION_DEPLOY' "$file"; then
+            echo "Legacy Hostinger archive/apply path detected in production workflow." >&2
+            exit 1
+          fi
+
+      - name: Validate Trust workflow remains fail-closed
+        shell: bash
+        run: |
+          set -euo pipefail
+          file=".github/workflows/api-gateway-trust-one-time-production.yml"
+
+          grep -q "Trust production activation is intentionally disabled" "$file"
+
+          if grep -Eq 'HOSTINGER_API_TOKEN|--mode apply|--transport multipart|from-archive|IGOR_APROVA_GATEWAY_TRUST_PRODUCAO' "$file"; then
+            echo "Legacy Trust production mutation path detected." >&2
             exit 1
           fi
