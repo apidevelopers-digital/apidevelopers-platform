@@ -22,6 +22,7 @@ jobs:
     env:
       GATEWAY_PARENT_READY_URL: "https://dodgerblue-heron-996886.hostingersite.com/ready"
       GATEWAY_PRODUCTION_READY_URL: "https://gateway.apidevelopers.digital/ready"
+      WEB_AGENT_PRODUCTION_PROBE_URL: "https://gateway.apidevelopers.digital/v1/web-agent/conversations"
 
     steps:
       - name: Checkout
@@ -45,7 +46,68 @@ jobs:
           echo "report_path=$report_path" >> "$GITHUB_OUTPUT"
           exit 0
 
-      - name: Upload sanitized observability report
+      - name: Observe Web Agent activation boundary
+        id: web_agent
+        shell: bash
+        run: |
+          set -euo pipefail
+          report_path="$RUNNER_TEMP/api-gateway-web-agent-production-probe.json"
+          http_status="$(
+            curl               --silent               --show-error               --output /dev/null               --write-out "%{http_code}"               --connect-timeout 10               --max-time 20               --request POST               --header "content-type: application/json"               --data '{}'               "$WEB_AGENT_PRODUCTION_PROBE_URL"
+          )"
+
+          case "$http_status" in
+            401)
+              state="enabled_protected"
+              ;;
+            200|201|202|204)
+              state="unexpected_success"
+              ;;
+            *)
+              state="not_proven"
+              ;;
+          esac
+
+          node --input-type=module - "$report_path" "$WEB_AGENT_PRODUCTION_PROBE_URL" "$http_status" "$state" <<'NODE'
+          import fs from "node:fs";
+
+          const [reportPath, url, httpStatus, state] = process.argv.slice(2);
+          const report = {
+            schemaVersion: "1.0",
+            kind: "api-gateway-web-agent-production-probe",
+            generatedAt: new Date().toISOString(),
+            target: { url },
+            request: {
+              method: "POST",
+              authenticated: false,
+              body: "empty_json",
+              conversationSubmitted: false,
+              secretsSubmitted: false,
+            },
+            response: {
+              httpStatus: Number(httpStatus),
+              state,
+            },
+            interpretation: {
+              enabledProtected: state === "enabled_protected",
+              activationProven: state === "enabled_protected",
+              unexpectedAnonymousSuccess: state === "unexpected_success",
+            },
+            writeExecuted: false,
+          };
+          fs.writeFileSync(reportPath, `${JSON.stringify(report, null, 2)}\n`, { mode: 0o600 });
+          NODE
+
+          echo "http_status=$http_status" >> "$GITHUB_OUTPUT"
+          echo "state=$state" >> "$GITHUB_OUTPUT"
+          echo "report_path=$report_path" >> "$GITHUB_OUTPUT"
+
+          if [ "$state" = "unexpected_success" ]; then
+            echo "Anonymous Web Agent probe unexpectedly returned a success status." >&2
+            exit 1
+          fi
+
+      - name: Upload sanitized readiness report
         if: always()
         uses: actions/upload-artifact@v4
         with:
@@ -53,6 +115,27 @@ jobs:
           path: ${{ steps.observe.outputs.report_path }}
           if-no-files-found: error
           retention-days: 14
+
+      - name: Upload sanitized Web Agent probe
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: api-gateway-web-agent-production-probe-${{ github.run_id }}
+          path: ${{ steps.web_agent.outputs.report_path }}
+          if-no-files-found: error
+          retention-days: 14
+
+      - name: Surface Web Agent probe
+        if: always()
+        shell: bash
+        run: |
+          {
+            echo "## Web Agent production probe"
+            echo
+            echo "- http_status: `${{ steps.web_agent.outputs.http_status }}`"
+            echo "- state: `${{ steps.web_agent.outputs.state }}`"
+            echo "- writeExecuted: `false`"
+          } >> "$GITHUB_STEP_SUMMARY"
 
       - name: Enforce production health
         if: always()
