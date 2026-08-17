@@ -1,0 +1,24 @@
+name: Web Agent Production 404 Probe
+
+on:
+  pull_request:
+    paths:
+      - ".github/workflows/web-agent-production-404-probe.yml"
+
+permissions:
+  contents: read
+
+jobs:
+  probe_404:
+    name: Web Agent production route returns 404
+    runs-on:
+      - self-hosted
+      - macOS
+      - X64
+    steps:
+      - name: Probe anonymous route
+        shell: bash
+        run: |
+          status="$(curl --silent --show-error --output /dev/null --write-out "%{http_code}" --connect-timeout 10 --max-time 20 --header "content-type: application/json" --data '{}' "https://gateway.apidevelopers.digital/v1/web-agent/conversations")"
+          echo "HTTP=$status"
+          test "$status" = "404"
