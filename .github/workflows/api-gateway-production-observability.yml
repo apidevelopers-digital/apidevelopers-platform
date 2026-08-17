@@ -1,0 +1,62 @@
+name: API Gateway Production Observability
+
+on:
+  schedule:
+    - cron: "*/30 * * * *"
+  workflow_dispatch: {}
+
+permissions:
+  contents: read
+
+concurrency:
+  group: api-gateway-production-observability
+  cancel-in-progress: false
+
+jobs:
+  observe:
+    runs-on:
+      - self-hosted
+      - macOS
+      - X64
+    timeout-minutes: 10
+    env:
+      GATEWAY_PARENT_READY_URL: "https://dodgerblue-heron-996886.hostingersite.com/ready"
+      GATEWAY_PRODUCTION_READY_URL: "https://gateway.apidevelopers.digital/ready"
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+
+      - name: Observe parent and production readiness
+        id: observe
+        shell: bash
+        run: |
+          set +e
+          report_path="$RUNNER_TEMP/api-gateway-production-observability.json"
+          node apps/api-gateway/scripts/observe-production-readiness.mjs --output "$report_path"
+          exit_code=$?
+          set -e
+          echo "exit_code=$exit_code" >> "$GITHUB_OUTPUT"
+          echo "report_path=$report_path" >> "$GITHUB_OUTPUT"
+          exit 0
+
+      - name: Upload sanitized observability report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: api-gateway-production-observability-${{ github.run_id }}
+          path: ${{ steps.observe.outputs.report_path }}
+          if-no-files-found: error
+          retention-days: 14
+
+      - name: Enforce production health
+        if: always()
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "${{ steps.observe.outputs.exit_code }}" = "0"

@@ -5,6 +5,7 @@ on:
     paths:
       - "apps/api-gateway/**"
       - ".github/workflows/api-gateway-managed-hosting-*.yml"
+      - ".github/workflows/api-gateway-production-observability.yml"
 
 permissions:
   contents: read
@@ -40,6 +41,30 @@ jobs:
 
           if grep -Eq 'HOSTINGER_API_TOKEN|--mode apply|--transport multipart|from-archive|IGOR_APROVA_API_GATEWAY_PRODUCTION_DEPLOY' "$file"; then
             echo "Legacy Hostinger archive/apply path detected in production workflow." >&2
+            exit 1
+          fi
+
+      - name: Validate production observability guardrails
+        shell: bash
+        run: |
+          set -euo pipefail
+          workflow=".github/workflows/api-gateway-production-observability.yml"
+          script="apps/api-gateway/scripts/observe-production-readiness.mjs"
+
+          test -f "$workflow"
+          test -f "$script"
+          grep -Fq 'cron: "*/30 * * * *"' "$workflow"
+          grep -q "gateway.apidevelopers.digital/ready" "$workflow"
+          grep -q "dodgerblue-heron-996886.hostingersite.com/ready" "$workflow"
+          grep -q "observe-production-readiness.mjs" "$workflow"
+          grep -q "upload-artifact@v4" "$workflow"
+          grep -q "contents: read" "$workflow"
+          grep -q "production_domain_routing_regression" "$script"
+          grep -q "runtime_or_upstream_unavailable" "$script"
+          node --check "$script"
+
+          if grep -Eq 'HOSTINGER_API_TOKEN|from-archive|parked-domains|api\.mutate|--request[[:space:]]+(POST|PUT|PATCH|DELETE)' "$workflow" "$script"; then
+            echo "Mutation-capable token or Hostinger write path detected in observability monitor." >&2
             exit 1
           fi
 
