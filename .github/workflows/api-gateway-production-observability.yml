@@ -135,7 +135,7 @@ jobs:
             echo "- http_status: `${{ steps.web_agent.outputs.http_status }}`"
             echo "- state: `${{ steps.web_agent.outputs.state }}`"
             echo "- writeExecuted: `false`"
-          } >> "$GITHUB_STEP_SUMARY"
+          } >> "$GITHUB_STEP_SUMMARY"
 
       - name: Enforce production health
         if: always()
