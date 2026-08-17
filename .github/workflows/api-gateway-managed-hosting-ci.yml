@@ -53,7 +53,7 @@ jobs:
 
           test -f "$workflow"
           test -f "$script"
-          grep -q 'cron: "*/30 \* \* \* \*"' "$workflow"
+          grep -Fq 'cron: "*/30 * * * *"' "$workflow"
           grep -q "gateway.apidevelopers.digital/ready" "$workflow"
           grep -q "dodgerblue-heron-996886.hostingersite.com/ready" "$workflow"
           grep -q "observe-production-readiness.mjs" "$workflow"
