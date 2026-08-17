@@ -1,0 +1,74 @@
+name: API Gateway Authorized Runtime Export CI
+
+on:
+  pull_request:
+    paths:
+      - ".github/workflows/api-gateway-authorized-runtime-export-ci.yml"
+
+permissions:
+  contents: read
+
+jobs:
+  export:
+    runs-on:
+      - self-hosted
+      - macOS
+      - X64
+    timeout-minutes: 15
+    env:
+      APPROVED_SHA: b4cfbcb835d459ab4aec37a9a10213451784c864
+    steps:
+      - name: Checkout exact approved SHA
+        uses: actions/checkout@v4
+        with:
+          ref: b4cfbcb835d459ab4aec37a9a10213451784c864
+          persist-credentials: false
+
+      - name: Validate exact approved SHA
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$(git rev-parse HEAD)" = "$APPROVED_SHA"
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+
+      - name: Build verified managed runtime
+        shell: bash
+        run: |
+          set -euo pipefail
+          node apps/api-gateway/scripts/build-managed-hosting-artifact.mjs
+          node apps/api-gateway/scripts/apply-hostinger-fixed-entry-compat.mjs
+          node apps/api-gateway/scripts/verify-managed-hosting-artifact.mjs
+
+      - name: Export exact runtime as auditable Base64
+        shell: bash
+        run: |
+          set -euo pipefail
+          artifact="apps/api-gateway/dist/api-gateway-managed"
+          zip_path="$RUNNER_TEMP/api-gateway-runtime-$APPROVED_SHA.zip"
+          (
+            cd "$artifact"
+            /usr/bin/zip -X -q -r "$zip_path" . -x ".DS_Store" "__MACOSX/*"
+          )
+          /usr/bin/unzip -t "$zip_path" >/dev/null
+          sha256="$(shasum -a 256 "$zip_path" | awk '{print $1}')"
+          bytes="$(stat -f '%z' "$zip_path")"
+          base64_path="$RUNNER_TEMP/runtime.base64"
+          /usr/bin/base64 < "$zip_path" | tr -d '\n' > "$base64_path"
+          {
+            echo "## Authorized Gateway runtime export"
+            echo
+            echo "- sourceRevision: \`$APPROVED_SHA\`"
+            echo "- zipSha256: \`$sha256\`"
+            echo "- zipBytes: \`$bytes\`"
+            echo "- promoted: \`false\`"
+            echo
+            echo "### runtimeBase64"
+            echo '```text'
+            cat "$base64_path"
+            echo
+            echo '```'
+          } >> "$GITHUB_STEP_SUMMARY"
