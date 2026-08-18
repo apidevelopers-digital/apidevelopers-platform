@@ -21,6 +21,7 @@ test("emits deterministic evidence only when all readiness probes pass", async (
 
   const first = await adapter.provision(input);
   const second = await adapter.provision(input);
+
   assert.equal(first.tenantReady, true);
   assert.equal(first.workspaceReady, true);
   assert.equal(first.productReady, true);
@@ -35,6 +36,7 @@ test("fails closed when workspace is not ready", async () => {
     probeWorkspace: async () => ({ ready: false, workspaceId: input.workspaceId }),
     probeProduct: async () => ({ ready: true }),
   });
+
   await assert.rejects(() => adapter.provision(input), /workspace_not_ready/);
 });
 
@@ -44,11 +46,13 @@ test("fails closed on tenant or workspace id mismatch", async () => {
     probeWorkspace: async () => ({ ready: true, workspaceId: input.workspaceId, tenantId: input.tenantId }),
     probeProduct: async () => ({ ready: true }),
   });
+
   await assert.rejects(() => adapter.provision(input), /tenant_id_mismatch/);
 });
 
 test("does not expose a write surface", () => {
-  const adapter = createZuniOperationalReadinessAdapter(ºª probeTenant: async () => ({ ready: true }),
+  const adapter = createZuniOperationalReadinessAdapter({
+    probeTenant: async () => ({ ready: true }),
     probeWorkspace: async () => ({ ready: true }),
     probeProduct: async () => ({ ready: true }),
   });
