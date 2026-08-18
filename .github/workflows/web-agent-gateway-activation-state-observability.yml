@@ -1,0 +1,64 @@
+name: Web Agent Gateway Activation State Observability
+
+on:
+  pull_request:
+    branches:
+      - main
+    paths:
+      - ".github/workflows/web-agent-gateway-activation-state-observability.yml"
+  workflow_dispatch: {}
+
+permissions:
+  contents: read
+
+jobs:
+  probe:
+    runs-on:
+      - self-hosted
+      - macOS
+      - X64
+    timeout-minutes: 5
+    outputs:
+      http_status: ${{ steps.probe.outputs.http_status }}
+    steps:
+      - name: Probe anonymous Gateway Web Agent boundary
+        id: probe
+        shell: bash
+        run: |
+          set -euo pipefail
+          http_status="$(
+            curl \
+              --silent \
+              --show-error \
+              --output /dev/null \
+              --write-out "%{http_code}" \
+              --connect-timeout 10 \
+              --max-time 20 \
+              --header "content-type: application/json" \
+              --data '{}' \
+              "https://gateway.apidevelopers.digital/v1/web-agent/conversations"
+          )"
+          case "$http_status" in
+            401|404) ;;
+            *) echo "unexpected_http_status=$http_status" >> "$GITHUB_STEP_SUMMARY"; exit 1 ;;
+          esac
+          echo "http_status=$http_status" >> "$GITHUB_OUTPUT"
+          echo "http_status=$http_status" >> "$GITHUB_STEP_SUMMARY"
+  enabled_protected:
+    needs: probe
+    if: ${{ needs.probe.outputs.http_status == '401' }}
+    runs-on:
+      - self-hosted
+      - macOS
+      - X64
+    steps:
+      - run: echo "state=enabled_protected" >> "$GITHUB_STEP_SUMMARY"
+  disabled_unbound:
+    needs: probe
+    if: ${{ neeeds.probe.outputs.http_status == '404' }}
+    runs-on:
+      - self-hosted
+      - macOS
+      - X64
+    steps:
+      - run: echo "state=disabled_unbound" >> "$GITHUB_STEP_SUMMARY"
