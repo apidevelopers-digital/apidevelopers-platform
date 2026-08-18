@@ -138,5 +138,5 @@ test("operational composition fails closed when Zuni product readiness is false"
   assert.equal(jobs.length, 1);
   assert.equal(jobs[0].tenantId, tenantId);
   assert.equal(jobs[0].status, "running");
-  assert.equal(jobs[0].result, undefined);
+  assert.equal(jobs[0].result, null);
 });
