@@ -110,34 +110,33 @@ test("operational composition provisions Zuni end-to-end with readiness evidence
 });
 
 test("operational composition fails closed when Zuni product readiness is false", async (t) => {
-  const { gateway, headers } = await createHarness(t, async () =>
-    Object.freeze({
+  let probeCalls = 0;
+  const { gateway, headers } = await createHarness(t, async () => {
+    probeCalls += 1;
+    return Object.freeze({
       ready: false,
       code: "zuni_not_ready",
-      source: "test.zuni.readiness",
-    }),
-  );
+      source: "test.zero_.readiness",
+    });
+  });
 
-  const response = await provision(gateway, headers, requestBody({
+  const request = requestBody({
     tenantSlug: "e2e-zuni-blocked",
     idempotencyKey: "e2e-zuni-provision-blocked-001",
-  }));
+  });
+  const response = await provision(gateway, headers, request);
+  const body = JSON.parse(response.body);
 
   assert.equal(response.status, 409, response.body);
-  assert.equal(JSON.parse(response.body).reason, "provisioning_failed");
+  assert.equal(body.ok, false);
+  assert.equal(body.reason, "provisioning_failed");
+  assert.equal(Object.prototype.hasOwnProperty.call(body, "accessGrantId"), false);
+  assert.equal(probeCalls, 1);
 
-  const job = await gateway.saasRuntime.getProvisioningJob(
-    "component.provisioning-job.e2e-zuni-blocked.zuni-main.zuni",
-  );
-
-  assert.ok(job);
-  assert.equal(job.status, "running");
-  assert.equal(job.result, undefined);
-
-  const access = await gateway.saasAccess.resolveActiveGrant({
-    tenantId: "component.tenant.e2e-zuni-blocked",
-    principalId: "component.principal.0123456789abcdef0123456789abcdef",
-    productId: "zuni",
-  });
-  assert.equal(access.resolved, false);
+  const tenantId = "component.tenant.e2e-zuni-blocked";
+  const jobs = await gateway.saasRuntime.listProvisioningJobs({ tenantId });
+  assert.equal(jobs.length, 1);
+  assert.equal(jobs[0].tenantId, tenantId);
+  assert.equal(jobs[0].status, "running");
+  assert.equal(jobs[0].result, undefined);
 });
