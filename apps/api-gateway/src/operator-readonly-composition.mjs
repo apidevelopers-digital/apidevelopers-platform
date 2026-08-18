@@ -53,6 +53,12 @@ export function createOperationalGatewayWithReadonlyOperator({
     ...(operationalOptions.delegatedBindingSigner
       ? { delegatedBindingSigner: operationalOptions.delegatedBindingSigner }
       : {}),
+    ...(operationalOptions.probeZuniProductReadiness
+      ? { probeZuniProductReadiness: operationalOptions.probeZuniProductReadiness }
+      : {}),
+    ...(operationalOptions.zuniReadinessFetch
+      ? { zuniReadinessFetch: operationalOptions.zuniReadinessFetch }
+      : {}),
   });
 
   const adapters =
