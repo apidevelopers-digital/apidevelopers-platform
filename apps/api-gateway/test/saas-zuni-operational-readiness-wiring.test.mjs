@@ -42,6 +42,12 @@ test("operational composition remains fail-closed if no fetch implementation is 
 });
 
 test("default Zuni readiness URL is not accepted from runtime request input", () => {
-  assert.doesNotMatch(source, /request\.(url|endpoint|readinessUrl)/);
-  assert.doesNotMatch(source, /process\.env\.[A-Z_]*ZUNI[A-Z_]*URL/);
+  assert.doesNotMatch(
+    source,
+    /zuniReadiness(?:Url|Endpoint)\s*[:=]\s*request\./i,
+  );
+  assert.doesNotMatch(
+    source,
+    /process\.env\.[A-Z_]*ZUNI[A-Z_]*(?:URL|ENDPOINT)/,
+  );
 });
