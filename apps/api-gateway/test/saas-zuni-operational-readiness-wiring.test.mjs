@@ -7,31 +7,41 @@ const source = await readFile(
   "utf8",
 );
 
-test("operational composition wires explicit Zuni readiness probe into the provisioning guard", () => {
-  assert.match(source, /probeZuniProductReadiness/);
-  assert.match(source, /createZuniOperationalReadinessComposition/);
-  assert.match(source, /saasRuntime:\s*saasComposition\.saasRuntime/);
+test("operational composition wires the concrete public Zuni readiness probe into the provisioning guard", () => {
+  assert.match(source, /createZuniPublicReadinessProbe/);
+  assert.match(source, /zuniReadinessFetch/);
+  assert.match(source, /const concreteProbe = resolveZuniReadinessProbe/);
+  assert.match(source, /probeZuniProductReadiness:\s*concreteProbe/);
   assert.match(source, /zuniProductProvisioner:\s*readinessProvisioner/);
 });
 
-test("operational composition stays fail-closed when no Zuni readiness probe is configured", () => {
+test("explicit product probe remains the highest-priority auditable override", () => {
   assert.match(
     source,
-    /typeof probeZuniProductReadiness === "function"[\s\S]*?: undefined/,
+    /typeof probeZuniProductReadiness === "function"[\s\S]*return probeZuniProductReadiness/,
   );
-  assert.doesNotMatch(
+  assert.match(
     source,
-    /probeZuniProductReadiness\s*\?\?\s*\(.*ready:\s*true/s,
+    /zuniProductProvisioner\s*\?\?[\s\S]*createZuniOperationalReadinessComposition/,
+  );
+});
+
+test("operational composition remains fail-closed if no fetch implementation is available", () => {
+  assert.match(
+    source,
+    /typeof fetchFn !== "function"[\s\S]*return undefined/,
   );
   assert.doesNotMatch(
     source,
     /productReady:\s*true[\s\S]*shared_saas_runtime/,
   );
+  assert.doesNotMatch(
+    source,
+    /ready:\s*true[\s\S]*without.*probe/is,
+  );
 });
 
-test("explicit product provisioner remains an auditable override for controlled tests/composition", () => {
-  assert.match(
-    source,
-    /zuniProductProvisioner\s*\?\?\s*\(typeof probeZuniProductReadiness/,
-  );
+test("default Zuni readiness URL is not accepted from runtime request input", () => {
+  assert.doesNotMatch(source, /request\.(url|endpoint|readinessUrl)/);
+  assert.doesNotMatch(source, /process\.env\.[A-Z_]*ZUNI[A-Z_]*URL/);
 });
