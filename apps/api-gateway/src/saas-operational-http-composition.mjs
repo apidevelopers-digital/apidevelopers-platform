@@ -1,6 +1,7 @@
 import { createSaasAccessComposition } from "./saas-access-composition.mjs";
 import { createDelegatedSaasAccessApp } from "./saas-delegated-access-v2.mjs";
 import { createSaasProvisioningApp } from "./saas-provisioning.mjs";
+import { createZuniProvisioningRuntimeGuard } from "./saas-zuni-provisioning-runtime-guard.mjs";
 import { createApp } from "./server.mjs";
 
 function pathnameOf(url) {
@@ -14,6 +15,7 @@ export function createSaasOperationalHttpComposition({
   store,
   clock,
   delegatedBindingSigner,
+  zuniProductProvisioner,
 } = {}) {
   if (typeof app?.handleRequest !== "function") {
     throw new TypeError("app.handleRequest must be a function");
@@ -40,9 +42,13 @@ export function createSaasOperationalHttpComposition({
     federatedPrincipal: saasComposition.federatedPrincipal,
     ...(delegatedBindingSigner ? { bindingSigner: delegatedBindingSigner } : {}),
   });
+  const guardedProvisioningRuntime = createZuniProvisioningRuntimeGuard({
+    saasRuntime: saasComposition.saasRuntime,
+    ...(zuniProductProvisioner ? { zuniProductProvisioner } : {}),
+  });
   const provisioningApp = createSaasProvisioningApp({
     authenticator,
-    saasRuntime: saasComposition.saasRuntime,
+    saasRuntime: guardedProvisioningRuntime,
     saasAccess: saasComposition.saasAccess,
     federatedPrincipal: saasComposition.federatedPrincipal,
     ...(clock ? { clock } : {}),
