@@ -1,0 +1,92 @@
+name: Global Trust Biometric Payment Production Activation CI
+
+on:
+  push:
+    branches:
+      - main
+      - "feat/global-trust-biometric-payments-20260813"
+    paths:
+      - "apps/api-gateway/src/global-trust-biometric-payment-production-activation.mjs"
+      - "apps/api-gateway/src/global-trust-biometric-payment-bound-runtime.mjs"
+      - "apps/api-gateway/src/global-trust-biometric-payment-runtime.mjs"
+      - "apps/api-gateway/src/global-trust-biometric-payment-execution.mjs"
+      - "apps/api-gateway/test/global-trust-biometric-payment-production-activation*.test.mjs"
+      - ".github/workflows/global-trust-biometric-payment-production-activation-ci.yml"
+  pull_request:
+    branches:
+      - main
+    paths:
+      - "apps/api-gateway/src/global-trust-biometric-payment-production-activation.mjs"
+      - "apps/api-gateway/src/global-trust-biometric-payment-bound-runtime.mjs"
+      - "apps/api-gateway/src/global-trust-biometric-payment-runtime.mjs"
+      - "apps/api-gateway/src/global-trust-biometric-payment-execution.mjs"
+      - "apps/api-gateway/test/global-trust-biometric-payment-production-activation*.test.mjs"
+      - ".github/workflows/global-trust-biometric-payment-production-activation-ci.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  activation-guard:
+    runs-on:
+      - self-hosted
+      - macOS
+      - X64
+    timeout-minutes: 10
+    env:
+      GLOBAL_TRUST_PAYMENT_MODE: dry-run
+      GLOBAL_TRUST_PAYMENT_EGRESS: blocked
+      GLOBAL_TRUST_REAL_MONEY: disabled
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+
+      - name: Bind local contracts package
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p apps/api-gateway/node_modules/@apidevelopers
+          ln -s "$GITHUB_WORKSPACE/packages/contracts" \
+            "$GITHUB_WORKSPACE/apps/api-gateway/node_modules/@apidevelopers/contracts"
+
+      - name: Validate activation guard syntax
+        run: |
+          set -euo pipefail
+          node --check apps/api-gateway/src/global-trust-biometric-payment-production-activation.mjs
+          node --check apps/api-gateway/src/global-trust-biometric-payment-bound-runtime.mjs
+          node --check apps/api-gateway/src/global-trust-biometric-payment-execution.mjs
+          node --check apps/api-gateway/test/global-trust-biometric-payment-production-activation.test.mjs
+          node --check apps/api-gateway/test/global-trust-biometric-payment-production-activation-bound-runtime.test.mjs
+          node --check apps/api-gateway/test/global-trust-biometric-payment-production-activation-execution.test.mjs
+          node --check apps/api-gateway/test/global-trust-biometric-payment-production-activation-runtime.test.mjs
+
+      - name: Test production activation evidence contract
+        working-directory: apps/api-gateway
+        run: node --test test/global-trust-biometric-payment-production-activation.test.mjs
+
+      - name: Test credential-bound runtime activation enforcement
+        working-directory: apps/api-gateway
+        run: node --test test/global-trust-biometric-payment-production-activation-bound-runtime.test.mjs
+
+      - name: Test external execution activation enforcement
+        working-directory: apps/api-gateway
+        run: node --test test/global-trust-biometric-payment-production-activation-execution.test.mjs
+
+      - name: Test raw runtime blocks missing activation evidence
+        working-directory: apps/api-gateway
+        run: node --test --test-name-pattern="raw external runtime rejects boolean approval" test/global-trust-biometric-payment-production-activation-runtime.test.mjs
+
+      - name: Test raw runtime provider identity binding
+        working-directory: apps/api-gateway
+        run: node --test --test-name-pattern="raw external runtime binds activation evidence" test/global-trust-biometric-payment-production-activation-runtime.test.mjs
+
+      - name: Test raw runtime complete activation construction
+        working-directory: apps/api-gateway
+        run: node --test --test-name-pattern="complete synthetic activation evidence permits constructor" test/global-trust-biometric-payment-production-activation-runtime.test.mjs

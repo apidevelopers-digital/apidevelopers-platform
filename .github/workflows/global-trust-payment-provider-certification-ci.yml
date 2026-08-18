@@ -1,0 +1,93 @@
+name: Global Trust Payment Provider Sandbox Certification CI
+
+on:
+  push:
+    branches:
+      - main
+      - "feat/global-trust-biometric-payments-20260813"
+    paths:
+      - "apps/api-gateway/src/global-trust-biometric-payment-provider-control.mjs"
+      - "apps/api-gateway/src/global-trust-biometric-payment-provider-certification.mjs"
+      - "apps/api-gateway/src/global-trust-biometric-payment-provider-manifest.mjs"
+      - "apps/api-gateway/src/global-trust-biometric-payment-provider-operations.mjs"
+      - "apps/api-gateway/src/global-trust-biometric-payment-operational-execution.mjs"
+      - "apps/api-gateway/test/global-trust-biometric-payment-provider-control.test.mjs"
+      - "apps/api-gateway/test/global-trust-biometric-payment-provider-certification.test.mjs"
+      - "apps/api-gateway/test/global-trust-biometric-payment-provider-manifest.test.mjs"
+      - "apps/api-gateway/test/global-trust-biometric-payment-provider-operations.test.mjs"
+      - "apps/api-gateway/test/global-trust-biometric-payment-operational-execution.test.mjs"
+      - ".github/workflows/global-trust-payment-provider-certification-ci.yml"
+  pull_request:
+    branches:
+      - main
+    paths:
+      - "apps/api-gateway/src/global-trust-biometric-payment-provider-control.mjs"
+      - "apps/api-gateway/src/global-trust-biometric-payment-provider-certification.mjs"
+      - "apps/api-gateway/src/global-trust-biometric-payment-provider-manifest.mjs"
+      - "apps/api-gateway/src/global-trust-biometric-payment-provider-operations.mjs"
+      - "apps/api-gateway/src/global-trust-biometric-payment-operational-execution.mjs"
+      - "apps/api-gateway/test/global-trust-biometric-payment-provider-control.test.mjs"
+      - "apps/api-gateway/test/global-trust-biometric-payment-provider-certification.test.mjs"
+      - "apps/api-gateway/test/global-trust-biometric-payment-provider-manifest.test.mjs"
+      - "apps/api-gateway/test/global-trust-biometric-payment-provider-operations.test.mjs"
+      - "apps/api-gateway/test/global-trust-biometric-payment-operational-execution.test.mjs"
+      - ".github/workflows/global-trust-payment-provider-certification-ci.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  certify:
+    runs-on:
+      - self-hosted
+      - macOS
+      - X64
+    timeout-minutes: 10
+    env:
+      GLOBAL_TRUST_PAYMENT_MODE: sandbox
+      GLOBAL_TRUST_PAYMENT_EGRESS: blocked
+      GLOBAL_TRUST_REAL_MONEY: disabled
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+
+      - name: Validate syntax
+        run: |
+          set -euo pipefail
+          node --check apps/api-gateway/src/global-trust-biometric-payment-provider-control.mjs
+          node --check apps/api-gateway/src/global-trust-biometric-payment-provider-certification.mjs
+          node --check apps/api-gateway/src/global-trust-biometric-payment-provider-manifest.mjs
+          node --check apps/api-gateway/src/global-trust-biometric-payment-provider-operations.mjs
+          node --check apps/api-gateway/src/global-trust-biometric-payment-operational-execution.mjs
+          node --check apps/api-gateway/test/global-trust-biometric-payment-provider-control.test.mjs
+          node --check apps/api-gateway/test/global-trust-biometric-payment-provider-certification.test.mjs
+          node --check apps/api-gateway/test/global-trust-biometric-payment-provider-manifest.test.mjs
+          node --check apps/api-gateway/test/global-trust-biometric-payment-provider-operations.test.mjs
+          node --check apps/api-gateway/test/global-trust-biometric-payment-operational-execution.test.mjs
+
+      - name: Execute provider control tests
+        working-directory: apps/api-gateway
+        run: node --test test/global-trust-biometric-payment-provider-control.test.mjs
+
+      - name: Execute provider sandbox certification tests
+        working-directory: apps/api-gateway
+        run: node --test test/global-trust-biometric-payment-provider-certification.test.mjs
+
+      - name: Execute provider conformance manifest tests
+        working-directory: apps/api-gateway
+        run: node --test test/global-trust-biometric-payment-provider-manifest.test.mjs
+
+      - name: Execute provider operational resilience tests
+        working-directory: apps/api-gateway
+        run: node --test test/global-trust-biometric-payment-provider-operations.test.mjs
+
+      - name: Execute wired operational execution tests
+        working-directory: apps/api-gateway
+        run: node --test test/global-trust-biometric-payment-operational-execution.test.mjs

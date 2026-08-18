@@ -1,0 +1,78 @@
+name: Global Trust Biometric Payment PostgreSQL Durability CI
+
+on:
+  push:
+    branches:
+      - main
+      - "feat/global-trust-biometric-payments-20260813"
+    paths:
+      - "apps/api-gateway/src/global-trust-biometric-payment-*.mjs"
+      - "apps/api-gateway/test/global-trust-biometric-payment-postgres*.test.mjs"
+      - "packages/persistence-core/**"
+      - "packages/contracts/src/global-trust-biometric-payment.mjs"
+      - ".github/workflows/global-trust-biometric-payment-postgres-ci.yml"
+  pull_request:
+    branches:
+      - main
+    paths:
+      - "apps/api-gateway/src/global-trust-biometric-payment-*.mjs"
+      - "apps/api-gateway/test/global-trust-biometric-payment-postgres*.test.mjs"
+      - "packages/persistence-core/**"
+      - "packages/contracts/src/global-trust-biometric-payment.mjs"
+      - ".github/workflows/global-trust-biometric-payment-postgres-ci.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  durable-replay:
+    runs-on:
+      - self-hosted
+      - macOS
+      - X64
+    timeout-minutes: 15
+    env:
+      GLOBAL_TRUST_PAYMENT_MODE: dry-run
+      GLOBAL_TRUST_PAYMENT_EGRESS: blocked
+      GLOBAL_TRUST_REAL_MONEY: disabled
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+
+      - name: Install embedded PostgreSQL dependencies
+        shell: bash
+        run: |
+          set -euo pipefail
+          npm --prefix packages/persistence-core install --include=optional
+          npm --prefix packages/persistence-core rebuild @embedded-postgres/darwin-x64 --foreground-scripts
+
+      - name: Bind local platform packages
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p apps/api-gateway/node_modules/@apidevelopers
+          ln -s "$GITHUB_WORKSPACE/packages/contracts"             "$GITHUB_WORKSPACE/apps/api-gateway/node_modules/@apidevelopers/contracts"
+          ln -s "$GITHUB_WORKSPACE/packages/persistence-core"             "$GITHUB_WORKSPACE/apps/api-gateway/node_modules/@apidevelopers/persistence-core"
+
+      - name: Validate Trust PostgreSQL durability syntax
+        shell: bash
+        run: |
+          set -euo pipefail
+          node --check apps/api-gateway/src/global-trust-biometric-payment-store.mjs
+          node --check apps/api-gateway/src/global-trust-biometric-payment-runtime.mjs
+          node --check apps/api-gateway/test/global-trust-biometric-payment-postgres.integration.test.mjs
+          node --check apps/api-gateway/test/global-trust-biometric-payment-postgres-runtime.integration.test.mjs
+          node --check packages/persistence-core/test/run-global-trust-biometric-payment-postgres.mjs
+
+      - name: Execute Trust PostgreSQL durable runtime and anti-replay gate
+        shell: bash
+        run: |
+          set -euo pipefail
+          node packages/persistence-core/test/run-global-trust-biometric-payment-postgres.mjs
