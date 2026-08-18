@@ -1,0 +1,171 @@
+name: Uni.co Staging Node Build Bridge
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: uni-co-staging-node-build-bridge
+  cancel-in-progress: false
+
+jobs:
+  execute-staging-node-build:
+    runs-on:
+      - self-hosted
+      - macOS
+      - X64
+    timeout-minutes: 20
+    env:
+      SSH_USER: u242521810
+      SSH_HOST: 147.79.84.117
+      STAGING_ROOT: /home/u242521810/domains/sitedauni.com/public_html/apps/uni-co-staging-conversion-backup-20260813-0300
+      SOURCE_SHA: 81f94c57dbc3445dae65e3c6a76d4d11329e3f6c
+      HOSTINGER_USERNAME: u242521810
+      HOSTINGER_DOMAIN: unico-staging.sitedauni.com
+      HOSTINGER_API_TOKEN: ${{ secrets.HOSTINGER_API_TOKEN }}
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Verify runner Node client
+        shell: bash
+        run: |
+          set -Eeuo pipefail
+          command -v node >/dev/null
+          node --version
+          node --check apps/site-factory/src/hostinger-node-build-api-only.mjs
+
+      - name: Confirm Hostinger credential
+        shell: bash
+        run: |
+          set -Eeuo pipefail
+          test -n "$HOSTINGER_API_TOKEN"
+
+      - name: Verify Hostinger token read-only
+        shell: bash
+        run: |
+          set -Eeuo pipefail
+          W="$(curl --silent --show-error --output "$RUNNER_TEMP/websites.json" --write-out '%{http_code}' \
+            --header "Authorization: Bearer $HOSTINGER_API_TOKEN" \
+            --header "Accept: application/json" \
+            "https://developers.hostinger.com/api/hosting/v1/websites")"
+          B="$(curl --silent --show-error --output "$RUNNER_TEMP/builds.json" --write-out '%{http_code}' \
+            --header "Authorization: Bearer $HOSTINGER_API_TOKEN" \
+            --header "Accept: application/json" \
+            "https://developers.hostinger.com/api/hosting/v1/accounts/${HOSTINGER_USERNAME}/websites/${HOSTINGER_DOMAIN}/nodejs/builds")"
+          echo "websites_status=$W" >> "$GITHUB_STEP_SUMMARY"
+          echo "builds_status=$B" >> "$GITHUB_STEP_SUMMMARY"
+          [[ "$W" =~ ^2 ]] && [[ "$B" =~ ^2 ]]
+
+      - name: Discover institutional staging SSH identity
+        shell: bash
+        run: |
+          set -Eeuo pipefail
+          SSH_KEY="$(find /Users -maxdepth 8 -type f -path '*/.ssh/uni_janela_staging' -print -quit 2>/dev/null || true)"
+          KNOWN_HOSTS="$(find /Users -maxdepth 8 -type f \( -path '*/.ssh/known_hosts' -o -path '*/.ssh/known_hosts_uni_janela' \) -size +0c -print -quit 2>/dev/null || true)"
+          test -n "$SSH_KEY"
+          test -n "$KNOWN_HOSTS"
+          test "$(stat -f '%Lp' "$SSH_KEY")" = "600"
+          echo "SSH_KEY=$SSH_KEY" >> "$GITHUB_ENV"
+          echo "SSH_KNOWN_HOSTS=$KNOWN_HOSTS" >> "$GITHUB_ENV"
+
+      - name: Resolve authorized SSH transport
+        shell: bash
+        run: |
+          set -Eeuo pipefail
+          for port in 65002 22; do
+            if ssh -i "$SSH_KEY" -p "$port" \
+              -o BatchMode=yes -o ConnectTimeout=5 \
+              -o StrictHostKeyChecking=yes \
+              -o UserKnownHostsFile="$SSH_KNOWN_HOSTS" \
+              "$SSH_USER@$SSH_HOST" \
+              "test -f '$STAGING_ROOT/uni-co-runtime-$SOURCE_SHA.zip' && printf ready" 2>/dev/null | grep -qx ready; then
+              echo "SSH_PORT=$port" >> "$GITHUB_ENV"
+              exit 0
+            fi
+          done
+          exit 1
+
+      - name: Download exact sanitized staging archive
+        shell: bash
+        run: |
+          set -Eeuo pipefail
+          ARCHIVE_PATH="$RUNNER_TEMP/uni-co-runtime-$SOURCE_SHA.zip"
+          scp -i "$SSH_KEY" -P "$SSH_PORT" \
+            -o StrictHostKeyChecking=yes \
+            -o UserKnownHostsFile="$SSH_KNOWN_HOSTS" \
+            "$SSH_USER@$SSH_HOST:$STAGING_ROOT/uni-co-runtime-$SOURCE_SHA.zip" \
+            "$ARCHIVE_PATH"
+          test -s "$ARCHIVE_PATH"
+          test "$(stat -f '%z' "$ARCHIVE_PATH")" -le 52428800
+          REMOTE_SHA="$(ssh -i "$SSH_KEY" -p "$SSH_PORT" \
+            -o StrictHostKeyChecking=yes \
+            -o UserKnownHostsFile="$SSH_KNOWN_HOSTS" \
+            "$SSH_USER@$SSH_HOST" \
+            "sha256sum '$STAGING_ROOT/uni-co-runtime-$SOURCE_SHA.zip' | awk '{print \$1}'")"
+          LOCAL_SHA="$(shasum -a 256 "$ARCHIVE_PATH" | awk '{print $1}')"
+          test "$REMOTE_SHA" = "$LOCAL_SHA"
+          echo "ARCHIVE_PATH=$ARCHIVE_PATH" >> "$GITHUB_ENV"
+
+      - name: Attempt Hostinger Node build from archive
+        id: hostinger_build
+        shell: bash
+        run: |
+          set -Eeuo pipefail
+          node --input-type=module <<'NODE'
+          import fs from "node:fs";
+
+          const out = process.env.GITHUB_OUTPUT;
+          const write = (k, v) => fs.appendFileSync(out, `${k}=${String(v).replaceAll("\n"," ").slice(0,220)}\n`);
+
+          try {
+            const mod = await import("./apps/site-factory/src/hostinger-node-build-api-only.mjs");
+            const result = await mod.createNodeBuildFromArchive({
+              token: process.env.HOSTINGER_API_TOKEN,
+              username: process.env.HOSTINGER_USERNAME,
+              domain: process.env.HOSTINGER_DOMAIN,
+              archivePath: process.env.ARCHIVE_PATH,
+              transport: "multipart",
+              nodeVersion: 22,
+              appType: "express",
+              entryFile: "server.js",
+              packageManager: "npm",
+            });
+            write("ok", "true");
+            write("status", result.response?.status ?? 0);
+            write("uuid", result.uuid ?? "");
+            write("state", result.state ?? "");
+          } catch (error) {
+            let evidence = {};
+            try {
+              const mod = await import("./apps/site-factory/src/hostinger-node-build-api-only.mjs");
+              evidence = mod.sanitizeEvidence(error?.evidence ?? { message: error?.message ?? String(error) }, process.env.HOSTINGER_API_TOKEN);
+            } catch {
+              evidence = { message: error?.message ?? String(error) };
+            }
+            const status = evidence?.response?.status ?? evidence?.status ?? 0;
+            const payload = evidence?.response?.payload ?? evidence?.payload ?? {};
+            const message = payload?.message ?? evidence?.message ?? error?.message ?? "unknown";
+            write("ok", "false");
+            write("status", status);
+            write("message", message);
+          }
+          NODE
+
+      - name: Hostinger build accepted
+        if: steps.hostinger_build.outputs.ok == 'true'
+        shell: bash
+        run: |
+          echo "hostinger_build_created=true" >> "$GITHUB_STEP_SUMMARY"
+          echo "build_uuid=${{ steps.hostinger_build.outputs.uuid }}" >> "$GITHUB_STEP_SUMMARY"
+          echo "initial_state=${{ steps.hostinger_buildd.outputs.state }}" >> "$GITHUB_STEP_SUMMMARY"
+
+      - name: Hostinger build rejected
+        if: steps.hostinger_build.outputs.ok != 'true'
+        shell: bash
+        run: |
+          echo "::error title=Hostinger Node build rejected::status=${{ steps.hostinger_build.outputs.status }} message=${{ steps.hostinger_build.outputs.message }}"
+          echo "hostinger_status=${{ steps.hostinger_build.outputs.status }}" >> "$GITHUB_STEP_SUMMARY"
+          echo "hostinger_message=${{ steps.hostinger_build.outputs.message }}" >> "$GITHUB_STEP_STEP_SUMMARY"
