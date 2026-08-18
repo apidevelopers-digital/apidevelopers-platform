@@ -1,0 +1,69 @@
+{
+  "profileId": "unijuri.legal.v1",
+  "productId": "uni.juri",
+  "domain": "legal",
+  "jurisdiction": "BR",
+  "status": "draft",
+  "riskClass": "high",
+  "roles": [
+    "legal_assistant",
+    "jurisprudence_research",
+    "document_drafting",
+    "judicial_analysis"
+  ],
+  "prohibitedRoles": [
+    "autonomous_lawyer",
+    "magistrate",
+    "official_decision_maker"
+  ],
+  "memory": {
+    "isolation": "tenant-workspace-case-purpose",
+    "crossProductDefault": "deny"
+  },
+  "sourcePolicy": {
+    "mode": "official_or_licensed",
+    "traceable": true,
+    "restrictedSourcesNoScraping": true
+  },
+  "tools": {
+    "allow": [
+      "retrieval.legal",
+      "datajud",
+      "document_drafting",
+      "case_analysis"
+    ],
+    "deny": [
+      "autonomous_filing",
+      "official_judgment"
+    ]
+  },
+  "humanReview": {
+    "required": true,
+    "gates": [
+      "filing",
+      "signature",
+      "final_legal_advice",
+      "external_critical_use"
+    ]
+  },
+  "training": {
+    "userDataAllowed": false,
+    "fineTuningRequiresLicensedDataset": true
+  },
+  "evidence": {
+    "required": true,
+    "jurisdictionRequired": true,
+    "sourceTraceRequired": true
+  },
+  "evaluations": [
+    "jurisdiction",
+    "source_grounding",
+    "argument_countercheck",
+    "restricted_source_policy",
+    "negative_cases"
+  ],
+  "activation": {
+    "failClosed": true,
+    "approved": false
+  }
+}
