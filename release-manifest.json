@@ -3,7 +3,7 @@
   "format": "managed-node-zip",
   "service": "api-gateway",
   "version": "0.7.0",
-  "sourceRevision": "b43a25a9ecfd5eaea966d699e249d774cbf61bdf",
+  "sourceRevision": "d9f8d5091c6b8978c5e7e0465ad9c364d0b2cedd",
   "runtime": {
     "node": ">=22",
     "entrypoint": "src/hostinger-entry.mjs",
@@ -785,13 +785,38 @@
     },
     {
       "path": "src/saas-operational-http-composition.mjs",
-      "bytes": 2325,
-      "sha256": "6b07b3c9df8fdf691195387d60ad65d9dd508a5b4870abc2e5f5d39c28000b2f"
+      "bytes": 3698,
+      "sha256": "4ba40518bd8fd7b9e148510f12b67926e14289225858794ebdb9bf800bcfed49"
     },
     {
       "path": "src/saas-provisioning.mjs",
       "bytes": 11517,
       "sha256": "ca268a0b59722e7217c202d9a6c39c8b0faf235250a8fd75d14c4bfc07609479"
+    },
+    {
+      "path": "src/saas-zuni-operational-readiness-adapter.mjs",
+      "bytes": 3417,
+      "sha256": "41695cc0bb29ea1d02406e3161c1a095485dc7d64b3c8c12efa4b927df5864b4"
+    },
+    {
+      "path": "src/saas-zuni-operational-readiness-composition.mjs",
+      "bytes": 2013,
+      "sha256": "0107e591db0be5cd886e3855406dcb4fb4cc71ca23a39da5116ea3ad9c42c796"
+    },
+    {
+      "path": "src/saas-zuni-product-provisioner.mjs",
+      "bytes": 2606,
+      "sha256": "f3374ae43bd38a37d4faf5de273245605bc1c921933aad10dbe525a6f5662ca0"
+    },
+    {
+      "path": "src/saas-zuni-provisioning-runtime-guard.mjs",
+      "bytes": 1849,
+      "sha256": "c7aa46e0a77fee685efc07bc87f53cbca058eae7d018f06909a6cb9627c5fb20"
+    },
+    {
+      "path": "src/saas-zuni-public-readiness-probe.mjs",
+      "bytes": 3134,
+      "sha256": "0f6d40beec753be6616f1e6bbd7e49fde40abec9caa237bd116d20531667a593"
     },
     {
       "path": "src/server.mjs",
