@@ -1,0 +1,68 @@
+name: Web Agent Gateway Activation Dry Run
+
+on:
+  pull_request:
+    branches:
+      - main
+    paths:
+      - ".github/workflows/web-agent-gateway-activation-dry-run.yml"
+  workflow_dispatch: {}
+
+permissions:
+  contents: read
+
+jobs:
+  validate:
+    runs-on:
+      - self-hosted
+      - macOS
+      - X64
+    timeout-minutes: 5
+    env:
+      EXPECTED_SHADOW_BASE_URL: "https://unico.sitedauni.com"
+      EXPECTED_ENABLED_ENV: "WEB_AGENT_SHADOW_ENABLED"
+      EXPECTED_BASE_URL_ENV: "WEB_AGENT_SHADOW_BASE_URL"
+      EXPECTED_API_KEY_ENV: "WEB_AGENT_SHADOW_API_KEY"
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+
+      - name: Validate canonical Web Agent activation contract
+        shell: bash
+        run: |
+          set -euo pipefail
+          file="apps/api-gateway/src/web-agent-operational-composition.mjs"
+          client="apps/api-gateway/src/web-agent-shadow-client.mjs"
+
+          test -f "$file"
+          test -f "$client"
+
+          grep -Fq "$EXPECTED_ENABLED_ENV" "$file"
+          grep -Fq "$EXPECTED_BASE_URL_ENV" "$file"
+          grep -Fq "$EXPECTED_API_KEY_ENV" "$file"
+          grep -Fq '/v1/cognitive/web-agent/shadow' "$client"
+          grep -Fq 'x-unico-api-key' "$client"
+
+          node - <<'NODE'
+          const url = new URL(process.env.EXPECTED_SHADOW_BASE_URL);
+          if (url.protocol !== "https:") {
+            throw new Error("shadow base URL must use HTTPS");
+          }
+          if (url.origin !== "https://unico.sitedauni.com") {
+            throw new Error("unexpected shadow base URL");
+          }
+          NODE
+
+      - name: Verify dry-run has no secret material or production mutation
+        shell: bash
+        env:
+          WEB_AGENT_SHADOW_API_KEY: ""
+        run: |
+          set -euo pipefail
+          test -z "${WEB_AGENT_SHADOW_API_KEY:-}"
+          echo "mode=dry-run" >> "$GITHUB_STEP_SUMMARY"
+          echo "shadow_base_url=https://unico.sitedauni.com" >> "$GITHUB_STEP_SUMMARY"
+          echo "required_envs=WEB_AGENT_SHADOW_ENABLED,WEB_AGENT_SHADOW_BASE_URL,WEB_AGENT_SHADOW_API_KEY" >> "$GITHUB_STEP_SUMMARY"
+          echo "secret_loaded=false" >> "$GITHUB_STEP_SUMMARY"
+          echo "production_changed=false" >> "$GITHUB_STEP_SUMMARY"
