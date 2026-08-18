@@ -56,6 +56,8 @@ jobs:
 
       - name: Verify dry-run has no secret material or production mutation
         shell: bash
+        env:
+          WEB_AGENT_SHADOW_API_KEY: ""
         run: |
           set -euo pipefail
           test -z "${WEB_AGENT_SHADOW_API_KEY:-}"
@@ -63,4 +65,4 @@ jobs:
           echo "shadow_base_url=https://unico.sitedauni.com" >> "$GITHUB_STEP_SUMMARY"
           echo "required_envs=WEB_AGENT_SHADOW_ENABLED,WEB_AGENT_SHADOW_BASE_URL,WEB_AGENT_SHADOW_API_KEY" >> "$GITHUB_STEP_SUMMARY"
           echo "secret_loaded=false" >> "$GITHUB_STEP_SUMMARY"
-          echo "production_changed=false" >> "$GITHUB_STEP_SUMMMARY"
+          echo "production_changed=false" >> "$GITHUB_STEP_SUMMARY"
