@@ -21,7 +21,43 @@ export function createZuniOperationalReadinessComposition({
   const runtime = requireRuntime(saasRuntime);
   const probeProduct = requireProbe(probeZuniProductReadiness);
 
-  const adapter = createZuniOperationalReadinessAdapter({\n    async probeTenant(request) {\n      const tenant = await runtime.getTenant(request.tenantId);\n      if (!tenant) return { ready: false, code: "tenant_not_found" };\n      return { ready: tenant.status === "active", tenantId: tenant.tenantId, status: tenant.status, source: "saas.runtime.tenants"};\n    },\n    async probeWorkspace(request) {\n      const workspace = await runtime.getWorkspace(request.workspaceId);\n      if (!workspace) return { ready: false, code: "workspace_not_found" };\n      return { ready: workspace.status === "active", workspaceId: workspace.workspaceId, tenantId: workspace.tenantId, productId: workspace.productId, status: workspace.status, source: "saas.runtime.workspaces" };\n    },\n    async probeProduct(request) {\n      const result = await probeProduct(request);\n      if (!result || typeof result !== "object") return { ready: false, code: "invalid_product_probe" };\n      return { ...result, ready: result.ready === true, source: result.source ?? "zuni.product.readiness" };\n    },\n  });
+  const adapter = createZuniOperationalReadinessAdapter({
+    async probeTenant(request) {
+      const tenant = await runtime.getTenant(request.tenantId);
+      if (!tenant) return { ready: false, code: "tenant_not_found" };
+      return {
+        ready: tenant.status === "active",
+        tenantId: tenant.tenantId,
+        status: tenant.status,
+        source: "saas.runtime.tenants",
+      };
+    },
+
+    async probeWorkspace(request) {
+      const workspace = await runtime.getWorkspace(request.workspaceId);
+      if (!workspace) return { ready: false, code: "workspace_not_found" };
+      return {
+        ready: workspace.status === "active",
+        workspaceId: workspace.workspaceId,
+        tenantId: workspace.tenantId,
+        productId: workspace.productId,
+        status: workspace.status,
+        source: "saas.runtime.workspaces",
+      };
+    },
+
+    async probeProduct(request) {
+      const result = await probeProduct(request);
+      if (!result || typeof result !== "object") {
+        return { ready: false, code: "invalid_product_probe" };
+      }
+      return {
+        ...result,
+        ready: result.ready === true,
+        source: result.source ?? "zuni.product.readiness",
+      };
+    },
+  });
 
   return Object.freeze({ adapter });
 }
