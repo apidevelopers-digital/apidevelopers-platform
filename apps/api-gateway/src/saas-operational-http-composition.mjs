@@ -2,6 +2,7 @@ import { createSaasAccessComposition } from "./saas-access-composition.mjs";
 import { createDelegatedSaasAccessApp } from "./saas-delegated-access-v2.mjs";
 import { createSaasProvisioningApp } from "./saas-provisioning.mjs";
 import { createZuniProvisioningRuntimeGuard } from "./saas-zuni-provisioning-runtime-guard.mjs";
+import { createZuniOperationalReadinessComposition } from "./saas-zuni-operational-readiness-composition.mjs";
 import { createApp } from "./server.mjs";
 
 function pathnameOf(url) {
@@ -16,6 +17,7 @@ export function createSaasOperationalHttpComposition({
   clock,
   delegatedBindingSigner,
   zuniProductProvisioner,
+  probeZuniProductReadiness,
 } = {}) {
   if (typeof app?.handleRequest !== "function") {
     throw new TypeError("app.handleRequest must be a function");
@@ -42,10 +44,21 @@ export function createSaasOperationalHttpComposition({
     federatedPrincipal: saasComposition.federatedPrincipal,
     ...(delegatedBindingSigner ? { bindingSigner: delegatedBindingSigner } : {}),
   });
+
+  const readinessProvisioner =
+    zuniProductProvisioner ??
+    (typeof probeZuniProductReadiness === "function"
+      ? createZuniOperationalReadinessComposition({
+          saasRuntime: saasComposition.saasRuntime,
+          probeZuniProductReadiness,
+        }).adapter
+      : undefined);
+
   const guardedProvisioningRuntime = createZuniProvisioningRuntimeGuard({
     saasRuntime: saasComposition.saasRuntime,
-    ...(zuniProductProvisioner ? { zuniProductProvisioner } : {}),
+    ...(readinessProvisioner ? { zuniProductProvisioner: readinessProvisioner } : {}),
   });
+
   const provisioningApp = createSaasProvisioningApp({
     authenticator,
     saasRuntime: guardedProvisioningRuntime,
