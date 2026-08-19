@@ -3,6 +3,10 @@ const SURFACE_BINDINGS = Object.freeze({
     productId: "product:uni-co",
     agentId: "uni.co",
   }),
+  "unico-preview.apidevelopers.digital": Object.freeze({
+    productId: "product:uni-co",
+    agentId: "uni.co",
+  }),
   "nexus.apidevelopers.digital": Object.freeze({
     productId: "product:nexus",
     agentId: "nexus",
