@@ -1,121 +1,24 @@
-name: Site Factory Hostinger API-only Node Build
-
+name: uni.co Preview Hostinger Node Deploy
 on:
   workflow_dispatch:
-
 permissions:
   contents: read
-
 jobs:
   deploy-unico-preview:
     runs-on:
       - self-hosted
       - macOS
       - X64
-    timeout-minutes: 30
-    env:
-      HOSTINGER_USERNAME: u242521810
-      HOSTINGER_DOMAIN: unico-preview.apidevelopers.digital
-      SOURCE_SHA: 000ef9ce9e3d28b2b473faf8ef6db17e150b3364
-      SOURCE_DIR: ops/unico-preview/source
+    timeout-minutes: 40
     steps:
       - uses: actions/checkout@v4
         with:
           persist-credentials: false
-
       - uses: actions/setup-node@v4
         with:
           node-version: "22"
-
-      - name: Validate approved boundary and source
+      - name: Deploy approved preview
         shell: bash
         env:
           HOSTINGER_API_TOKEN: ${{ secrets.HOSTINGER_API_TOKEN }}
-        run: |
-          set -Eeuo pipefail
-          test -n "$HOSTINGER_API_TOKEN"
-          node - <<'NODE'
-          const fs = require("fs");
-          const r = JSON.parse(fs.readFileSync("ops/unico-preview/source/RELEASE.json","utf8"));
-          if (r.sourceSha !== process.env.SOURCE_SHA) throw new Error("source_sha_mismatch");
-          if (r.publicHost !== process.env.HOSTINGER_DOMAIN) throw new Error("target_mismatch");
-          if (r.productionHost !== "unico.apidevelopers.digital") throw new Error("production_mismatch");
-          if (r.secretsIncluded !== false || r.productionMutation !== false) throw new Error("unsafe_release");
-          NODE
-          cd "$SOURCE_DIR"
-          npm run check
-          test -f server.mjs
-          test -f public/index.html
-
-      - name: Create sanitized archive
-        shell: bash
-        run: |
-          set -Eeuo pipefail
-          ARCHIVE="$RUNNER_TEMP/uni-co-web-${SOURCE_SHA}.zip"
-          (cd "$SOURCE_DIR" && /usr/bin/zip -X -q -r "$ARCHIVE" . -x ".git/*" "node_modules/*" ".env" ".env.*" "*.pem" "*.key")
-          /usr/bin/unzip -t "$ARCHIVE" >/dev/null
-          test -s "$ARCHIVE"
-          echo "ARCHIVE_PATH=$ARCHIVE" >> "$GITHUB_ENV"
-
-      - name: Deploy preview through institutional multipart executor
-        id: deploy
-        continue-on-error: true
-        shell: bash
-        env:
-          HOSTINGER_API_TOKEN: ${{ secrets.HOSTINGER_API_TOKEN }}
-          EVIDENCE_PATH: ${{ runner.temp }}/unico-preview-hostinger-evidence.json
-        run: |
-          set -Eeuo pipefail
-          node apps/site-factory/src/run-hostinger-node-build-api-only.mjs \
-            --mode apply \
-            --username "$HOSTINGER_USERNAME" \
-            --domain "$HOSTINGER_DOMAIN" \
-            --archive "$ARCHIVE_PATH" \
-            --transport multipart \
-            --archive-representation-verified true \
-            --node-version 22 \
-            --app-type express \
-            --output-directory "" \
-            --build-script "" \
-            --entry-file server.mjs \
-            --package-manager npm \
-            --expected-text "uni.co" \
-            --evidence "$EVIDENCE_PATH"
-
-      - name: Surface sanitized Hostinger evidence
-        if: always()
-        shell: bash
-        env:
-          EVIDENCE_PATH: ${{ runner.temp }}/unico-preview-hostinger-evidence.json
-        run: |
-          set -Eeuo pipefail
-          if [ ! -s "$EVIDENCE_PATH" ]; then
-            echo "evidence_present=false" >> "$GITHUB_STEP_SUMMARY"
-            exit 0
-          fi
-          node - <<'NODE'
-          const fs = require("fs");
-          const p = process.env.EVIDENCE_PATH;
-          const e = JSON.parse(fs.readFileSync(p, "utf8"));
-          const out = {
-            status: e.status ?? null,
-            errorMessage: e.error?.message ?? null,
-            httpStatus: e.error?.evidence?.response?.status ?? null,
-            statusText: e.error?.evidence?.response?.statusText ?? null,
-            correlationId: e.error?.evidence?.response?.correlationId ?? null,
-            payload: e.error?.evidence?.response?.payload ?? null,
-            writeExecuted: e.writeExecuted ?? null,
-            createdUuid: e.created?.uuid ?? null,
-            terminalState: e.terminal?.build?.state ?? null,
-            publicProbe: e.publicProbe ?? null
-          };
-          const text = JSON.stringify(out, null, 2);
-          console.log(text);
-          fs.appendFileSync(process.env.GITHUB_STEP_SUMMARY, "```json\n" + text + "\n```\n");
-          NODE
-
-      - name: Enforce deploy result
-        if: always()
-        shell: bash
-        run: |
-          test "${{ steps.deploy.outcome }}" = "success"
+        run: bash ops/unico-preview/deploy.sh
