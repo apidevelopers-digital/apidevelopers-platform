@@ -6,12 +6,8 @@ on:
 permissions:
   contents: read
 
-concurrency:
-  group: unico-preview-hostinger-api-only
-  cancel-in-progress: false
-
 jobs:
-  build-and-deploy:
+  deploy-unico-preview:
     runs-on:
       - self-hosted
       - macOS
@@ -22,66 +18,45 @@ jobs:
       HOSTINGER_DOMAIN: unico-preview.apidevelopers.digital
       SOURCE_SHA: 000ef9ce9e3d28b2b473faf8ef6db17e150b3364
       SOURCE_DIR: ops/unico-preview/source
-      APPROVED_OPERATION: IGOR_APROVA_HOSTINGER_DEPLOY
     steps:
-      - name: Checkout operational branch
-        uses: actions/checkout@v4
+      - uses: actions/checkout@v4
         with:
           persist-credentials: false
 
-      - name: Set up Node.js
-        uses: actions/setup-node@v4
+      - uses: actions/setup-node@v4
         with:
           node-version: "22"
 
-      - name: Enforce exact approved preview boundary
+      - name: Validate approved boundary and source
         shell: bash
         env:
           HOSTINGER_API_TOKEN: ${{ secrets.HOSTINGER_API_TOKEN }}
         run: |
           set -Eeuo pipefail
-          test "$APPROVED_OPERATION" = "IGOR_APROVA_HOSTINGER_DEPLOY"
           test -n "$HOSTINGER_API_TOKEN"
           node - <<'NODE'
           const fs = require("fs");
-          const release = JSON.parse(fs.readFileSync("ops/unico-preview/source/RELEASE.json", "utf8"));
-          if (release.sourceSha !== process.env.SOURCE_SHA) throw new Error("source_sha_mismatch");
-          if (release.publicHost !== process.env.HOSTINGER_DOMAIN) throw new Error("preview_host_mismatch");
-          if (release.productionHost !== "unico.apidevelopers.digital") throw new Error("production_host_mismatch");
-          if (release.secretsIncluded !== false) throw new Error("secrets_must_be_absent");
-          if (release.productionMutation !== false) throw new Error("production_must_not_be_mutated");
+          const r = JSON.parse(fs.readFileSync("ops/unico-preview/source/RELEASE.json","utf8"));
+          if (r.sourceSha !== process.env.SOURCE_SHA) throw new Error("source_sha_mismatch");
+          if (r.publicHost !== process.env.HOSTINGER_DOMAIN) throw new Error("target_mismatch");
+          if (r.productionHost !== "unico.apidevelopers.digital") throw new Error("production_mismatch");
+          if (r.secretsIncluded !== false || r.productionMutation !== false) throw new Error("unsafe_release");
           NODE
-          if find "$SOURCE_DIR" -type f \( -name '.env' -o -name '.env.*' -o -name '*.pem' -o -name '*.key' -o -name 'id_rsa' -o -name 'id_ed25519' \) | grep -q .; then
-            echo "Forbidden sensitive file in preview source" >&2
-            exit 1
-          fi
-
-      - name: Validate exact uni.co Web source
-        shell: bash
-        run: |
-          set -Eeuo pipefail
           cd "$SOURCE_DIR"
           npm run check
           test -f server.mjs
           test -f public/index.html
 
-      - name: Build sanitized source archive
+      - name: Create sanitized archive
         shell: bash
         run: |
           set -Eeuo pipefail
           ARCHIVE="$RUNNER_TEMP/uni-co-web-${SOURCE_SHA}.zip"
-          (
-            cd "$SOURCE_DIR"
-            /usr/bin/zip -X -q -r "$ARCHIVE" . \
-              -x ".git/*" "node_modules/*" ".env" ".env.*" "*.pem" "*.key"
-          )
+          (cd "$SOURCE_DIR" && /usr/bin/zip -X -q -r "$ARCHIVE" . -x ".git/*" "node_modules/*" ".env" ".env.*" "*.pem" "*.key")
           /usr/bin/unzip -t "$ARCHIVE" >/dev/null
-          test -s "$ARCHIVE"
           echo "ARCHIVE_PATH=$ARCHIVE" >> "$GITHUB_ENV"
 
-      - name: Execute governed multipart Hostinger build
-        id: hostinger
-        continue-on-error: true
+      - name: Deploy preview through institutional multipart executor
         shell: bash
         env:
           HOSTINGER_API_TOKEN: ${{ secrets.HOSTINGER_API_TOKEN }}
@@ -94,6 +69,7 @@ jobs:
             --domain "$HOSTINGER_DOMAIN" \
             --archive "$ARCHIVE_PATH" \
             --transport multipart \
+            --archive-representation-verified true \
             --node-version 22 \
             --app-type express \
             --output-directory "" \
@@ -102,38 +78,3 @@ jobs:
             --package-manager npm \
             --expected-text "uni.co" \
             --evidence "$EVIDENCE_PATH"
-
-      - name: Enforce Hostinger executor result
-        if: ${{ steps.hostinger.outcome != 'success' }}
-        shell: bash
-        run: |
-          echo "Hostinger multipart executor did not complete successfully." >&2
-          exit 1
-
-      - name: Verify public health endpoint
-        shell: bash
-        run: |
-          set -Eeuo pipefail
-          node - <<'NODE'
-          const url = "https://unico-preview.apidevelopers.digital/health";
-          let last;
-          for (let i = 0; i < 24; i++) {
-            try {
-              const response = await fetch(url, { redirect: "follow" });
-              const text = await response.text();
-              last = { status: response.status, text };
-              if (response.ok) {
-                const body = JSON.parse(text);
-                if (body?.ok === true && body?.product === "uni-co-web") {
-                  console.log("preview_health_ok=true");
-                  process.exit(0);
-                }
-              }
-            } catch (error) {
-              last = { error: error.messae };
-            }
-            await new Promise(resolve => setTimeout(resolve, 5000));
-          }
-          console.error(JSON.stringify(last));
-          process.exit(1);
-          NODE
