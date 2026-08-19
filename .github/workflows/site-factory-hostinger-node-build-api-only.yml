@@ -32,10 +32,12 @@ jobs:
           npm init -y >/dev/null
           npm install --no-audit --no-fund hostinger-api-mcp@1.43.1 @modelcontextprotocol/sdk@1.10.0
           test -x node_modules/.bin/hostinger-hosting-mcp
+          cp "$GITHUB_WORKSPACE/ops/unico-preview/deploy-js-mcp.mjs" "$MCP_WORKDIR/client.mjs"
           echo "HOSTINGER_MCP_BIN=$MCP_WORKDIR/node_modules/.bin/hostinger-hosting-mcp" >> "$GITHUB_ENV"
+          echo "HOSTINGER_DEPLOY_CLIENT=$MCP_WORKDIR/client.mjs" >> "$GITHUB_ENV"
       - name: Classify official Hostinger deploy stage
         id: deploy
-        run: node ops/unico-preview/deploy-js-mcp.mjs "$NODE_ARCHIVE"
+        run: node "$HOSTINGER_DEPLOY_CLIENT" "$NODE_ARCHIVE"
       - name: Blocked at domain resolution
         if: ${{ steps.deploy.outputs.stage == 'resolve-domain' }}
         run: exit 1
