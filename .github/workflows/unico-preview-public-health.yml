@@ -1,0 +1,43 @@
+name: uni.co Preview Public Health
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  health:
+    runs-on:
+      - self-hosted
+      - macOS
+      - X64
+    timeout-minutes: 5
+    steps:
+      - name: Verify public preview health
+        shell: bash
+        run: |
+          set -Eeuo pipefail
+          node - <<'NODE'
+          const url = "https://unico-preview.apidevelopers.digital/health";
+          let last = null;
+          for (let i = 0; i < 12; i++) {
+            try {
+              const response = await fetch(url, { redirect: "follow" });
+              const text = await response.text();
+              last = { status: response.status, text };
+              if (response.ok) {
+                const body = JSON.parse(text);
+                if (body?.ok === true && body?.product === "uni-co-web") {
+                  console.log(JSON.stringify({ health: "ok", status: response.status, product: body.product }));
+                  process.exit(0);
+                }
+              }
+            } catch (error) {
+              last = { error: error.message };
+            }
+            await new Promise(resolve => setTimeout(resolve, 5000));
+          }
+          console.error(JSON.stringify(last));
+          process.exit(1);
+          NODE
