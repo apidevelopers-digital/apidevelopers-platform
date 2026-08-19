@@ -4,20 +4,20 @@ on:
   workflow_dispatch:
     inputs:
       mode:
-        description: "preflight validates only; apply creates a real Hostinger build"
+        description: "Must be apply for the approved unico preview deployment"
         required: true
-        default: preflight
+        default: apply
         type: choice
         options:
           - preflight
           - apply
       approved_sha:
-        description: "Required for apply and must exactly match the workflow commit SHA"
-        required: false
+        description: "Exact approved uni-co-web source SHA"
+        required: true
         type: string
       approval:
-        description: "For apply only: IGOR_APROVA_HOSTINGER_DEPLOY"
-        required: false
+        description: "Explicit Hostinger deployment approval token"
+        required: true
         type: string
       transport:
         description: "API request transport"
@@ -32,12 +32,11 @@ permissions:
   contents: read
 
 concurrency:
-  group: site-factory-hostinger-api-only-preview
+  group: unico-preview-hostinger-api-only
   cancel-in-progress: false
 
 jobs:
   build-and-deploy:
-    name: Build package and call Hostinger API
     runs-on:
       - self-hosted
       - macOS
@@ -45,131 +44,123 @@ jobs:
     timeout-minutes: 30
     env:
       HOSTINGER_USERNAME: u242521810
-      HOSTINGER_DOMAIN: preview-apidevelopers.apidevelopers.digital
-
+      HOSTINGER_DOMAIN: unico-preview.apidevelopers.digital
+      SOURCE_SHA: 000ef9ce9e3d28b2b473faf8ef6db17e150b3364
+      SOURCE_DIR: ops/unico-preview/source
     steps:
-      - name: Checkout exact source SHA
+      - name: Checkout operational branch
         uses: actions/checkout@v4
-
-      - name: Initialize runner paths
-        shell: bash
-        run: |
-          set -euo pipefail
-          echo "EVIDENCE_PATH=$RUNNER_TEMP/hostinger-node-build-evidence.json" >> "$GITHUB_ENV"
-
-      - name: Validate explicit apply authorization
-        if: ${{ inputs.mode == 'apply' }}
-        shell: bash
-        env:
-          HOSTINGER_API_TOKEN: ${{ secrets.HOSTINGER_API_TOKEN }}
-        run: |
-          set -euo pipefail
-          test "${{ inputs.approved_sha }}" = "${GITHUB_SHA}"
-          test "${{ inputs.approval }}" = "IGOR_APROVA_HOSTINGER_DEPLOY"
-          test -n "$HOSTINGER_API_TOKEN"
+        with:
+          persist-credentials: false
 
       - name: Set up Node.js
         uses: actions/setup-node@v4
         with:
           node-version: "22"
 
-      - name: Install and validate Site Factory
-        working-directory: apps/site-factory
+      - name: Enforce exact approved preview boundary
+        shell: bash
+        env:
+          HOSTINGER_API_TOKEN: ${{ secrets.HOSTINGER_API_TOKEN }}
+        run: |
+          set -Eeuo pipefail
+          test "${{ inputs.mode }}" = "apply"
+          test "${{ inputs.approved_sha }}" = "$SOURCE_SHA"
+          test "${{ inputs.approval }}" = "IGOR_APROVA_HOSTINGER_DEPLOY"
+          test "${{ inputs.transport }}" = "multipart"
+          test -n "$HOSTINGER_API_TOKEN"
+          node - <<'NODE'
+          const fs = require("fs");
+          const release = JSON.parse(fs.readFileSync("ops/unico-preview/source/RELEASE.json", "utf8"));
+          if (release.sourceSha !== process.env.SOURCE_SHA) throw new Error("source_sha_mismatch");
+          if (release.publicHost !== process.env.HOSTINGER_DOMAIN) throw new Error("preview_host_mismatch");
+          if (release.productionHost !== "unico.apidevelopers.digital") throw new Error("production_host_mismatch");
+          if (release.secretsIncluded !== false) throw new Error("secrets_must_be_absent");
+          if (release.productionMutation !== false) throw new Error("production_must_not_be_mutated");
+          NODE
+          if find "$SOURCE_DIR" -type f \( -name '.env' -o -name '.env.*' -o -name '*.pem' -o -name '*.key' -o -name 'id_rsa' -o -name 'id_ed25519' \) | grep -q .; then
+            echo "Forbidden sensitive file in preview source" >&2
+            exit 1
+          fi
+
+      - name: Validate exact uni.co Web source
         shell: bash
         run: |
-          set -euo pipefail
-          npm install --no-audit --no-fund
+          set -Eeuo pipefail
+          cd "$SOURCE_DIR"
           npm run check
+          test -f server.mjs
+          test -f public/index.html
 
-      - name: Prepare isolated preview package
+      - name: Build sanitized source archive
         shell: bash
         run: |
-          set -euo pipefail
-          OUTPUT_ROOT="$RUNNER_TEMP/site-factory-hostinger-api-only-${GITHUB_RUN_ID}"
-          PROJECT_DIR="$OUTPUT_ROOT/apidevelopers"
-          ARCHIVE_PATH="$RUNNER_TEMP/site-factory-hostinger-api-only-${GITHUB_SHA}.zip"
-          mkdir -p "$OUTPUT_ROOT"
-
+          set -Eeuo pipefail
+          ARCHIVE="$RUNNER_TEMP/uni-co-web-${SOURCE_SHA}.zip"
           (
-            cd apps/site-factory
-            npm run project:generate -- \
-              --app apidevelopers \
-              --domain apidevelopers.digital \
-              --title "API Developers.digital" \
-              --output "$OUTPUT_ROOT"
+            cd "$SOURCE_DIR"
+            /usr/bin/zip -X -q -r "$ARCHIVE" . \
+              -x ".git/*" "node_modules/*" ".env" ".env.*" "*.pem" "*.key"
           )
+          /usr/bin/unzip -t "$ARCHIVE" >/dev/null
+          test -s "$ARCHIVE"
+          echo "ARCHIVE_PATH=$ARCHIVE" >> "$GITHUB_ENV"
 
-          (
-            cd "$PROJECT_DIR"
-            npm install --no-audit --no-fund
-            npm test
-            npm run build
-            test -f dist/index.html
-            test -f package-lock.json
-            rm -rf node_modules dist
-
-            if find . -type f \( \
-              -name ".env" -o \
-              -name ".env.*" -o \
-              -name "*.pem" -o \
-              -name "*.key" -o \
-              -name "id_rsa" -o \
-              -name "id_ed25519" \
-            \) | grep -q .; then
-              echo "Sensitive file found in generated project" >&2
-              exit 1
-            fi
-
-            zip -q -r "$ARCHIVE_PATH" . \
-              -x "node_modules/*" \
-              -x "dist/*" \
-              -x "build/*" \
-              -x ".next/*" \
-              -x ".git/*" \
-              -x ".env" \
-              -x ".env.*" \
-              -x "*.pem" \
-              -x "*.key"
-          )
-
-          ARCHIVE_BYTES="$(stat -f%z "$ARCHIVE_PATH")"
-          test "$ARCHIVE_BYTES" -gt 0
-          test "$ARCHIVE_BYTES" -le 52428800
-          echo "ARCHIVE_PATH=$ARCHIVE_PATH" >> "$GITHUB_ENV"
-
-      - name: Execute API-only preflight or apply
+      - name: Execute governed multipart Hostinger build
         id: hostinger
         continue-on-error: true
         shell: bash
         env:
-          HOSTINGER_API_TOKEN: ${{ inputs.mode == 'apply' && secrets.HOSTINGER_API_TOKEN || '' }}
+          HOSTINGER_API_TOKEN: ${{ secrets.HOSTINGER_API_TOKEN }}
+          EVIDENCE_PATH: ${{ runner.temp }}/unico-preview-hostinger-evidence.json
         run: |
-          set -euo pipefail
+          set -Eeuo pipefail
           node apps/site-factory/src/run-hostinger-node-build-api-only.mjs \
-            --mode "${{ inputs.mode }}" \
+            --mode apply \
             --username "$HOSTINGER_USERNAME" \
             --domain "$HOSTINGER_DOMAIN" \
             --archive "$ARCHIVE_PATH" \
-            --transport "${{ inputs.transport }}" \
+            --transport multipart \
             --node-version 22 \
-            --app-type vite \
-            --output-directory dist \
-            --build-script build \
+            --app-type express \
+            --output-directory "" \
+            --build-script "" \
+            --entry-file server.mjs \
             --package-manager npm \
+            --expected-text "uni.co" \
             --evidence "$EVIDENCE_PATH"
 
-      - name: Upload sanitized evidence
-        if: ${{ always() }}
-        uses: actions/upload-artifact@v4
-        with:
-          name: hostinger-api-only-node-build-${{ github.sha }}-${{ github.run_id }}
-          path: ${{ env.EVIDENCE_PATH }}
-          if-no-files-found: error
-          retention-days: 14
-
-      - name: Enforce executor result
+      - name: Enforce Hostinger executor result
         if: ${{ steps.hostinger.outcome != 'success' }}
         shell: bash
         run: |
-          echo "Hostinger API-only executor did not complete successfully." >&2
+          echo "Hostinger multipart executor did not complete successfully." >&2
           exit 1
+
+      - name: Verify public health endpoint
+        shell: bash
+        run: |
+          set -Eeuo pipefail
+          node - <<'NODE'
+          const url = "https://unico-preview.apidevelopers.digital/health";
+          let last;
+          for (let i = 0; i < 24; i++) {
+            try {
+              const response = await fetch(url, { redirect: "follow" });
+              const text = await response.text();
+              last = { status: response.status, text };
+              if (response.ok) {
+                const body = JSON.parse(text);
+                if (body?.ok === true && body?.product === "uni-co-web") {
+                  console.log("preview_health_ok=true");
+                  process.exit(0);
+                }
+              }
+            } catch (error) {
+              last = { error: error.message };
+            }
+            await new Promise(resolve => setTimeout(resolve, 5000));
+          }
+          console.error(JSON.stringify(last));
+          process.exit(1);
+          NODE
