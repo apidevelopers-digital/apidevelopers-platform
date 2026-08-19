@@ -68,46 +68,84 @@ jobs:
         continue-on-error: true
         run: bash ops/unico-preview/deploy.sh node-build
 
-      - name: Surface sanitized Node build evidence
+      - name: Classify sanitized Node build rejection
+        id: diagnose
         if: ${{ steps.carrier.outputs.ok == 'true' && always() }}
         shell: bash
         run: |
           set -Eeuo pipefail
-          EVIDENCE="$RUNNER_TEMP/unico-preview-node-evidence.json"
           node - <<'NODE'
           const fs = require("fs");
           const p = process.env.RUNNER_TEMP + "/unico-preview-node-evidence.json";
-          if (!fs.existsSync(p)) {
-            console.log(JSON.stringify({evidencePresent:false}));
-            process.exit(0);
+          let category = "evidence-missing";
+          let http = "none";
+          let field = "none";
+          if (fs.existsSync(p)) {
+            const e = JSON.parse(fs.readFileSync(p, "utf8"));
+            const r = e?.error?.evidence?.response ?? null;
+            const payload = r?.payload ?? null;
+            http = String(r?.status ?? "none");
+            const errors = payload?.errors && typeof payload.errors === "object" ? payload.errors : {};
+            const keys = Object.keys(errors);
+            const known = ["archive","node_version","app_type","root_directory","output_directory","build_script","entry_file","package_manager"];
+            field = known.find(k => keys.includes(k)) ?? (keys[0] ?? "none");
+            if (field !== "none") category = "validation-" + field.replaceAll("_","-");
+            else if (http !== "none") category = "http-" + http;
+            else if (e?.error?.message) category = "executor-error";
+            else if (e?.created?.uuid) category = "created";
+            else category = "unknown";
           }
-          const e = JSON.parse(fs.readFileSync(p, "utf8"));
-          const response = e?.error?.evidence?.response ?? null;
-          const payload = response?.payload ?? null;
-          const safePayload = payload && typeof payload === "object"
-            ? {
-                message: typeof payload.message === "string" ? payload.message : null,
-                errors: payload.errors && typeof payload.errors === "object"
-                  ? Object.fromEntries(Object.entries(payload.errors).map(([k,v]) => [k, Array.isArray(v) ? v.map(String) : String(v)]))
-                  : null,
-                correlation_id: payload.correlation_id ?? payload.correlationId ?? null
-              }
-            : null;
-          const out = {
-            evidencePresent: true,
-            status: e?.status ?? null,
-            errorMessage: e?.error?.message ?? null,
-            httpStatus: response?.status ?? null,
-            statusText: response?.statusText ?? null,
-            correlationId: response?.correlationId ?? safePayload?.correlation_id ?? null,
-            payload: safePayload,
-            writeExecuted: e?.writeExecuted ?? null,
-            createdUuid: e?.created?.uuid ?? null
-          };
-          const text = JSON.stringify(out, null, 2);
-          console.log(text);
-          fs.appendFileSync(process.env.GITHUB_STEP_SUMMARY, "```json\n" + text + "\n```\n");
+          fs.appendFileSync(process.env.GITHUB_OUTPUT, `category=${category}\nhttp=${http}\nfield=${field}\n`);
+          console.log(JSON.stringify({category,http,field}));
           NODE
+
+      - name: Hostinger rejected archive field
+        if: ${{ steps.diagnose.outputs.category == 'validation-archive' }}
+        run: exit 1
+
+      - name: Hostinger rejected node version field
+        if: ${{ steps.diagnose.outputs.category == 'validation-node-version' }}
+        run: exit 1
+
+      - name: Hostinger rejected app type field
+        if: ${{ steps.diagnose.outputs.category == 'validation-app-type' }}
+        run: exit 1
+
+      - name: Hostinger rejected root directory field
+        if: ${{ steps.diagnose.outputs.category == 'validation-root-directory' }}
+        run: exit 1
+
+      - name: Hostinger rejected output directory field
+        if: ${{ steps.diagnose.outputs.category == 'validation-output-directory' }}
+        run: exit 1
+
+      - name: Hostinger rejected build script field
+        if: ${{ steps.diagnose.outputs.category == 'validation-build-script' }}
+        run: exit 1
+
+      - name: Hostinger rejected entry file field
+        if: ${{ steps.diagnose.outputs.category == 'validation-entry-file' }}
+        run: exit 1
+
+      - name: Hostinger rejected package manager field
+        if: ${{ steps.diagnose.outputs.category == 'validation-package-manager' }}
+        run: exit 1
+
+      - name: Hostinger returned HTTP 422 without field detail
+        if: ${{ steps.diagnose.outputs.category == 'http-422' }}
+        run: exit 1
+
+      - name: Hostinger returned HTTP 404
+        if: ${{ steps.diagnose.outputs.category == 'http-404' }}
+        run: exit 1
+
+      - name: Hostinger returned HTTP 409
+        if: ${{ steps.diagnose.outputs.category == 'http-409' }}
+        run: exit 1
+
+      - name: Hostinger Node build executor failed before HTTP classification
+        if: ${{ steps.diagnose.outputs.category == 'executor-error' || steps.diagnose.outputs.category == 'evidence-missing' || steps.diagnose.outputs.category == 'unknown' }}
+        run: exit 1
 
       - name: Enforce Node build result
         if: ${{ steps.carrier.outputs.ok == 'true' && steps.nodebuild.outcome != 'success' }}
