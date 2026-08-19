@@ -30,14 +30,42 @@ jobs:
       - name: Install current Hostinger MCP 1.43.1 carrier client
         run: bash ops/unico-preview/deploy.sh install-mcp
 
-      - name: Upload carrier to preview hosting
+      - name: Classify carrier upload to preview hosting
+        id: carrier
         run: bash ops/unico-preview/deploy.sh carrier
 
+      - name: Blocked because static deploy tool is missing
+        if: ${{ steps.carrier.outputs.stage == 'tool-missing' }}
+        run: exit 1
+
+      - name: Blocked at preview domain resolution
+        if: ${{ steps.carrier.outputs.stage == 'resolve-domain' }}
+        run: exit 1
+
+      - name: Blocked at upload credentials
+        if: ${{ steps.carrier.outputs.stage == 'upload-credentials' }}
+        run: exit 1
+
+      - name: Blocked at TUS carrier upload
+        if: ${{ steps.carrier.outputs.stage == 'tus-upload' }}
+        run: exit 1
+
+      - name: Blocked at Hostinger static deploy
+        if: ${{ steps.carrier.outputs.stage == 'static-deploy' }}
+        run: exit 1
+
+      - name: Blocked at unknown carrier stage
+        if: ${{ steps.carrier.outputs.ok != 'true' && steps.carrier.outputs.stage == 'unknown' }}
+        run: exit 1
+
       - name: Verify Node archive is hosted
+        if: ${{ steps.carrier.outputs.ok == 'true' }}
         run: bash ops/unico-preview/deploy.sh verify-archive
 
       - name: Start Node build from hosted archive
+        if: ${{ steps.carrier.outputs.ok == 'true' }}
         run: bash ops/unico-preview/deploy.sh node-build
 
       - name: Verify preview health
+        if: ${{ steps.carrier.outputs.ok == 'true' }}
         run: bash ops/unico-preview/deploy.sh health
