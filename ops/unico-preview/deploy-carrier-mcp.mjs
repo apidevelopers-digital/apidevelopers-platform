@@ -7,11 +7,32 @@ import { StdioClientTransport } from "@modelcontextprotocol/sdk/client/stdio.js"
 const DOMAIN = "unico-preview.apidevelopers.digital";
 const TOOL = "hostinger_deployStaticWebsite";
 const archive = process.argv[2];
-if (!archive || !fs.existsSync(archive) || !fs.statSync(archive).isFile()) throw new Error("carrier_archive_missing");
+const output = process.env.GITHUB_OUTPUT || "";
+
+function setResult(stage, ok = false) {
+  if (output) fs.appendFileSync(output, `stage=${stage}\nok=${ok ? "true" : "false"}\n`);
+  console.log(JSON.stringify({ ok, domain: DOMAIN, tool: TOOL, stage }));
+}
+function classify(value) {
+  const s = String(value || "").toLowerCase();
+  if (s.includes("tool") && (s.includes("not found") || s.includes("missing"))) return "tool-missing";
+  if (s.includes("domain") || s.includes("website") || s.includes("resolve username") || s.includes("username not found")) return "resolve-domain";
+  if (s.includes("upload credential") || s.includes("upload-urls")) return "upload-credentials";
+  if (s.includes("tus") || s.includes("upload archive") || s.includes("upload failed") || s.includes("pre-upload")) return "tus-upload";
+  if (s.includes("deploy") || s.includes("static")) return "static-deploy";
+  return "unknown";
+}
+
+if (!archive || !fs.existsSync(archive) || !fs.statSync(archive).isFile()) {
+  setResult("local-archive", false);
+  process.exit(0);
+}
 const token = process.env.HOSTINGER_API_TOKEN || "";
-if (!token) throw new Error("hostinger_token_missing");
-const bin = process.env.HOSTINGER_MCP_BIN;
-if (!bin || !fs.existsSync(bin)) throw new Error("hostinger_mcp_binary_missing");
+const bin = process.env.HOSTINGER_MCP_BIN || "";
+if (!token || !bin || !fs.existsSync(bin)) {
+  setResult("local-mcp", false);
+  process.exit(0);
+}
 
 const transport = new StdioClientTransport({
   command: bin,
@@ -19,18 +40,36 @@ const transport = new StdioClientTransport({
   env: { ...process.env, DEBUG: "false", APITOKEN: token },
   stderr: "pipe",
 });
-const client = new Client({ name: "apidevelopers-unico-preview-carrier", version: "1.0.0" }, { capabilities: {} });
+const client = new Client(
+  { name: "apidevelopers-unico-preview-carrier", version: "1.0.0" },
+  { capabilities: {} }
+);
+
 try {
   await client.connect(transport);
   const listed = await client.listTools();
-  const tool = listed.tools.find((item) => item.name === TOOL);
-  if (!tool) throw new Error("hostinger_static_deploy_tool_missing");
-  const result = await client.callTool({
-    name: TOOL,
-    arguments: { domain: DOMAIN, archivePath: path.resolve(archive), removeArchive: false },
-  });
-  if (result?.isError) throw new Error("hostinger_static_carrier_deploy_failed");
-  console.log(JSON.stringify({ ok: true, domain: DOMAIN, tool: TOOL, archive: path.basename(archive) }));
+  if (!listed.tools.some((item) => item.name === TOOL)) {
+    setResult("tool-missing", false);
+    process.exit(0);
+  }
+  try {
+    const result = await client.callTool({
+      name: TOOL,
+      arguments: {
+        domain: DOMAIN,
+        archivePath: path.resolve(archive),
+        removeArchive: false,
+      },
+    });
+    const text = result?.content?.find?.((item) => item?.type === "text")?.text || "";
+    if (result?.isError) {
+      setResult(classify(text), false);
+      process.exit(0);
+    }
+    setResult("completed", true);
+  } catch (error) {
+    setResult(classify(error?.message), false);
+  }
 } finally {
   try { await client.close(); } catch {}
 }
