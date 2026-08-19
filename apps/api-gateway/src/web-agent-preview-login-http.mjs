@@ -21,6 +21,7 @@ function parseJsonBody(body) {
     error.status = 400;
     throw error;
   }
+
   let parsed;
   try {
     parsed = JSON.parse(body);
@@ -29,6 +30,7 @@ function parseJsonBody(body) {
     error.status = 400;
     throw error;
   }
+
   if (!parsed || typeof parsed !== "object" || Array.isArray(parsed)) {
     const error = new Error("invalid_json");
     error.status = 400;
@@ -39,9 +41,14 @@ function parseJsonBody(body) {
 
 function safeError(error) {
   const code = String(error?.message ?? "preview_login_failed");
-  if (code === "invalid_credentials" || code === "preview_identity_verification_failed") {
+
+  if (
+    code === "invalid_credentials" ||
+    code === "preview_identity_verification_failed"
+  ) {
     return { status: 401, code: "invalid_credentials" };
   }
+
   if (
     code === "access_grant_not_found" ||
     code === "access_grant_ambiguous" ||
@@ -52,16 +59,19 @@ function safeError(error) {
   ) {
     return { status: 403, code };
   }
+
   if (error?.status === 400) return { status: 400, code };
   if (error?.status === 401) return { status: 401, code: "invalid_credentials" };
   if (error?.status === 403) return { status: 403, code };
-  return { status: 503, code: "preview_login_unavailble" };
+
+  return { status: 503, code: "preview_login_unavailable" };
 }
 
 export function createUniCoPreviewLoginHttpApp({ app, bootstrap } = {}) {
   if (typeof app?.handleRequest !== "function") {
     throw new TypeError("app.handleRequest is required");
   }
+
   if (typeof bootstrap?.login !== "function") {
     return Object.freeze({
       enabled: false,
@@ -72,7 +82,11 @@ export function createUniCoPreviewLoginHttpApp({ app, bootstrap } = {}) {
   const wrapped = Object.freeze({
     async handleRequest(request = {}) {
       const method = String(request.method ?? "GET").toUpperCase();
-      const pathname = new URL(String(request.url ?? "/"), "http://api-gateway.local").pathname;
+      const pathname = new URL(
+        String(request.url ?? "/"),
+        "http://api-gateway.local",
+      ).pathname;
+
       if (method !== "POST" || pathname !== uniCoPreviewLoginHttpPath) {
         return app.handleRequest(request);
       }
@@ -84,6 +98,7 @@ export function createUniCoPreviewLoginHttpApp({ app, bootstrap } = {}) {
           email: payload.email,
           password: payload.password,
         });
+
         return response(
           200,
           {
@@ -95,7 +110,7 @@ export function createUniCoPreviewLoginHttpApp({ app, bootstrap } = {}) {
             accessGrantId: result.accessGrantId,
             expiresAt: result.expiresAt,
           },
-          { "set-cookie: result.setCookie },
+          { "set-cookie": result.setCookie },
         );
       } catch (error) {
         const failure = safeError(error);
