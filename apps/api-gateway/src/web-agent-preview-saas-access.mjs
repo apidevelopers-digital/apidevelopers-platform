@@ -49,6 +49,22 @@ export function createUniCoPreviewSaasAccessResolver({ accessRuntime } = {}) {
       throw error;
     }
 
+    const expected = identity?.expectedBinding;
+    if (expected && typeof expected === "object") {
+      const expectedWorkspaceId = String(expected.workspaceId ?? "").trim();
+      const expectedAccessGrantId = String(expected.accessGrantId ?? "").trim();
+      const expectedProductId = String(expected.productId ?? "").trim();
+      if (
+        expectedWorkspaceId !== workspaceId ||
+        expectedAccessGrantId !== accessGrantId ||
+        expectedProductId !== requestedProductId
+      ) {
+        const error = new Error("preview_identity_binding_mismatch");
+        error.status = 403;
+        throw error;
+      }
+    }
+
     return Object.freeze({
       principalId,
       tenantId,
