@@ -5,7 +5,7 @@ import { Client } from "@modelcontextprotocol/sdk/client/index.js";
 import { StdioClientTransport } from "@modelcontextprotocol/sdk/client/stdio.js";
 
 const DOMAIN = "unico-preview.apidevelopers.digital";
-const TOOL = "hostinger_deployStaticWebsite";
+const TOOL = "hosting_deployStaticWebsite";
 const archive = process.argv[2];
 const output = process.env.GITHUB_OUTPUT || "";
 
