@@ -33,7 +33,27 @@ jobs:
           npm install --no-audit --no-fund hostinger-api-mcp@1.43.1 @modelcontextprotocol/sdk@1.10.0
           test -x node_modules/.bin/hostinger-hosting-mcp
           echo "HOSTINGER_MCP_BIN=$MCP_WORKDIR/node_modules/.bin/hostinger-hosting-mcp" >> "$GITHUB_ENV"
-      - name: Deploy Node app via current official Hostinger tool
+      - name: Classify official Hostinger deploy stage
+        id: deploy
         run: node ops/unico-preview/deploy-js-mcp.mjs "$NODE_ARCHIVE"
+      - name: Blocked at domain resolution
+        if: ${{ steps.deploy.outputs.stage == 'resolve-domain' }}
+        run: exit 1
+      - name: Blocked at upload credentials
+        if: ${{ steps.deploy.outputs.stage == 'upload-credentials' }}
+        run: exit 1
+      - name: Blocked at TUS upload
+        if: ${{ steps.deploy.outputs.stage == 'tus-upload' }}
+        run: exit 1
+      - name: Blocked at build settings
+        if: ${{ steps.deploy.outputs.stage == 'build-settings' }}
+        run: exit 1
+      - name: Blocked at Node build
+        if: ${{ steps.deploy.outputs.stage == 'node-build' }}
+        run: exit 1
+      - name: Blocked at unknown Hostinger stage
+        if: ${{ steps.deploy.outputs.ok != 'true' && steps.deploy.outputs.stage == 'unknown' }}
+        run: exit 1
       - name: Verify preview health
+        if: ${{ steps.deploy.outputs.ok == 'true' }}
         run: bash ops/unico-preview/deploy.sh health
