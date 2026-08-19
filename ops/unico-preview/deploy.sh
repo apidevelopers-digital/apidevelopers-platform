@@ -13,10 +13,10 @@ case "$STAGE" in
     node - <<'NODE'
 const fs=require("fs");
 const r=JSON.parse(fs.readFileSync("ops/unico-preview/source/RELEASE.json","utf8"));
-if(r.sourceSha!=="000ef9ce9e3d28b2b473faf8ef6db17e150b3364")throw new Error("source_sha_mismatch");
-if(r.publicHost!=="unico-preview.apidevelopers.digital")throw new Error("target_mismatch");
-if(r.productionHost!=="unico.apidevelopers.digital")throw new Error("production_mismatch");
-if(r.secretsIncluded!==false||r.productionMutation!==false)throw new Error("unsafe_release");
+if(r.sourceSha!=="000ef9ce9e3d28b2b473faf8ef6db17e150b3364") throw new Error("source_sha_mismatch");
+if(r.publicHost!=="unico-preview.apidevelopers.digital") throw new Error("target_mismatch");
+if(r.productionHost!=="unico.apidevelopers.digital") throw new Error("production_mismatch");
+if(r.secretsIncluded!==false||r.productionMutation!==false) throw new Error("unsafe_release");
 NODE
     (cd "$SOURCE_DIR" && npm run check)
     NODE_ARCHIVE="$RUNNER_TEMP/uni-co-web-${SOURCE_SHA}.zip"
@@ -34,16 +34,16 @@ NODE
     {
       echo "NODE_ARCHIVE=$NODE_ARCHIVE"
       echo "NODE_ARCHIVE_NAME=$NODE_ARCHIVE_NAME"
-      echo "CARRIER=$CARRIER"
+      echo "CARRIEROJECT"
       echo "HOSTINGER_USERNAME=$HOSTINGER_USERNAME"
       echo "HOSTINGER_DOMAIN=$HOSTINGER_DOMAIN"
     } >> "$GITHUB_ENV"
     ;;
   install-mcp)
-    MCP_WORKDIR="$RUNNER_TEMP/hostinger-mcp-1.26.0-$GITHUB_RUN_ID"
+    MCP_WORKDIR="$RUNNER_TEMP/hostinger-mcp-1.43.1-$GITHUB_RUN_ID"
     rm -rf "$MCP_WORKDIR"; mkdir -p "$MCP_WORKDIR"
     cp ops/unico-preview/deploy-carrier-mcp.mjs "$MCP_WORKDIR/client.mjs"
-    (cd "$MCP_WORKDIR" && npm init -y >/dev/null && npm install --no-audit --no-fund hostinger-api-mcp@1.26.0 @modelcontextprotocol/sdk@1.10.0)
+    (cd "$MCP_WORKDIR" && npm init -y >/dev/null && npm install --no-audit --no-fund hostinger-api-mcp@1.43.1 @modelcontextprotocol/sdk@1.10.0)
     {
       echo "HOSTINGER_MCP_BIN=$MCP_WORKDIR/node_modules/.bin/hostinger-hosting-mcp"
       echo "CARRIER_CLIENT=$MCP_WORKDIR/client.mjs"
@@ -58,7 +58,7 @@ const url=`https://${process.env.HOSTINGER_DOMAIN}/${process.env.NODE_ARCHIVE_NA
 const r=await fetch(url,{redirect:"follow"});
 if(!r.ok)throw new Error(`hosted_archive_http_${r.status}`);
 const b=Buffer.from(await r.arrayBuffer());
-if(b.length<100)throw new Error("hosted_archive_too_small");
+if(b.length<100) throw new Error("hosted_archive_too_small");
 console.log(JSON.stringify({hostedArchive:true,status:r.status,bytes:b.length}));
 NODE
     ;;
