@@ -1,11 +1,17 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 
-import { createUniCoPreviewLoginHttpApp, uniCoPreviewLoginHttpPath } from "../src/web-agent-preview-login-http.mjs";
+import {
+  createUniCoPreviewLoginHttpApp,
+  uniCoPreviewLoginHttpPath,
+  uniCoPreviewSurfaceHostHeader,
+} from "../src/web-agent-preview-login-http.mjs";
 
-test("preview login HTTP sets the institutional cookie and never returns secrets", async () => {
+test("preview login HTTP accepts the fixed server-side surface claim and sets the institutional cookie", async () => {
   const calls = [];
-  const fallback = { handleRequest: async () => ({ status: 404, headers: {}, body: "{}" }) };
+  const fallback = {
+    handleRequest: async () => ({ status: 404, headers: {}, body: "{}" }),
+  };
   const composed = createUniCoPreviewLoginHttpApp({
     app: fallback,
     bootstrap: {
@@ -26,12 +32,21 @@ test("preview login HTTP sets the institutional cookie and never returns secrets
   const result = await composed.app.handleRequest({
     method: "POST",
     url: uniCoPreviewLoginHttpPath,
-    headers: { host: "unico-preview.apidevelopers.digital" },
-    body: JSON.stringify({ email: "igor@example.com", password: "Preview#123" }),
+    headers: {
+      host: "gateway.apidevelopers.digital",
+      [uniCoPreviewSurfaceHostHeader]: "unico-preview.apidevelopers.digital",
+    },
+    body: JSON.stringify({
+      email: "igor@example.com",
+      password: "Preview#123",
+    }),
   });
 
   assert.equal(result.status, 200);
-  assert.match(result.headers["set-cookie"], /^__Host-apidevelopers-session=/);
+  assert.match(
+    result.headers["set-cookie"],
+    /^__Host-apidevelopers-session=/,
+  );
   assert.deepEqual(calls, [{
     host: "unico-preview.apidevelopers.digital",
     email: "igor@example.com",
@@ -42,12 +57,15 @@ test("preview login HTTP sets the institutional cookie and never returns secrets
   assert.equal(JSON.parse(result.body).authenticated, true);
 });
 
-test("preview login HTTP returns generic invalid credentials", async () => {
-  const fallback = { handleRequest: async () => ({ status: 404, headers: {}, body: "{}" }) };
+test("preview login HTTP keeps direct preview-host compatibility", async () => {
+  const calls = [];
   const composed = createUniCoPreviewLoginHttpApp({
-    app: fallback,
+    app: {
+      handleRequest: async () => ({ status: 404, headers: {}, body: "{}" }),
+    },
     bootstrap: {
-      async login() {
+      async login(input) {
+        calls.push(input);
         throw new Error("invalid_credentials");
       },
     },
@@ -60,6 +78,7 @@ test("preview login HTTP returns generic invalid credentials", async () => {
     body: JSON.stringify({ email: "x@y.z", password: "bad" }),
   });
 
+  assert.equal(calls[0].host, "unico-preview.apidevelopers.digital");
   assert.equal(result.status, 401);
   assert.deepEqual(JSON.parse(result.body), {
     ok: false,
@@ -69,10 +88,20 @@ test("preview login HTTP returns generic invalid credentials", async () => {
 });
 
 test("preview login HTTP is disabled when identity verifier/bootstrap is absent", async () => {
-  const fallbackResult = { status: 404, headers: {}, body: JSON.stringify({ error: "not_found" }) };
+  const fallbackResult = {
+    status: 404,
+    headers: {},
+    body: JSON.stringify({ error: "not_found" }),
+  };
   const fallback = { handleRequest: async () => fallbackResult };
   const composed = createUniCoPreviewLoginHttpApp({ app: fallback });
 
   assert.equal(composed.enabled, false);
-  assert.equal(await composed.app.handleRequest({ method: "POST", url: uniCoPreviewLoginHttpPath }), fallbackResult);
+  assert.equal(
+    await composed.app.handleRequest({
+      method: "POST",
+      url: uniCoPreviewLoginHttpPath,
+    }),
+    fallbackResult,
+  );
 });
