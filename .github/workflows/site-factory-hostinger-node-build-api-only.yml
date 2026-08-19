@@ -63,9 +63,56 @@ jobs:
         run: bash ops/unico-preview/deploy.sh verify-archive
 
       - name: Start Node build from hosted archive
+        id: nodebuild
         if: ${{ steps.carrier.outputs.ok == 'true' }}
+        continue-on-error: true
         run: bash ops/unico-preview/deploy.sh node-build
 
+      - name: Surface sanitized Node build evidence
+        if: ${{ steps.carrier.outputs.ok == 'true' && always() }}
+        shell: bash
+        run: |
+          set -Eeuo pipefail
+          EVIDENCE="$RUNNER_TEMP/unico-preview-node-evidence.json"
+          node - <<'NODE'
+          const fs = require("fs");
+          const p = process.env.RUNNER_TEMP + "/unico-preview-node-evidence.json";
+          if (!fs.existsSync(p)) {
+            console.log(JSON.stringify({evidencePresent:false}));
+            process.exit(0);
+          }
+          const e = JSON.parse(fs.readFileSync(p, "utf8"));
+          const response = e?.error?.evidence?.response ?? null;
+          const payload = response?.payload ?? null;
+          const safePayload = payload && typeof payload === "object"
+            ? {
+                message: typeof payload.message === "string" ? payload.message : null,
+                errors: payload.errors && typeof payload.errors === "object"
+                  ? Object.fromEntries(Object.entries(payload.errors).map(([k,v]) => [k, Array.isArray(v) ? v.map(String) : String(v)]))
+                  : null,
+                correlation_id: payload.correlation_id ?? payload.correlationId ?? null
+              }
+            : null;
+          const out = {
+            evidencePresent: true,
+            status: e?.status ?? null,
+            errorMessage: e?.error?.message ?? null,
+            httpStatus: response?.status ?? null,
+            statusText: response?.statusText ?? null,
+            correlationId: response?.correlationId ?? safePayload?.correlation_id ?? null,
+            payload: safePayload,
+            writeExecuted: e?.writeExecuted ?? null,
+            createdUuid: e?.created?.uuid ?? null
+          };
+          const text = JSON.stringify(out, null, 2);
+          console.log(text);
+          fs.appendFileSync(process.env.GITHUB_STEP_SUMMARY, "```json\n" + text + "\n```\n");
+          NODE
+
+      - name: Enforce Node build result
+        if: ${{ steps.carrier.outputs.ok == 'true' && steps.nodebuild.outcome != 'success' }}
+        run: exit 1
+
       - name: Verify preview health
-        if: ${{ steps.carrier.outputs.ok == 'true' }}
+        if: ${{ steps.carrier.outputs.ok == 'true' && steps.nodebuild.outcome == 'success' }}
         run: bash ops/unico-preview/deploy.sh health
