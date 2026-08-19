@@ -1,0 +1,10 @@
+{
+  "product": "uni-co-web",
+  "environment": "preview",
+  "sourceRepository": "apidevelopers-digital/uni-co-web",
+  "sourceSha": "000ef9ce9e3d28b2b473faf8ef6db17e150b3364",
+  "publicHost": "unico-preview.apidevelopers.digital",
+  "productionHost": "unico.apidevelopers.digital",
+  "secretsIncluded": false,
+  "productionMutation": false
+}
