@@ -25,9 +25,9 @@ jobs:
           node-version: "22"
 
       - name: Prepare exact-SHA Node archive and static carrier
-        run: bash ops/unico-preview/deploy.sh prepare
+        run: bash ops/unico-preview/prepare.sh
 
-      - name: Install proven Hostinger MCP 1.26.0 carrier client
+      - name: Install current Hostinger MCP 1.43.1 carrier client
         run: bash ops/unico-preview/deploy.sh install-mcp
 
       - name: Upload carrier to preview hosting
