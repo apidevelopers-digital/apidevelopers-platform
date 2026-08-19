@@ -1,0 +1,12 @@
+{
+  "name": "@apidevelopers/uni-co-web",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "engines": { "node": ">=22" },
+  "scripts": {
+    "check": "node --check server.mjs && node --check src/catalog.mjs && node --check src/gateway-client.mjs && node --check public/app.js",
+    "test": "node --test",
+    "start": "node server.mjs"
+  }
+}
