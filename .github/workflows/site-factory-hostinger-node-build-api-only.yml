@@ -2,31 +2,6 @@ name: Site Factory Hostinger API-only Node Build
 
 on:
   workflow_dispatch:
-    inputs:
-      mode:
-        description: "Must be apply for the approved unico preview deployment"
-        required: true
-        default: apply
-        type: choice
-        options:
-          - preflight
-          - apply
-      approved_sha:
-        description: "Exact approved uni-co-web source SHA"
-        required: true
-        type: string
-      approval:
-        description: "Explicit Hostinger deployment approval token"
-        required: true
-        type: string
-      transport:
-        description: "API request transport"
-        required: true
-        default: multipart
-        type: choice
-        options:
-          - multipart
-          - documented-json-filename
 
 permissions:
   contents: read
@@ -47,6 +22,7 @@ jobs:
       HOSTINGER_DOMAIN: unico-preview.apidevelopers.digital
       SOURCE_SHA: 000ef9ce9e3d28b2b473faf8ef6db17e150b3364
       SOURCE_DIR: ops/unico-preview/source
+      APPROVED_OPERATION: IGOR_APROVA_HOSTINGER_DEPLOY
     steps:
       - name: Checkout operational branch
         uses: actions/checkout@v4
@@ -64,10 +40,7 @@ jobs:
           HOSTINGER_API_TOKEN: ${{ secrets.HOSTINGER_API_TOKEN }}
         run: |
           set -Eeuo pipefail
-          test "${{ inputs.mode }}" = "apply"
-          test "${{ inputs.approved_sha }}" = "$SOURCE_SHA"
-          test "${{ inputs.approval }}" = "IGOR_APROVA_HOSTINGER_DEPLOY"
-          test "${{ inputs.transport }}" = "multipart"
+          test "$APPROVED_OPERATION" = "IGOR_APROVA_HOSTINGER_DEPLOY"
           test -n "$HOSTINGER_API_TOKEN"
           node - <<'NODE'
           const fs = require("fs");
@@ -157,7 +130,7 @@ jobs:
                 }
               }
             } catch (error) {
-              last = { error: error.message };
+              last = { error: error.messae };
             }
             await new Promise(resolve => setTimeout(resolve, 5000));
           }
