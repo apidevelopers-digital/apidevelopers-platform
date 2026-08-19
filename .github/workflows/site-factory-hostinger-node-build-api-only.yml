@@ -1,8 +1,11 @@
 name: uni.co Preview Hostinger Node Deploy
+
 on:
   workflow_dispatch:
+
 permissions:
   contents: read
+
 jobs:
   deploy-unico-preview:
     runs-on:
@@ -16,58 +19,25 @@ jobs:
       - uses: actions/checkout@v4
         with:
           persist-credentials: false
+
       - uses: actions/setup-node@v4
         with:
           node-version: "22"
-      - name: Prepare exact-SHA Node archive
+
+      - name: Prepare exact-SHA Node archive and static carrier
         run: bash ops/unico-preview/deploy.sh prepare
-      - name: Install current official Hostinger MCP 1.43.1
-        shell: bash
-        run: |
-          set -Eeuo pipefail
-          MCP_WORKDIR="$RUNNER_TEMP/hostinger-mcp-1.43.1-$GITHUB_RUN_ID"
-          rm -rf "$MCP_WORKDIR"
-          mkdir -p "$MCP_WORKDIR"
-          cd "$MCP_WORKDIR"
-          npm init -y >/dev/null
-          npm install --no-audit --no-fund hostinger-api-mcp@1.43.1 @modelcontextprotocol/sdk@1.10.0
-          test -x node_modules/.bin/hostinger-hosting-mcp
-          cp "$GITHUB_WORKSPACE/ops/unico-preview/deploy-js-mcp.mjs" "$MCP_WORKDIR/client.mjs"
-          echo "HOSTINGER_MCP_BIN=$MCP_WORKDIR/node_modules/.bin/hostinger-hosting-mcp" >> "$GITHUB_ENV"
-          echo "HOSTINGER_DEPLOY_CLIENT=$MCP_WORKDIR/client.mjs" >> "$GITHUB_ENV"
-      - name: Classify official Hostinger deploy stage
-        id: deploy
-        run: node "$HOSTINGER_DEPLOY_CLIENT" "$NODE_ARCHIVE"
-      - name: Blocked at local archive
-        if: ${{ steps.deploy.outputs.stage == 'local-archive' }}
-        run: exit 1
-      - name: Blocked at local MCP
-        if: ${{ steps.deploy.outputs.stage == 'local-mcp' }}
-        run: exit 1
-      - name: Blocked because official deploy tool is missing
-        if: ${{ steps.deploy.outputs.stage == 'tool-missing' }}
-        run: exit 1
-      - name: Blocked at domain resolution
-        if: ${{ steps.deploy.outputs.stage == 'resolve-domain' }}
-        run: exit 1
-      - name: Blocked at upload credentials
-        if: ${{ steps.deploy.outputs.stage == 'upload-credentials' }}
-        run: exit 1
-      - name: Blocked at TUS upload
-        if: ${{ steps.deploy.outputs.stage == 'tus-upload' }}
-        run: exit 1
-      - name: Blocked at build settings
-        if: ${{ steps.deploy.outputs.stage == 'build-settings' }}
-        run: exit 1
-      - name: Blocked at Node build
-        if: ${{ steps.deploy.outputs.stage == 'node-build' }}
-        run: exit 1
-      - name: Blocked at unknown Hostinger stage
-        if: ${{ steps.deploy.outputs.ok != 'true' && steps.deploy.outputs.stage == 'unknown' }}
-        run: exit 1
-      - name: Blocked at unclassified stage
-        if: ${{ steps.deploy.outputs.ok != 'true' && steps.deploy.outputs.stage != 'local-archive' && steps.deploy.outputs.stage != 'local-mcp' && steps.deploy.outputs.stage != 'tool-missing' && steps.deploy.outputs.stage != 'resolve-domain' && steps.deploy.outputs.stage != 'upload-credentials' && steps.deploy.outputs.stage != 'tus-upload' && steps.deploy.outputs.stage != 'build-settings' && steps.deploy.outputs.stage != 'node-build' && steps.deploy.outputs.stage != 'unknown' }}
-        run: exit 1
+
+      - name: Install proven Hostinger MCP 1.26.0 carrier client
+        run: bash ops/unico-preview/deploy.sh install-mcp
+
+      - name: Upload carrier to preview hosting
+        run: bash ops/unico-preview/deploy.sh carrier
+
+      - name: Verify Node archive is hosted
+        run: bash ops/unico-preview/deploy.sh verify-archive
+
+      - name: Start Node build from hosted archive
+        run: bash ops/unico-preview/deploy.sh node-build
+
       - name: Verify preview health
-        if: ${{ steps.deploy.outputs.ok == 'true' }}
         run: bash ops/unico-preview/deploy.sh health
