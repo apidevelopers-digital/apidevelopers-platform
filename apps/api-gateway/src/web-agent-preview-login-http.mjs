@@ -1,4 +1,5 @@
 export const uniCoPreviewLoginHttpPath = "/v1/web-agent/session/login";
+export const uniCoPreviewSurfaceHostHeader = "x-apidevelopers-surface-host";
 
 const JSON_HEADERS = Object.freeze({
   "content-type": "application/json; charset=utf-8",
@@ -12,6 +13,30 @@ function response(status, payload, headers = {}) {
     headers: Object.freeze({ ...JSON_HEADERS, ...headers }),
     body: JSON.stringify(payload),
   });
+}
+
+function readHeader(headers, name) {
+  if (typeof headers?.get === "function") {
+    return headers.get(name);
+  }
+  return headers?.[name];
+}
+
+function headerText(headers, name) {
+  const value = readHeader(headers, name);
+  if (Array.isArray(value)) {
+    return value.length === 1
+      ? String(value[0] ?? "").trim().toLowerCase()
+      : "";
+  }
+  return String(value ?? "").trim().toLowerCase();
+}
+
+function resolveSurfaceHost(headers) {
+  return (
+    headerText(headers, uniCoPreviewSurfaceHostHeader) ||
+    headerText(headers, "host")
+  );
 }
 
 function parseJsonBody(body) {
@@ -94,7 +119,7 @@ export function createUniCoPreviewLoginHttpApp({ app, bootstrap } = {}) {
       try {
         const payload = parseJsonBody(request.body);
         const result = await bootstrap.login({
-          host: request.headers?.host,
+          host: resolveSurfaceHost(request.headers),
           email: payload.email,
           password: payload.password,
         });
