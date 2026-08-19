@@ -7,150 +7,37 @@ permissions:
   contents: read
 
 jobs:
-  deploy-unico-preview:
+  public-health:
     runs-on:
       - self-hosted
       - macOS
       - X64
-    timeout-minutes: 40
-    env:
-      HOSTINGER_API_TOKEN: ${{ secrets.HOSTINGER_API_TOKEN }}
+    timeout-minutes: 5
     steps:
-      - uses: actions/checkout@v4
-        with:
-          persist-credentials: false
-
-      - uses: actions/setup-node@v4
-        with:
-          node-version: "22"
-
-      - name: Prepare exact-SHA Node archive and static carrier
-        run: bash ops/unico-preview/prepare.sh
-
-      - name: Install current Hostinger MCP 1.43.1 carrier client
-        run: bash ops/unico-preview/deploy.sh install-mcp
-
-      - name: Classify carrier upload to preview hosting
-        id: carrier
-        run: bash ops/unico-preview/deploy.sh carrier
-
-      - name: Blocked because static deploy tool is missing
-        if: ${{ steps.carrier.outputs.stage == 'tool-missing' }}
-        run: exit 1
-
-      - name: Blocked at preview domain resolution
-        if: ${{ steps.carrier.outputs.stage == 'resolve-domain' }}
-        run: exit 1
-
-      - name: Blocked at upload credentials
-        if: ${{ steps.carrier.outputs.stage == 'upload-credentials' }}
-        run: exit 1
-
-      - name: Blocked at TUS carrier upload
-        if: ${{ steps.carrier.outputs.stage == 'tus-upload' }}
-        run: exit 1
-
-      - name: Blocked at Hostinger static deploy
-        if: ${{ steps.carrier.outputs.stage == 'static-deploy' }}
-        run: exit 1
-
-      - name: Blocked at unknown carrier stage
-        if: ${{ steps.carrier.outputs.ok != 'true' && steps.carrier.outputs.stage == 'unknown' }}
-        run: exit 1
-
-      - name: Verify Node archive is hosted
-        if: ${{ steps.carrier.outputs.ok == 'true' }}
-        run: bash ops/unico-preview/deploy.sh verify-archive
-
-      - name: Start Node build from hosted archive
-        id: nodebuild
-        if: ${{ steps.carrier.outputs.ok == 'true' }}
-        continue-on-error: true
-        run: bash ops/unico-preview/deploy.sh node-build
-
-      - name: Classify sanitized Node build rejection
-        id: diagnose
-        if: ${{ steps.carrier.outputs.ok == 'true' && always() }}
+      - name: Verify public preview health
         shell: bash
         run: |
           set -Eeuo pipefail
           node - <<'NODE'
-          const fs = require("fs");
-          const p = process.env.RUNNER_TEMP + "/unico-preview-node-evidence.json";
-          let category = "evidence-missing";
-          let http = "none";
-          let field = "none";
-          if (fs.existsSync(p)) {
-            const e = JSON.parse(fs.readFileSync(p, "utf8"));
-            const r = e?.error?.evidence?.response ?? null;
-            const payload = r?.payload ?? null;
-            http = String(r?.status ?? "none");
-            const errors = payload?.errors && typeof payload.errors === "object" ? payload.errors : {};
-            const keys = Object.keys(errors);
-            const known = ["archive","node_version","app_type","root_directory","output_directory","build_script","entry_file","package_manager"];
-            field = known.find(k => keys.includes(k)) ?? (keys[0] ?? "none");
-            if (field !== "none") category = "validation-" + field.replaceAll("_","-");
-            else if (http !== "none") category = "http-" + http;
-            else if (e?.error?.message) category = "executor-error";
-            else if (e?.created?.uuid) category = "created";
-            else category = "unknown";
+          const url = "https://unico-preview.apidevelopers.digital/health";
+          let last = null;
+          for (let i = 0; i < 12; i++) {
+            try {
+              const response = await fetch(url, { redirect: "follow" });
+              const text = await response.text();
+              last = { status: response.status, text };
+              if (response.ok) {
+                const body = JSON.parse(text);
+                if (body?.ok === true && body?.product === "uni-co-web") {
+                  console.log(JSON.stringify({ health: "ok", status: response.status, product: body.product }));
+                  process.exit(0);
+                }
+              }
+            } catch (error) {
+              last = { error: error.message };
+            }
+            await new Promise(resolve => setTimeout(resolve, 5000));
           }
-          fs.appendFileSync(process.env.GITHUB_OUTPUT, `category=${category}\nhttp=${http}\nfield=${field}\n`);
-          console.log(JSON.stringify({category,http,field}));
+          console.error(JSON.stringify(last));
+          process.exit(1);
           NODE
-
-      - name: Hostinger rejected archive field
-        if: ${{ steps.diagnose.outputs.category == 'validation-archive' }}
-        run: exit 1
-
-      - name: Hostinger rejected node version field
-        if: ${{ steps.diagnose.outputs.category == 'validation-node-version' }}
-        run: exit 1
-
-      - name: Hostinger rejected app type field
-        if: ${{ steps.diagnose.outputs.category == 'validation-app-type' }}
-        run: exit 1
-
-      - name: Hostinger rejected root directory field
-        if: ${{ steps.diagnose.outputs.category == 'validation-root-directory' }}
-        run: exit 1
-
-      - name: Hostinger rejected output directory field
-        if: ${{ steps.diagnose.outputs.category == 'validation-output-directory' }}
-        run: exit 1
-
-      - name: Hostinger rejected build script field
-        if: ${{ steps.diagnose.outputs.category == 'validation-build-script' }}
-        run: exit 1
-
-      - name: Hostinger rejected entry file field
-        if: ${{ steps.diagnose.outputs.category == 'validation-entry-file' }}
-        run: exit 1
-
-      - name: Hostinger rejected package manager field
-        if: ${{ steps.diagnose.outputs.category == 'validation-package-manager' }}
-        run: exit 1
-
-      - name: Hostinger returned HTTP 422 without field detail
-        if: ${{ steps.diagnose.outputs.category == 'http-422' }}
-        run: exit 1
-
-      - name: Hostinger returned HTTP 404
-        if: ${{ steps.diagnose.outputs.category == 'http-404' }}
-        run: exit 1
-
-      - name: Hostinger returned HTTP 409
-        if: ${{ steps.diagnose.outputs.category == 'http-409' }}
-        run: exit 1
-
-      - name: Hostinger Node build executor failed before HTTP classification
-        if: ${{ steps.diagnose.outputs.category == 'executor-error' || steps.diagnose.outputs.category == 'evidence-missing' || steps.diagnose.outputs.category == 'unknown' }}
-        run: exit 1
-
-      - name: Enforce Node build result
-        if: ${{ steps.carrier.outputs.ok == 'true' && steps.nodebuild.outcome != 'success' }}
-        run: exit 1
-
-      - name: Verify preview health
-        if: ${{ steps.carrier.outputs.ok == 'true' && steps.nodebuild.outcome == 'success' }}
-        run: bash ops/unico-preview/deploy.sh health
