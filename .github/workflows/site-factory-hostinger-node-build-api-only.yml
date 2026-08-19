@@ -10,6 +10,8 @@ jobs:
       - macOS
       - X64
     timeout-minutes: 40
+    env:
+      HOSTINGER_API_TOKEN: ${{ secrets.HOSTINGER_API_TOKEN }}
     steps:
       - uses: actions/checkout@v4
         with:
@@ -17,8 +19,15 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: "22"
-      - name: Deploy approved preview
-        shell: bash
-        env:
-          HOSTINGER_API_TOKEN: ${{ secrets.HOSTINGER_API_TOKEN }}
-        run: bash ops/unico-preview/deploy.sh
+      - name: Prepare exact-SHA archives
+        run: bash ops/unico-preview/deploy.sh prepare
+      - name: Install pinned Hostinger MCP
+        run: bash ops/unico-preview/deploy.sh install-mcp
+      - name: Publish carrier to preview
+        run: bash ops/unico-preview/deploy.sh carrier
+      - name: Verify hosted Node ZIP
+        run: bash ops/unico-preview/deploy.sh verify-archive
+      - name: Start Hostinger Node build
+        run: bash ops/unico-preview/deploy.sh node-build
+      - name: Verify preview health
+        run: bash ops/unico-preview/deploy.sh health
