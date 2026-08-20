@@ -1,6 +1,5 @@
 import { registerOperationalShutdown } from "./operational-server.mjs";
 import { resolveHostingerRuntimeEnv } from "./hostinger-runtime-env.mjs";
-import { runUniCoPreviewBootstrap } from "./uni-co-preview-bootstrap.mjs";
 import { startWebAgentOperationalGateway } from "./web-agent-operational-startup.mjs";
 
 // Preserve the managed-hosting startup contract while routing the implementation
@@ -10,7 +9,6 @@ async function startOperationalGateway(options = {}) {
 }
 
 const env = resolveHostingerRuntimeEnv(process.env);
-const { server, runtime } = await startOperationalGateway({ env });
-await runUniCoPreviewBootstrap({ app: runtime.app, env });
+const { server } = await startOperationalGateway({ env });
 
 registerOperationalShutdown({ server });
