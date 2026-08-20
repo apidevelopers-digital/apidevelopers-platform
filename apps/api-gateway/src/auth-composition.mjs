@@ -36,6 +36,13 @@ export function createGatewayAuthenticator({
     status: "active",
     scopes: ["saas:access:delegate"],
   },
+  provisioningKey = optionalText(process.env.API_GATEWAY_PROVISIONING_KEY),
+  provisioningPrincipal = {
+    id: "backend-provisioner",
+    name: "Backend SaaS Provisioner",
+    status: "active",
+    scopes: ["saas:provision"],
+  },
   compareSecrets = secureCompareSecrets,
 } = {}) {
   const durableAuthenticator = createDurableApiKeyAuthenticator({
@@ -47,21 +54,38 @@ export function createGatewayAuthenticator({
 
   const normalizedDelegatedKey = optionalText(delegatedKey);
   const normalizedDelegatedTenantId = optionalText(delegatedTenantId);
+  const normalizedProvisioningKey = optionalText(provisioningKey);
 
   if (Boolean(normalizedDelegatedKey) !== Boolean(normalizedDelegatedTenantId)) {
     throw new TypeError(
       "API_GATEWAY_DELEGATED_KEY and API_GATEWAY_DELEGATED_TENANT_ID must be configured together",
     );
   }
+  if (normalizedProvisioningKey && normalizedProvisioningKey.length < 32) {
+    throw new TypeError("API_GATEWAY_PROVISIONING_KEY must contain at least 32 characters");
+  }
+  if (
+    normalizedDelegatedKey &&
+    normalizedProvisioningKey &&
+    compareSecrets(normalizedDelegatedKey, normalizedProvisioningKey)
+  ) {
+    throw new TypeError("delegated and provisioning keys must be distinct");
+  }
 
-  if (!normalizedDelegatedKey) {
+  if (!normalizedDelegatedKey && !normalizedProvisioningKey) {
     return durableAuthenticator;
   }
 
   return Object.freeze({
     async authenticate(headers = {}) {
       const apiKey = extractApiKey(headers);
-      if (apiKey && compareSecrets(apiKey, normalizedDelegatedKey)) {
+      if (apiKey && normalizedProvisioningKey && compareSecrets(apiKey, normalizedProvisioningKey)) {
+        return freezeIdentity("service", {
+          ...provisioningPrincipal,
+          scopes: ["saas:provision"],
+        });
+      }
+      if (apiKey && normalizedDelegatedKey && compareSecrets(apiKey, normalizedDelegatedKey)) {
         return freezeIdentity("service", {
           ...delegatedPrincipal,
           tenantId: normalizedDelegatedTenantId,
