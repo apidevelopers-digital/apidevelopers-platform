@@ -29,32 +29,47 @@ export function createSaasOperationalHttpComposition({
   const saasComposition = createSaasAccessComposition({ store, ...(clock ? { clock } : {}) });
   const saasApp = createApp({ authenticator, audit, saasAccess: saasComposition.saasAccess });
   const delegatedApp = createDelegatedSaasAccessApp({
-    authenticator, saasAccess: saasComposition.saasAccess, federatedPrincipal: saasComposition.federatedPrincipal,
+    authenticator,
+    saasAccess: saasComposition.saasAccess,
+    federatedPrincipal: saasComposition.federatedPrincipal,
     ...(delegatedBindingSigner ? { bindingSigner: delegatedBindingSigner } : {}),
   });
   const uniCoProvisioningApp = createUniCoProvisioningApp({
-    authenticator, saasRuntime: saasComposition.saasRuntime, saasAccess: saasComposition.saasAccess,
-    federatedPrincipal: saasComposition.federatedPrincipal, ...(clock ? { clock } : {}),
+    authenticator,
+    saasRuntime: saasComposition.saasRuntime,
+    saasAccess: saasComposition.saasAccess,
+    federatedPrincipal: saasComposition.federatedPrincipal,
+    ...(clock ? { clock } : {}),
   });
 
   const concreteProbe = resolveZuniReadinessProbe({ probeZuniProductReadiness, zuniReadinessFetch });
-  const readinessProvisioner = zuniProductProvisioner ??
+  const readinessProvisioner =
+    zuniProductProvisioner ??
     (typeof concreteProbe === "function"
-      ? createZuniOperationalReadinessComposition({ saasRuntime: saasComposition.saasRuntime, probeZuniProductReadiness: concreteProbe }).adapter
+      ? createZuniOperationalReadinessComposition({
+          saasRuntime: saasComposition.saasRuntime,
+          probeZuniProductReadiness: concreteProbe,
+        }).adapter
       : undefined);
 
   const guardedProvisioningRuntime = createZuniProvisioningRuntimeGuard({
-    saasRuntime: saasComposition.saasRuntime, ...(readinessProvisioner ? { zetuniProductProvisioner: readinessProvisioner } : {}),
+    saasRuntime: saasComposition.saasRuntime,
+    ...(readinessProvisioner ? { zuniProductProvisioner: readinessProvisioner } : {}),
   });
   const provisioningApp = createSaasProvisioningApp({
-    authenticator, saasRuntime: guardedProvisioningRuntime, saasAccess: saasComposition.saasAccess,
-    federatedPrincipal: saasComposition.federatedPrincipal, ...(clock ? { clock } : {}),
+    authenticator,
+    saasRuntime: guardedProvisioningRuntime,
+    saasAccess: saasComposition.saasAccess,
+    federatedPrincipal: saasComposition.federatedPrincipal,
+    ...(clock ? { clock } : {}),
   });
 
   const wrappedApp = Object.freeze({
     async handleRequest(request = {}) {
       const pathname = pathnameOf(request.url);
-      if (pathname === "/v1/saas/uni-co/provision") return uniCoProvisioningApp.handleRequest(request);
+      if (pathname === "/v1/saas/uni-co/provision") {
+        return uniCoProvisioningApp.handleRequest(request);
+      }
       if (pathname === "/v1/saas/provision") return provisioningApp.handleRequest(request);
       if (pathname === "/v1/saas/access/delegated") return delegatedApp.handleRequest(request);
       if (pathname === "/v1/saas/access") return saasApp.handleRequest(request);
@@ -63,7 +78,9 @@ export function createSaasOperationalHttpComposition({
   });
 
   return Object.freeze({
-    app: wrappedApp, saasRuntime: saasComposition.saasRuntime, saasAccess: saasComposition.saasAccess,
+    app: wrappedApp,
+    saasRuntime: saasComposition.saasRuntime,
+    saasAccess: saasComposition.saasAccess,
     federatedPrincipal: saasComposition.federatedPrincipal,
   });
 }
