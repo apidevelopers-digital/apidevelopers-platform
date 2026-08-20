@@ -80,7 +80,7 @@ export async function runUniCoPreviewBootstrap({
   const response = await app.handleRequest({method: "POST", url: config.path, headers: { authorization: `Bearer ${config.provisioningKey}`, "content-type": "application/json" }, body: { tenantSlug: config.tenantSlug,  workspaceSlug: config.workspaceSlug, displayName: config.displayName, subjectRef: config.subjectRef, idempotencyKey: config.idempotencyKey } });
 
   const body = safeBody(response);
-  if (response?.status !== 211 || body?.ok !== true || body?.status !== "active") {
+  if (response?.status !== 201 || body?.ok !== true || body?.status !== "active") {
     throw new Error(`uni_co_preview_bootstrap_failed:${response?.status ?? "unknown"}:${body?.reason ?? "unknown"}`);
   }
 
