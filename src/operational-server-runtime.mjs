@@ -5,6 +5,7 @@ import { fileURLToPath } from "node:url";
 import { startOperationalHttpServer } from "./operational-http-transport.mjs";
 import { createOperationalRuntime } from "./operational-runtime.mjs";
 import { resolveZuniDelegatedBindingSigner } from "./saas-delegated-binding-runtime-config.mjs";
+import { runUniCoPreviewBootstrap } from "./uni-co-preview-bootstrap.mjs";
 
 function writeLog(logger, payload) {
   if (typeof logger?.log === "function") {
@@ -235,9 +236,20 @@ export function registerOperationalShutdown({
   return shutdown;
 }
 
+export async function runOperationalMain({
+  env = process.env,
+  startGateway = startOperationalGateway,
+  bootstrapRunner = runUniCoPreviewBootstrap,
+  shutdownRegistrar = registerOperationalShutdown,
+} = {}) {
+  const { server, runtime } = await startGateway({ env });
+  await bootstrapRunner({ app: runtime.app, env });
+  shutdownRegistrar({ server });
+  return Object.freeze({ server, runtime });
+}
+
 async function main() {
-  const { server } = await startOperationalGateway();
-  registerOperationalShutdown({ server });
+  await runOperationalMain();
 }
 
 if (isDirectExecution()) {
