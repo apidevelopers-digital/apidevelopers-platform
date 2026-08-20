@@ -15,6 +15,7 @@ import {
 import {
   createOperationalGatewayWithReadonlyOperator,
 } from "./operator-readonly-composition.mjs";
+import { createUniCoPreviewLoginComposition } from "./web-agent-preview-login-composition.mjs";
 
 function requireText(value, name) {
   const normalized = String(value ?? "").trim();
@@ -66,6 +67,7 @@ export function createOperationalRuntime({
   cwd = process.cwd(),
   gatewayFactory = createOperationalGatewayWithReadonlyOperator,
   gatewayTransform = ({ gateway }) => gateway,
+  previewLoginCompositionFactory = createUniCoPreviewLoginComposition,
   githubRuntimeFactory = createOperatorGitHubRuntime,
   githubTransportFactory = createOperatorGitHubReadonlyTransport,
   githubSecretProviderFactory = createOperatorSecretResolverProvider,
@@ -81,6 +83,9 @@ export function createOperationalRuntime({
   }
   if (typeof gatewayTransform !== "function") {
     throw new TypeError("gatewayTransform must be a function");
+  }
+  if (typeof previewLoginCompositionFactory !== "function") {
+    throw new TypeError("previewLoginCompositionFactory must be a function");
   }
   if (typeof githubRuntimeFactory !== "function") {
     throw new TypeError("githubRuntimeFactory must be a function");
@@ -149,8 +154,35 @@ export function createOperationalRuntime({
       : {}),
   });
 
+  const identityBackendBaseUrl = optionalText(
+    env.UNI_CO_PREVIEW_IDENTITY_BACKEND_BASE_URL,
+  );
+  let gatewayBeforeTransforms = baseGateway;
+  let previewLoginDescriptor;
+
+  if (identityBackendBaseUrl) {
+    const previewLogin = previewLoginCompositionFactory({
+      app: baseGateway.app,
+      store: baseGateway.store,
+      identityBackendBaseUrl,
+    });
+
+    if (
+      previewLogin?.enabled !== true ||
+      typeof previewLogin?.app?.handleRequest !== "function"
+    ) {
+      throw new TypeError("configured uni.co preview login is unavailable");
+    }
+
+    gatewayBeforeTransforms = Object.freeze({
+      ...baseGateway,
+      app: previewLogin.app,
+    });
+    previewLoginDescriptor = previewLogin.descriptor;
+  }
+
   const gateway = gatewayTransform({
-    gateway: baseGateway,
+    gateway: gatewayBeforeTransforms,
     env,
     cwd,
     config,
@@ -174,6 +206,9 @@ export function createOperationalRuntime({
       githubReadonly: githubRuntime.descriptor,
       ...(delegatedBindingSigner
         ? { delegatedBindingSignerConfigured: true }
+        : {}),
+      ...(previewLoginDescriptor
+        ? { uniCoPreviewLogin: previewLoginDescriptor }
         : {}),
     }),
   });
