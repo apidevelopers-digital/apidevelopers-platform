@@ -62,7 +62,7 @@ export function resolveUniCoPreviewBootstrapConfig(env = process.env) {
 export async function runUniCoPreviewBootstrap({
   app,
   env = process.env,
-  logger = consol,
+  logger = console,
 } = {}) {
   if (typeof app?.handleRequest !== "function") {
     throw new TypeError("app.handleRequest must be a function");
@@ -77,7 +77,21 @@ export async function runUniCoPreviewBootstrap({
     });
   }
 
-  const response = await app.handleRequest({method: "POST", url: config.path, headers: { authorization: `Bearer ${config.provisioningKey}`, "content-type": "application/json" }, body: { tenantSlug: config.tenantSlug,  workspaceSlug: config.workspaceSlug, displayName: config.displayName, subjectRef: config.subjectRef, idempotencyKey: config.idempotencyKey } });
+  const response = await app.handleRequest({
+    method: "POST",
+    url: config.path,
+    headers: {
+      authorization: `Bearer ${config.provisioningKey}`,
+      "content-type": "application/json",
+    },
+    body: {
+      tenantSlug: config.tenantSlug,
+      workspaceSlug: config.workspaceSlug,
+      displayName: config.displayName,
+      subjectRef: config.subjectRef,
+      idempotencyKey: config.idempotencyKey,
+    },
+  });
 
   const body = safeBody(response);
   if (response?.status !== 201 || body?.ok !== true || body?.status !== "active") {
