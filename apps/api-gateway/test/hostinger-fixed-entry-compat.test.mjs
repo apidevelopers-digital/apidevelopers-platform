@@ -40,6 +40,8 @@ test("Hostinger fixed entry compatibility preserves the managed runtime contract
   );
   assert.match(hostingerEntry, /\.\/operational-server-runtime\.mjs/);
   assert.doesNotMatch(hostingerEntry, /\.\/operational-server\.mjs/);
+  assert.match(hostingerEntry, /\.\/uni-co-preview-bootstrap\.mjs/);
+  assert.match(hostingerEntry, /runUniCoPreviewBootstrap\(\{ app: runtime\.app, env \}\)/);
 
   const webAgentStartup = await readFile(
     join(artifactDirectory, "src/web-agent-operational-startup.mjs"),
