@@ -3,7 +3,7 @@
   "format": "managed-node-zip",
   "service": "api-gateway",
   "version": "0.7.0",
-  "sourceRevision": "414f85579304fa8f25847cc8fcd2eec5d1692e68",
+  "sourceRevision": "a9e0cc0a7aff98e83e83611cc932fc8d63d30fde",
   "runtime": {
     "node": ">=22",
     "entrypoint": "src/hostinger-entry.mjs",
@@ -525,8 +525,8 @@
     },
     {
       "path": "src/operational-runtime.mjs",
-      "bytes": 5465,
-      "sha256": "3629c9ba8c02216036083aec746243ef726ec92e4bc8eee69cf8e5f96f92ac13"
+      "bytes": 6625,
+      "sha256": "436e75a97dff9b6f1034bdaaeea042343d66359c6a1ef68362ae4dff41328b11"
     },
     {
       "path": "src/operational-server-runtime.mjs",
@@ -670,8 +670,8 @@
     },
     {
       "path": "src/operator-readonly-composition.mjs",
-      "bytes": 3375,
-      "sha256": "9f61256b66a1164b2601a4b32894fc836ebf473b2f97ed1524168b9c99b78c5d"
+      "bytes": 3654,
+      "sha256": "24dce4749d818f0523db15aedb5e7ceddc66499f2d258ce5e51eadbec4ba4fb7"
     },
     {
       "path": "src/operator-readonly-contract.mjs",
@@ -849,6 +849,31 @@
       "sha256": "d771802de46a40a202e9caa636f82d9be2d1bacaae9c33e830f2e351bf00ca2e"
     },
     {
+      "path": "src/web-agent-preview-backend-identity.mjs",
+      "bytes": 4380,
+      "sha256": "fa2f37847bfa194764e9c13b6d67adfe134a33393cedd9eaae87f1c22aee465b"
+    },
+    {
+      "path": "src/web-agent-preview-login-composition.mjs",
+      "bytes": 2798,
+      "sha256": "c03df197e44ea70f1b0f6d4e7d2b932d318e8359ca66b51365fdf4176c52458c"
+    },
+    {
+      "path": "src/web-agent-preview-login-http.mjs",
+      "bytes": 4145,
+      "sha256": "90316f64f54a46ae715b7af73810dab36c9b38e18a56404e9975329800b0e9be"
+    },
+    {
+      "path": "src/web-agent-preview-saas-access.mjs",
+      "bytes": 2690,
+      "sha256": "9e78ff517d1640c23925e65b8848cb3a69fd413f9bfe769807c7a6bf05ef1cdc"
+    },
+    {
+      "path": "src/web-agent-preview-session-bootstrap.mjs",
+      "bytes": 3161,
+      "sha256": "0aecd1ade32c3205de90a7a7310c4349311849ddecfb6619d3bb9f6e44d84ede"
+    },
+    {
       "path": "src/web-agent-product-binding.mjs",
       "bytes": 217,
       "sha256": "e8fea7677495d53df5f1895c33cf9c761fae8df16c1b24971f7dd4b75023903f"
@@ -875,8 +900,8 @@
     },
     {
       "path": "src/web-agent-surface-policy.mjs",
-      "bytes": 1775,
-      "sha256": "e769129ae4dfb2d6006c947fb9bffc87476bad980efac5270779cd2fa8e5fe44"
+      "bytes": 1894,
+      "sha256": "f90ed1241feb4a4c65539fa521f15021f1aa1aa94a1a537275487cacb2014080"
     },
     {
       "path": "src/web-international-context-resolver.mjs",
