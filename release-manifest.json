@@ -3,7 +3,7 @@
   "format": "managed-node-zip",
   "service": "api-gateway",
   "version": "0.7.0",
-  "sourceRevision": "a9e0cc0a7aff98e83e83611cc932fc8d63d30fde",
+  "sourceRevision": "ac22eaeab6075ebb368700096e92672481259b83",
   "runtime": {
     "node": ">=22",
     "entrypoint": "src/hostinger-entry.mjs",
@@ -70,8 +70,8 @@
     },
     {
       "path": "src/auth-composition.mjs",
-      "bytes": 574,
-      "sha256": "ca4dc2bd6d085fcdf6b36d8ebcf95f23d28c99fb5a8a224205fcc2e1b60876e8"
+      "bytes": 2112,
+      "sha256": "1706ff727c532514dfbaf0d08118b82729f2d10c67dd2d02d861b6b7bc37d601"
     },
     {
       "path": "src/canonical-hash.mjs",
