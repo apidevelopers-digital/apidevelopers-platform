@@ -3,7 +3,7 @@
   "format": "managed-node-zip",
   "service": "api-gateway",
   "version": "0.7.0",
-  "sourceRevision": "027402d61dacef13cc2e132a24b2e4370a561109",
+  "sourceRevision": "abe7a17604b123abe3093a468ba313159ec95eb5",
   "runtime": {
     "node": ">=22",
     "entrypoint": "src/hostinger-entry.mjs",
@@ -450,8 +450,8 @@
     },
     {
       "path": "src/hostinger-entry.mjs",
-      "bytes": 637,
-      "sha256": "59ffb34a391b042b6dbbf2d74599ee9df3803e2b434bb9b94c1d99d1bb3eea4f"
+      "bytes": 780,
+      "sha256": "e6df14c6c8bd85ce8e3431c0a8f2e16dc0640c54c1fba5325b56b09aa11c6532"
     },
     {
       "path": "src/hostinger-runtime-env.mjs",
@@ -827,6 +827,11 @@
       "path": "src/server.mjs",
       "bytes": 7591,
       "sha256": "a95e99d92947bf7ad643a5ac9e311e9ddc3d73391d953b17f2bafd1157d318b8"
+    },
+    {
+      "path": "src/uni-co-preview-bootstrap.mjs",
+      "bytes": 4295,
+      "sha256": "869851a3b910e35207a848cd7b35d8af7b0c58ade9dde5baf56f45566fc57e64"
     },
     {
       "path": "src/web-agent-browser-composition.mjs",
