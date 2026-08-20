@@ -3,7 +3,7 @@
   "format": "managed-node-zip",
   "service": "api-gateway",
   "version": "0.7.0",
-  "sourceRevision": "ac22eaeab6075ebb368700096e92672481259b83",
+  "sourceRevision": "027402d61dacef13cc2e132a24b2e4370a561109",
   "runtime": {
     "node": ">=22",
     "entrypoint": "src/hostinger-entry.mjs",
@@ -70,8 +70,8 @@
     },
     {
       "path": "src/auth-composition.mjs",
-      "bytes": 2112,
-      "sha256": "1706ff727c532514dfbaf0d08118b82729f2d10c67dd2d02d861b6b7bc37d601"
+      "bytes": 3106,
+      "sha256": "4f2eed215aa2353d21e40b1f4437c3bccc6a45462ebad759afde3f9dc83fa889"
     },
     {
       "path": "src/canonical-hash.mjs",
@@ -785,13 +785,18 @@
     },
     {
       "path": "src/saas-operational-http-composition.mjs",
-      "bytes": 3698,
-      "sha256": "4ba40518bd8fd7b9e148510f12b67926e14289225858794ebdb9bf800bcfed49"
+      "bytes": 4007,
+      "sha256": "927c3635f9bce324230959459c1b4fe6968241502f55b614a276af131d0ef96c"
     },
     {
       "path": "src/saas-provisioning.mjs",
       "bytes": 11517,
       "sha256": "ca268a0b59722e7217c202d9a6c39c8b0faf235250a8fd75d14c4bfc07609479"
+    },
+    {
+      "path": "src/saas-uni-co-provisioning.mjs",
+      "bytes": 8719,
+      "sha256": "3cbcb4fc441539b3b8f4e4b8860d7e0a495fd108ad619fa04011d06074136463"
     },
     {
       "path": "src/saas-zuni-operational-readiness-adapter.mjs",

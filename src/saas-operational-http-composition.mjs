@@ -1,6 +1,7 @@
 import { createSaasAccessComposition } from "./saas-access-composition.mjs";
 import { createDelegatedSaasAccessApp } from "./saas-delegated-access-v2.mjs";
 import { createSaasProvisioningApp } from "./saas-provisioning.mjs";
+import { createUniCoProvisioningApp } from "./saas-uni-co-provisioning.mjs";
 import { createZuniProvisioningRuntimeGuard } from "./saas-zuni-provisioning-runtime-guard.mjs";
 import { createZuniOperationalReadinessComposition } from "./saas-zuni-operational-readiness-composition.mjs";
 import { createZuniPublicReadinessProbe } from "./saas-zuni-public-readiness-probe.mjs";
@@ -11,59 +12,37 @@ function pathnameOf(url) {
 }
 
 function resolveZuniReadinessProbe({ probeZuniProductReadiness, zuniReadinessFetch } = {}) {
-  if (typeof probeZuniProductReadiness === "function") {
-    return probeZuniProductReadiness;
-  }
-
+  if (typeof probeZuniProductReadiness === "function") return probeZuniProductReadiness;
   const fetchFn = zuniReadinessFetch ?? globalThis.fetch;
-  if (typeof fetchFn !== "function") {
-    return undefined;
-  }
-
+  if (typeof fetchFn !== "function") return undefined;
   return createZuniPublicReadinessProbe({ fetchFn });
 }
 
 export function createSaasOperationalHttpComposition({
-  app,
-  authenticator,
-  audit,
-  store,
-  clock,
-  delegatedBindingSigner,
-  zuniProductProvisioner,
-  probeZuniProductReadiness,
-  zuniReadinessFetch,
+  app, authenticator, audit, store, clock, delegatedBindingSigner,
+  zuniProductProvisioner, probeZuniProductReadiness, zuniReadinessFetch,
 } = {}) {
-  if (typeof app?.handleRequest !== "function") {
-    throw new TypeError("app.handleRequest must be a function");
-  }
-  if (typeof authenticator?.authenticate !== "function") {
-    throw new TypeError("authenticator.authenticate must be a function");
-  }
-  if (!store || typeof store.read !== "function") {
-    throw new TypeError("store is required");
-  }
+  if (typeof app?.handleRequest !== "function") throw new TypeError("app.handleRequest must be a function");
+  if (typeof authenticator?.authenticate !== "function") throw new TypeError("authenticator.authenticate must be a function");
+  if (!store || typeof store.read !== "function") throw new TypeError("store is required");
 
-  const saasComposition = createSaasAccessComposition({
-    store,
-    ...(clock ? { clock } : {}),
-  });
-  const saasApp = createApp({
-    authenticator,
-    audit,
-    saasAccess: saasComposition.saasAccess,
-  });
+  const saasComposition = createSaasAccessComposition({ store, ...(clock ? { clock } : {}) });
+  const saasApp = createApp({ authenticator, audit, saasAccess: saasComposition.saasAccess });
   const delegatedApp = createDelegatedSaasAccessApp({
     authenticator,
     saasAccess: saasComposition.saasAccess,
     federatedPrincipal: saasComposition.federatedPrincipal,
     ...(delegatedBindingSigner ? { bindingSigner: delegatedBindingSigner } : {}),
   });
-
-  const concreteProbe = resolveZuniReadinessProbe({
-    probeZuniProductReadiness,
-    zuniReadinessFetch,
+  const uniCoProvisioningApp = createUniCoProvisioningApp({
+    authenticator,
+    saasRuntime: saasComposition.saasRuntime,
+    saasAccess: saasComposition.saasAccess,
+    federatedPrincipal: saasComposition.federatedPrincipal,
+    ...(clock ? { clock } : {}),
   });
+
+  const concreteProbe = resolveZuniReadinessProbe({ probeZuniProductReadiness, zuniReadinessFetch });
   const readinessProvisioner =
     zuniProductProvisioner ??
     (typeof concreteProbe === "function"
@@ -77,7 +56,6 @@ export function createSaasOperationalHttpComposition({
     saasRuntime: saasComposition.saasRuntime,
     ...(readinessProvisioner ? { zuniProductProvisioner: readinessProvisioner } : {}),
   });
-
   const provisioningApp = createSaasProvisioningApp({
     authenticator,
     saasRuntime: guardedProvisioningRuntime,
@@ -89,15 +67,12 @@ export function createSaasOperationalHttpComposition({
   const wrappedApp = Object.freeze({
     async handleRequest(request = {}) {
       const pathname = pathnameOf(request.url);
-      if (pathname === "/v1/saas/provision") {
-        return provisioningApp.handleRequest(request);
+      if (pathname === "/v1/saas/uni-co/provision") {
+        return uniCoProvisioningApp.handleRequest(request);
       }
-      if (pathname === "/v1/saas/access/delegated") {
-        return delegatedApp.handleRequest(request);
-      }
-      if (pathname === "/v1/saas/access") {
-        return saasApp.handleRequest(request);
-      }
+      if (pathname === "/v1/saas/provision") return provisioningApp.handleRequest(request);
+      if (pathname === "/v1/saas/access/delegated") return delegatedApp.handleRequest(request);
+      if (pathname === "/v1/saas/access") return saasApp.handleRequest(request);
       return app.handleRequest(request);
     },
   });
