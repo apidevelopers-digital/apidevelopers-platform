@@ -72,5 +72,13 @@ jobs:
           ln -sfn "$root/packages/contracts" "$root/packages/kernel-audit/node_modules/@apidevelopers/contracts"
           ln -sfn "$root/packages/kernel-evidence" "$root/packages/kernel-audit/node_modules/@apidevelopers/kernel-evidence"
 
-      - name: Validate Trust governance runtime
-        run: npm run check
+      - name: Check facade syntax
+        run: |
+          node --check src/index.mjs
+          node --check src/runtime.mjs
+
+      - name: Probe module resolution
+        run: node --input-type=module -e "await import('./src/index.mjs'); console.log('trust-governance-runtime imports ok')"
+
+      - name: Run governance tests
+        run: node --test test/*.test.mjs
