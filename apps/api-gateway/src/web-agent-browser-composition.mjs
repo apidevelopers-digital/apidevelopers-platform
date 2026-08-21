@@ -28,7 +28,8 @@ function requireMethod(value, method, name) {
 
 export function createWebAgentBrowserComposition({
   resolveSessionByHash,
-  saasAccess,
+  saasRuntime,
+  membershipRuntime,
   tenantInternationalProfile,
   commercialContext,
   conversationService,
@@ -37,7 +38,9 @@ export function createWebAgentBrowserComposition({
   maxBodyBytes,
 } = {}) {
   requireFunction(resolveSessionByHash, "resolveSessionByHash");
-  requireMethod(saasAccess, "evaluateAccess", "saasAccess");
+  requireMethod(saasRuntime, "getTenant", "saasRuntime");
+  requireMethod(saasRuntime, "getWorkspace", "saasRuntime");
+  requireMethod(membershipRuntime, "openChatSession", "membershipRuntime");
   requireMethod(tenantInternationalProfile, "resolve", "tenantInternationalProfile");
   requireMethod(commercialContext, "resolve", "commercialContext");
   requireMethod(conversationService, "handle", "conversationService");
@@ -55,7 +58,8 @@ export function createWebAgentBrowserComposition({
 
   const boundary = createWebAgentConversationBoundary({
     authenticator,
-    saasAccess,
+    saasRuntime,
+    membershipRuntime,
     internationalContextResolver,
     conversationService,
   });
