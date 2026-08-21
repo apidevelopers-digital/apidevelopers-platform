@@ -81,7 +81,17 @@ jobs:
         run: node --input-type=module -e "await import('./src/index.mjs'); console.log('trust-governance-runtime imports ok')"
 
       - name: Test governed preview round trip
-        run: node --test --test-name-pattern="produces governed decision/evidence/audit without execution" test/index.test.mjs
+        shell: bash
+        run: |
+          set +e
+          output="$(node --test --test-name-pattern="produces governed decision/evidence/audit without execution" test/index.test.mjs 2>&1)"
+          status=$?
+          printf '%s\n' "$output"
+          if [ "$status" -ne 0 ]; then
+            summary="$(printf '%s\n' "$output" | tail -n 24 | tr '\n' ' ' | cut -c1-1400)"
+            echo "::error title=Trust governed preview failure::$summary"
+          fi
+          exit "$status"
 
       - name: Test cross-tenant fail-closed
         run: node --test --test-name-pattern="rejects cross-tenant verification before lifecycle execution" test/index.test.mjs
