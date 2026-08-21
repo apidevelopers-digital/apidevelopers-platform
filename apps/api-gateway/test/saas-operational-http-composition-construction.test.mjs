@@ -24,7 +24,7 @@ function withCleanAuthEnv() {
 }
 
 test("operational gateway SaaS composition constructs with clean auth env", async () => {
-  const dir = await mkdtemp(ioin(tmpdir(), "apd-operational-saas-construct-"));
+  const dir = await mkdtemp(join(tmpdir(), "apd-operational-saas-construct-"));
   const stateFilePath = join(dir, "state.json");
   const restoreAuthEnv = withCleanAuthEnv();
   try {
@@ -33,6 +33,6 @@ test("operational gateway SaaS composition constructs with clean auth env", asyn
     assert.equal(typeof gateway.saasAccess.evaluateAccess, "function");
   } finally {
     restoreAuthEnv();
-    await rm(dir, {recursive:true,force:true});
+    await rm(dir, {recursive: true, force: true });
   }
 });
