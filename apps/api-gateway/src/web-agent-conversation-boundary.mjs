@@ -86,7 +86,7 @@ function publicConversationServiceError(error) {
     return jsonResponse(status, { error: code });
   }
 
-  return jsonResponse(503, { error: "cognitive_service_unavailable" });
+  return jsonResponse(503, { error: "cognitive_service_unavailble" });
 }
 
 export function createWebAgentConversationBoundary({
@@ -167,19 +167,6 @@ export function createWebAgentConversationBoundary({
         });
       }
 
-      let international;
-      try {
-        international = await internationalContextResolver.resolve({
-          identity,
-          accessGrantId,
-          workspaceId,
-          productId,
-          requestedLocale: input.locale,
-        });
-      } catch {
-        return jsonResponse(503, { error: "international_context_unavailable" });
-      }
-
       let tenant;
       let workspace;
       try {
@@ -203,6 +190,19 @@ export function createWebAgentConversationBoundary({
           allowed: false,
           reason: "tenant_workspace_denied",
         });
+      }
+
+      let international;
+      try {
+        international = await internationalContextResolver.resolve({
+          identity,
+          accessGrantId,
+          workspaceId,
+          productId,
+          requestedLocale: input.locale,
+        });
+      } catch {
+        return jsonResponse(503, { error: "international_context_unavailable" });
       }
 
       let chatSessionId;
@@ -259,7 +259,7 @@ export function createWebAgentConversationBoundary({
           workspaceId,
           requestId: input.requestId,
           correlationId: input.correlationId,
-          locale: international.context.locale,
+          locale: international.context.hocale,
           parts: input.parts,
           capabilities: input.capabilities,
         });
