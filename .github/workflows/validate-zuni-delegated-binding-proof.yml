@@ -13,6 +13,7 @@ on:
       - "apps/api-gateway/src/operator-readonly-composition.mjs"
       - "apps/api-gateway/src/operational-runtime.mjs"
       - "apps/api-gateway/src/operational-server.mjs"
+      - "apps/api-gateway/scripts/link-local-dependencies.mjs"
       - "apps/api-gateway/test/saas-delegated-binding-proof.test.mjs"
       - "apps/api-gateway/test/saas-delegated-access-binding-proof.test.mjs"
       - "apps/api-gateway/test/saas-delegated-binding-secret-loader.test.mjs"
@@ -30,6 +31,7 @@ on:
       - "apps/api-gateway/src/operator-readonly-composition.mjs"
       - "apps/api-gateway/src/operational-runtime.mjs"
       - "apps/api-gateway/src/operational-server.mjs"
+      - "apps/api-gateway/scripts/link-local-dependencies.mjs"
       - "apps/api-gateway/test/saas-delegated-binding-proof.test.mjs"
       - "apps/api-gateway/test/saas-delegated-access-binding-proof.test.mjs"
       - "apps/api-gateway/test/saas-delegated-binding-secret-loader.test.mjs"
@@ -62,6 +64,7 @@ jobs:
           node --check src/operator-readonly-composition.mjs
           node --check src/operational-runtime.mjs
           node --check src/operational-server.mjs
+          node --check scripts/link-local-dependencies.mjs
 
   tests:
     runs-on:
@@ -75,27 +78,11 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: "22"
-      - name: Link local security dependencies
-        shell: bash
+      - name: Link local institutional dependencies
+        working-directory: apps/api-gateway
         run: |
           set -Eeuo pipefail
-          mkdir -p "$GITHUB_WORKSPACE/apps/api-gateway/node_modules/@apidevelopers"
-          ln -sfn "$GITHUB_WORKSPACE/packages/contracts" "$GITHUB_WORKSPACE/apps/api-gateway/node_modules/@apidevelopers/contracts"
-          ln -sfn "$GITHUB_WORKSPACE/packages/auth-core" "$GITHUB_WORKSPACE/apps/api-gateway/node_modules/@apidevelopers/auth-core"
-          ln -sfn "$GITHUB_WORKSPACE/packages/apikey-core" "$GITHUB_WORKSPACE/apps/api-gateway/node_modules/@apidevelopers/apikey-core"
-          ln -sfn "$GITHUB_WORKSPACE/packages/persistence-core" "$GITHUB_WORKSPACE/apps/api-gateway/node_modules/@apidevelopers/persistence-core"
-          ln -sfn "$GITHUB_WORKSPACE/packages/saas-runtime" "$GITHUB_WORKSPACE/apps/api-gateway/node_modules/@apidevelopers/saas-runtime"
-
-          mkdir -p "$GITHUB_WORKSPACE/packages/auth-core/node_modules/@apidevelopers"
-          ln -sfn "$GITHUB_WORKSPACE/packages/apikey-core" "$GITHUB_WORKSPACE/packages/auth-core/node_modules/@apidevelopers/apikey-core"
-
-          mkdir -p "$GITHUB_WORKSPACE/packages/apikey-core/node_modules/@apidevelopers"
-          ln -sfn "$GITHUB_WORKSPACE/packages/persistence-core" "$GITHUB_WORKSPACE/packages/apikey-core/node_modules/@apidevelopers/persistence-core"
-
-          mkdir -p "$GITHUB_WORKSPACE/packages/saas-runtime/node_modules/@apidevelopers"
-          ln -sfn "$GITHUB_WORKSPACE/packages/contracts" "$GITHUB_WORKSPACE/packages/saas-runtime/node_modules/@apidevelopers/contracts"
-          ln -sfn "$GITHUB_WORKSPACE/packages/auth-core" "$GITHUB_WORKSPACE/packages/saas-runtime/node_modules/@apidevelopers/auth-core"
-          ln -sfn "$GITHUB_WORKSPACE/packages/persistence-core" "$GITHUB_WORKSPACE/packages/saas-runtime/node_modules/@apidevelopers/persistence-core"
+          node scripts/link-local-dependencies.mjs
       - name: Run focused delegated binding tests
         working-directory: apps/api-gateway
         run: |
