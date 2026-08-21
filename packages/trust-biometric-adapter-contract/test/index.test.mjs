@@ -56,7 +56,7 @@ test("fails closed on provider activation and production", () => {
   );
 });
 
-test("rejects raw biometric material", () => {
+test("rejects explicitly identified raw biometric material", () => {
   assert.throws(
     () => assertTrustFaceLivenessRequest(request({ selfie: "base64-material" })),
     (e) => e instanceof TrustBiometricAdapterContractError && e.code === "raw_biometric_material_forbidden",
@@ -73,6 +73,8 @@ test("normalizes signals without creating a governed decision", () => {
   assert.equal(normalized.productionAuthorized, false);
   assert.equal(Object.hasOwn(normalized, "decision"), false);
   assert.equal(Object.hasOwn(normalized, "subjectRef"), false);
+  assert.equal(normalized.rawBiometricMaterialForwarded, false);
+  assert.equal(normalized.rawBiometricMaterialPersisted, false);
 });
 
 test("rejects unsafe provider results", () => {
@@ -82,7 +84,7 @@ test("rejects unsafe provider results", () => {
   );
 });
 
-test("runs mock round trip with references only", async () => {
+test("forwards only canonical references to the sandbox mock", async () => {
   const observed = [];
   const preflight = createTrustBiometricAdapterPreflight({
     manifest: manifest(),
@@ -91,8 +93,12 @@ test("runs mock round trip with references only", async () => {
       return result();
     },
   });
-  const normalized = await preflight.verifyFaceLiveness(request());
+  const noisyRequest = request({ payload: "opaque-noncanonical-string", metadata: { note: "ignored" } });
+  const normalized = await preflight.verifyFaceLiveness(noisyRequest);
   assert.deepEqual(observed, [request()]);
+  assert.equal(Object.hasOwn(observed[0], "payload"), false);
+  assert.equal(Object.hasOwn(observed[0], "metadata"), false);
   assert.equal(normalized.providerId, "provider.pending-authorization");
-  assert.equal(normalized.rawBiometricMaterialObserved, false);
+  assert.equal(normalized.rawBiometricMaterialForwarded, false);
+  assert.equal(normalized.rawBiometricMaterialPersisted, false);
 });
