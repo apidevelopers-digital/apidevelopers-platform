@@ -17,6 +17,13 @@ const EXPECTED_DEPENDENCIES = Object.freeze({
   "@apidevelopers/contracts": "file:vendor/contracts",
   "@apidevelopers/persistence-core": "file:vendor/persistence-core",
   "@apidevelopers/saas-runtime": "file:vendor/saas-runtime",
+  "@apidevelopers/trust-governance-runtime": "file:vendor/trust-governance-runtime",
+  "@apidevelopers/kernel-planning": "file:vendor/kernel-planning",
+  "@apidevelopers/kernel-decision": "file:vendor/kernel-decision",
+  "@apidevelopers/kernel-policy": "file:vendor/kernel-policy",
+  "@apidevelopers/kernel-runtime": "file:vendor/kernel-runtime",
+  "@apidevelopers/kernel-evidence": "file:vendor/kernel-evidence",
+  "@apidevelopers/kernel-audit": "file:vendor/kernel-audit",
 });
 
 function portablePath(value) {
@@ -162,6 +169,7 @@ function waitForStart(child, timeoutMs = 15_000) {
       cleanup();
       rejectStart(new Error(`managed runtime startup timed out: ${stderr || stdout}`));
     }, timeoutMs);
+
     const cleanup = () => {
       clearTimeout(timeout);
       child.stdout.off("data", onStdout);
@@ -196,6 +204,7 @@ function waitForStart(child, timeoutMs = 15_000) {
         }
       }
     };
+
     child.stdout.on("data", onStdout);
     child.stderr.on("data", onStderr);
     child.once("exit", onExit);
@@ -204,7 +213,10 @@ function waitForStart(child, timeoutMs = 15_000) {
 
 function waitForExit(child, timeoutMs = 15_000) {
   return new Promise((resolveExit, rejectExit) => {
-    const timeout = setTimeout(() => rejectExit(new Error("managed runtime shutdown timed out")), timeoutMs);
+    const timeout = setTimeout(
+      () => rejectExit(new Error("managed runtime shutdown timed out")),
+      timeoutMs,
+    );
     child.once("exit", (code, signal) => {
       clearTimeout(timeout);
       resolveExit(Object.freeze({ code, signal }));

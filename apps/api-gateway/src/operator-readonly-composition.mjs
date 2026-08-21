@@ -15,6 +15,7 @@ import { createGitHubReadonlyAdapters } from "./operator-github-readonly-adapter
 import { createSaasOperationalHttpComposition } from "./saas-operational-http-composition.mjs";
 import { createTrustSandboxProvisioningApp } from "./saas-trust-sandbox-provisioning.mjs";
 import { createTrustSandboxVerificationApp } from "./trust-sandbox-verifications.mjs";
+import { createTrustSandboxGovernanceApp } from "./trust-sandbox-governance.mjs";
 
 export function createOperationalGatewayWithReadonlyOperator({
   operatorReadonlyAdapters,
@@ -78,8 +79,25 @@ export function createOperationalGatewayWithReadonlyOperator({
       : {}),
   });
 
+  const trustSandboxGovernanceApp = createTrustSandboxGovernanceApp({
+    authenticator: base.authenticator,
+    verificationRepository: trustSandboxVerificationApp.repository,
+    store: base.store,
+    ...(operationalOptions.clock ? { clock: operationalOptions.clock } : {}),
+    ...(operationalOptions.trustGovernanceIdFactory
+      ? { idFactory: operationalOptions.trustGovernanceIdFactory }
+      : {}),
+    ...(operationalOptions.trustGovernanceRequestIdFactory
+      ? { requestIdFactory: operationalOptions.trustGovernanceRequestIdFactory }
+      : {}),
+  });
+
   const saasAndTrustApp = Object.freeze({
     async handleRequest(request = {}) {
+      const governanceResponse =
+        await trustSandboxGovernanceApp.handleRequest(request);
+      if (governanceResponse !== null) return governanceResponse;
+
       const verificationResponse =
         await trustSandboxVerificationApp.handleRequest(request);
       if (verificationResponse !== null) return verificationResponse;
@@ -137,6 +155,7 @@ export function createOperationalGatewayWithReadonlyOperator({
     saasAccess: saasComposition.saasAccess,
     trustSandboxProvisioningApp,
     trustSandboxVerificationApp,
+    trustSandboxGovernanceApp,
     operatorReadonlyAdapters: adapters,
     operatorReadonlyCore,
     operatorReadonlyRateLimiter: sharedRateLimiter,

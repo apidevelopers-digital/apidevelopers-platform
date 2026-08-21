@@ -1,0 +1,100 @@
+name: Trust Governance Runtime CI
+
+on:
+  push:
+    branches:
+      - main
+      - "feat/trust-m3-governed-preview-20260821"
+    paths:
+      - "packages/trust-governance-runtime/**"
+      - "packages/contracts/**"
+      - "packages/kernel-planning/**"
+      - "packages/kernel-decision/**"
+      - "packages/kernel-policy/**"
+      - "packages/kernel-runtime/**"
+      - "packages/kernel-evidence/**"
+      - "packages/kernel-audit/**"
+      - ".github/workflows/trust-governance-runtime-ci.yml"
+  pull_request:
+    branches:
+      - main
+    paths:
+      - "packages/trust-governance-runtime/**"
+      - "packages/contracts/**"
+      - "packages/kernel-planning/**"
+      - "packages/kernel-decision/**"
+      - "packages/kernel-policy/**"
+      - "packages/kernel-runtime/**"
+      - "packages/kernel-evidence/**"
+      - "packages/kernel-audit/**"
+      - ".github/workflows/trust-governance-runtime-ci.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  validate:
+    runs-on:
+      group: organization-macos-ci
+      labels: [self-hosted, macOS, X64]
+    timeout-minutes: 10
+    defaults:
+      run:
+        working-directory: packages/trust-governance-runtime
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+
+      - name: Link institutional dependencies
+        shell: bash
+        run: |
+          set -euo pipefail
+          root="$GITHUB_WORKSPACE"
+          scope="$root/packages/trust-governance-runtime/node_modules/@apidevelopers"
+          mkdir -p "$scope"
+          for package in contracts kernel-planning kernel-decision kernel-policy kernel-runtime kernel-evidence kernel-audit; do
+            ln -sfn "$root/packages/$package" "$scope/$package"
+          done
+
+          for package in kernel-planning kernel-decision kernel-policy kernel-runtime kernel-evidence; do
+            mkdir -p "$root/packages/$package/node_modules/@apidevelopers"
+            ln -sfn "$root/packages/contracts" "$root/packages/$package/node_modules/@apidevelopers/contracts"
+          done
+
+          mkdir -p "$root/packages/kernel-audit/node_modules/@apidevelopers"
+          ln -sfn "$root/packages/contracts" "$root/packages/kernel-audit/node_modules/@apidevelopers/contracts"
+          ln -sfn "$root/packages/kernel-evidence" "$root/packages/kernel-audit/node_modules/@apidevelopers/kernel-evidence"
+
+      - name: Check facade syntax
+        run: |
+          node --check src/index.mjs
+          node --check src/runtime.mjs
+
+      - name: Probe module resolution
+        run: node --input-type=module -e "await import('./src/index.mjs'); console.log('trust-governance-runtime imports ok')"
+
+      - name: Test governed preview round trip
+        shell: bash
+        run: |
+          set +e
+          output="$(node --test --test-name-pattern="produces governed decision/evidence/audit without execution" test/index.test.mjs 2>&1)"
+          status=$?
+          printf '%s\n' "$output"
+          if [ "$status" -ne 0 ]; then
+            summary="$(printf '%s\n' "$output" | tail -n 24 | tr '\n' ' ' | cut -c1-1400)"
+            echo "::error title=Trust governed preview failure::$summary"
+          fi
+          exit "$status"
+
+      - name: Test cross-tenant fail-closed
+        run: node --test --test-name-pattern="rejects cross-tenant verification before lifecycle execution" test/index.test.mjs
+
+      - name: Test real biometric fail-closed
+        run: node --test --test-name-pattern="rejects real adapters and biometric processing" test/index.test.mjs

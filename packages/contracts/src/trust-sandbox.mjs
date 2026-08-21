@@ -5,6 +5,9 @@ export const TRUST_SANDBOX_PROVISIONING_SCOPE = "saas:provision";
 export const TRUST_SANDBOX_SCOPES = Object.freeze([
   "trust:verification:create",
   "trust:verification:read",
+  "trust:governance:preview",
+  "trust:evidence:read",
+  "trust:audit:read",
 ]);
 
 export const TRUST_SANDBOX_VERIFICATION_MODALITIES = Object.freeze([
@@ -47,6 +50,39 @@ export const TRUST_SANDBOX_VERIFICATION_READ_CONTRACT = Object.freeze({
   requiredScope: "trust:verification:read",
   environment: TRUST_SANDBOX_ENVIRONMENT,
   mode: "mock",
+  tenantScoped: true,
+  notFoundOnCrossTenant: true,
+});
+
+export const TRUST_SANDBOX_GOVERNANCE_PREVIEW_CONTRACT = Object.freeze({
+  method: "POST",
+  pathPrefix: "/v1/verifications/",
+  pathSuffix: "/governance-preview",
+  requiredScope: "trust:governance:preview",
+  environment: TRUST_SANDBOX_ENVIRONMENT,
+  mode: "preview",
+  tenantScoped: true,
+  notFoundOnCrossTenant: true,
+  executionAllowed: false,
+  mutationAllowed: false,
+  realBiometrics: false,
+});
+
+export const TRUST_SANDBOX_EVIDENCE_READ_CONTRACT = Object.freeze({
+  method: "GET",
+  pathPrefix: "/v1/evidence/",
+  requiredScope: "trust:evidence:read",
+  environment: TRUST_SANDBOX_ENVIRONMENT,
+  tenantScoped: true,
+  notFoundOnCrossTenant: true,
+});
+
+export const TRUST_SANDBOX_AUDIT_READ_CONTRACT = Object.freeze({
+  method: "GET",
+  pathPrefix: "/v1/audit/events/",
+  requiredScope: "trust:audit:read",
+  environment: TRUST_SANDBOX_ENVIRONMENT,
+  mode: "advisory",
   tenantScoped: true,
   notFoundOnCrossTenant: true,
 });

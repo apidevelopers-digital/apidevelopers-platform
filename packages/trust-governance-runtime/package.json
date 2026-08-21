@@ -1,0 +1,26 @@
+{
+  "name": "@apidevelopers/trust-governance-runtime",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Fail-closed Trust sandbox governance preview facade over the institutional planning/decision/policy/runtime/evidence/audit kernels.",
+  "type": "module",
+  "exports": {
+    ".": "./src/index.mjs"
+  },
+  "scripts": {
+    "test": "node --test test/*.test.mjs",
+    "check": "node --check src/index.mjs && npm test"
+  },
+  "dependencies": {
+    "@apidevelopers/contracts": "file:../contracts",
+    "@apidevelopers/kernel-planning": "file:../kernel-planning",
+    "@apidevelopers/kernel-decision": "file:../kernel-decision",
+    "@apidevelopers/kernel-policy": "file:../kernel-policy",
+    "@apidevelopers/kernel-runtime": "file:../kernel-runtime",
+    "@apidevelopers/kernel-evidence": "file:../kernel-evidence",
+    "@apidevelopers/kernel-audit": "file:../kernel-audit"
+  },
+  "engines": {
+    "node": ">=22"
+  }
+}

@@ -6,12 +6,8 @@ import { tmpdir } from "node:os";
 
 import { createJsonFileStore } from "@apidevelopers/persistence-core";
 import { createSaasRuntime } from "@apidevelopers/saas-runtime";
-import {
-  createDurableApiKeyRepository,
-} from "@apidevelopers/apikey-core/durable-repository";
-import {
-  createApiKeyLifecycleService,
-} from "@apidevelopers/apikey-core/lifecycle-service";
+import { createDurableApiKeyRepository } from "@apidevelopers/apikey-core/durable-repository";
+import { createApiKeyLifecycleService } from "@apidevelopers/apikey-core/lifecycle-service";
 import { createDurableApiKeyAuthenticator } from "@apidevelopers/auth-core";
 import {
   TRUST_PRODUCT_ID,
@@ -38,7 +34,7 @@ function provisioningIdentity(scopes = ["saas:provision"]) {
   });
 }
 
-test("Trust sandbox contract is fail-closed and limited to verification scopes", () => {
+test("Trust sandbox contract is fail-closed and limited to authorized Trust scopes", () => {
   assert.equal(trustSandboxProvisioningContract, TRUST_SANDBOX_PROVISIONING_CONTRACT);
   assert.equal(TRUST_SANDBOX_PROVISIONING_CONTRACT.productId, "product:trust");
   assert.equal(TRUST_SANDBOX_PROVISIONING_CONTRACT.environment, "sandbox");
@@ -46,6 +42,9 @@ test("Trust sandbox contract is fail-closed and limited to verification scopes",
   assert.deepEqual(TRUST_SANDBOX_SCOPES, [
     "trust:verification:create",
     "trust:verification:read",
+    "trust:governance:preview",
+    "trust:evidence:read",
+    "trust:audit:read",
   ]);
   assert.equal(TRUST_SANDBOX_PROVISIONING_CONTRACT.oneTimeSecret, true);
   assert.equal(TRUST_SANDBOX_PROVISIONING_CONTRACT.persistedSecret, false);
@@ -202,7 +201,7 @@ test("Trust M2 rejects missing provisioning scope before tenant mutation", async
       async listApiKeys() {
         return [];
       },
-    },
+  },
   });
 
   const response = await app.handleRequest({
