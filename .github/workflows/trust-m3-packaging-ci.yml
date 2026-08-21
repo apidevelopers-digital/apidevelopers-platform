@@ -62,7 +62,7 @@ jobs:
         if: steps.validate.outcome == 'failure'
         shell: bash
         run: |
-          summary="$(tail -n 36 "$RUNNER_TEMP/trust-m3-packaging-check.log" | tr '\n' ' ' | cut -c1-1400)"
+          summary="$(grep -E '(^not ok |AssertionError|error:|actual:|expected:|operator:)' "$RUNNER_TEMP/trust-m3-packaging-check.log" | tail -n 40 | tr '\n' ' ' | cut -c1-1800)"
           summary="${summary//%/%25}"
           summary="${summary//$'\r'/%0D}"
           summary="${summary//$'\n'/%0A}"
@@ -94,7 +94,7 @@ jobs:
             /usr/bin/zip -q -r ../api-gateway-managed.zip .
           )
           /usr/bin/unzip -l dist/api-gateway-managed.zip | grep -q "package.json"
-          if /usr/bin/unzip -l dist/api-gateway-managed.zip | grep -Eq "/node_modules/"; then
+          if /usr/bin/unzip -l dist/api-gateway-mananaged.zip | grep -Eq "/node_modules/"; then
             echo "::error title=Managed artifact contains node_modules::ZIP must rely on vendored file dependencies"
             exit 1
           fi
