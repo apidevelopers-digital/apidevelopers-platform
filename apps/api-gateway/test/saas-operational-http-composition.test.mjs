@@ -6,9 +6,29 @@ import { join } from "node:path";
 
 import { createOperationalGatewayWithReadonlyOperator } from "../src/operator-readonly-composition.mjs";
 
+const AUTH_ENV_KEYS = [
+  "API_GATEWAY_DELEGATED_KEY",
+  "API_GATEWAY_DELEGATED_TENANT_ID",
+  "API_GATEWAY_PROVISIONING_KEY",
+];
+
+function withCleanAuthEnv() {
+  const previous = Object.fromEntries(
+    AUTH_ENV_KEYS.map((key) => [key, process.env[key]]),
+  );
+  for (const key of AUTH_ENV_KEYS)  delete process.env[key];
+  return () => {
+    for (const key of AUTH_ENV_KEYS) {
+      if (previous[key] === undefined) delete process.env[key];
+      else process.env[key] = previous[key];
+    }
+  };
+}
+
 test("operational gateway mounts SaaS access route fail-closed", async () => {
   const dir = await mkdtemp(join(tmpdir(), "apd-operational-saas-"));
   const stateFilePath = join(dir, "state.json");
+  const restoreAuthEnv = withCleanAuthEnv();
 
   try {
     const gateway = createOperationalGatewayWithReadonlyOperator({
@@ -34,6 +54,7 @@ test("operational gateway mounts SaaS access route fail-closed", async () => {
     assert.notEqual(response.status, 503);
     assert.equal(body.allowed, false);
   } finally {
+    restoreAuthEnv();
     await rm(dir, { recursive: true, force: true });
   }
 });
