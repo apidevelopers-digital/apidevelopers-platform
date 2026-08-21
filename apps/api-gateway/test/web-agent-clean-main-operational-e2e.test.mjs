@@ -328,15 +328,9 @@ test("clean main operational composition preserves SaaS authority, official host
         capabilities: ["text", "memory"],
       },
     });
-    if (response.status !== 200) {
-      throw new Error(`valid ${product.agentId} response ${response.status}: ${JSON.stringify(response.payload)}`);
-    }
-    if (response.payload?.agent?.id !== product.agentId) {
-      throw new Error(`valid ${product.agentId} agent mismatch: ${JSON.stringify(response.payload?.agent)}`);
-    }
-    if (response.payload?.memory?.read !== true) {
-      throw new Error(`valid ${product.agentId} memory mismatch: ${JSON.stringify(response.payload?.memory)}`);
-    }
+    assert.equal(response.status, 200);
+    assert.equal(response.payload.agent.id, product.agentId);
+    assert.equal(response.payload.memory.read, true);
   }
 
   for (const crossed of [
@@ -367,17 +361,11 @@ test("clean main operational composition preserves SaaS authority, official host
         capabilities: ["text"],
       },
     });
-    if (response.status !== 403) {
-      throw new Error(`cross response ${response.status}: ${JSON.stringify(response.payload)}`);
-    }
+    assert.equal(response.status, 403);
   }
 
-  if (backendCalls.length !== 2) {
-    throw new Error(`backend call count ${backendCalls.length}`);
-  }
-  if (fallbackCalls.length !== 0) {
-    throw new Error(`fallback call count ${fallbackCalls.length}`);
-  }
+  assert.equal(backendCalls.length, 2);
+  assert.equal(fallbackCalls.length, 0);
 });
 
 test("clean main operational composition is disabled by default and delegates unchanged", async () => {
