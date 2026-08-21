@@ -75,7 +75,7 @@ test("Zuni preview tenant activation remains a pure dry-run", async () => {
     "register-tenant-workspace",
     "start-subscription",
     "grant-entitlements",
-    "encueue-provisioning",
+    "enqueue-provisioning",
   ]);
   assert.match(result.executionPlan.provisioningJob.provisioningJobId, /zuni-preview/);
   assert.equal(result.executionPlan.rollback.automaticDelete, false);
