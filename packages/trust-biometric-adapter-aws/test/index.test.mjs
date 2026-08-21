@@ -127,7 +127,7 @@ test("normalizes AWS liveness and face comparison scores as signals only", () =>
   });
 
   assert.equal(normalized.signals.livenessScore, 0.985);
-  assert.equal(normalized.signals.faceMatchScore, 0.942);
+  assert.ok(Math.abs(normalized.signals.faceMatchScore - 0.942) < 1e-12);
   assert.equal(normalized.signals.livenessPassed, true);
   assert.equal(normalized.productionAuthorized, false);
   assert.equal(normalized.rawBiometricMaterialForwarded, false);
