@@ -1,0 +1,17 @@
+{
+  "name": "@apidevelopers/trust-biometric-adapter-contract",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Provider-neutral, fail-closed Trust M4 biometric adapter contract preflight for sandbox conformance only.",
+  "type": "module",
+  "exports": {
+    ".": "./src/index.mjs"
+  },
+  "scripts": {
+    "test": "node --test test/*.test.mjs",
+    "check": "node --check src/index.mjs && npm test"
+  },
+  "engines": {
+    "node": ">=22"
+  }
+}
