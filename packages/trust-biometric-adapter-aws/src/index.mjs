@@ -8,7 +8,7 @@ const PROVIDER_ID = "aws.rekognition.face-liveness-comparefaces";
 const MODE = "sandbox-conformance";
 const REGION = "sa-east-1";
 const AWS_SESSION_ID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/;
-const AWS_CLIENT_TOKEN = /^[A-Za-z0-9-_]{1,64}$/;
+const AWS_CLIENT_TOKEN = /^[A-Za-z0-9_-]{1,64}$/;
 const OPAQUE_REF = /^ref:[A-Za-z0-9._:/-]{1,240}$/;
 
 export class TrustAwsRekognitionAdapterError extends Error {
