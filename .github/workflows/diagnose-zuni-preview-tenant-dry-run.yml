@@ -1,0 +1,22 @@
+name: Diagnose Zuni Preview Tenant Dry Run
+
+on:
+  push:
+    branches:
+      - test/zuni-preview-tenant-dry-run-v1
+    paths:
+      - "packages/saas-runtime/test/zuni-preview-tenant-dry-run.test.mjs"
+      - ".github/workflows/diagnose-zuni-preview-tenant-dry-run.yml"
+  workflow_dispatch:
+
+jobs:
+  isolate:
+    runs-on:
+      - self-hosted
+      - macOS
+      - X64
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout v5
+      - name: Run isolated preview tenant dry-run test
+        run: node --test packages/saas-runtime/test/zuni-preview-tenant-dry-run.test.mjs
