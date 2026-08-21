@@ -22,21 +22,40 @@ function pathnameOf(url) {
   return new URL(String(url ?? "/"), "http://api-gateway.local").pathname;
 }
 
-function toOperationalResponse(response) {
+function invalidOperationalResponse() {
+  const payload = Object.freeze({ error: "invalid_web_agent_http_response" });
+  return Object.freeze({
+    status: 502,
+    headers: Object.freeze({ "content-type": "application/json; charset=utf-8" }),
+    body: JSON.stringify(payload),
+    payload,
+  });
+}
+
+export function toOperationalResponse(response) {
   if (!response || typeof response !== "object" || !Number.isInteger(response.status)) {
-    return { status: 502, payload: { error: "invalid_web_agent_http_response" } };
+    return invalidOperationalResponse();
   }
   if (typeof response.body !== "string") {
-    return { status: 502, payload: { error: "invalid_web_agent_http_response" } };
+    return invalidOperationalResponse();
   }
   try {
     const payload = JSON.parse(response.body);
     if (!payload || typeof payload !== "object" || Array.isArray(payload)) {
-      return { status: 502, payload: { error: "invalid_web_agent_http_response" } };
+      return invalidOperationalResponse();
     }
-    return { status: response.status, payload };
+    const headers =
+      response.headers && typeof response.headers === "object"
+        ? response.headers
+        : Object.freeze({});
+    return Object.freeze({
+      status: response.status,
+      headers,
+      body: response.body,
+      payload,
+    });
   } catch {
-    return { status: 502, payload: { error: "invalid_web_agent_http_response" } };
+    return invalidOperationalResponse();
   }
 }
 
@@ -81,7 +100,7 @@ export function createWebAgentOperationalComposition({
     "WEB_AGENT_SHADOW_ALLOW_INSECURE_HTTP",
   );
 
-  const providers = createWebAgentShadowPersistenceProviders({ store });
+  const providers = createWebAgentShadowPersistenceProviders({store});
   const memoryProvider = createWebAgentShadowMemoryProvider({ store });
   const { saasAccess } = createSaasAccessComposition({
     store,
