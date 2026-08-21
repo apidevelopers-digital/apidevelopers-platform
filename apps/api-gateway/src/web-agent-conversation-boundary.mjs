@@ -86,7 +86,7 @@ function publicConversationServiceError(error) {
     return jsonResponse(status, { error: code });
   }
 
-  return jsonResponse(503, { error: "cognitive_service_unavailble" });
+  return jsonResponse(503, { error: "cognitive_service_unavailable" });
 }
 
 export function createWebAgentConversationBoundary({
@@ -259,7 +259,7 @@ export function createWebAgentConversationBoundary({
           workspaceId,
           requestId: input.requestId,
           correlationId: input.correlationId,
-          locale: international.context.hocale,
+          locale: international.context.locale,
           parts: input.parts,
           capabilities: input.capabilities,
         });
