@@ -2,6 +2,8 @@ import { authorize } from "@apidevelopers/auth-core";
 import { createSaasProvisioningApp } from "./saas-provisioning.mjs";
 
 export const ZUNI_PREVIEW_PROVISION_SCOPE = "saas:provision:zuni-preview";
+const DELEGATED_ACCESS_SCOPE = "saas:access:delegate";
+const DELEGATED_BACKEND_PRINCIPAL_ID = "backend-delegated";
 
 const HEX64 = /^[a-f0-9]{64}$/;
 const IDEMPOTENCY = /^[A-Za-z0-9_.:-]{8,200}$/;
@@ -29,6 +31,16 @@ function bodyOf(value) {
     throw new TypeError("body_invalid");
   }
   return parsed;
+}
+
+function isTrustedDelegatedBackend(actor) {
+  const scopes = Array.isArray(actor?.principal?.scopes) ? actor.principal.scopes : [];
+  return (
+    actor?.role === "service" &&
+    actor?.principal?.id === DELEGATED_BACKEND_PRINCIPAL_ID &&
+    actor?.principal?.status === "active" &&
+    scopes.includes(DELEGATED_ACCESS_SCOPE)
+  );
 }
 
 export function createZuniPreviewProvisioningApp({
@@ -77,12 +89,12 @@ export function createZuniPreviewProvisioningApp({
       const actor = await authenticator.authenticate(headers);
       if (!actor) return response(401, { ok: false, reason: "unauthorized" });
 
-      const decision = authorize(actor, { scopes: [ZUNI_PREVIEW_PROVISION_SCOPE] });
-      if (!decision.allowed) {
+      const narrowDecision = authorize(actor, { scopes: [ZUNI_PREVIEW_PROVISION_SCOPE] });
+      if (!narrowDecision.allowed && !isTrustedDelegatedBackend(actor)) {
         return response(403, {
           ok: false,
           reason: "zuni_preview_provision_scope_forbidden",
-          missingScopes: decision.missingScopes,
+          missingScopes: narrowDecision.missingScopes,
         });
       }
 
