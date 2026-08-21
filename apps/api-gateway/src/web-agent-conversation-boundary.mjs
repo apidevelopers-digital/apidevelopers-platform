@@ -1,4 +1,5 @@
 import {
+  createChatSessionId,
   createWebAgentConversationRequest,
   createWebAgentConversationResponse,
   createWebAgentInternationalEnvelope,
@@ -61,12 +62,12 @@ function toPublicDenial(decision) {
   };
 }
 
-function publicLocaleResolution(resolution = {})  {
+function publicLocaleResolution(resolution = {}) {
   return Object.freeze({
     requestedLocaleSupported: Boolean(resolution.requestedLocaleSupported),
     localeSource:
       resolution.localeSource === "user_preference"
-        ?" user_preference"
+        ? "user_preference"
         : "tenant_default",
   });
 }
@@ -90,15 +91,22 @@ function publicConversationServiceError(error) {
 
 export function createWebAgentConversationBoundary({
   authenticator,
-  saasAccess,
+  saasRuntime,
+  membershipRuntime,
   internationalContextResolver,
   conversationService,
 } = {}) {
   if (typeof authenticator?.authenticate !== "function") {
     throw new TypeError("authenticator.authenticate must be a function");
   }
-  if (typeof saasAccess?.evaluateAccess !== "function") {
-    throw new TypeError("saasAccess.evaluateAccess must be a function");
+  if (typeof saasRuntime?.getTenant !== "function") {
+    throw new TypeError("saasRuntime.getTenant must be a function");
+  }
+  if (typeof saasRuntime?.getWorkspace !== "function") {
+    throw new TypeError("saasRuntime.getWorkspace must be a function");
+  }
+  if (typeof membershipRuntime?.openChatSession !== "function") {
+    throw new TypeError("membershipRuntime.openChatSession must be a function");
   }
   if (typeof internationalContextResolver?.resolve !== "function") {
     throw new TypeError("internationalContextResolver.resolve must be a function");
@@ -132,20 +140,17 @@ export function createWebAgentConversationBoundary({
       let accessGrantId;
       let workspaceId;
       let productId;
+      let sessionKey;
       try {
         accessGrantId = requireText(input.accessGrantId, "body.accessGrantId");
         workspaceId = requireText(input.workspaceId, "body.workspaceId");
         productId = requireText(input.productId, "body.productId");
+        sessionKey = requireText(input.sessionId, "body.sessionId").toLowerCase();
       } catch (error) {
         return jsonResponse(400, {
           error: "access_context_required",
           message: error.message,
         });
-      }
-
-      const accessDecision = await saasAccess.evaluateAccess({identity, accessGrantId, tenantId, workspaceId, productId});
-      if (!accessDecision?.allowed) {
-        return jsonResponse(403, toPublicDenial(accessDecision));
       }
 
       let agentId;
@@ -156,7 +161,10 @@ export function createWebAgentConversationBoundary({
         if (error?.code === "product_agent_mismatch") {
           return jsonResponse(403, { error: "product_agent_mismatch" });
         }
-        return jsonResponse(400, { error: "invalid_conversation_request", message: error.message });
+        return jsonResponse(400, {
+          error: "invalid_conversation_request",
+          message: error.message,
+        });
       }
 
       let international;
@@ -172,13 +180,80 @@ export function createWebAgentConversationBoundary({
         return jsonResponse(503, { error: "international_context_unavailable" });
       }
 
+      let tenant;
+      let workspace;
+      try {
+        [tenant, workspace] = await Promise.all([
+          saasRuntime.getTenant(tenantId),
+          saasRuntime.getWorkspace(workspaceId),
+        ]);
+      } catch {
+        return jsonResponse(503, { error: "saas_authority_unavailable" });
+      }
+
+      if (
+        !tenant ||
+        tenant.status !== "active" ||
+        !workspace ||
+        workspace.status !== "active" ||
+        workspace.tenantId !== tenantId ||
+        workspace.productId !== productId
+      ) {
+        return jsonResponse(403, {
+          allowed: false,
+          reason: "tenant_workspace_denied",
+        });
+      }
+
+      let chatSessionId;
+      try {
+        chatSessionId = createChatSessionId(tenant.slug, workspace.slug, sessionKey);
+      } catch {
+        return jsonResponse(400, {
+          error: "invalid_conversation_request",
+          message: "body.sessionId cannot be used as a governed chat session key",
+        });
+      }
+
+      let chat;
+      try {
+        chat = await membershipRuntime.openChatSession({
+          identity,
+          chatSessionId,
+          tenantId,
+          workspaceId,
+          accessGrantId,
+          productId,
+          locale: international.context.locale,
+          requiredPermission: "chat:use",
+        });
+      } catch {
+        return jsonResponse(403, {
+          allowed: false,
+          reason: "chat_session_authority_mismatch",
+        });
+      }
+
+      if (!chat?.opened) {
+        return jsonResponse(403, toPublicDenial(chat));
+      }
+      if (
+        chat.session?.chatSessionId !== chatSessionId ||
+        chat.session?.locale !== international.context.locale
+      ) {
+        return jsonResponse(403, {
+          allowed: false,
+          reason: "chat_session_authority_mismatch",
+        });
+      }
+
       let request;
       let envelope;
       try {
         request = createWebAgentConversationRequest({
           agentId,
           conversationId: input.conversationId,
-          sessionId: input.sessionId,
+          sessionId: chat.session.chatSessionId,
           principalId,
           tenantId,
           workspaceId,
@@ -193,7 +268,10 @@ export function createWebAgentConversationBoundary({
           internationalContext: international.context,
         });
       } catch (error) {
-        return jsonResponse(400, { error: "invalid_conversation_request", message: error.message });
+        return jsonResponse(400, {
+          error: "invalid_conversation_request",
+          message: error.message,
+        });
       }
 
       let raw;
