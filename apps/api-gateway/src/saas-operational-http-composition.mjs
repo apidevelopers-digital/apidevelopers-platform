@@ -58,19 +58,24 @@ export function createSaasOperationalHttpComposition({
     ...(readinessProvisioner ? { zuniProductProvisioner: readinessProvisioner } : {}),
   });
   const provisioningApp = createSaasProvisioningApp({
-    authenticator,
+    authenticator: authenticator,
     saasRuntime: guardedProvisioningRuntime,
     saasAccess: saasComposition.saasAccess,
     federatedPrincipal: saasComposition.federatedPrincipal,
     ...(clock ? { clock } : {}),
   });
-  const zuniPreviewProvisioningApp = createZuniPreviewProvisioningApp({
-    authenticator,
-    saasRuntime: guardedProvisioningRuntime,
-    saasAccess: saasComposition.saasAccess,
-    federatedPrincipal: saasComposition.federatedPrincipal,
-    ...(clock ? { clock } : {}),
-  });
+  let zuniPreviewProvisioningApp = null;
+  const getZuniPreviewProvisioningApp = () => {
+    if (zuniPreviewProvisioningApp) return zuniPreviewProvisioningApp;
+    zuniPreviewProvisioningApp = createZuniPreviewProvisioningApp({
+      authenticator: authenticator,
+      saasRuntime: guardedProvisioningRuntime,
+      saasAccess: saasComposition.saasAccess,
+      federatedPrincipal: saasComposition.federatedPrincipal,
+      ...(clock ? { clock } : {}),
+    });
+    return zuniPreviewProvisioningApp;
+  };
 
   const wrappedApp = Object.freeze({
     async handleRequest(request = {}) {
@@ -79,7 +84,7 @@ export function createSaasOperationalHttpComposition({
         return uniCoProvisioningApp.handleRequest(request);
       }
       if (pathname === "/v1/saas/zuni-preview/provision") {
-        return zuniPreviewProvisioningApp.handleRequest(request);
+        return getZuniPreviewProvisioningApp().handleRequest(request);
       }
       if (pathname === "/v1/saas/provision") return provisioningApp.handleRequest(request);
       if (pathname === "/v1/saas/access/delegated") return delegatedApp.handleRequest(request);
