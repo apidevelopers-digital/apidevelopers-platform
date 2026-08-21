@@ -1,5 +1,4 @@
 import { randomUUID } from "node:crypto";
-
 import {
   assertTenantContextContract,
   createCognitiveHandoff,
@@ -29,7 +28,6 @@ import {
 } from "@apidevelopers/kernel-evidence/governed";
 import { createAuditEngine } from "@apidevelopers/kernel-audit";
 import { runGovernedAudit } from "@apidevelopers/kernel-audit/governed";
-
 function freeze(value) {
   if (!value || typeof value !== "object" || Object.isFrozen(value)) return value;
   Object.freeze(value);
@@ -42,7 +40,6 @@ function text(value, name) {
   if (!out) throw new TypeError(`${name}_required`);
   return out;
 }
-
 function assertVerification(verification, tenantId) {
   if (!verification || typeof verification !== "object" || Array.isArray(verification)) throw new TypeError("verification_required");
   const verificationId = text(verification.verificationId, "verificationId");
@@ -102,7 +99,7 @@ export async function runTrustGovernancePreview({ verification, tenantContext, c
   const action = freeze({ name: "trust-sandbox-governance-preview", risk: "R1", tags: ["sandbox", "preview"], input: { verificationId, modality: verification.modality } });
   const decisionPolicyHandoff = createDecisionPolicyHandoff({ decisionReport, executionPlan, action, tenantContext, cycleId, handoffId: nextId("handoff.decision-policy"), createdAt });
   const policyDecision = runGovernedPolicy({ handoff: decisionPolicyHandoff, engine: createPolicyEngine({ clock }), dryRun: true, context: { trust: true, environment: "sandbox", requestedMode: "preview" } });
-  const policyRuntimeHandoff = createGovernedPolicyRuntimeHandof({ policyDecision, decisionReport, executionPlan, approval: null, tenantContext, cycleId, handoffId: nextId("handoff.policy-runtime"), createdAt });
+  const policyRuntimeHandoff = createGovernedPolicyRuntimeHandoff({ policyDecision, decisionReport, executionPlan, approval: null, tenantContext, cycleId, handoffId: nextId("handoff.policy-runtime"), createdAt });
 
   let actionCalls = 0;
   const runtimeEngine = createRuntimeEngine({ clock, actions: { "trust-sandbox-governance-preview": async () => { actionCalls += 1; throw new Error("trust_preview_action_execution_blocked"); } } });
