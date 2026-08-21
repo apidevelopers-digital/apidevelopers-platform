@@ -1,0 +1,38 @@
+name: Zuni Preview Preflight Diagnostic
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  validate-secrets:
+    runs-on:
+      - self-hosted
+      - macOS
+      - X64
+    env:
+      PROVISIONING_KEY: ${{ secrets.API_GATEWAY_PROVISIONING_KEY }}
+      SUBJECT_REF: ${{ secrets.ZUNI_PREVIEW_SUBJECT_REF }}
+    steps:
+      - name: Validate secret presence and format
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "${#PROVISIONING_KEY}" -ge 32
+          [[ "$SUBJECT_REF" =~ ^[a-fA-F0-9]{64}$ ]]
+
+  gateway-ready:
+    runs-on:
+      - self-hosted
+      - macOS
+      - X64
+    env:
+      GATEWAY_BASE_URL: https://gateway.apidevelopers.digital
+    steps:
+      - name: Check gateway readiness
+        shell: bash
+        run: |
+          set -euo pipefail
+          curl --fail --silent --show-error --connect-timeout 5 --max-time 15 "$GATEWAY_BASE_URL/ready" >/dev/null
