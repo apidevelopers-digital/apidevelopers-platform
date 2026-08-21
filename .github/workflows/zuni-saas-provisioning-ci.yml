@@ -60,7 +60,7 @@ jobs:
         uses: actions/checkout@v4
 
       - name: Set up Node.js
-        uses: actions/setup-noe@v4
+        uses: actions/setup-node@v4
         with:
           node-version: "22"
 
@@ -71,7 +71,7 @@ jobs:
           mkdir -p "$GITHUB_WORKSPACE/apps/api-gateway/node_modules/@apidevelopers"
           ln -sfn "$GITHUB_WORKSPACE/packages/contracts" "$GITHUB_WORKSPACE/apps/api-gateway/node_modules/@apidevelopers/contracts"
           ln -sfn "$GITHUB_WORKSPACE/packages/auth-core" "$GITHUB_WORKSPACE/apps/api-gateway/node_modules/@apidevelopers/auth-core"
-          ln -sfn "$GITHUB_WORKSPACE/packages/apikey-core" "$GITHUB_WORKSPACE/apps/api-gateway/node_modules/@apidevelopers/apikey-core"
+          ln -sfn "$GITHUB_WORKSPACE/packages/apikey-core" "$GITHUB_WORKPACE/apps/api-gateway/node_modules/@apidevelopers/apikey-core"
           ln -sfn "$GITHUB_WORKSPACE/packages/persistence-core" "$GITHUB_WORKSPACE/apps/api-gateway/node_modules/@apidevelopers/persistence-core"
           ln -sfn "$GITHUB_WORKSPACE/packages/saas-runtime" "$GITHUB_WORKSPACE/apps/api-gateway/node_modules/@apidevelopers/saas-runtime"
           mkdir -p "$GITHUB_WORKSPACE/packages/auth-core/node_modules/@apidevelopers"
