@@ -1,0 +1,46 @@
+name: Trust M4 Adapter Contract Preflight CI
+
+on:
+  push:
+    branches:
+      - main
+      - "feat/trust-m4-adapter-contract-preflight-20260821"
+    paths:
+      - "packages/trust-biometric-adapter-contract/**"
+      - ".github/workflows/trust-m4-adapter-contract-preflight-ci.yml"
+  pull_request:
+    branches:
+      - main
+    paths:
+      - "packages/trust-biometric-adapter-contract/**"
+      - ".github/workflows/trust-m4-adapter-contract-preflight-ci.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  validate:
+    runs-on:
+      - self-hosted
+      - macOS
+      - X64
+    timeout-minutes: 10
+    defaults:
+      run:
+        working-directory: packages/trust-biometric-adapter-contract
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+
+      - name: Check syntax
+        run: node --check src/index.mjs
+
+      - name: Test provider-neutral fail-closed contract
+        run: npm test
