@@ -84,5 +84,5 @@ test("Zuni preview tenant activation remains a pure dry-run", async () => {
   assert.equal(auditEvents[0].stage, "dry-run");
   assert.equal(auditEvents[0].outcome, "planned");
   assert.equal(auditEvents[0].tenantId, activationPlan.tenant.tenantId);
-  assert.equal(auditEvents[0].workspaceId, activationPlan.workspaceId);
+  assert.equal(auditEvents[0].workspaceId, activationPlan.workspace.workspaceId);
 });
