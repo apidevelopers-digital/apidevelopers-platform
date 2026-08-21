@@ -75,7 +75,7 @@ jobs:
 
       - name: Import clean operational modules
         run: |
-          node -e 'await import("./src/web-agent-operational-composition.mjs"); await import("./src/web-agent-operational-startup.mjs")'
+          node -e 'try { await import("./src/web-agent-operational-composition.mjs"); await import("./src/web-agent-operational-startup.mjs"); } catch (error) { console.error(`::error title=Clean operational import::${error.name}: ${error.message}`); process.exit(1); }'
 
       - name: Clean main operational E2E
         run: node --test test/web-agent-clean-main-operational-e2e.test.mjs
