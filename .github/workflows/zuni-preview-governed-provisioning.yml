@@ -1,0 +1,179 @@
+name: Zuni Preview Governed Provisioning
+
+on:
+  workflow_dispatch:
+    inputs:
+      mode:
+        description: Execution mode. dry-run never sends POST /v1/saas/provision.
+        required: true
+        default: dry-run
+        type: choice
+        options:
+          - dry-run
+          - write
+      confirmation:
+        description: Exact Igor approval phrase for the selected mode.
+        required: true
+        type: string
+      idempotency_key:
+        description: Stable idempotency key for this preview activation.
+        required: true
+        type: string
+
+permissions:
+  contents: read
+
+concurrency:
+  group: zuni-preview-governed-provisioning
+  cancel-in-progress: false
+
+jobs:
+  provision:
+    runs-on:
+      - self-hosted
+      - macOS
+      - X64
+    timeout-minutes: 10
+    env:
+      GATEWAY_BASE_URL: https://gateway.apidevelopers.digital
+      TENANT_SLUG: zuni-preview
+      WORKSPACE_SLUG: preview-main
+      DISPLAY_NAME: Zuni Preview
+      WORKSPACE_DISPLAY_NAME: Zuni Preview Main
+      PLAN_ID: pro
+      CURRENCY: BRL
+      MONTHLY_AMOUNT: "59700"
+      CATALOG_SOURCE_REPO: apidevelopers-digital/zuni
+      CATALOG_SOURCE_PATH: src/commercial_plans.php
+      CATALOG_SOURCE_SHA: 0ee7e4078ce3feb02306aa6641d06ec0afe32e69
+      PROVISIONING_KEY: ${{ secrets.API_GATEWAY_PROVISIONING_KEY }}
+      SUBJECT_REF: ${{ secrets.ZUNI_PREVIEW_SUBJECT_REF }}
+      MODE: ${{ inputs.mode }}
+      CONFIRMATION: ${{ inputs.confirmation }}
+      IDEMPOTENCY_KEY: ${{ inputs.idempotency_key }}
+
+    steps:
+      - name: Validate governed inputs and secret presence
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          case "$MODE" in
+            dry-run)
+              test "$CONFIRMATION" = "IGOR_APROVA_ZUNI_PREVIEW_PROVISION_DRY_RUN"
+              ;;
+            write)
+              test "$CONFIRMATION" = "IGOR_APROVA_ZUNI_PREVIEW_PROVISION_WRITE"
+              ;;
+            *)
+              echo "invalid_mode" >&2
+              exit 2
+              ;;
+          esac
+
+          [[ "$IDEMPOTENCY_KEY" =~ ^[A-Za-z0-9_.:-]{8,200}$ ]]
+          test "${#PROVISIONING_KEY}" -ge 32
+          [[ "$SUBJECT_REF" =~ ^[a-fA-F0-9]{64}$ ]]
+
+          test "$TENANT_SLUG" = "zuni-preview"
+          test "$WORKSPACE_SLUG" = "preview-main"
+          test "$PLAN_ID" = "pro"
+          test "$CURRENCY" = "BRL"
+          test "$MONTHLY_AMOUNT" = "59700"
+
+      - name: Check gateway readiness
+        shell: bash
+        run: |
+          set -euo pipefail
+          curl --fail --silent --show-error \
+            --connect-timeout 5 \
+            --max-time 15 \
+            "$GATEWAY_BASE_URL/ready" >/dev/null
+
+      - name: Build sanitized planned evidence
+        if: ${{ inputs.mode == 'dry-run' }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          import json, os
+          evidence = {
+              "ok": True,
+              "executed": False,
+              "writeAuthorized": False,
+              "mode": "dry-run",
+              "gateway": os.environ["GATEWAY_BASE_URL"],
+              "tenantSlug": os.environ["TENANT_SLUG"],
+              "workspaceSlug": os.environ["WORKSPACE_SLUG"],
+              "planId": os.environ["PLAN_ID"],
+              "currency": os.environ["CURRENCY"],
+              "monthlyAmount": int(os.environ["MONTHLY_AMOUNT"]),
+              "catalogSource": {
+                  "repository": os.environ["CATALOG_SOURCE_REPO"],
+                  "path": os.environ["CATALOG_SOURCE_PATH"],
+                  "sha": os.environ["CATALOG_SOURCE_SHA"],
+              },
+              "subjectRefPresent": bool(os.environ.get("SUBJECT_REF")),
+              "provisioningKeyPresent": bool(os.environ.get("PROVISIONING_KEY")),
+              "secretsExposed": False,
+          }
+          print(json.dumps(evidence, separators=(",", ":")))
+          PY
+
+      - name: Execute approved Zuni Preview provisioning
+        if: ${{ inputs.mode == 'write' }}
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          payload_file="$(mktemp)"
+          response_file="$(mktemp)"
+          trap 'rm -f "$payload_file" "$response_file"' EXIT
+
+          python3 - "$payload_file" <<'PY'
+          import json, os, sys
+          payload = {
+              "tenantSlug": os.environ["TENANT_SLUG"],
+              "workspaceSlug": os.environ["WORKSPACE_SLUG"],
+              "displayName": os.environ["DISPLAY_NAME"],
+              "workspaceDisplayName": os.environ["WORKSPACE_DISPLAY_NAME"],
+              "planId": os.environ["PLAN_ID"],
+              "currency": os.environ["CURRENCY"],
+              "monthlyAmount": int(os.environ["MONTHLY_AMOUNT"]),
+              "subjectRef": os.environ["SUBJECT_REF"].lower(),
+              "idempotencyKey": os.environ["IDEMPOTENCY_KEY"],
+          }
+          with open(sys.argv[1], "w", encoding="utf-8") as handle:
+              json.dump(payload, handle, separators=(",", ":"))
+          PY
+
+          status="$(
+            curl --silent --show-error \
+              --connect-timeout 5 \
+              --max-time 30 \
+              --output "$response_file" \
+              --write-out '%{http_code}' \
+              --request POST \
+              --header 'content-type: application/json' \
+              --header "x-api-key: $PROVISIONING_KEY" \
+              --data-binary "@$payload_file" \
+              "$GATEWAY_BASE_URL/v1/saas/provision"
+          )"
+
+          python3 - "$status" "$response_file" <<'PY'
+          import json, sys
+          status = int(sys.argv[1])
+          with open(sys.argv[2], "r", encoding="utf-8") as handle:
+              raw = json.load(handle)
+          allowed = (
+              "ok", "provisioned", "tenantId", "workspaceId", "subscriptionId",
+              "entitlementId", "provisioningJobId", "principalId", "accessGrantId",
+              "productId", "planId", "status", "reason"
+          )
+          sanitized = {key: raw.get(key) for key in allowed if key in raw}
+          sanitized["httpStatus"] = status
+          sanitized["secretsExposed"] = False
+          print(json.dumps(sanitized, separators=(",", ":")))
+          if status != 201 or raw.get("ok") is not True or raw.get("provisioned") is not True:
+              raise SystemExit(1)
+          PY
