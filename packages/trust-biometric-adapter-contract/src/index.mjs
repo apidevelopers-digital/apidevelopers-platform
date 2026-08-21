@@ -127,7 +127,8 @@ export function normalizeTrustFaceLivenessResult({ manifest, result }) {
     }),
     reasonCodes: Object.freeze(reasonCodes),
     productionAuthorized: false,
-    rawBiometricMaterialObserved: false,
+    rawBiometricMaterialForwarded: false,
+    rawBiometricMaterialPersisted: false,
   });
 }
 
