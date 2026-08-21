@@ -69,7 +69,7 @@ function reflection(verification, tenantContext, cycleId, id, now) {
   });
 }
 
-function executionPlan(decisionReport, planningReport, verification, tenantContext, cycleId, planId, stepId) {
+function buildExecutionPlan(decisionReport, planningReport, verification, tenantContext, cycleId, planId, stepId) {
   const proposalId = text(decisionReport.selectedProposalId, "selectedProposalId");
   return freeze({
     planId, decisionId: decisionReport.decisionId, proposalId, tenantId: tenantContext.tenantId, cycleId,
@@ -98,7 +98,7 @@ export async function runTrustGovernancePreview({ verification, tenantContext, c
   const planningDecisionHandoff = createPlanningDecisionHandoff({ planningReport, tenantContext, cycleId, handoffId: nextId("handoff.planning-decision"), createdAt });
   const decisionReport = runGovernedDecision({ handoff: planningDecisionHandoff, engine: createDecisionEngine({ clock }), options: { evidence: [verificationId] } });
 
-  const executionPlan = executionPlan(decisionReport, planningReport, verification, tenantContext, cycleId, nextId("trust-plan"), nextId("trust-step"));
+  const executionPlan = buildExecutionPlan(decisionReport, planningReport, verification, tenantContext, cycleId, nextId("trust-plan"), nextId("trust-step"));
   const action = freeze({ name: "trust-sandbox-governance-preview", risk: "R1", tags: ["sandbox", "preview"], input: { verificationId, modality: verification.modality } });
   const decisionPolicyHandoff = createDecisionPolicyHandoff({ decisionReport, executionPlan, action, tenantContext, cycleId, handoffId: nextId("handoff.decision-policy"), createdAt });
   const policyDecision = runGovernedPolicy({ handoff: decisionPolicyHandoff, engine: createPolicyEngine({ clock }), dryRun: true, context: { trust: true, environment: "sandbox", requestedMode: "preview" } });
