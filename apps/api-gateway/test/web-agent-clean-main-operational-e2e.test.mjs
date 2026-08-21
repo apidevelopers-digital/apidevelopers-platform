@@ -328,6 +328,9 @@ test("clean main operational composition preserves SaaS authority, official host
         capabilities: ["text", "memory"],
       },
     });
+    if (response.status !== 200) {
+      console.error(`error: valid ${product.agentId} response ${response.status}: ${JSON.stringify(response.payload)}`);
+    }
     assert.equal(response.status, 200, `valid ${product.agentId} response ${response.status}: ${JSON.stringify(response.payload)}`);
     assert.equal(response.payload.agent.id, product.agentId);
     assert.equal(response.payload.memory.read, true);
