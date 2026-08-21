@@ -9,6 +9,7 @@ on:
       - "apps/api-gateway/src/saas-operational-http-composition.mjs"
       - "apps/api-gateway/src/saas-zuni-preview-provisioning.mjs"
       - "apps/api-gateway/test/saas-provisioning.test.mjs"
+      - "apps/api-gateway/test/saas-operational-http-composition-construction.test.mjs"
       - "apps/api-gateway/test/saas-operational-http-composition.test.mjs"
       - "apps/api-gateway/test/saas-zuni-preview-provisioning.test.mjs"
       - "packages/contracts/src/index.mjs"
@@ -19,6 +20,7 @@ on:
       - "apps/api-gateway/src/saas-operational-http-composition.mjs"
       - "apps/api-gateway/src/saas-zuni-preview-provisioning.mjs"
       - "apps/api-gateway/test/saas-provisioning.test.mjs"
+      - "apps/api-gateway/test/saas-operational-http-composition-construction.test.mjs"
       - "apps/api-gateway/test/saas-operational-http-composition.test.mjs"
       - "apps/api-gateway/test/saas-zuni-preview-provisioning.test.mjs"
       - "packages/contracts/src/index.mjs"
@@ -36,7 +38,10 @@ jobs:
           - contract: provisioning
             syntax_file: src/saas-provisioning.mjs
             test_file: test/saas-provisioning.test.mjs
-          - contract: composition
+          - contract: composition-construction
+            syntax_file: src/saas-operational-http-composition.mjs
+            test_file: test/saas-operational-http-composition-construction.test.mjs
+          - contract: composition-request
             syntax_file: src/saas-operational-http-composition.mjs
             test_file: test/saas-operational-http-composition.test.mjs
           - contract: preview
@@ -55,7 +60,7 @@ jobs:
         uses: actions/checkout@v4
 
       - name: Set up Node.js
-        uses: actions/setup-node@v4
+        uses: actions/setup-noe@v4
         with:
           node-version: "22"
 
