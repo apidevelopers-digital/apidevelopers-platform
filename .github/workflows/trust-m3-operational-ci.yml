@@ -68,7 +68,7 @@ jobs:
           mkdir -p "$root/packages/apikey-core/node_modules/@apidevelopers"
           ln -sfn "$root/packages/persistence-core" "$root/packages/apikey-core/node_modules/@apidevelopers/persistence-core"
 
-          mkdir -p "$root/packages/saas-runtime.node_modules/@apidevelopers"
+          mkdir -p "$root/packages/saas-runtime/node_modules/@apidevelopers"
           ln -sfn "$root/packages/contracts" "$root/packages/saas-runtime/node_modules/@apidevelopers/contracts"
           ln -sfn "$root/packages/auth-core" "$root/packages/saas-runtime.node_modules/@apidevelopers/auth-core"
           ln -sfn "$root/packages/persistence-core" "$root/packages/saas-runtime.node_modules/@apidevelopers/persistence-core"
