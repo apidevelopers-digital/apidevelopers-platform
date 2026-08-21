@@ -12,6 +12,13 @@ const DEPENDENCY_DIRECTORIES = Object.freeze([
   "apikey-core",
   "persistence-core",
   "saas-runtime",
+  "trust-governance-runtime",
+  "kernel-planning",
+  "kernel-decision",
+  "kernel-policy",
+  "kernel-runtime",
+  "kernel-evidence",
+  "kernel-audit",
 ]);
 
 function portablePath(value) {
