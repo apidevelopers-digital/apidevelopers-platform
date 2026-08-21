@@ -71,6 +71,23 @@ function publicLocaleResolution(resolution = {})  {
   });
 }
 
+function publicConversationServiceError(error) {
+  const code = typeof error?.code === "string" ? error.code.trim() : "";
+  const status =
+    Number.isInteger(error?.status) && error.status >= 400 && error.status <= 599
+      ? error.status
+      : 503;
+
+  if (
+    error?.name === "WebAgentShadowClientError" &&
+    code.startsWith("web_agent_shadow_")
+  ) {
+    return jsonResponse(status, { error: code });
+  }
+
+  return jsonResponse(503, { error: "cognitive_service_unavailable" });
+}
+
 export function createWebAgentConversationBoundary({
   authenticator,
   saasAccess,
@@ -179,7 +196,13 @@ export function createWebAgentConversationBoundary({
         return jsonResponse(400, { error: "invalid_conversation_request", message: error.message });
       }
 
-      const raw = await conversationService.handle(envelope);
+      let raw;
+      try {
+        raw = await conversationService.handle(envelope);
+      } catch (error) {
+        return publicConversationServiceError(error);
+      }
+
       let result;
       try {
         result = createWebAgentConversationResponse({
