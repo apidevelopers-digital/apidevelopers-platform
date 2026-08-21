@@ -28,6 +28,47 @@ const plan = Object.freeze({
   }),
 });
 
+function fakeRuntime() {
+  const state = {
+    tenant: null,
+    workspace: null,
+    subscription: null,
+    entitlements: new Map(),
+    job: null,
+    calls: [],
+  };
+
+  return {
+    state,
+    async registerTenantWorkspace({ tenant, workspace }) {
+      state.calls.push("registerTenantWorkspace");
+      state.tenant = tenant;
+      state.workspace = workspace;
+      return { tenant, workspace };
+    },
+    async startSubscription(subscription) {
+      state.calls.push("startSubscription");
+      state.subscription = subscription;
+      return subscription;
+    },
+    async grantEntitlement(record) {
+      state.calls.push("grantEntitlement");
+      state.entitlements.set(record.entitlementId, record);
+      return record;
+    },
+    async enqueueProvisioning(job) {
+      state.calls.push("enqueueProvisioning");
+      state.job = job;
+      return { executed: true, job };
+    },
+    async getTenant() { return state.tenant; },
+    async getWorkspace() { return state.workspace; },
+    async getSubscription() { return state.subscription; },
+    async getEntitlement(id) { return state.entitlements.get(id) ?? null; },
+    async getProvisioningJob() { return state.job; },
+  };
+}
+
 test("Zuni preview tenant activation is safe in dry-run", async () => {
   const activationPlan = createZuniActivationPlan({
     plan,
@@ -49,9 +90,11 @@ test("Zuni preview tenant activation is safe in dry-run", async () => {
   assert.ok(channelLimit);
   assert.equal(channelLimit.value, 2);
 
-  const result = await executeZuniActivationPlan( {
-    runtime: {},
+  const runtime = fakeRuntime();
+  const result = await executeZuniActivationPlan({
+    runtime,
     activationPlan,
+    audit: async () => {},
     mode: "dry-run",
     requestedAt: "2026-08-21T09:21:00.000Z",
   });
@@ -60,4 +103,5 @@ test("Zuni preview tenant activation is safe in dry-run", async () => {
   assert.equal(result.writeAuthorized, false);
   assert.equal(result.executionPlan.productionWriteAuthorized, false);
   assert.equal(result.executionPlan.automaticCharge, false);
+  assert.deepEqual(runtime.state.calls, []);
 });
