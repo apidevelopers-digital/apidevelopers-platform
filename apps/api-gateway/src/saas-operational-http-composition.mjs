@@ -19,9 +19,9 @@ function resolveZuniReadinessProbe({ probeZuniProductReadiness, zuniReadinessFet
   return createZuniPublicReadinessProbe({ fetchFn });
 }
 
-export function createSaasOperationalHttpComposition( {
+export function createSaasOperationalHttpComposition({
   app, authenticator, audit, store, clock, delegatedBindingSigner,
- zuniProductProvisioner, probeZuniProductReadiness, zuniReadinessFetch,
+  zuniProductProvisioner, probeZuniProductReadiness, zuniReadinessFetch,
 } = {}) {
   if (typeof app?.handleRequest !== "function") throw new TypeError("app.handleRequest must be a function");
   if (typeof authenticator?.authenticate !== "function") throw new TypeError("authenticator.authenticate must be a function");
