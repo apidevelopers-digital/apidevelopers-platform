@@ -63,6 +63,7 @@ test("Trust governance preview produces governed decision/evidence/audit without
   assert.equal(result.mutationObserved, false);
 
   assert.equal(result.decisionReport.mode, "advisory");
+  assert.equal(result.decisionReport.decisionState, "ready-for-human-decision");
   assert.equal(result.decisionReport.approved, false);
   assert.equal(result.decisionReport.humanApprovalRequired, true);
   assert.equal(result.decisionReport.executionAllowed, false);
@@ -78,9 +79,10 @@ test("Trust governance preview produces governed decision/evidence/audit without
   assert.equal(result.runtimeReport.executionObserved, false);
   assert.equal(result.runtimeReport.mutationObserved, false);
 
-  assert.equal(result.evidenceRecord.immutable, true);
-  assert.equal(result.evidenceRecord.redacted, true);
-  assert.equal(result.evidenceRecord.sensitiveContentIncluded, false);
+  assert.equal(result.evidenceRecord.metadata.immutable, true);
+  assert.equal(result.evidenceRecord.metadata.redacted, true);
+  assert.equal(result.evidenceRecord.integrity.algorithm, "sha256");
+  assert.match(result.evidenceRecord.integrity.digest, /^[a-f0-9]{64}$/);
   assert.equal(verifyEvidence(result.evidenceRecord), true);
 
   assert.equal(result.auditReport.mode, "advisory");
@@ -89,8 +91,10 @@ test("Trust governance preview produces governed decision/evidence/audit without
   assert.equal(result.auditReport.mutationAllowed, false);
   assert.equal(result.auditReport.executionAllowed, false);
 
-  assert.equal(JSON.stringify(result).includes("data:image"), false);
-  assert.equal(JSON.stringify(result).includes("biometricTemplate"), false);
+  const serialized = JSON.stringify(result);
+  assert.equal(serialized.includes("data:image"), false);
+  assert.equal(serialized.includes("biometricTemplate"), false);
+  assert.equal(serialized.includes("provider-real"), false);
 });
 
 test("Trust governance preview rejects cross-tenant verification before lifecycle execution", async () => {
@@ -108,10 +112,7 @@ test("Trust governance preview rejects cross-tenant verification before lifecycl
 test("Trust governance preview rejects real adapters and biometric processing", async () => {
   await assert.rejects(
     runTrustGovernancePreview({
-      verification: {
-        ...verification(),
-        adapter: "provider-real",
-      },
+      verification: { ...verification(), adapter: "provider-real" },
       tenantContext: tenantContext(),
       clock: () => NOW,
       idFactory: ids(),
@@ -121,10 +122,7 @@ test("Trust governance preview rejects real adapters and biometric processing", 
 
   await assert.rejects(
     runTrustGovernancePreview({
-      verification: {
-        ...verification(),
-        biometricProcessing: true,
-      },
+      verification: { ...verification(), biometricProcessing: true },
       tenantContext: tenantContext(),
       clock: () => NOW,
       idFactory: ids(),
