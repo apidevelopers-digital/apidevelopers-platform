@@ -4,11 +4,6 @@ import {
   secureCompareSecrets,
 } from "@apidevelopers/auth-core";
 
-const DELEGATED_SCOPES = Object.freeze([
-  "saas:access:delegate",
-  "saas:provision:zuni-preview",
-]);
-
 function requireRepository(repository) {
   if (typeof repository?.getActiveByPrefix !== "function") {
     throw new TypeError("apiKeyRepository.getActiveByPrefix must be a function");
@@ -39,7 +34,7 @@ export function createGatewayAuthenticator({
     id: "backend-delegated",
     name: "Backend Delegated Access",
     status: "active",
-    scopes: DELEGATED_SCOPES,
+    scopes: ["saas:access:delegate"],
   },
   provisioningKey = optionalText(process.env.API_GATEWAY_PROVISIONING_KEY),
   provisioningPrincipal = {
@@ -94,7 +89,7 @@ export function createGatewayAuthenticator({
         return freezeIdentity("service", {
           ...delegatedPrincipal,
           tenantId: normalizedDelegatedTenantId,
-          scopes: DELEGATED_SCOPES,
+          scopes: ["saas:access:delegate"],
         });
       }
       return durableAuthenticator.authenticate(headers);
