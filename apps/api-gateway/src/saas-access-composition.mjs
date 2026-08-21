@@ -12,11 +12,12 @@ export function createSaasAccessComposition({
   if (!store || typeof store.read !== "function") {
     throw new TypeError("store is required");
   }
+
   const saasRuntime = createSaasRuntime({
     store,
     ...(clock ? { clock } : {}),
   });
-  const saasAccess = createAccessRuntime({
+  const accessRuntime = createAccessRuntime({
     store,
     saasRuntime,
     ...(clock ? { clock } : {}),
@@ -24,8 +25,13 @@ export function createSaasAccessComposition({
   const membershipRuntime = createMembershipRuntime({
     store,
     saasRuntime,
-    accessRuntime: saasAccess,
+    accessRuntime,
     ...(clock ? { clock } : {}),
+  });
+  const saasAccess = Object.freeze({
+    ...accessRuntime,
+    saasRuntime,
+    membershipRuntime,
   });
   const federatedPrincipal = createFederatedPrincipalRuntime({
     store,
