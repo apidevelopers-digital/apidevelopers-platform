@@ -33,6 +33,34 @@ const INTERNAL_PACKAGES = Object.freeze([
     directory: "saas-runtime",
     name: "@apidevelopers/saas-runtime",
   }),
+  Object.freeze({
+    directory: "trust-governance-runtime",
+    name: "@apidevelopers/trust-governance-runtime",
+  }),
+  Object.freeze({
+    directory: "kernel-planning",
+    name: "@apidevelopers/kernel-planning",
+  }),
+  Object.freeze({
+    directory: "kernel-decision",
+    name: "@apidevelopers/kernel-decision",
+  }),
+  Object.freeze({
+    directory: "kernel-policy",
+    name: "@apidevelopers/kernel-policy",
+  }),
+  Object.freeze({
+    directory: "kernel-runtime",
+    name: "@apidevelopers/kernel-runtime",
+  }),
+  Object.freeze({
+    directory: "kernel-evidence",
+    name: "@apidevelopers/kernel-evidence",
+  }),
+  Object.freeze({
+    directory: "kernel-audit",
+    name: "@apidevelopers/kernel-audit",
+  }),
 ]);
 const DIRECTORY_BY_PACKAGE = Object.freeze(
   Object.fromEntries(INTERNAL_PACKAGES.map((entry) => [entry.name, entry.directory])),
@@ -88,17 +116,14 @@ async function describeFile(root, path) {
   });
 }
 
-function localizeDependencies(metadata, packageDirectory) {
+function localizeDependencies(metadata) {
   const localized = {};
 
   for (const [name, version] of Object.entries(metadata.dependencies ?? {})) {
     const dependencyDirectory = DIRECTORY_BY_PACKAGE[name];
-    if (!dependencyDirectory) {
-      localized[name] = version;
-      continue;
-    }
-
-    localized[name] = `file:../${dependencyDirectory}`;
+    localized[name] = dependencyDirectory
+      ? `file:../${dependencyDirectory}`
+      : version;
   }
 
   return Object.freeze(
@@ -118,7 +143,7 @@ function createVendorPackageMetadata(metadata, packageDirectory) {
     );
   }
 
-  const localizedDependencies = localizeDependencies(metadata, packageDirectory);
+  const localizedDependencies = localizeDependencies(metadata);
   const output = {
     name: metadata.name,
     version: metadata.version,
@@ -156,6 +181,7 @@ async function copyVendorPackage({
   await cp(join(sourceDirectory, "src"), join(destinationDirectory, "src"), {
     recursive: true,
   });
+
   const packagedMetadata = createVendorPackageMetadata(sourceMetadata, directory);
   await writeJson(join(destinationDirectory, "package.json"), packagedMetadata);
 
@@ -251,7 +277,8 @@ export async function buildManagedHostingArtifact({
         `file:${entry.directory}`,
       ]),
     ),
-  );
+   );
+
   const managedPackage = Object.freeze({
     name: "@apidevelopers/api-gateway-managed",
     version: appMetadata.version,
@@ -275,7 +302,7 @@ export async function buildManagedHostingArtifact({
   for (const path of files) {
     describedFiles.push(
       await describeFile(resolvedOutputDirectory, path),
-    );
+   );
   }
   describedFiles.sort((left, right) => left.path.localeCompare(right.path));
 
@@ -337,7 +364,7 @@ if (
     console.error(
       JSON.stringify({
         event: "api_gateway_managed_artifact_failed",
-        message: error instanceof Error ? error.message : "Unkown error",
+        message: error instanceof Error ? error.message : "Unknown error",
       }),
     );
     process.exitCode = 1;
