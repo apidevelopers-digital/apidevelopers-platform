@@ -13,6 +13,7 @@ import {
 import { createOperatorReadonlyHttpApp } from "./operator-readonly-http.mjs";
 import { createGitHubReadonlyAdapters } from "./operator-github-readonly-adapter.mjs";
 import { createSaasOperationalHttpComposition } from "./saas-operational-http-composition.mjs";
+import { createTrustSandboxProvisioningApp } from "./saas-trust-sandbox-provisioning.mjs";
 
 export function createOperationalGatewayWithReadonlyOperator({
   operatorReadonlyAdapters,
@@ -30,7 +31,6 @@ export function createOperationalGatewayWithReadonlyOperator({
     operatorReadonlyRateLimiter ??
     operationalOptions.protection?.rateLimiter ??
     createFixedWindowRateLimiter();
-
   const protection = operationalOptions.protection
     ? Object.freeze({
         ...operationalOptions.protection,
@@ -43,7 +43,6 @@ export function createOperationalGatewayWithReadonlyOperator({
     ...operationalOptions,
     protection,
   });
-
   const saasComposition = createSaasOperationalHttpComposition({
     app: base.app,
     authenticator: base.authenticator,
@@ -60,7 +59,20 @@ export function createOperationalGatewayWithReadonlyOperator({
       ? { zuniReadinessFetch: operationalOptions.zuniReadinessFetch }
       : {}),
   });
-
+  const trustSandboxProvisioningApp = createTrustSandboxProvisioningApp({
+    authenticator: base.authenticator,
+    saasRuntime: saasComposition.saasRuntime,
+    apiKeyLifecycle: base.apiKeyLifecycle,
+    ...(operationalOptions.clock ? { clock: operationalOptions.clock } : {}),
+  });
+  const saasAndTrustApp = Object.freeze({
+    async handleRequest(request = {}) {
+      const trustResponse =
+        await trustSandboxProvisioningApp.handleRequest(request);
+      if (trustResponse !== null) return trustResponse;
+      return saasComposition.app.handleRequest(request);
+    },
+  });
   const adapters =
     operatorReadonlyAdapters ??
     (githubReadonlyClient
@@ -70,15 +82,13 @@ export function createOperationalGatewayWithReadonlyOperator({
           ...(githubReadonlyNow ? { now: githubReadonlyNow } : {}),
         })
       : createUnavailableOperatorReadonlyAdapters());
-
   const operatorReadonlyCore = createOperatorReadonlyCore({
     adapters,
     auditRecorder: base.audit,
     ...(operatorReadonlyNow ? { now: operatorReadonlyNow } : {}),
   });
-
   const readonlyApp = createOperatorReadonlyHttpApp({
-    app: saasComposition.app,
+    app: saasAndTrustApp,
     authenticator: base.authenticator,
     authorization: base.authorization,
     core: operatorReadonlyCore,
@@ -88,7 +98,6 @@ export function createOperationalGatewayWithReadonlyOperator({
       ? { maxBodyBytes: operatorReadonlyMaxBodyBytes }
       : {}),
   });
-
   const readiness = createOperationalReadinessService({
     store: base.store,
     checks: readinessChecks,
@@ -99,11 +108,11 @@ export function createOperationalGatewayWithReadonlyOperator({
     app: readonlyApp,
     readiness,
   });
-
   return Object.freeze({
     ...base,
     saasRuntime: saasComposition.saasRuntime,
     saasAccess: saasComposition.saasAccess,
+    trustSandboxProvisioningApp,
     operatorReadonlyAdapters: adapters,
     operatorReadonlyCore,
     operatorReadonlyRateLimiter: sharedRateLimiter,

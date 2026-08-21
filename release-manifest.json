@@ -3,7 +3,7 @@
   "format": "managed-node-zip",
   "service": "api-gateway",
   "version": "0.7.0",
-  "sourceRevision": "ce3179c1ebc01d7b6a1f8d695312d613da4604df",
+  "sourceRevision": "5ee3820e13db25544e832a34b35535d39088195e",
   "runtime": {
     "node": ">=22",
     "entrypoint": "src/hostinger-entry.mjs",
@@ -670,8 +670,8 @@
     },
     {
       "path": "src/operator-readonly-composition.mjs",
-      "bytes": 3654,
-      "sha256": "24dce4749d818f0523db15aedb5e7ceddc66499f2d258ce5e51eadbec4ba4fb7"
+      "bytes": 4355,
+      "sha256": "107bb2ecfd1fa53b434799f5048ba3a8f253ee6cc36557690ca41c385ea59334"
     },
     {
       "path": "src/operator-readonly-contract.mjs",
@@ -794,6 +794,11 @@
       "sha256": "ca268a0b59722e7217c202d9a6c39c8b0faf235250a8fd75d14c4bfc07609479"
     },
     {
+      "path": "src/saas-trust-sandbox-provisioning.mjs",
+      "bytes": 6019,
+      "sha256": "6573fe1e64dc5a14d08c85867fc8bab0b939b8bc1746330784c089bda2ce5a06"
+    },
+    {
       "path": "src/saas-uni-co-provisioning.mjs",
       "bytes": 8719,
       "sha256": "3cbcb4fc441539b3b8f4e4b8860d7e0a495fd108ad619fa04011d06074136463"
@@ -850,8 +855,8 @@
     },
     {
       "path": "src/web-agent-operational-composition.mjs",
-      "bytes": 4612,
-      "sha256": "56dcc6f72a58c5c4238153c50f10aaaa8175062e9e9ca6dab06b28d70f5dc464"
+      "bytes": 4963,
+      "sha256": "3a034dcaf0c7978468b61b789d21ecc5c5e4052a11fc817f48c6ae41aadd7182"
     },
     {
       "path": "src/web-agent-operational-startup.mjs",
@@ -1050,8 +1055,8 @@
     },
     {
       "path": "vendor/contracts/src/index.mjs",
-      "bytes": 1948,
-      "sha256": "c2e0479603c639061bc18463bfd0e46c9cf9d6acb20652097be4fbf959f972af"
+      "bytes": 1985,
+      "sha256": "d6a0136cb8ec6d0c8323d3a0ca5965a23987373e69c2bdaac5564267a39cba5b"
     },
     {
       "path": "vendor/contracts/src/multi-agent-orchestration.mjs",
@@ -1142,6 +1147,11 @@
       "path": "vendor/contracts/src/tenancy-context.mjs",
       "bytes": 3157,
       "sha256": "ffb6dad4a43dd6c1311eaeec69ef90700bfd8b46a0ab823caec61b88557f8e94"
+    },
+    {
+      "path": "vendor/contracts/src/trust-sandbox.mjs",
+      "bytes": 698,
+      "sha256": "f00cc3bd07987a40cbc8e4d5647b47b3fd3b4d173fabea5c137885ae310cf8cc"
     },
     {
       "path": "vendor/contracts/src/web-agent-conversation.mjs",
