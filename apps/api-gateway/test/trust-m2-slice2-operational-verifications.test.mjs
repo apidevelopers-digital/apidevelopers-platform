@@ -52,6 +52,7 @@ test("Trust M2 slice 2 uses slice 1 credentials for tenant-scoped sandbox verifi
   });
 
   const secrets = [TENANT_A_SECRET, TENANT_B_SECRET];
+  let secretSequence = 0;
   let apiKeySequence = 0;
   let verificationSequence = 0;
 
@@ -60,7 +61,7 @@ test("Trust M2 slice 2 uses slice 1 credentials for tenant-scoped sandbox verifi
     clock: () => NOW,
     writeIdFactory: () => `trust-m2-slice2-write-${apiKeySequence}-${verificationSequence}`,
     apiKeyIdFactory: () => `trust-m2-slice2-api-key-${++apiKeySequence}`,
-    generateKey: () => secrets[apiKeySequence - 1],
+    generateKey: () => secrets[secretSequence++],
     trustVerificationIdFactory: () => `slice2-${++verificationSequence}`,
   });
 
