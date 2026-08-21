@@ -59,6 +59,35 @@ export function toOperationalResponse(response) {
   }
 }
 
+function invalidJsonResponse() {
+  const payload = Object.freeze({ error: "invalid_json" });
+  return Object.freeze({
+    status: 400,
+    headers: Object.freeze({ "content-type": "application/json; charset=utf-8" }),
+    body: JSON.stringify(payload),
+    payload,
+  });
+}
+
+export function parseOperationalConversationBody(body) {
+  if (body && typeof body === "object" && !Array.isArray(body)) return body;
+  if (typeof body !== "string" || body.trim() === "") {
+    throw new TypeError("invalid_json");
+  }
+
+  let parsed;
+  try {
+    parsed = JSON.parse(body);
+  } catch {
+    throw new TypeError("invalid_json");
+  }
+
+  if (!parsed || typeof parsed !== "object" || Array.isArray(parsed)) {
+    throw new TypeError("invalid_json");
+  }
+  return parsed;
+}
+
 function browserNow(clock) {
   return () => {
     const value = clock();
@@ -129,7 +158,13 @@ export function createWebAgentOperationalComposition({
   const wrappedApp = Object.freeze({
     async handleRequest(request = {}) {
       if (pathnameOf(request.url) === "/v1/web-agent/conversations") {
-        const response = await browser.route.handle(request);
+        let body;
+        try {
+          body = parseOperationalConversationBody(request.body);
+        } catch {
+          return invalidJsonResponse();
+        }
+        const response = await browser.route.handle({ ...request, body });
         return toOperationalResponse(response);
       }
       return app.handleRequest(request);
