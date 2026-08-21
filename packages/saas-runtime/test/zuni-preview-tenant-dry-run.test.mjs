@@ -48,7 +48,7 @@ test("Zuni preview tenant activation remains a pure dry-run", async () => {
   assert.match(activationPlan.workspace.workspaceId, /zuni-preview/);
 
   const channelLimit = activationPlan.entitlements.find(
-    ({ capability }) => capability === "limit-whatsapp-channels",
+    ({ record }) => recor.capability === "limit-whatsapp-channels",
   );
   assert.ok(channelLimit, "limit-whatsapp-channels entitlement must exist");
   assert.equal(channelLimit.kind, "limit");
