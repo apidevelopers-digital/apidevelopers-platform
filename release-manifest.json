@@ -3,7 +3,7 @@
   "format": "managed-node-zip",
   "service": "api-gateway",
   "version": "0.7.0",
-  "sourceRevision": "e55fb9ef526d2b08e410b833d4e11d25cb41eb7b",
+  "sourceRevision": "0a854887526de2730ec12929efb1ab091eb5e180",
   "runtime": {
     "node": ">=22",
     "entrypoint": "src/hostinger-entry.mjs",
@@ -670,8 +670,8 @@
     },
     {
       "path": "src/operator-readonly-composition.mjs",
-      "bytes": 4355,
-      "sha256": "107bb2ecfd1fa53b434799f5048ba3a8f253ee6cc36557690ca41c385ea59334"
+      "bytes": 5034,
+      "sha256": "492b4fc9c26036e6c2817d5bb0cab854626cc61750a6baf8cbfa0be1548a1725"
     },
     {
       "path": "src/operator-readonly-contract.mjs",
@@ -834,6 +834,11 @@
       "sha256": "a95e99d92947bf7ad643a5ac9e311e9ddc3d73391d953b17f2bafd1157d318b8"
     },
     {
+      "path": "src/trust-sandbox-verifications.mjs",
+      "bytes": 6586,
+      "sha256": "6b406e14ae73d890086e2bf78d857079410d6a6669f070c0d8981d98bc6816ef"
+    },
+    {
       "path": "src/uni-co-preview-bootstrap.mjs",
       "bytes": 4295,
       "sha256": "869851a3b910e35207a848cd7b35d8af7b0c58ade9dde5baf56f45566fc57e64"
@@ -845,8 +850,8 @@
     },
     {
       "path": "src/web-agent-conversation-boundary.mjs",
-      "bytes": 6509,
-      "sha256": "b13457a56d8b09f840b4e0ba22d000196ff9c6ad72fa42fcd5945ecc43797312"
+      "bytes": 7110,
+      "sha256": "3be2ae9e59192a538463c18eb022279e0367416e448fbd290f73f93128326f16"
     },
     {
       "path": "src/web-agent-conversation-http.mjs",
@@ -1150,8 +1155,8 @@
     },
     {
       "path": "vendor/contracts/src/trust-sandbox.mjs",
-      "bytes": 698,
-      "sha256": "f00cc3bd07987a40cbc8e4d5647b47b3fd3b4d173fabea5c137885ae310cf8cc"
+      "bytes": 1507,
+      "sha256": "3f0211122e8e77f7662101c2b51b0c3658c19fc5787cac37f0ef53bd20753624"
     },
     {
       "path": "vendor/contracts/src/web-agent-conversation.mjs",
