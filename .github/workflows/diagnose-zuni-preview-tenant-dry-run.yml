@@ -10,13 +10,108 @@ on:
   workflow_dispatch:
 
 jobs:
-  isolate:
+  construct-plan:
     runs-on:
       - self-hosted
       - macOS
       - X64
-    timeout-minutes: 10
     steps:
       - uses: actions/checkout@v5
-      - name: Run isolated preview tenant dry-run test
-        run: node --test packages/saas-runtime/test/zuni-preview-tenant-dry-run.test.mjs
+      - name: Construct activation plan
+        run: |
+          node --input-type=module <<'NODE'
+          import { createZuniActivationPlan } from './packages/saas-runtime/src/zuni-commercial-activation.mjs';
+          const plan = {
+            id:'pro',
+            product_id:'zuni',
+            commercial_state:'active',
+            pricing_status:'published',
+            sellable:true,
+            pricing:{monthly_cents:9900},
+            capabilities:{inbox:true,templates:true,meta:true},
+            limits:{whatsapp_channels:2,users:10}
+          };
+          const x = createZuniActivationPlan( {
+            plan,
+            tenantSlug:'zuni-preview',
+            tenantDisplayName:'Zuni Preview',
+            organizationId:'component.organization.zuni-preview',
+            workspaceSlug:'preview-main',
+            workspaceDisplayName:'Zuni Preview Main',
+            createdAt:'2026-08-21T09:20:00.000Z'
+          });
+          if (x.planId !== 'pro') process.exit(1);
+          if (x.productionWriteAuthorized !== false) process.exit(1);
+          if (x.automaticCharge !== false) process.exit(1);
+          NODE
+
+  entitlement-limit:
+    runs-on:
+      - self-hosted
+      - macOS
+      - X64
+    steps:
+      - uses: actions/checkout@v5
+      - name: Validate channel entitlement
+        run: |
+          node --input-type=module <<'NODE'
+          import { createZuniActivationPlan } from './packages/saas-runtime/src/zuni-commercial-activation.mjs';
+          const x = createZuniActivationPlan({
+            plan:{
+              id:'pro',product_id:'zuni',commercial_state:'active',pricing_status:'published',sellable:true,
+              pricing:{monthly_cents:9900},
+              capabilities:{inbox:true,templates:true,meta:true},
+              limits:{whatsapp_channels:2,users:10}
+            },
+            tenantSlug:'zuni-preview',
+            tenantDisplayName:'Zuni Preview',
+            organizationId:'component.organization.zuni-preview',
+            workspaceSlug:'preview-main',
+            workspaceDisplayName:'Zuni Preview Main',
+            createdAt:'2026-08-21T09:20:00.000Z'
+          });
+          const limit = x.entitlements.find(({record}) => record.capability === 'limit-whatsapp-channels');
+          if (!limit) process.exit(1);
+          if (limit.kind !== 'limit') process.exit(1);
+          if (limit.value !== 2) process.exit(1);
+          if (limit.record.status !== 'pending') process.exit(1);
+          NODE
+
+  execute-dry-run:
+    runs-on:
+      - self-hosted
+      - macOS
+      - X64
+    steps:
+      - uses: actions/checkout v5
+      - name: Execute isolated dry-run
+        run: |
+          node --input-type=module <<'NODE'
+          import { createZuniActivationPlan } from './packages/saas-runtime/src/zuni-commercial-activation.mjs';
+          import { executeZuniActivationPlan } from './packages/saas-runtime/src/zuni-commercial-activation-runtime.mjs';
+          const activationPlan = createZuniActivationPlan({
+            plan:{
+              id:'pro',product_id:'suni'.replace('suni','zuni'),commercial_state:'active',pricing_status:'published',sellable:true,
+              pricing:{monthly_cents:9900},
+              capabilities:{inbox:true,templates:true,meta:true},
+              limits:{whatsapp_channels:2,users:10}
+            },
+            tenantSlug:'zuni-preview',
+            tenantDisplayName:'Zuni Preview',
+            organizationId:'component.organization.zuni-preview',
+            workspaceSlug:'preview-main',
+            workspaceDisplayName:'Zuni Preview Main',
+            createdAt:'2026-08-21T09:20:00.000Z'
+          });
+          const events = [];
+          const result = await executeZuniActivationPlan({
+            runtime:{},
+            activationPlan,
+            audit: async (event) => events.push(event),
+            mode:'dry-run',
+            requestedAt:'2026-08-21T09:21:00.000Z'
+          });
+          if (result.executed !== false || result.writeAuthorized !== false) process.exit(1);
+          if (events.length !== 1) process.exit(1);
+          if (events[0].stage !== 'dry-run' || events[0].outcome !== 'planned') process.exit(1);
+          NODE
