@@ -110,7 +110,7 @@ export function createWebAgentOperationalComposition({
     throw new TypeError("app.handleRequest must be a function");
   }
   if (!store || typeof store.read !== "function" || typeof store.transaction !== "function") {
-    throw new TypeError(store must provide read and transaction);
+    throw new TypeError("store must provide read and transaction");
   }
 
   const enabled = flag(env.WEB_AGENT_SHADOW_ENABLED, "WEB_AGENT_SHADOW_ENABLED");
@@ -131,7 +131,7 @@ export function createWebAgentOperationalComposition({
 
   const providers = createWebAgentShadowPersistenceProviders({store});
   const memoryProvider = createWebAgentShadowMemoryProvider({ store });
-  const { saasRuntime, membershipRuntime } = createSaasAccessComposition({
+  const { saasAccess } = createSaasAccessComposition({
     store,
     ...(clock ? { clock } : {}),
   });
@@ -148,8 +148,7 @@ export function createWebAgentOperationalComposition({
     });
   const browser = createWebAgentBrowserComposition({
     resolveSessionByHash: providers.resolveSessionByHash,
-    saasRuntime,
-    membershipRuntime,
+    saasAccess,
     tenantInternationalProfile: providers.tenantInternationalProfile,
     commercialContext: providers.commercialContext,
     conversationService,
