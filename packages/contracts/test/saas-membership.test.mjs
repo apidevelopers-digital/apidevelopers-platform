@@ -12,165 +12,99 @@ import {
 } from "../src/saas-membership.mjs";
 
 const T0 = "2026-08-21T06:00:00.000Z";
-const TENANT_A = "component.tenant.acme";
-const TENANT_B = "component.tenant.beta";
-const WORKSPACE_A = "component.workspace.acme.uni-main";
-const WORKSPACE_B = "component.workspace.beta.uni-main";
-const USER = "component.user.principal-1";
-const PRINCIPAL = "principal-1";
-const ROLE_A = "component.role.acme.uni-main.member";
-const MEMBERSHIP_A = "component.membership.acme.uni-main.principal-1";
-const GRANT_A = "component.access.acme.uni-main.unico.principal-1";
-const CHAT_A = "component.chat-session.acme.uni-main.chat-1";
+const tenant = "component.tenant.acme";
+const workspace = "component.workspace.acme.uni-main";
+const principal = "principal-1";
+const user = "component.user.principal-1";
+const roleId = "component.role.acme.uni-main.member";
+const membershipId = "component.membership.acme.uni-main.principal-1";
+const grantId = "component.access.acme.uni-main.unico.principal-1";
 
-function role(overrides = {}) {
+function makeRole(overrides = {}) {
   return createRole({
-    roleId: ROLE_A,
-    tenantId: TENANT_A,
-    workspaceId: WORKSPACE_A,
-    scope: "workspace",
-    key: "member",
-    permissions: ["chat:use"],
-    status: "active",
-    createdAt: T0,
+    roleId, tenantId: tenant, workspaceId: workspace, scope: "workspace",
+    key: "member", permissions: ["chat:use"], status: "active", createdAt: T0,
     ...overrides,
   });
 }
 
-function membership(overrides = {}) {
+function makeMembership(overrides = {}) {
   return createMembership({
-    membershipId: MEMBERSHIP_A,
-    tenantId: TENANT_A,
-    workspaceId: WORKSPACE_A,
-    userId: USER,
-    principalId: PRINCIPAL,
-    roleId: ROLE_A,
-    status: "active",
-    createdAt: T0,
+    membershipId, tenantId: tenant, workspaceId: workspace, userId: user,
+    principalId: principal, roleId, status: "active", createdAt: T0,
     ...overrides,
   });
 }
 
-function grant(overrides = {}) {
-  return Object.freeze({
-    accessGrantId: GRANT_A,
-    principalId: PRINCIPAL,
-    tenantId: TENANT_A,
-    workspaceId: WORKSPACE_A,
-    productId: "uni.co",
-    status: "active",
+function makeGrant(overrides = {}) {
+  return {
+    accessGrantId: grantId, tenantId: tenant, workspaceId: workspace,
+    principalId: principal, productId: "uni.co", status: "active",
     ...overrides,
-  });
+  };
 }
 
-test("membership authority fails closed for inactive membership and role", () => {
+test("membership and role must be active", () => {
   assert.throws(
-    () => assertMembershipRoleBinding(membership({ status: "suspended" }), role()),
+    () => assertMembershipRoleBinding(makeMembership({ status: "suspended" }), makeRole()),
     /membership must be active/,
   );
-
   assert.throws(
-    () => assertMembershipRoleBinding(membership(), role({ status: "revoked" })),
+    () => assertMembershipRoleBinding(makeMembership(), makeRole({ status: "revoked" })),
     /role must be active/,
   );
 });
 
-test("membership authority rejects cross-tenant and cross-workspace role binding", () => {
+test("role boundary and chat permission fail closed", () => {
   assert.throws(
-    () =>
-      assertMembershipRoleBinding(
-        membership(),
-        role({ tenantId: TENANT_B }),
-      ),
+    () => assertMembershipRoleBinding(makeMembership(), makeRole({ tenantId: "component.tenant.beta" })),
     /membership role boundary mismatch/,
   );
-
   assert.throws(
-    () =>
-      assertMembershipRoleBinding(
-        membership(),
-        role({
-          workspaceId: WORKSPACE_B,
-        }),
-      ),
+    () => assertMembershipRoleBinding(makeMembership(), makeRole({ workspaceId: "component.workspace.beta.uni-main" })),
     /membership workspace role boundary mismatch/,
   );
-});
-
-test("access grant binding rejects inactive and divergent grants", () => {
   assert.throws(
-    () => assertMembershipAccessGrantBinding(membership(), grant({ status: "revoked" })),
-    /access grant must be active/,
-  );
-
-  assert.throws(
-    () => assertMembershipAccessGrantBinding(membership(), grant({ tenantId: TENANT_B })),
-    /membership access tenantId mismatch/,
-  );
-
-  assert.throws(
-    () => assertMembershipAccessGrantBinding(membership(), grant({ workspaceId: WORKSPACE_B })),
-    /membership access workspaceId mismatch/,
-  );
-
-  assert.throws(
-    () => assertMembershipAccessGrantBinding((userId, "workspaceId"),
-   /membership access principalId mismatch/,
-  );
-});
-
-test("role permission is mandatory for chat use", () => {
-  assert.equal(assertRolePermission(role(), "chat:use"), true);
-
-  assert.throws(
-    () => assertRolePermission(role({ permissions: [] }), "chat:use"),
+    () => assertRolePermission(makeRole({ permissions: [] }), "chat:use"),
     /role permission missing/,
   );
 });
 
-test("chat session fixes tenant, workspace, principal, membership, role, grant and product authority", () => {
-  const activeRole = role();
-  const activeMembership = membership();
-  const activeGrant = grant();
+test("access grant must be active and match tenant, workspace and principal", () => {
+  assert.throws(
+    () => assertMembershipAccessGrantBinding(makeMembership(), makeGrant({ status: "revoked" })),
+    /access grant must be active/,
+  );
+  for (const [field, value] of [
+    ["tenantId", "component.tenant.beta"],
+    ["workspaceId", "component.workspace.beta.uni-main"],
+    ["principalId", "principal-2"],
+  ]) {
+    assert.throws(
+      () => assertMembershipAccessGrantBinding(makeMembership(), makeGrant({ [field]: value })),
+      new RegExp(`membership access ${field} mismatch`),
+    );
+  }
+});
+
+test("chat session pins governed authority", () => {
+  const membership = makeMembership();
+  const role = makeRole();
+  const grant = makeGrant();
   const session = createChatSession({
-    chatSessionId: CHAT_A,
-    tenantId: TENANT_A,
-    workspaceId: WORKSPACE_A,
-    principalId: PRINCIPAL,
-    userId: USER,
-    membershipId: MEMBERSHIP_A,
-    roleId: ROLE_A,
-    accessGrantId: GRANT_A,
-    productId: "uni.co",
-    locale: "pt-BR",
-    status: "active",
-    createdAt: T0,
+    chatSessionId: "component.chat-session.acme.uni-main.chat-1",
+    tenantId: tenant, workspaceId: workspace, principalId: principal,
+    userId: user, membershipId, roleId, accessGrantId: grantId,
+    productId: "uni.co", locale: "pt-BR", status: "active", createdAt: T0,
   });
 
-  assert.equal(
-    assertChatSessionAuthority(session, activeMembership, activeRole, activeGrant),
-    true,
-  );
-
+  assert.equal(assertChatSessionAuthority(session, membership, role, grant), true);
   assert.throws(
-    () =>
-      assertChatSessionAuthority(
-        { ...session, tenantId: TENANT_B },
-        activeMembership,
-        activeRole,
-        activeGrant,
-      ),
+    () => assertChatSessionAuthority({ ...session, tenantId: "component.tenant.beta" }, membership, role, grant),
     /chat session tenantId authority mismatch/,
   );
-
   assert.throws(
-    () =>
-      assertChatSessionAuthority(
-        { ...session, accessGrantId: "component.access.beta.uni-main.unico.principal-1" },
-        activeMembership,
-        activeRole,
-        activeGrant,
-      ),
+    () => assertChatSessionAuthority({ ...session, accessGrantId: "component.access.beta.uni-main.unico.principal-1" }, membership, role, grant),
     /chat session accessGrantId authority mismatch/,
   );
 });
