@@ -1,0 +1,84 @@
+name: Trust M3 Packaging CI
+
+on:
+  push:
+    branches:
+      - "feat/trust-m3-governed-preview-20260821"
+    paths:
+      - "apps/api-gateway/**"
+      - "packages/contracts/**"
+      - "packages/auth-core/**"
+      - "packages/apikey-core/**"
+      - "packages/persistence-core/**"
+      - "packages/saas-runtime/**"
+      - "packages/trust-governance-runtime/**"
+      - "packages/kernel-planning/**"
+      - "packages/kernel-decision/**"
+      - "packages/kernel-policy/**"
+      - "packages/kernel-runtime/**"
+      - "packages/kernel-evidence/**"
+      - "packages/kernel-audit/**"
+      - ".github/workflows/trust-m3-packaging-ci.yml"
+  pull_request:
+    branches:
+      - main
+    paths:
+      - "apps/api-gateway/**"
+      - "packages/trust-governance-runtime/**"
+      - ".github/workflows/trust-m3-packaging-ci.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  validate:
+    runs-on:
+      group: organization-macos-ci
+      labels: [self-hosted, macOS, X64]
+    timeout-minutes: 10
+    defaults:
+      run:
+        working-directory: apps/api-gateway
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+
+      - name: Validate API Gateway and M3
+        run: npm run check
+
+      - name: Operational runtime smoke
+        run: node scripts/operational-smoke.mjs
+
+      - name: Build release bundle
+        run: npm run release:bundle
+
+      - name: Verify release bundle
+        run: npm run release:verify
+
+      - name: Build managed-hosting artifact
+        run: npm run release:managed:build
+
+      - name: Verify managed-hosting artifact
+        run: npm run release:managed:verify
+
+      - name: Verify managed ZIP structure
+        shell: bash
+        run: |
+          set -euo pipefail
+          rm -f dist/api-gateway-managed.zip
+          (
+            cd dist/api-gateway-managed
+            /usr/bin/zip -q -r ../api-gateway-managed.zip .
+          )
+          /usr/bin/unzip -l dist/api-gateway-managed.zip | grep -q "package.json"
+          if /usr/bin/unzip -l dist/api-gateway-managed.zip | grep -Eq "/node_modules/"; then
+            echo "::error title=Managed artifact contains node_modules::ZIP must rely on vendored file dependencies"
+            exit 1
+          fi
