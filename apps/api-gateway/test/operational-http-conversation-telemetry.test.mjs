@@ -84,7 +84,8 @@ test("conversation telemetry records transport failure without request material"
   const server = createOperationalHttpServer({
     maxBodyBytes: 1024,
     logger: { log(line) { lines.push(line); } },
-    app: {\n      async handleRequest() {
+    app: {
+      async handleRequest() {
         calls += 1;
         return { status: 200, headers: {}, body: "{}" };
       },
