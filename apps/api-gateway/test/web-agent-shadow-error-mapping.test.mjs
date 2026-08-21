@@ -24,8 +24,11 @@ function boundaryWith(conversationService) {
       async resolve() {
         return {
           context: {
+            schemaVersion: 1,
             locale: "pt-BR",
-            timeZone: "America/Sao_Paulo",
+            fallbackLocale: "en",
+            direction: "ltr",
+            timeZone: "America/Sao_Paulol",
             legalRegion: "BR",
             currency: "BRL",
           },
