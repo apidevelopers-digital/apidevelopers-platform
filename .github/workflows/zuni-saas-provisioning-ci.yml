@@ -7,14 +7,20 @@ on:
     paths:
       - "apps/api-gateway/src/saas-provisioning.mjs"
       - "apps/api-gateway/src/saas-operational-http-composition.mjs"
+      - "apps/api-gateway/src/saas-zuni-preview-provisioning.mjs"
       - "apps/api-gateway/test/saas-provisioning.test.mjs"
+      - "apps/api-gateway/test/saas-operational-http-composition.test.mjs"
+      - "apps/api-gateway/test/saas-zuni-preview-provisioning.test.mjs"
       - "packages/contracts/src/index.mjs"
       - ".github/workflows/zuni-saas-provisioning-ci.yml"
   pull_request:
     paths:
       - "apps/api-gateway/src/saas-provisioning.mjs"
       - "apps/api-gateway/src/saas-operational-http-composition.mjs"
+      - "apps/api-gateway/src/saas-zuni-preview-provisioning.mjs"
       - "apps/api-gateway/test/saas-provisioning.test.mjs"
+      - "apps/api-gateway/test/saas-operational-http-composition.test.mjs"
+      - "apps/api-gateway/test/saas-zuni-preview-provisioning.test.mjs"
       - "packages/contracts/src/index.mjs"
       - ".github/workflows/zuni-saas-provisioning-ci.yml"
 
@@ -23,6 +29,20 @@ permissions:
 
 jobs:
   validate:
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - contract: provisioning
+            syntax_file: src/saas-provisioning.mjs
+            test_file: test/saas-provisioning.test.mjs
+          - contract: composition
+            syntax_file: src/saas-operational-http-composition.mjs
+            test_file: test/saas-operational-http-composition.test.mjs
+          - contract: preview
+            syntax_file: src/saas-zuni-preview-provisioning.mjs
+            test_file: test/saas-zuni-preview-provisioning.test.mjs
+    name: validate (${{ matrix.contract }})
     runs-on:
       group: organization-macos-ci
       labels: [self-hosted, macOS, X64]
@@ -58,12 +78,8 @@ jobs:
           ln -sfn "$GITHUB_WORKSPACE/packages/auth-core" "$GITHUB_WORKSPACE/packages/saas-runtime/node_modules/@apidevelopers/auth-core"
           ln -sfn "$GITHUB_WORKSPACE/packages/persistence-core" "$GITHUB_WORKSPACE/packages/saas-runtime/node_modules/@apidevelopers/persistence-core"
 
-      - name: Validate provisioning syntax
-        run: |
-          node --check src/saas-provisioning.mjs
-          node --check src/saas-operational-http-composition.mjs
+      - name: Validate syntax
+        run: node --check "${{ matrix.syntax_file }}"
 
-      - name: Test Zuni SaaS provisioning
-        run: |
-          node --test test/saas-provisioning.test.mjs
-          node --test test/saas-operational-http-composition.test.mjs
+      - name: Test contract
+        run: node --test "${{ matrix.test_file }}"
