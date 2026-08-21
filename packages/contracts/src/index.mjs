@@ -7,6 +7,7 @@ export * from "./saas-tenancy.mjs";
 export * from "./saas-commercial.mjs";
 export * from "./saas-provisioning.mjs";
 export * from "./saas-access.mjs";
+export * from "./saas-membership.mjs";
 export * from "./auth-context.mjs";
 export * from "./cognitive-pipeline.mjs";
 export * from "./web-agent-conversation.mjs";
