@@ -14,7 +14,7 @@ function flag(value, name) {
 
 function required(value, name) {
   const normalized = String(value ?? "").trim();
-  if (!normalized) throw new TypeError(`${name} is required when WEB_AGENT_SHADOW_ENABLEC=true`);
+  if (!normalized) throw new TypeError(`${name} is required when WEB_AGENT_SHADOW_ENABLED=true`);
   return normalized;
 }
 
@@ -110,7 +110,7 @@ export function createWebAgentOperationalComposition({
     throw new TypeError("app.handleRequest must be a function");
   }
   if (!store || typeof store.read !== "function" || typeof store.transaction !== "function") {
-    throw new TypeError("store must provide read and transaction");
+    throw new TypeError(store must provide read and transaction);
   }
 
   const enabled = flag(env.WEB_AGENT_SHADOW_ENABLED, "WEB_AGENT_SHADOW_ENABLED");
@@ -127,7 +127,7 @@ export function createWebAgentOperationalComposition({
   const allowInsecureHttp = flag(
     env.WEB_AGENT_SHADOW_ALLOW_INSECURE_HTTP,
     "WEB_AGENT_SHADOW_ALLOW_INSECURE_HTTP",
-   );
+  );
 
   const providers = createWebAgentShadowPersistenceProviders({store});
   const memoryProvider = createWebAgentShadowMemoryProvider({ store });
