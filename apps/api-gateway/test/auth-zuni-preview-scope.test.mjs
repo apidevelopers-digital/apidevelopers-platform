@@ -9,7 +9,7 @@ const repository = Object.freeze({
   },
 });
 
-test("delegated backend key gains preview-only provisioning scope, never generic provisioning", async () => {
+test("delegated backend key stays limited to delegated access and never gains generic provisioning", async () => {
   const authenticator = createGatewayAuthenticator({
     apiKeyRepository: repository,
     delegatedKey: "delegated-secret-1234567890",
@@ -21,9 +21,8 @@ test("delegated backend key gains preview-only provisioning scope, never generic
   });
 
   assert.equal(identity.role, "service");
-  assert.deepEqual(
-    [...identity.principal.scopes].sort(),
-    ["saas:access:delegate", "saas:provision:zuni-preview"].sort(),
-  );
+  assert.equal(identity.principal.id, "backend-delegated");
+  assert.deepEqual(identity.principal.scopes, ["saas:access:delegate"]);
   assert.equal(identity.principal.scopes.includes("saas:provision"), false);
+  assert.equal(identity.principal.scopes.includes("saas:provision:zuni-preview"), false);
 });
