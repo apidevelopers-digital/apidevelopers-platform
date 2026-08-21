@@ -77,7 +77,7 @@ function buildExecutionPlan(decisionReport, planningReport, verification, tenant
     objective: "Preview governed Trust decision/evidence/audit lifecycle without execution.",
     status: "draft", mode: "contract-adapter",
     steps: [{ stepId, action: "trust-sandbox-governance-preview", input: { verificationId: verification.verificationId, modality: verification.modality }, risk: "R1", dependsOn: [], evidenceRequired: [verification.verificationId] }],
-    constraints: { humanApprovalRequired: true, automaticMutationAlowed: false, automaticApprovalAllowed: false, automaticExecutionAllowed: false, mutationAllowed: false, executionAllowed: false },
+    constraints: { humanApprovalRequired: true, automaticMutationAllowed: false, automaticApprovalAllowed: false, automaticExecutionAllowed: false, mutationAllowed: false, executionAllowed: false },
   });
 }
 
