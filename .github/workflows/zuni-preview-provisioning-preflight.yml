@@ -1,0 +1,55 @@
+name: Zuni Preview Provisioning Preflight
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  preflight:
+    runs-on:
+      - self-hosted
+      - macOS
+      - X64
+    timeout-minutes: 10
+    env:
+      GATEWAY_BASE_URL: https://gateway.apidevelopers.digital
+      PROVISIONING_KEY: ${{ secrets.API_GATEWAY_PROVISIONING_KEY }}
+      SUBJECT_REF: ${{ secrets.ZUNI_PREVIEW_SUBJECT_REF }}
+
+    steps:
+      - name: Validate secret presence and format
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "${#PROVISIONING_KEY}" -ge 32
+          [[ "$SUBJECT_REF" =~ ^[a-fA-F0-9]{64}$ ]]
+
+      - name: Check gateway readiness
+        shell: bash
+        run: |
+          set -euo pipefail
+          curl --fail --silent --show-error \
+            --connect-timeout 5 \
+            --max-time 15 \
+            "$GATEWAY_BASE_URL/ready" >/dev/null
+
+      - name: Emit sanitized preflight evidence
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          import json, os
+          evidence = {
+              "ok": True,
+              "mode": "dry-run-preflight",
+              "executed": False,
+              "writeAuthorized": False,
+              "gateway": os.environ["GATEWAY_BASE_URL"],
+              "subjectRefPresent": bool(os.environ.get("SUBJECT_REF")),
+              "provisioningKeyPresent": bool(os.environ.get("PROVISIONING_KEY")),
+              "secretsExposed": False,
+          }
+          print(json.dumps(evidence, separators=(",", ":"))
+          PY
