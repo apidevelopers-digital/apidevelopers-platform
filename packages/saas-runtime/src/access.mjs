@@ -65,6 +65,50 @@ export function createAccessRuntime({ store, saasRuntime, clock = () => new Date
     return Object.freeze({ allowed: decision.allowed, reason: decision.reason, missingScopes: decision.missingScopes });
   }
 
+  async function resolveCommercialContext({ accessGrantId, tenantId, workspaceId, productId } = {}) {
+    const grant = await grants.getById(accessGrantId);
+    if (!grant || grant.status !== "active") {
+      return Object.freeze({ resolved: false, reason: "access_grant_inactive", commercial: null });
+    }
+    if (grant.tenantId !== tenantId || grant.workspaceId !== workspaceId || grant.productId !== productId) {
+      return Object.freeze({ resolved: false, reason: "access_context_mismatch", commercial: null });
+    }
+
+    const subscription = await saasRuntime.getSubscription(grant.subscriptionId);
+    const entitlement = await saasRuntime.getEntitlement(grant.entitlementId);
+    if (!subscription || !entitlement) {
+      return Object.freeze({ resolved: false, reason: "commercial_context_not_found", commercial: null });
+    }
+    if (
+      subscription.subscriptionId !== grant.subscriptionId ||
+      subscription.tenantId !== tenantId ||
+      subscription.productId !== productId ||
+      entitlement.entitlementId !== grant.entitlementId ||
+      entitlement.subscriptionId !== grant.subscriptionId ||
+      entitlement.tenantId !== tenantId ||
+      entitlement.workspaceId !== workspaceId ||
+      entitlement.productId !== productId
+    ) {
+      return Object.freeze({ resolved: false, reason: "commercial_context_mismatch", commercial: null });
+    }
+
+    return Object.freeze({
+      resolved: true,
+      reason: null,
+      commercial: Object.freeze({
+        subscriptionId: subscription.subscriptionId,
+        planId: subscription.planId,
+        subscriptionStatus: subscription.status,
+        entitlement: Object.freeze({
+          entitlementId: entitlement.entitlementId,
+          capability: entitlement.capability,
+          status: entitlement.status,
+          sourcePlanId: entitlement.sourcePlanId,
+        }),
+      }),
+    });
+  }
+
   async function setOnboarding({tenantId, workspaceId, productId, status, requiredSteps = [], completedSteps = [], updatedAt = clock()} = {}) {
     const record = createOnboardingState({tenantId, workspaceId, productId, status, requiredSteps, completedSteps, updatedAt});
     const value = Object.freeze({ onboardingKey: key(tenantId, workspaceId, productId), ...record });
@@ -81,6 +125,7 @@ export function createAccessRuntime({ store, saasRuntime, clock = () => new Date
     activateAccess,
     resolveActiveGrant,
     evaluateAccess,
+    resolveCommercialContext,
     setOnboarding,
     getOnboarding: (tenantId, workspaceId, productId) => onboarding.getById(key(tenantId, workspaceId, productId)),
   });
