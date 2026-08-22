@@ -13,7 +13,14 @@
     "@apidevelopers/apikey-core": "file:vendor/apikey-core",
     "@apidevelopers/auth-core": "file:vendor/auth-core",
     "@apidevelopers/contracts": "file:vendor/contracts",
+    "@apidevelopers/kernel-audit": "file:vendor/kernel-audit",
+    "@apidevelopers/kernel-decision": "file:vendor/kernel-decision",
+    "@apidevelopers/kernel-evidence": "file:vendor/kernel-evidence",
+    "@apidevelopers/kernel-planning": "file:vendor/kernel-planning",
+    "@apidevelopers/kernel-policy": "file:vendor/kernel-policy",
+    "@apidevelopers/kernel-runtime": "file:vendor/kernel-runtime",
     "@apidevelopers/persistence-core": "file:vendor/persistence-core",
-    "@apidevelopers/saas-runtime": "file:vendor/saas-runtime"
+    "@apidevelopers/saas-runtime": "file:vendor/saas-runtime",
+    "@apidevelopers/trust-governance-runtime": "file:vendor/trust-governance-runtime"
   }
 }

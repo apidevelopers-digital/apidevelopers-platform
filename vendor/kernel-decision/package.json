@@ -1,0 +1,17 @@
+{
+  "name": "@apidevelopers/kernel-decision",
+  "version": "0.2.0",
+  "private": true,
+  "type": "module",
+  "description": "Tenant-bound deterministic advisory decision over governed planning reports.",
+  "exports": {
+    ".": "./src/index.mjs",
+    "./governed": "./src/governed.mjs"
+  },
+  "engines": {
+    "node": ">=22"
+  },
+  "dependencies": {
+    "@apidevelopers/contracts": "file:../contracts"
+  }
+}

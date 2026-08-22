@@ -3,7 +3,7 @@
   "format": "managed-node-zip",
   "service": "api-gateway",
   "version": "0.7.0",
-  "sourceRevision": "0a854887526de2730ec12929efb1ab091eb5e180",
+  "sourceRevision": "49db9303f50547edddd063e7d4d3fc91fb51aeaf",
   "runtime": {
     "node": ">=22",
     "entrypoint": "src/hostinger-entry.mjs",
@@ -37,6 +37,36 @@
       "directory": "vendor/contracts"
     },
     {
+      "name": "@apidevelopers/kernel-audit",
+      "version": "0.2.0",
+      "directory": "vendor/kernel-audit"
+    },
+    {
+      "name": "@apidevelopers/kernel-decision",
+      "version": "0.2.0",
+      "directory": "vendor/kernel-decision"
+    },
+    {
+      "name": "@apidevelopers/kernel-evidence",
+      "version": "0.2.0",
+      "directory": "vendor/kernel-evidence"
+    },
+    {
+      "name": "@apidevelopers/kernel-planning",
+      "version": "0.2.0",
+      "directory": "vendor/kernel-planning"
+    },
+    {
+      "name": "@apidevelopers/kernel-policy",
+      "version": "0.2.0",
+      "directory": "vendor/kernel-policy"
+    },
+    {
+      "name": "@apidevelopers/kernel-runtime",
+      "version": "0.2.0",
+      "directory": "vendor/kernel-runtime"
+    },
+    {
       "name": "@apidevelopers/persistence-core",
       "version": "0.4.0",
       "directory": "vendor/persistence-core"
@@ -45,18 +75,23 @@
       "name": "@apidevelopers/saas-runtime",
       "version": "0.1.0",
       "directory": "vendor/saas-runtime"
+    },
+    {
+      "name": "@apidevelopers/trust-governance-runtime",
+      "version": "0.1.0",
+      "directory": "vendor/trust-governance-runtime"
     }
   ],
   "files": [
     {
       "path": "package-lock.json",
-      "bytes": 2197,
-      "sha256": "dc15a6bf161d4a23965eff10a68e369eabca688ef77ce2c9c172542f3f52cf78"
+      "bytes": 5822,
+      "sha256": "eac4015dba1ac9303a76753899978537a8fe2ad6bcae186b13f3e83b135a1322"
     },
     {
       "path": "package.json",
-      "bytes": 548,
-      "sha256": "431dad9bcb374b8609d4e07230b1d538ce7c2f4165952dd3dcacdb07dcbd701f"
+      "bytes": 1037,
+      "sha256": "606f7a86c8a98ca5f81705982394e95f199b723ef0307c63610fb9a8fbef0c70"
     },
     {
       "path": "src/audit-query-http.mjs",
@@ -670,8 +705,8 @@
     },
     {
       "path": "src/operator-readonly-composition.mjs",
-      "bytes": 5034,
-      "sha256": "492b4fc9c26036e6c2817d5bb0cab854626cc61750a6baf8cbfa0be1548a1725"
+      "bytes": 5881,
+      "sha256": "08d6d9ec5660884e3f0e5ea57369ab057ae37b660787e0a1a05694826667ce02"
     },
     {
       "path": "src/operator-readonly-contract.mjs",
@@ -725,13 +760,13 @@
     },
     {
       "path": "src/saas-access-composition.mjs",
-      "bytes": 710,
-      "sha256": "fadbfc86a191848a7998684b2d22d12cc97a751927a63f7233f742cba4b5ee66"
+      "bytes": 1008,
+      "sha256": "293228eaacd8826b8d5c335ea2069001eb6554eb3f33cb59be99ee696e2c859c"
     },
     {
       "path": "src/saas-delegated-access-v2.mjs",
-      "bytes": 4731,
-      "sha256": "35625f16fb759ebd3d29ca3241b8bea824c88dec846769954574b2c66ac173a6"
+      "bytes": 5456,
+      "sha256": "ba7f02c823a664b0e09159afc3750509d68fe53923440e88978462054b386fff"
     },
     {
       "path": "src/saas-delegated-access.mjs",
@@ -785,8 +820,8 @@
     },
     {
       "path": "src/saas-operational-http-composition.mjs",
-      "bytes": 4007,
-      "sha256": "927c3635f9bce324230959459c1b4fe6968241502f55b614a276af131d0ef96c"
+      "bytes": 4756,
+      "sha256": "b8dad8b31b05819ada5a198047bd725a97199927688555920d44fb66537cc553"
     },
     {
       "path": "src/saas-provisioning.mjs",
@@ -814,6 +849,11 @@
       "sha256": "0107e591db0be5cd886e3855406dcb4fb4cc71ca23a39da5116ea3ad9c42c796"
     },
     {
+      "path": "src/saas-zuni-preview-provisioning.mjs",
+      "bytes": 4399,
+      "sha256": "67a042b040d09d7e3e4353afd99ac559be264984da9d1a3c767fe0f6a0425bf5"
+    },
+    {
       "path": "src/saas-zuni-product-provisioner.mjs",
       "bytes": 2606,
       "sha256": "f3374ae43bd38a37d4faf5de273245605bc1c921933aad10dbe525a6f5662ca0"
@@ -834,6 +874,11 @@
       "sha256": "a95e99d92947bf7ad643a5ac9e311e9ddc3d73391d953b17f2bafd1157d318b8"
     },
     {
+      "path": "src/trust-sandbox-governance.mjs",
+      "bytes": 6997,
+      "sha256": "8cd93766c7fa6f827076b9e191922aac9e5eb38c2a54aa8b589aeb3e2a4f10fb"
+    },
+    {
       "path": "src/trust-sandbox-verifications.mjs",
       "bytes": 6586,
       "sha256": "6b406e14ae73d890086e2bf78d857079410d6a6669f070c0d8981d98bc6816ef"
@@ -845,13 +890,13 @@
     },
     {
       "path": "src/web-agent-browser-composition.mjs",
-      "bytes": 2032,
-      "sha256": "7ca0119a4ed9255ba6c2abd2e36bda0c4eb3289c3a7f4f6ec2e96e31663756d5"
+      "bytes": 2404,
+      "sha256": "78dd27ea2e79197c702855f6ddf371e12cc138d368024f1d44ecaabad2ab82dc"
     },
     {
       "path": "src/web-agent-conversation-boundary.mjs",
-      "bytes": 7110,
-      "sha256": "3be2ae9e59192a538463c18eb022279e0367416e448fbd290f73f93128326f16"
+      "bytes": 9191,
+      "sha256": "74400b2fae5137966d4e602528386852f90b443ac21bd5f54142a2834241c2f7"
     },
     {
       "path": "src/web-agent-conversation-http.mjs",
@@ -1060,8 +1105,8 @@
     },
     {
       "path": "vendor/contracts/src/index.mjs",
-      "bytes": 1985,
-      "sha256": "d6a0136cb8ec6d0c8323d3a0ca5965a23987373e69c2bdaac5564267a39cba5b"
+      "bytes": 2024,
+      "sha256": "ef837a3858df4e6ef4070657a180d9cf60d36d42844f40a1cff0f6482c039a63"
     },
     {
       "path": "vendor/contracts/src/multi-agent-orchestration.mjs",
@@ -1139,6 +1184,11 @@
       "sha256": "a31cdb3153a896041845884dccebcb3b062a2721643648573fea67ffdae2db68"
     },
     {
+      "path": "vendor/contracts/src/saas-membership.mjs",
+      "bytes": 7972,
+      "sha256": "133c49cb380e1fe24c5d4305e1e1b2e9140724d584c1f731720f17eac10e3c27"
+    },
+    {
       "path": "vendor/contracts/src/saas-provisioning.mjs",
       "bytes": 7534,
       "sha256": "7a270d653d636258ab345e7832bffad3bfdc3ee1a500bfd7c7ca1f5066d80610"
@@ -1155,8 +1205,8 @@
     },
     {
       "path": "vendor/contracts/src/trust-sandbox.mjs",
-      "bytes": 1507,
-      "sha256": "3f0211122e8e77f7662101c2b51b0c3658c19fc5787cac37f0ef53bd20753624"
+      "bytes": 2520,
+      "sha256": "fceab630e38cfe348994bba4969c2a8f2fefcdb7aa3a682cde7b8469db47d9f3"
     },
     {
       "path": "vendor/contracts/src/web-agent-conversation.mjs",
@@ -1172,6 +1222,96 @@
       "path": "vendor/contracts/src/web-international-context.mjs",
       "bytes": 2345,
       "sha256": "2dea89e2d862694d528665ab8cb744c3fd8d1457a207c398f798c5a871a06806"
+    },
+    {
+      "path": "vendor/kernel-audit/package.json",
+      "bytes": 480,
+      "sha256": "c27881ce918ad69af340844b40380c0d763f4c997bf5336288a5e37bfb262150"
+    },
+    {
+      "path": "vendor/kernel-audit/src/governed.mjs",
+      "bytes": 1786,
+      "sha256": "a023707ee1caeb359597cdaa18523e2634a170bd0abeaf8549a8e82c697928c3"
+    },
+    {
+      "path": "vendor/kernel-audit/src/index.mjs",
+      "bytes": 14950,
+      "sha256": "c9c11372814b391d0471cc5c35a1bfde5b0b1c5a1a84e03576dfe7ea4e606f80"
+    },
+    {
+      "path": "vendor/kernel-decision/package.json",
+      "bytes": 408,
+      "sha256": "a2a76a6ae22481340e3e21bd42081858ba81d673365f2b5489de4865733c7ee0"
+    },
+    {
+      "path": "vendor/kernel-decision/src/governed.mjs",
+      "bytes": 1335,
+      "sha256": "84cd6cf5c2c3f04c6d9d33937ef716196c010d9443dc08fac120f486f66904f7"
+    },
+    {
+      "path": "vendor/kernel-decision/src/index.mjs",
+      "bytes": 5598,
+      "sha256": "a758c1cdb8a2406971909ebf5c58208d1a0071234f3fba6d1de7b80c50c7e9ee"
+    },
+    {
+      "path": "vendor/kernel-evidence/package.json",
+      "bytes": 441,
+      "sha256": "5f8582b51efafa9271cbbd87bbe2d01b8083c3673575450a4585865d8c905f40"
+    },
+    {
+      "path": "vendor/kernel-evidence/src/governed.mjs",
+      "bytes": 2019,
+      "sha256": "a1b1c831674bdf76d4f01a5d991498c34e3b6c118565542f09948f139c1ab03e"
+    },
+    {
+      "path": "vendor/kernel-evidence/src/index.mjs",
+      "bytes": 11242,
+      "sha256": "384fd7eb419265eb1cb516981d87ee53f30fbb55573dc24eed78565bd5d30206"
+    },
+    {
+      "path": "vendor/kernel-planning/package.json",
+      "bytes": 410,
+      "sha256": "8d45195fe4edff598acc0a3140d6303746e9996c364259ce3c7e1d8a7c2492b6"
+    },
+    {
+      "path": "vendor/kernel-planning/src/governed.mjs",
+      "bytes": 2010,
+      "sha256": "751c0a3aacdd7ef03bc71f056fdeba0d5e3a1ac200f6d81c2229307ecf7997fa"
+    },
+    {
+      "path": "vendor/kernel-planning/src/index.mjs",
+      "bytes": 11432,
+      "sha256": "c18712a9afcc7f7a72b4487bb4ba96e3395dde7b587bbdf84324c9bd75c8c380"
+    },
+    {
+      "path": "vendor/kernel-policy/package.json",
+      "bytes": 410,
+      "sha256": "6853f8a2b3f33c5f158d02c1db03b854584819975ab7a44aa6272f0d4e3794bf"
+    },
+    {
+      "path": "vendor/kernel-policy/src/governed.mjs",
+      "bytes": 2005,
+      "sha256": "6cd79a9ec0dfd1e8ba90765678973c25e2a2ecf275ce384cfdd20ec86d5719e8"
+    },
+    {
+      "path": "vendor/kernel-policy/src/index.mjs",
+      "bytes": 10145,
+      "sha256": "ebd567ddc5cacf1e27bf152d582e3d126aa682463c6ea227604fa170642bbeb9"
+    },
+    {
+      "path": "vendor/kernel-runtime/package.json",
+      "bytes": 411,
+      "sha256": "b83a61daf8969687f33f352f93d48a377f725d403175100d9d766f1c57cc5918"
+    },
+    {
+      "path": "vendor/kernel-runtime/src/governed.mjs",
+      "bytes": 3195,
+      "sha256": "373d4ae8dd6322195991a66ee1b1c9543a67424d995f619606b75173345cd6c9"
+    },
+    {
+      "path": "vendor/kernel-runtime/src/index.mjs",
+      "bytes": 4564,
+      "sha256": "9c2c1fa951510411a54bab3fe7ded1c754000ddeb793715a4f27f08d4bf44df9"
     },
     {
       "path": "vendor/persistence-core/package.json",
@@ -1230,8 +1370,8 @@
     },
     {
       "path": "vendor/saas-runtime/src/access.mjs",
-      "bytes": 4136,
-      "sha256": "d9f5073bbdd37ae16e7386cf9d907ad13ae04b872f42a7fb32d13936c1eb3c63"
+      "bytes": 6045,
+      "sha256": "db87acf75597d0f6113152559bf905de18e1df4d74613de674788c4e6190502f"
     },
     {
       "path": "vendor/saas-runtime/src/federated-principal.mjs",
@@ -1240,8 +1380,13 @@
     },
     {
       "path": "vendor/saas-runtime/src/index.mjs",
-      "bytes": 212,
-      "sha256": "a6e908cd5e4ed8e86323c9b2f2a783897cadfa71c8aa9761f9981bc7481c0cef"
+      "bytes": 246,
+      "sha256": "3dcf2a45fb34b7bf5f8039724c7d2541b506f9525e50969a2cafe647fe4dbf12"
+    },
+    {
+      "path": "vendor/saas-runtime/src/membership.mjs",
+      "bytes": 7513,
+      "sha256": "9d4162db4a160c58538607de5e642e9712a8b3e2856c4ccefbc2d692acf5770d"
     },
     {
       "path": "vendor/saas-runtime/src/runtime.mjs",
@@ -1257,6 +1402,21 @@
       "path": "vendor/saas-runtime/src/zuni-commercial-activation.mjs",
       "bytes": 6350,
       "sha256": "529d9c1c997187dd083836c5672b35d81891a2dafdcf285d43dfe70618859c33"
+    },
+    {
+      "path": "vendor/trust-governance-runtime/package.json",
+      "bytes": 810,
+      "sha256": "b0a545af40df9e5a5413c6b603a95c7aa73a0ae3982736f5f33fbd9f08bdbd45"
+    },
+    {
+      "path": "vendor/trust-governance-runtime/src/index.mjs",
+      "bytes": 59,
+      "sha256": "a93f33dd05509a04aeb3d3073e59d988734595ca9c9b38cb344d9ea1c145a760"
+    },
+    {
+      "path": "vendor/trust-governance-runtime/src/runtime.mjs",
+      "bytes": 8588,
+      "sha256": "75992e5f178be3f908be394ba705570b20417747cd260b3a1f1d4bd8e0123600"
     }
   ]
 }

@@ -1,0 +1,18 @@
+{
+  "name": "@apidevelopers/kernel-audit",
+  "version": "0.2.0",
+  "private": true,
+  "type": "module",
+  "description": "Tenant-bound, read-only lifecycle audit engine for governed Platform Kernel artifacts.",
+  "exports": {
+    ".": "./src/index.mjs",
+    "./governed": "./src/governed.mjs"
+  },
+  "engines": {
+    "node": ">=22"
+  },
+  "dependencies": {
+    "@apidevelopers/contracts": "file:../contracts",
+    "@apidevelopers/kernel-evidence": "file:../kernel-evidence"
+  }
+}

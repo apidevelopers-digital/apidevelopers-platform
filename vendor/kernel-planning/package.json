@@ -1,0 +1,17 @@
+{
+  "name": "@apidevelopers/kernel-planning",
+  "version": "0.2.0",
+  "private": true,
+  "type": "module",
+  "description": "Tenant-bound deterministic advisory planning over governed reflection reports.",
+  "exports": {
+    ".": "./src/index.mjs",
+    "./governed": "./src/governed.mjs"
+  },
+  "engines": {
+    "node": ">=22"
+  },
+  "dependencies": {
+    "@apidevelopers/contracts": "file:../contracts"
+  }
+}

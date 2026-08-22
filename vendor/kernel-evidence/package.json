@@ -1,0 +1,17 @@
+{
+  "name": "@apidevelopers/kernel-evidence",
+  "version": "0.2.0",
+  "private": true,
+  "type": "module",
+  "description": "Tenant-bound, tamper-evident and append-only evidence records for the API Developers.digital Platform Kernel.",
+  "exports": {
+    ".": "./src/index.mjs",
+    "./governed": "./src/governed.mjs"
+  },
+  "engines": {
+    "node": ">=22"
+  },
+  "dependencies": {
+    "@apidevelopers/contracts": "file:../contracts"
+  }
+}

@@ -145,11 +145,31 @@ export function createDelegatedSaasAccessApp({
             })
           : null;
 
+      let commercial = null;
+      if (decision.allowed && typeof saasAccess.resolveCommercialContext === "function") {
+        const commercialContext = await saasAccess.resolveCommercialContext({
+          accessGrantId: grant.accessGrantId,
+          tenantId,
+          workspaceId: grant.workspaceId,
+          productId: grant.productId,
+        });
+        if (!commercialContext.resolved) {
+          return jsonResponse(403, {
+            allowed: false,
+            reason: commercialContext.reason,
+            principalId: principal.principalId,
+            binding: publicBinding,
+          });
+        }
+        commercial = commercialContext.commercial;
+      }
+
       return jsonResponse(decision.allowed ? 200 : 403, {
         ...decision,
         principalId: principal.principalId,
         binding: publicBinding,
         ...(bindingProof ? { bindingProof } : {}),
+        ...(commercial ? { commercial } : {}),
       });
     },
   });
