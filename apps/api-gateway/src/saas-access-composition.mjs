@@ -2,6 +2,7 @@ import {
   createSaasRuntime,
   createAccessRuntime,
   createFederatedPrincipalRuntime,
+  createMembershipRuntime,
 } from "@apidevelopers/saas-runtime";
 
 export function createSaasAccessComposition({
@@ -16,10 +17,21 @@ export function createSaasAccessComposition({
     store,
     ...(clock ? { clock } : {}),
   });
-  const saasAccess = createAccessRuntime({
+  const accessRuntime = createAccessRuntime({
     store,
     saasRuntime,
     ...(clock ? { clock } : {}),
+  });
+  const membershipRuntime = createMembershipRuntime({
+    store,
+    saasRuntime,
+    accessRuntime,
+    ...(clock ? { clock } : {}),
+  });
+  const saasAccess = Object.freeze({
+    ...accessRuntime,
+    saasRuntime,
+    membershipRuntime,
   });
   const federatedPrincipal = createFederatedPrincipalRuntime({
     store,
@@ -29,6 +41,7 @@ export function createSaasAccessComposition({
   return Object.freeze({
     saasRuntime,
     saasAccess,
+    membershipRuntime,
     federatedPrincipal,
   });
 }

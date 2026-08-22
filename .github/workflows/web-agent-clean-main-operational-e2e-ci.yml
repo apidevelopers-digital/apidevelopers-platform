@@ -38,23 +38,38 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          mkdir -p node_modules/@apidevelopers
-          ln -sfn "$GITHUB_WORKSPACE/packages/contracts" node_modules/@apidevelopers/contracts
-          ln -sfn "$GITHUB_WORKSPACE/packages/auth-core" node_modules/@apidevelopers/auth-core
-          ln -sfn "$GITHUB_WORKSPACE/packages/apikey-core" node_modules/@apidevelopers/apikey-core
-          ln -sfn "$GITHUB_WORKSPACE/packages/persistence-core" node_modules/@apidevelopers/persistence-core
-          ln -sfn "$GITHUB_WORKSPACE/packages/saas-runtime" node_modules/@apidevelopers/saas-runtime
+          root="$GITHUB_WORKSPACE"
+          gateway="$root/apps/api-gateway/node_modules/@apidevelopers"
+          mkdir -p "$gateway"
+          for package in contracts auth-core apikey-core persistence-core saas-runtime trust-governance-runtime; do
+            ln -sfn "$root/packages/$package" "$gateway/$package"
+          done
 
-          mkdir -p "$GITHUB_WORKSPACE/packages/auth-core/node_modules/@apidevelopers"
-          ln -sfn "$GITHUB_WORKSPACE/packages/apikey-core" "$GITHUB_WORKSPACE/packages/auth-core/node_modules/@apidevelopers/apikey-core"
+          mkdir -p "$root/packages/auth-core/node_modules/@apidevelopers"
+          ln -sfn "$root/packages/apikey-core" "$root/packages/auth-core/node_modules/@apidevelopers/apikey-core"
 
-          mkdir -p "$GITHUB_WORKSPACE/packages/apikey-core/node_modules/@apidevelopers"
-          ln -sfn "$GITHUB_WORKSPACE/packages/persistence-core" "$GITHUB_WORKSPACE/packages/apikey-core/node_modules/@apidevelopers/persistence-core"
+          mkdir -p "$root/packages/apikey-core/node_modules/@apidevelopers"
+          ln -sfn "$root/packages/persistence-core" "$root/packages/apikey-core/node_modules/@apidevelopers/persistence-core"
 
-          mkdir -p "$GITHUB_WORKSPACE/packages/saas-runtime/node_modules/@apidevelopers"
-          ln -sfn "$GITHUB_WORKSPACE/packages/contracts" "$GITHUB_WORKSPACE/packages/saas-runtime/node_modules/@apidevelopers/contracts"
-          ln -sfn "$GITHUB_WORKSPACE/packages/auth-core" "$GITHUB_WORKSPACE/packages/saas-runtime/node_modules/@apidevelopers/auth-core"
-          ln -sfn "$GITHUB_WORKSPACE/packages/persistence-core" "$GITHUB_WORKSPACE/packages/saas-runtime/node_modules/@apidevelopers/persistence-core"
+          mkdir -p "$root/packages/saas-runtime/node_modules/@apidevelopers"
+          ln -sfn "$root/packages/contracts" "$root/packages/saas-runtime/node_modules/@apidevelopers/contracts"
+          ln -sfn "$root/packages/auth-core" "$root/packages/saas-runtime/node_modules/@apidevelopers/auth-core"
+          ln -sfn "$root/packages/persistence-core" "$root/packages/saas-runtime/node_modules/@apidevelopers/persistence-core"
+
+          governance="$root/packages/trust-governance-runtime/node_modules/@apidevelopers"
+          mkdir -p "$governance"
+          for package in contracts kernel-planning kernel-decision kernel-policy kernel-runtime kernel-evidence kernel-audit; do
+            ln -sfn "$root/packages/$package" "$governance/$package"
+          done
+
+          for package in kernel-planning kernel-decision kernel-policy kernel-runtime kernel-evidence; do
+            mkdir -p "$root/packages/$package/node_modules/@apidevelopers"
+            ln -sfn "$root/packages/contracts" "$root/packages/$package/node_modules/@apidevelopers/contracts"
+          done
+
+          mkdir -p "$root/packages/kernel-audit/node_modules/@apidevelopers"
+          ln -sfn "$root/packages/contracts" "$root/packages/kernel-audit/node_modules/@apidevelopers/contracts"
+          ln -sfn "$root/packages/kernel-evidence" "$root/packages/kernel-audit/node_modules/@apidevelopers/kernel-evidence"
 
       - name: Syntax
         run: |
