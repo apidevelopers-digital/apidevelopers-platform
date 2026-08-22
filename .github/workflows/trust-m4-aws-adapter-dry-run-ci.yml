@@ -1,0 +1,60 @@
+name: Trust M4 AWS Adapter Dry Run CI
+
+on:
+  push:
+    branches:
+      - main
+      - "feat/trust-m4-aws-adapter-dry-run-20260821"
+    paths:
+      - "packages/trust-biometric-adapter-aws/**"
+      - "packages/trust-biometric-adapter-contract/**"
+      - ".github/workflows/trust-m4-aws-adapter-dry-run-ci.yml"
+  pull_request:
+    branches:
+      - main
+    paths:
+      - "packages/trust-biometric-adapter-aws/**"
+      - "packages/trust-biometric-adapter-contract/**"
+      - ".github/workflows/trust-m4-aws-adapter-dry-run-ci.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  validate:
+    runs-on:
+      - self-hosted
+      - macOS
+      - X64
+    timeout-minutes: 10
+    defaults:
+      run:
+        working-directory: packages/trust-biometric-adapter-aws
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+
+      - name: Install local contract dependency
+        run: npm install --ignore-scripts --no-audit --no-fund
+
+      - name: Check syntax
+        run: node --check src/index.mjs
+
+      - name: Test AWS dry-run adapter
+        run: npm test
+
+      - name: Assert credential-free offline boundary
+        shell: bash
+        run: |
+          set -euo pipefail
+          if grep -R -nE '@aws-sdk|fetch\(|https?\.request\(' src package.json; then
+            echo "Live AWS/network dependency detected in dry-run adapter" >&2
+            exit 1
+          fi
