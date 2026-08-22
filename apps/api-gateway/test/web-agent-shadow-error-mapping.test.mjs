@@ -3,21 +3,61 @@ import test from "node:test";
 
 import { createWebAgentConversationBoundary } from "../src/web-agent-conversation-boundary.mjs";
 
+const TENANT_ID = "tenant.preview";
+const WORKSPACE_ID = "workspace.preview";
+const ACCESS_GRANT_ID = "grant.preview";
+const PRINCIPAL_ID = "user:preview";
+const PRODUCT_ID = "product:uni-co";
+const SESSION_KEY = "11111111-1111-4111-8111-111111111111";
+const CHAT_SESSION_ID =
+  "component.chat-session.preview.workspace-preview.11111111-1111-4111-8111-111111111111";
+
 function boundaryWith(conversationService) {
   return createWebAgentConversationBoundary({
     authenticator: {
       async authenticate() {
         return {
           principal: {
-            id: "user:preview",
-            tenantId: "tenant.preview",
+            id: PRINCIPAL_ID,
+            tenantId: TENANT_ID,
           },
         };
       },
     },
-    saasAccess: {
-      async evaluateAccess() {
-        return { allowed: true };
+    saasRuntime: {
+      async getTenant() {
+        return {
+          tenantId: TENANT_ID,
+          slug: "preview",
+          status: "active",
+        };
+      },
+      async getWorkspace() {
+        return {
+          workspaceId: WORKSPACE_ID,
+          tenantId: TENANT_ID,
+          productId: PRODUCT_ID,
+          slug: "workspace-preview",
+          status: "active",
+        };
+      },
+    },
+    membershipRuntime: {
+      async openChatSession() {
+        return {
+          opened: true,
+          reason: null,
+          session: {
+            chatSessionId: CHAT_SESSION_ID,
+            tenantId: TENANT_ID,
+            workspaceId: WORKSPACE_ID,
+            principalId: PRINCIPAL_ID,
+            accessGrantId: ACCESS_GRANT_ID,
+            productId: PRODUCT_ID,
+            locale: "pt-BR",
+            status: "active",
+          },
+        };
       },
     },
     internationalContextResolver: {
@@ -28,7 +68,7 @@ function boundaryWith(conversationService) {
             locale: "pt-BR",
             fallbackLocale: "en",
             direction: "ltr",
-            timeZone: "America/Sao_Paulol",
+            timeZone: "America/Sao_Paulo",
             legalRegion: "BR",
             currency: "BRL",
           },
@@ -44,12 +84,12 @@ function boundaryWith(conversationService) {
 }
 
 const body = Object.freeze({
-  accessGrantId: "grant.preview",
-  workspaceId: "workspace.preview",
-  productId: "product:uni-co",
+  accessGrantId: ACCESS_GRANT_ID,
+  workspaceId: WORKSPACE_ID,
+  productId: PRODUCT_ID,
   agentId: "uni.co",
   conversationId: "conversation.preview",
-  sessionId: "session.preview",
+  sessionId: SESSION_KEY,
   requestId: "request.preview",
   correlationId: "correlation.preview",
   locale: "pt-BR",

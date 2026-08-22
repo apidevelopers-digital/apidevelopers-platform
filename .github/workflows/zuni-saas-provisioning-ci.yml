@@ -7,14 +7,22 @@ on:
     paths:
       - "apps/api-gateway/src/saas-provisioning.mjs"
       - "apps/api-gateway/src/saas-operational-http-composition.mjs"
+      - "apps/api-gateway/src/saas-zuni-preview-provisioning.mjs"
       - "apps/api-gateway/test/saas-provisioning.test.mjs"
+      - "apps/api-gateway/test/saas-operational-http-composition-construction.test.mjs"
+      - "apps/api-gateway/test/saas-operational-http-composition.test.mjs"
+      - "apps/api-gateway/test/saas-zuni-preview-provisioning.test.mjs"
       - "packages/contracts/src/index.mjs"
       - ".github/workflows/zuni-saas-provisioning-ci.yml"
   pull_request:
     paths:
       - "apps/api-gateway/src/saas-provisioning.mjs"
       - "apps/api-gateway/src/saas-operational-http-composition.mjs"
+      - "apps/api-gateway/src/saas-zuni-preview-provisioning.mjs"
       - "apps/api-gateway/test/saas-provisioning.test.mjs"
+      - "apps/api-gateway/test/saas-operational-http-composition-construction.test.mjs"
+      - "apps/api-gateway/test/saas-operational-http-composition.test.mjs"
+      - "apps/api-gateway/test/saas-zuni-preview-provisioning.test.mjs"
       - "packages/contracts/src/index.mjs"
       - ".github/workflows/zuni-saas-provisioning-ci.yml"
 
@@ -23,6 +31,23 @@ permissions:
 
 jobs:
   validate:
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - contract: provisioning
+            syntax_file: src/saas-provisioning.mjs
+            test_file: test/saas-provisioning.test.mjs
+          - contract: composition-construction
+            syntax_file: src/saas-operational-http-composition.mjs
+            test_file: test/saas-operational-http-composition-construction.test.mjs
+          - contract: composition-request
+            syntax_file: src/saas-operational-http-composition.mjs
+            test_file: test/saas-operational-http-composition.test.mjs
+          - contract: preview
+            syntax_file: src/saas-zuni-preview-provisioning.mjs
+            test_file: test/saas-zuni-preview-provisioning.test.mjs
+    name: validate (${{ matrix.contract }})
     runs-on:
       group: organization-macos-ci
       labels: [self-hosted, macOS, X64]
@@ -39,31 +64,11 @@ jobs:
         with:
           node-version: "22"
 
-      - name: Link local dependencies
-        shell: bash
-        run: |
-          set -euo pipefail
-          mkdir -p "$GITHUB_WORKSPACE/apps/api-gateway/node_modules/@apidevelopers"
-          ln -sfn "$GITHUB_WORKSPACE/packages/contracts" "$GITHUB_WORKSPACE/apps/api-gateway/node_modules/@apidevelopers/contracts"
-          ln -sfn "$GITHUB_WORKSPACE/packages/auth-core" "$GITHUB_WORKSPACE/apps/api-gateway/node_modules/@apidevelopers/auth-core"
-          ln -sfn "$GITHUB_WORKSPACE/packages/apikey-core" "$GITHUB_WORKSPACE/apps/api-gateway/node_modules/@apidevelopers/apikey-core"
-          ln -sfn "$GITHUB_WORKSPACE/packages/persistence-core" "$GITHUB_WORKSPACE/apps/api-gateway/node_modules/@apidevelopers/persistence-core"
-          ln -sfn "$GITHUB_WORKSPACE/packages/saas-runtime" "$GITHUB_WORKSPACE/apps/api-gateway/node_modules/@apidevelopers/saas-runtime"
-          mkdir -p "$GITHUB_WORKSPACE/packages/auth-core/node_modules/@apidevelopers"
-          ln -sfn "$GITHUB_WORKSPACE/packages/apikey-core" "$GITHUB_WORKSPACE/packages/auth-core/node_modules/@apidevelopers/apikey-core"
-          mkdir -p "$GITHUB_WORKSPACE/packages/apikey-core/node_modules/@apidevelopers"
-          ln -sfn "$GITHUB_WORKSPACE/packages/persistence-core" "$GITHUB_WORKSPACE/packages/apikey-core/node_modules/@apidevelopers/persistence-core"
-          mkdir -p "$GITHUB_WORKSPACE/packages/saas-runtime/node_modules/@apidevelopers"
-          ln -sfn "$GITHUB_WORKSPACE/packages/contracts" "$GITHUB_WORKSPACE/packages/saas-runtime/node_modules/@apidevelopers/contracts"
-          ln -sfn "$GITHUB_WORKSPACE/packages/auth-core" "$GITHUB_WORKSPACE/packages/saas-runtime/node_modules/@apidevelopers/auth-core"
-          ln -sfn "$GITHUB_WORKSPACE/packages/persistence-core" "$GITHUB_WORKSPACE/packages/saas-runtime/node_modules/@apidevelopers/persistence-core"
+      - name: Link canonical local dependencies
+        run: node scripts/link-local-dependencies.mjs 
 
-      - name: Validate provisioning syntax
-        run: |
-          node --check src/saas-provisioning.mjs
-          node --check src/saas-operational-http-composition.mjs
+      - name: Validate syntax
+        run: node --check "${{ matrix.syntax_file }}"
 
-      - name: Test Zuni SaaS provisioning
-        run: |
-          node --test test/saas-provisioning.test.mjs
-          node --test test/saas-operational-http-composition.test.mjs
+      - name: Test contract
+        run: node --test "${{ matrix.test_file }}"

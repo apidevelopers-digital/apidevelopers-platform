@@ -1,6 +1,7 @@
 import { createSaasAccessComposition } from "./saas-access-composition.mjs";
 import { createDelegatedSaasAccessApp } from "./saas-delegated-access-v2.mjs";
 import { createSaasProvisioningApp } from "./saas-provisioning.mjs";
+import { createZuniPreviewProvisioningApp } from "./saas-zuni-preview-provisioning.mjs";
 import { createUniCoProvisioningApp } from "./saas-uni-co-provisioning.mjs";
 import { createZuniProvisioningRuntimeGuard } from "./saas-zuni-provisioning-runtime-guard.mjs";
 import { createZuniOperationalReadinessComposition } from "./saas-zuni-operational-readiness-composition.mjs";
@@ -57,18 +58,33 @@ export function createSaasOperationalHttpComposition({
     ...(readinessProvisioner ? { zuniProductProvisioner: readinessProvisioner } : {}),
   });
   const provisioningApp = createSaasProvisioningApp({
-    authenticator,
+    authenticator: authenticator,
     saasRuntime: guardedProvisioningRuntime,
     saasAccess: saasComposition.saasAccess,
     federatedPrincipal: saasComposition.federatedPrincipal,
     ...(clock ? { clock } : {}),
   });
+  let zuniPreviewProvisioningApp = null;
+  const getZuniPreviewProvisioningApp = () => {
+    if (zuniPreviewProvisioningApp) return zuniPreviewProvisioningApp;
+    zuniPreviewProvisioningApp = createZuniPreviewProvisioningApp({
+      authenticator: authenticator,
+      saasRuntime: guardedProvisioningRuntime,
+      saasAccess: saasComposition.saasAccess,
+      federatedPrincipal: saasComposition.federatedPrincipal,
+      ...(clock ? { clock } : {}),
+    });
+    return zuniPreviewProvisioningApp;
+  };
 
   const wrappedApp = Object.freeze({
     async handleRequest(request = {}) {
       const pathname = pathnameOf(request.url);
       if (pathname === "/v1/saas/uni-co/provision") {
         return uniCoProvisioningApp.handleRequest(request);
+      }
+      if (pathname === "/v1/saas/zuni-preview/provision") {
+        return getZuniPreviewProvisioningApp().handleRequest(request);
       }
       if (pathname === "/v1/saas/provision") return provisioningApp.handleRequest(request);
       if (pathname === "/v1/saas/access/delegated") return delegatedApp.handleRequest(request);

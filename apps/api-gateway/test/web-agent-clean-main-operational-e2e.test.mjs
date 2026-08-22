@@ -24,6 +24,7 @@ const SESSION = "d".repeat(43);
 const tenantId = "component.tenant.web-agent-clean-main";
 const organizationId = "component.organization.web-agent-clean-main";
 const principalId = "user:web-agent-clean-main";
+const userId = "component.user.web-agent-clean-main";
 
 const products = Object.freeze({
   uni: Object.freeze({
@@ -33,9 +34,13 @@ const products = Object.freeze({
     entitlementId: "component.entitlement.web-agent-clean-main.uni",
     jobId: "component.provisioning.web-agent-clean-main.uni",
     grantId: "component.access.web-agent-clean-main.uni",
+    roleId: "component.role.web-agent-clean-main.uni.member",
+    membershipId: "component.membership.web-agent-clean-main.uni.member",
+    sessionKey: "11111111-1111-4111-8111-111111111111",
     host: "unico.apidevelopers.digital",
     agentId: "uni.co",
     currency: "BRL",
+    slug: "uni-co",
   }),
   nexus: Object.freeze({
     workspaceId: "component.workspace.web-agent-clean-main.nexus",
@@ -44,13 +49,22 @@ const products = Object.freeze({
     entitlementId: "component.entitlement.web-agent-clean-main.nexus",
     jobId: "component.provisioning.web-agent-clean-main.nexus",
     grantId: "component.access.web-agent-clean-main.nexus",
+    roleId: "component.role.web-agent-clean-main.nexus.member",
+    membershipId: "component.membership.web-agent-clean-main.nexus.member",
+    sessionKey: "22222222-2222-4222-8222-222222222222",
     host: "nexus.apidevelopers.digital",
     agentId: "nexus",
     currency: "USD",
+    slug: "nexus",
   }),
 });
 
-async function seedProduct({ saasRuntime, saasAccess, product, slug }) {
+async function seedProduct({
+  saasRuntime,
+  saasAccess,
+  membershipRuntime,
+  product,
+}) {
   await saasRuntime.registerTenantWorkspace({
     tenant: {
       tenantId,
@@ -64,12 +78,13 @@ async function seedProduct({ saasRuntime, saasAccess, product, slug }) {
       workspaceId: product.workspaceId,
       tenantId,
       productId: product.productId,
-      slug,
-      displayName: slug,
+      slug: product.slug,
+      displayName: product.slug,
       status: "active",
       createdAt: T0,
     },
   });
+
   await saasRuntime.startSubscription({
     subscriptionId: product.subscriptionId,
     tenantId,
@@ -102,7 +117,7 @@ async function seedProduct({ saasRuntime, saasAccess, product, slug }) {
     workspaceId: product.workspaceId,
     productId: product.productId,
     entitlementIds: [product.entitlementId],
-    idempotencyKey: `clean-main:${slug}:v1`,
+    idempotencyKey: `clean-main:${product.slug}:v1`,
     requestedAt: T0,
   });
   await saasRuntime.claimProvisioning({
@@ -114,6 +129,7 @@ async function seedProduct({ saasRuntime, saasAccess, product, slug }) {
     result: { productReady: true },
     at: T2,
   });
+
   await saasAccess.grantAccess({
     accessGrantId: product.grantId,
     principalId,
@@ -130,6 +146,33 @@ async function seedProduct({ saasRuntime, saasAccess, product, slug }) {
     accessGrantId: product.grantId,
     provisioningJobId: product.jobId,
     at: T2,
+  });
+
+  await membershipRuntime.registerUser({
+    userId,
+    principalId,
+    status: "active",
+    createdAt: T0,
+  });
+  await membershipRuntime.registerRole({
+    roleId: product.roleId,
+    tenantId,
+    workspaceId: product.workspaceId,
+    scope: "workspace",
+    key: "member",
+    permissions: ["chat:use"],
+    status: "active",
+    createdAt: T0,
+  });
+  await membershipRuntime.addMembership({
+    membershipId: product.membershipId,
+    tenantId,
+    workspaceId: product.workspaceId,
+    userId,
+    principalId,
+    roleId: product.roleId,
+    status: "active",
+    createdAt: T0,
   });
 }
 
@@ -171,7 +214,7 @@ async function seedContext(store) {
   });
 }
 
-test("clean main operational composition preserves SaaS, official host binding and read-only memory", async (t) => {
+test("clean main operational composition preserves SaaS authority, official host binding and read-only memory", async (t) => {
   const dir = await mkdtemp(join(tmpdir(), "apd-web-agent-clean-main-"));
   t.after(() => rm(dir, { recursive: true, force: true }));
 
@@ -180,12 +223,23 @@ test("clean main operational composition preserves SaaS, official host binding a
     fsync: false,
     clock: () => T0,
   });
-  const { saasRuntime, saasAccess } = createSaasAccessComposition({
+  const {
+    saasRuntime,
+    saasAccess,
+    membershipRuntime,
+  } = createSaasAccessComposition({
     store,
     clock: () => T0,
   });
-  await seedProduct({ saasRuntime, saasAccess, product: products.uni, slug: "uni-co" });
-  await seedProduct({ saasRuntime, saasAccess, product: products.nexus, slug: "nexus" });
+
+  for (const product of Object.values(products)) {
+    await seedProduct({
+      saasRuntime,
+      saasAccess,
+      membershipRuntime,
+      product,
+    });
+  }
   await seedContext(store);
 
   const backendCalls = [];
@@ -266,7 +320,7 @@ test("clean main operational composition preserves SaaS, official host binding a
         accessGrantId: product.grantId,
         workspaceId: product.workspaceId,
         conversationId: `conv:${product.agentId}`,
-        sessionId: `session:${product.agentId}`,
+        sessionId: product.sessionKey,
         requestId: `request:${product.agentId}`,
         correlationId: `correlation:${product.agentId}`,
         locale: product.agentId === "nexus" ? "en" : "pt-BR",
@@ -280,8 +334,16 @@ test("clean main operational composition preserves SaaS, official host binding a
   }
 
   for (const crossed of [
-    { host: products.uni.host, grantId: products.nexus.grantId, workspaceId: products.nexus.workspaceId },
-    { host: products.nexus.host, grantId: products.uni.grantId, workspaceId: products.uni.workspaceId },
+    {
+      host: products.uni.host,
+      grantId: products.nexus.grantId,
+      workspaceId: products.nexus.workspaceId,
+    },
+    {
+      host: products.nexus.host,
+      grantId: products.uni.grantId,
+      workspaceId: products.uni.workspaceId,
+    },
   ]) {
     const response = await composition.app.handleRequest({
       method: "POST",
@@ -291,7 +353,7 @@ test("clean main operational composition preserves SaaS, official host binding a
         accessGrantId: crossed.grantId,
         workspaceId: crossed.workspaceId,
         conversationId: "conv:cross",
-        sessionId: "session:cross",
+        sessionId: "33333333-3333-4333-8333-333333333333",
         requestId: "request:cross",
         correlationId: "correlation:cross",
         locale: "en",
