@@ -70,11 +70,15 @@ export function createZuniDelegatedBindingSigner({
     publicKeyPem: publicKey.export({ type: "spki", format: "pem" }),
 
     signBinding(binding = {}) {
+      const productId = requiredText(binding.productId, "productId");
+      if (productId !== "zuni") return null;
+
       const now = clock();
       const issuedAt = new Date(now).toISOString();
       const expiresAt = new Date(new Date(now).getTime() + ttl * 1000).toISOString();
       const payloadJson = canonicalPayload({
         ...binding,
+        productId,
         issuedAt,
         expiresAt,
         nonce: nonceFactory(),
