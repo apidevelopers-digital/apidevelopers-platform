@@ -1,6 +1,20 @@
 name: Zuni Preview Governed Provisioning
 
 on:
+  workflow_call:
+    inputs:
+      mode:
+        description: Execution mode. dry-run never sends POST /v1/saas/provision.
+        required: true
+        type: string
+      confirmation:
+        description: Exact Igor approval phrase for the selected mode.
+        required: true
+        type: string
+      idempotency_key:
+        description: Stable idempotency key for this preview activation.
+        required: true
+        type: string
   workflow_dispatch:
     inputs:
       mode:
