@@ -1,0 +1,77 @@
+name: Zuni Preview Provisioning Dry-Run Connector V1
+
+on:
+  repository_dispatch:
+    types:
+      - zuni_preview_provisioning_dry_run_connector_v1
+
+permissions:
+  contents: read
+  actions: write
+
+concurrency:
+  group: zuni-preview-provisioning-dry-run-connector
+  cancel-in-progress: false
+
+jobs:
+  dispatch:
+    runs-on:
+      - self-hosted
+      - macOS
+      - X64
+    timeout-minutes: 5
+    env:
+      RAW_PAYLOAD: ${{ github.event.client_payload.example }}
+      GH_TOKEN: ${{ github.token }}
+
+    steps:
+      - name: Validate dry-run approval payload
+        id: payload
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          IFS='|' read -r confirmation idempotency_key extra <<< "${RAW_PAYLOAD:-}"
+
+          test -z "${extra:-}"
+          test "$confirmation" = "IGOR_APROVA_ZUNI_PREVIEW_PROVISION_DRY_RUN"
+          [[ "$idempotency_key" =~ ^[A-Za-z0-9_.:-]{8,200}$ ]]
+
+          {
+            echo "confirmation=$confirmation"
+            echo "idempotency_key=$idempotency_key"
+          } >> "$GITHUB_OUTPUT"
+
+      - name: Dispatch governed provisioning in dry-run mode
+        shell: bash
+        env:
+          CONFIRMATION: ${{ steps.payload.outputs.confirmation }}
+          IDEMPOTENCY_KEY: ${{ steps.payload.outputs.idempotency_key }}
+        run: |
+          set -euo pipefail
+
+          payload="$(
+            python3 - <<'PY'
+          import json
+          import os
+
+          print(json.dumps({
+              "ref": "main",
+              "inputs": {
+                  "mode": "dry-run",
+                  "confirmacao": os.environ["CONFIRMATION"],
+                  "idempotency_key": os.environ["IDEMPOTENCY_KEY"],
+              },
+          }))
+          PY
+          )"
+
+          curl --fail --silent --show-error \
+            --request POST \
+            --header "Accept: application/vnd.github+json" \
+            --header "Authorization: Bearer $GH_TOKEN" \
+            --header "X-GitHub-Api-Version: 2022-11-28" \
+            --data "$payload" \
+            "https://api.github.com/repos/${GITHUB_REPOSITORY}/actions/workflows/zuni-preview-governed-provisioning.yml/dispatches"
+
+          echo "Governed Zuni Preview provisioning dry-run dispatch accepted."
