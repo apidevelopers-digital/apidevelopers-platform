@@ -1,0 +1,43 @@
+name: Validate Zuni Commercial Activation Governed
+
+on:
+  pull_request:
+    paths:
+      - "packages/saas-runtime/src/zuni-commercial-activation.mjs"
+      - "packages/saas-runtime/src/zuni-commercial-activation-runtime.mjs"
+      - "packages/saas-runtime/test/zuni-commercial-activation-governed.test.mjs"
+      - ".github/workflows/validate-zuni-commercial-activation-governed.yml"
+  push:
+    branches:
+      - "test/zuni-commercial-activation-governed-v2"
+    paths:
+      - "packages/saas-runtime/src/zuni-commercial-activation.mjs"
+      - "packages/saas-runtime/src/zuni-commercial-activation-runtime.mjs"
+      - "packages/saas-runtime/test/zuni-commercial-activation-governed.test.mjs"
+      - ".github/workflows/validate-zuni-commercial-activation-governed.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  governed-activation:
+    runs-on:
+      - self-hosted
+      - macOS
+      - X64
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v5
+
+      - name: Validate runtime syntax
+        run: |
+          set -euo pipefail
+          node --check packages/saas-runtime/src/zuni-commercial-activation.mjs
+          node --check packages/saas-runtime/src/zuni-commercial-activation-runtime.mjs
+          node --check packages/saas-runtime/test/zuni-commercial-activation-governed.test.mjs
+
+      - name: Prove governed Zuni activation contract
+        run: |
+          set -euo pipefail
+          node --test packages/saas-runtime/test/zuni-commercial-activation-governed.test.mjs
