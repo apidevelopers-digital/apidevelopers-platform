@@ -4,7 +4,7 @@ import { fileURLToPath } from "node:url";
 
 import { startOperationalHttpServer } from "./operational-http-transport.mjs";
 import { createOperationalRuntime } from "./operational-runtime.mjs";
-import { resolveZuniDelegatedBindingSigner } from "./saas-delegated-binding-runtime-config.mjs";
+import { resolveProductAwareDelegatedBindingOperationalSigner } from "./saas-delegated-binding-operational-resolver.mjs";
 import { runUniCoPreviewBootstrap } from "./uni-co-preview-bootstrap.mjs";
 
 function writeLog(logger, payload) {
@@ -62,7 +62,7 @@ export async function startOperationalGateway({
   serverFactory = startOperationalHttpServer,
   delegatedBindingSigner,
   delegatedBindingSecretProvider,
-  delegatedBindingSignerResolver = resolveZuniDelegatedBindingSigner,
+  delegatedBindingSignerResolver = resolveProductAwareDelegatedBindingOperationalSigner,
   trustEvaluationLoader = () =>
     import("./operational-trust-evaluation-composition.mjs"),
   trustEvaluationPortalLoader = () =>
