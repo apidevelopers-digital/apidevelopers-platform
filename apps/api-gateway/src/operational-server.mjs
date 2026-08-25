@@ -6,6 +6,7 @@ import { startOperationalHttpServer } from "./operational-http-transport.mjs";
 import { createOperationalRuntime } from "./operational-runtime.mjs";
 import { resolveProductAwareDelegatedBindingOperationalSigner } from "./saas-delegated-binding-operational-resolver.mjs";
 import { runUniCoPreviewBootstrap } from "./uni-co-preview-bootstrap.mjs";
+
 function writeLog(logger, payload) {
   if (typeof logger?.log === "function") {
     logger.log(JSON.stringify(payload));
@@ -18,6 +19,7 @@ function parseBooleanFlag(value, name) {
   if (normalized === "true") return true;
   throw new TypeError(`${name} must be true or false`);
 }
+
 export function resolveTrustEvaluationEnabled(env = process.env) {
   return parseBooleanFlag(
     env.GLOBAL_TRUST_EVALUATION_ENABLED,
@@ -31,6 +33,7 @@ export function resolveTrustEvaluationPortalEnabled(env = process.env) {
     "GLOBAL_TRUST_EVALUATION_PORTAL_ENABLED",
   );
 }
+
 export function isDirectExecution(options = {}) {
   const moduleUrl = Object.hasOwn(options, "moduleUrl")
     ? options.moduleUrl
@@ -50,6 +53,7 @@ export function isDirectExecution(options = {}) {
     return false;
   }
 }
+
 export async function startOperationalGateway({
   env = process.env,
   cwd = process.cwd(),
@@ -86,6 +90,7 @@ export async function startOperationalGateway({
       "delegatedBindingSignerResolver must be a function",
     );
   }
+
   let resolvedDelegatedBindingSigner = delegatedBindingSigner;
   let delegatedBindingDescriptor;
 
@@ -94,6 +99,7 @@ export async function startOperationalGateway({
       env,
       secretProvider: delegatedBindingSecretProvider,
     });
+
     if (resolvedBinding?.configured) {
       if (typeof resolvedBinding.signer?.signBinding !== "function") {
         throw new TypeError(
@@ -105,6 +111,7 @@ export async function startOperationalGateway({
 
     delegatedBindingDescriptor = resolvedBinding?.descriptor;
   }
+
   const trustEvaluationEnabled = resolveTrustEvaluationEnabled(env);
   const trustEvaluationPortalEnabled =
     resolveTrustEvaluationPortalEnabled(env);
@@ -116,6 +123,7 @@ export async function startOperationalGateway({
   }
 
   let gatewayTransform;
+
   if (trustEvaluationEnabled) {
     if (typeof trustEvaluationLoader !== "function") {
       throw new TypeError("trustEvaluationLoader must be a function");
@@ -129,6 +137,7 @@ export async function startOperationalGateway({
         "Trust Evaluation module must export attachOperationalTrustEvaluationGateway",
       );
     }
+
     let attachPortal = null;
     if (trustEvaluationPortalEnabled) {
       if (typeof trustEvaluationPortalLoader !== "function") {
@@ -145,6 +154,7 @@ export async function startOperationalGateway({
         );
       }
     }
+
     gatewayTransform = ({ gateway }) => {
       const evaluationGateway = attachEvaluation({ gateway });
       return attachPortal
@@ -152,6 +162,7 @@ export async function startOperationalGateway({
         : evaluationGateway;
     };
   }
+
   const runtime = runtimeFactory({
     env,
     cwd,
@@ -166,6 +177,7 @@ export async function startOperationalGateway({
     port: runtime.port,
   });
   const address = server.address();
+
   writeLog(logger, {
     event: "api_gateway_operational_started",
     host: address.address,
@@ -195,6 +207,7 @@ export async function startOperationalGateway({
         }
       : {}),
   });
+
   return Object.freeze({ server, runtime });
 }
 
@@ -216,6 +229,7 @@ export function registerOperationalShutdown({
       processRef.exit(0);
     });
   };
+
   processRef.once("SIGINT", shutdown);
   processRef.once("SIGTERM", shutdown);
 
@@ -233,6 +247,7 @@ export async function runOperationalMain({
   shutdownRegistrar({ server });
   return Object.freeze({ server, runtime });
 }
+
 async function main() {
   await runOperationalMain();
 }
