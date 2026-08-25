@@ -132,7 +132,7 @@ test("Zuni commercial activation write rejects missing authorization", async () 
   assert.deepEqual(runtime.state.calls, []);
 });
 
-test("Zuni commercial activation governed write is idempotent in isolated runtime", async () => {
+test("Zuni commercial activation governed write is idempotent across provisioning lifecycle", async () => {
   const activationPlan = createActivationPlan();
   const runtime = fakeRuntime();
   const events = [];
@@ -165,6 +165,12 @@ test("Zuni commercial activation governed write is idempotent in isolated runtim
     activationPlan.entitlements.length,
   );
 
+  runtime.state.job = {
+    ...runtime.state.job,
+    status: "running",
+    attempt: 1,
+    startedAt: "2026-08-25T22:53:30.000Z",
+  };
   runtime.state.calls.length = 0;
 
   const second = await executeZuniActivationPlan({
@@ -182,6 +188,7 @@ test("Zuni commercial activation governed write is idempotent in isolated runtim
   assert.equal(second.result.subscriptionCreated, false);
   assert.equal(second.result.entitlementsCreated, 0);
   assert.equal(second.result.provisioningEnqueued, false);
+  assert.equal(second.result.provisioning.job.status, "running");
   assert.deepEqual(runtime.state.calls, []);
 
   assert.deepEqual(
@@ -193,4 +200,40 @@ test("Zuni commercial activation governed write is idempotent in isolated runtim
       { stage: "write", outcome: "persisted" },
     ],
   );
+});
+
+test("Zuni commercial activation rejects conflicting provisioning identity", async () => {
+  const activationPlan = createActivationPlan();
+  const runtime = fakeRuntime();
+
+  await executeZuniActivationPlan({
+    runtime,
+    activationPlan,
+    audit: async () => {},
+    mode: "write",
+    authorization: ZUNI_SAAS_ACTIVATION_WRITE_AUTHORIZATION,
+    requestedAt: "2026-08-25T22:55:00.000Z",
+  });
+
+  runtime.state.job = {
+    ...runtime.state.job,
+    idempotencyKey: "zuni-activation:conflicting-request",
+    status: "running",
+    attempt: 1,
+  };
+  runtime.state.calls.length = 0;
+
+  await assert.rejects(
+    executeZuniActivationPlan({
+      runtime,
+      activationPlan,
+      audit: async () => {},
+      mode: "write",
+      authorization: ZUNI_SAAS_ACTIVATION_WRITE_AUTHORIZATION,
+      requestedAt: "2026-08-25T22:56:00.000Z",
+    }),
+    /conflicting identity/,
+  );
+
+  assert.deepEqual(runtime.state.calls, []);
 });
