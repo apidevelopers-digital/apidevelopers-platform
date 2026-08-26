@@ -3,7 +3,7 @@
   "format": "managed-node-zip",
   "service": "api-gateway",
   "version": "0.7.0",
-  "sourceRevision": "3409ff5e742ff5ae755e9166384a2c9316a77ca1",
+  "sourceRevision": "6eb1bbaef2876ba527eb352504e04a088cc55e9b",
   "runtime": {
     "node": ">=22",
     "entrypoint": "src/hostinger-entry.mjs",
@@ -240,8 +240,8 @@
     },
     {
       "path": "src/global-trust-face-lab-http.mjs",
-      "bytes": 6427,
-      "sha256": "976fc39ae44e14e955ade9e2618bc3bd6bab81a90dcb0ccf09a83b9ed30fc20d"
+      "bytes": 6488,
+      "sha256": "ea2beeee56a15ccacaf5a407fefb51e7a291185d70dd1775f2d4f1312c398545"
     },
     {
       "path": "src/global-trust-human-approval-http.mjs",
@@ -590,8 +590,8 @@
     },
     {
       "path": "src/operational-trust-evaluation-portal-composition.mjs",
-      "bytes": 4233,
-      "sha256": "856024694447f5c4de109c34948b122faccab31b1dd68db4f1e7acf9d600e7ed"
+      "bytes": 4510,
+      "sha256": "5defe40e803e333d8d5d7f816b711c522cae145a72d33b9ec217c33d49749211"
     },
     {
       "path": "src/operational-use-case-registry-composition.mjs",
