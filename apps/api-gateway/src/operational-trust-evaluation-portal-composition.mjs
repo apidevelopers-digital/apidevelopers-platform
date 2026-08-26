@@ -2,6 +2,7 @@ import { createGlobalTrustEvaluationApprovedOnboardingService } from "./global-t
 import { createGlobalTrustEvaluationPortalHttpHandler } from "./global-trust-evaluation-portal-http.mjs";
 import { createGlobalTrustEvaluationPortalInbox } from "./global-trust-evaluation-portal-inbox.mjs";
 import { createGlobalTrustEvaluationPortalSessionService } from "./global-trust-evaluation-portal-session.mjs";
+import { createGlobalTrustFaceLabHttpHandler } from "./global-trust-face-lab-http.mjs";
 import { createOperationalTrustEvaluationGateway } from "./operational-trust-evaluation-composition.mjs";
 
 function requireGateway(gateway) {
@@ -24,18 +25,18 @@ function requireGateway(gateway) {
   return gateway;
 }
 
-function wrapPortalApp({ app, portalHttp }) {
+function wrapHttpApp({ app, handler }) {
   if (
     typeof app?.handleRequest !== "function" ||
-    typeof portalHttp?.handleRequest !== "function"
+    typeof handler?.handleRequest !== "function"
   ) {
-    throw new TypeError("app and portalHttp must expose handleRequest()");
+    throw new TypeError("app and handler must expose handleRequest()");
   }
 
   return Object.freeze({
     async handleRequest(request = {}) {
-      const portalResponse = await portalHttp.handleRequest(request);
-      if (portalResponse !== null) return portalResponse;
+      const response = await handler.handleRequest(request);
+      if (response !== null) return response;
       return app.handleRequest(request);
     },
     ...(app.metrics ? { metrics: app.metrics } : {}),
@@ -63,7 +64,9 @@ export function attachOperationalTrustEvaluationPortal({
     portalSession: evaluationPortalSession,
     portalInbox: evaluationPortalInbox,
   });
-
+  const faceLabHttp = createGlobalTrustFaceLabHttpHandler({
+    portalSession: evaluationPortalSession,
+  });
   const evaluationApprovedOnboarding =
     createGlobalTrustEvaluationApprovedOnboardingService({
       evaluationTenantService: gateway.evaluationTenantService,
@@ -77,9 +80,13 @@ export function attachOperationalTrustEvaluationPortal({
         }),
     });
 
-  const app = wrapPortalApp({
+  const portalApp = wrapHttpApp({
     app: gateway.app,
-    portalHttp: evaluationPortalHttp,
+    handler: evaluationPortalHttp,
+  });
+  const app = wrapHttpApp({
+    app: portalApp,
+    handler: faceLabHttp,
   });
 
   return Object.freeze({
@@ -87,6 +94,7 @@ export function attachOperationalTrustEvaluationPortal({
     evaluationPortalSession,
     evaluationPortalInbox,
     evaluationPortalHttp,
+    faceLabHttp,
     evaluationApprovedOnboarding,
     evaluationDeliveryChannel: "in_product_portal",
     evaluationExternalEnvelopeEgress: false,
