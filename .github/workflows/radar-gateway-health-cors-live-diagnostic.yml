@@ -1,0 +1,44 @@
+name: Radar Gateway Health CORS Live Diagnostic
+
+on:
+  push:
+    branches:
+      - diag/radar-health-cors-live-20260826
+
+permissions:
+  contents: read
+
+jobs:
+  diagnose:
+    runs-on:
+      - self-hosted
+      - macOS
+      - X64
+    timeout-minutes: 5
+    steps:
+      - name: Verify live Radar preview CORS on Gateway health
+        shell: bash
+        run: |
+          set -Eeuo pipefail
+          ORIGIN="https://radar-preview.apidevelopers.digital"
+          URL="https://gateway.apidevelopers.digital/health"
+          HEADERS="$RUNNER_TEMP/radar-health-headers-$GITHUB_RUN_ID.txt"
+          BODY="$RUNNER_TEMP/radar-health-body-$GITHUB_RUN_ID.json"
+
+          curl --fail-with-body --silent --show-error             --connect-timeout 5 --max-time 15             -D "$HEADERS"             -H "Origin: $ORIGIN"             "$URL" > "$BODY"
+
+          grep -Eiq '^access-control-allow-origin:[[:space:]]*https://radar-preview\.apidevelopers\.digital[[:space:]]*$' "$HEADERS"
+          grep -Eiq '^vary:[[:space:]]*Origin[[:space:]]*$' "$HEADERS"
+
+          node - "$BODY" <<'NODE'
+          const fs = require("fs");
+          const path = process.argv[2];
+          const payload = JSON.parse(fs.readFileSync(path, "utf8"));
+          if (payload?.service !== "api-gateway" || payload?.status !== "ok") {
+            console.error("gateway_health_payload_mismatch");
+            process.exit(1);
+          }
+          NODE
+
+          echo "::notice title=RADAR_GATEWAY_HEALTH_CORS::LIVE_OK"
+          rm -f "$HEADERS" "$BODY"
