@@ -11,6 +11,14 @@ const SURFACE_BINDINGS = Object.freeze({
     productId: "product:nexus",
     agentId: "nexus",
   }),
+  "radar.apidevelopers.digital": Object.freeze({
+    productId: "product:radar",
+    agentId: "nexus",
+  }),
+  "radar-preview.apidevelopers.digital": Object.freeze({
+    productId: "product:radar",
+    agentId: "nexus",
+  }),
 });
 
 function normalizeHost(value) {
