@@ -3,6 +3,7 @@ import { createGlobalTrustEvaluationPortalHttpHandler } from "./global-trust-eva
 import { createGlobalTrustEvaluationPortalInbox } from "./global-trust-evaluation-portal-inbox.mjs";
 import { createGlobalTrustEvaluationPortalSessionService } from "./global-trust-evaluation-portal-session.mjs";
 import { createGlobalTrustFaceLabHttpHandler } from "./global-trust-face-lab-http.mjs";
+import { createGlobalTrustFaceLabLiveProvider } from "./global-trust-face-lab-live-provider.mjs";
 import { createOperationalTrustEvaluationGateway } from "./operational-trust-evaluation-composition.mjs";
 
 function requireGateway(gateway) {
@@ -113,6 +114,16 @@ export function createOperationalTrustEvaluationPortalGateway(options = {}) {
       "portal gateway owns Evaluation credential delivery; external/legacy handoff must not be supplied",
     );
   }
+  const env = options.env ?? process.env;
+  const explicitFaceLabRuntime = options.faceLabLiveRuntime ?? null;
+  const faceLabLiveRuntime =
+    explicitFaceLabRuntime ??
+    createGlobalTrustFaceLabLiveProvider({
+      env,
+      client: options.faceLabAwsClient ?? null,
+      commands: options.faceLabAwsCommands ?? null,
+    });
+
   const gateway = createOperationalTrustEvaluationGateway({
     ...options,
     deliverEvaluationEnvelope: undefined,
@@ -124,9 +135,7 @@ export function createOperationalTrustEvaluationPortalGateway(options = {}) {
     ...(options.portalSessionTtlMs === undefined
       ? {}
       : { sessionTtlMs: options.portalSessionTtlMs }),
-    ...(options.faceLabLiveRuntime
-      ? { faceLabLiveRuntime: options.faceLabLiveRuntime }
-      : {}),
-    ...(options.env ? { env: options.env } : {}),
+    ...(faceLabLiveRuntime ? { faceLabLiveRuntime } : {}),
+    env,
   });
 }
