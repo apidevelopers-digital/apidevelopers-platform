@@ -1,0 +1,107 @@
+name: UniJuri Keychain Helper Install
+
+on:
+  workflow_dispatch:
+    inputs:
+      example:
+        description: Exact governed approval token for privileged helper installation
+        required: true
+        type: string
+
+permissions:
+  contents: read
+
+concurrency:
+  group: unijuri-keychain-helper-install
+  cancel-in-progress: false
+
+jobs:
+  install:
+    runs-on:
+      - self-hosted
+      - macOS
+      - X64
+    timeout-minutes: 15
+    steps:
+      - name: Validate explicit approval
+        shell: bash
+        env:
+          APPROVAL: ${{ inputs.example }}
+        run: |
+          set -euo pipefail
+          if [[ "$APPROVAL" != "IGOR_APROVA_UNIJURI_KEYCHAIN_HELPER_INSTALL" ]]; then
+            echo "::error::Invalid helper installation approval"
+            exit 2
+          fi
+
+      - name: Checkout approved revision
+        uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+
+      - name: Resolve full Xcode developer directory
+        shell: bash
+        run: |
+          set -euo pipefail
+          shopt -s nullglob
+          selected=""
+          candidates=("/Applications/Xcode.app/Contents/Developer")
+          for app in /Applications/Xcode*.app; do
+            candidates+=("$app/Contents/Developer")
+          done
+          for candidate in "${candidates[@]}"; do
+            if [[ -d "$candidate/Platforms/MacOSX.platform" ]]; then
+              selected="$candidate"
+              break
+            fi
+          done
+          if [[ -z "$selected" ]]; then
+            echo "::error title=Full Xcode unavailable::No macOS SDK found"
+            exit 1
+          fi
+          echo "DEVELOPER_DIR=$selected" >> "$GITHUB_ENV"
+
+      - name: Build native Keychain helper
+        shell: bash
+        run: |
+          set -euo pipefail
+          DEVELOPER_DIR="$DEVELOPER_DIR" xcrun swift build             --package-path apps/api-gateway/native/operator-keychain-helper             --configuration release             --product operator-keychain-helper             --jobs 2
+          BIN="$(find apps/api-gateway/native/operator-keychain-helper/.build -type f -path '*/release/operator-keychain-helper' -perm -111 | head -n 1)"
+          if [[ -z "$BIN" || ! -x "$BIN" ]]; then
+            echo "::error::Built helper executable not found"
+            exit 1
+          fi
+          echo "HELPER_BIN=$BIN" >> "$GITHUB_ENV"
+          shasum -a 256 "$BIN" | awk '{print "BUILT_SHA256="$1}' >> "$GITHUB_ENV"
+
+      - name: Preflight privileged install
+        shell: bash
+        run: |
+          set -euo pipefail
+          if ! sudo -n true; then
+            echo "::error title=Privilege unavailable::Passwordless non-interactive sudo is required"
+            exit 3
+          fi
+          test -x "$HELPER_BIN"
+
+      - name: Install helper create-or-replace binary
+        shell: bash
+        run: |
+          set -euo pipefail
+          TARGET_DIR="/usr/local/libexec/apidevelopers"
+          TARGET="$TARGET_DIR/operator-keychain-helper"
+          sudo -n install -d -o root -g wheel -m 0755 "$TARGET_DIR"
+          sudo -n install -o root -g wheel -m 0755 "$HELPER_BIN" "$TARGET"
+          INSTALLED_SHA256="$(shasum -a 256 "$TARGET" | awk '{print $1}')"
+          if [[ "$INSTALLED_SHA256" != "$BUILT_SHA256" ]]; then
+            echo "::error::Installed helper hash mismatch"
+            exit 4
+          fi
+          echo "::notice title=UniJuri helper install::installed=true; target=$TARGET; sha256=$INSTALLED_SHA256"
+
+      - name: Verify executable
+        shell: bash
+        run: |
+          set -euo pipefail
+          test -x /usr/local/libexec/apidevelopers/operator-keychain-helper
+          echo "::notice title=UniJuri helper readiness::helperExecutable=present-executable"
