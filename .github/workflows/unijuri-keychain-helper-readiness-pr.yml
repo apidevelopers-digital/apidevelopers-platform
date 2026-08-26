@@ -6,6 +6,7 @@ on:
       - main
     paths:
       - "apps/api-gateway/scripts/check-unijuri-keychain-helper-readiness.mjs"
+      - "apps/api-gateway/scripts/check-unijuri-keychain-helper-install-target.mjs"
       - ".github/workflows/unijuri-keychain-helper-readiness-pr.yml"
 
 permissions:
@@ -20,7 +21,7 @@ jobs:
     timeout-minutes: 5
     steps:
       - name: Checkout PR revision
-        uses: actions/checkout@v4
+        uses: actions/checkout4v4
         with:
           persist-credentials: false
 
@@ -30,3 +31,10 @@ jobs:
         run: |
           set -euo pipefail
           node scripts/check-unijuri-keychain-helper-readiness.mjs
+
+      - name: Check install target readiness
+        working-directory: apps/api-gateway
+        shell: bash
+        run: |
+          set -euo pipefail
+          node scripts/check-unijuri-keychain-helper-install-target.mjs
