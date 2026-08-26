@@ -67,6 +67,8 @@ export async function startOperationalGateway({
     import("./operational-trust-evaluation-composition.mjs"),
   trustEvaluationPortalLoader = () =>
     import("./operational-trust-evaluation-portal-composition.mjs"),
+  trustFaceLabLiveBootstrapLoader = () =>
+    import("./global-trust-face-lab-live-bootstrap.mjs"),
 } = {}) {
   if (typeof runtimeFactory !== "function") {
     throw new TypeError("runtimeFactory must be a function");
@@ -139,6 +141,7 @@ export async function startOperationalGateway({
     }
 
     let attachPortal = null;
+    let faceLabLiveRuntime = null;
     if (trustEvaluationPortalEnabled) {
       if (typeof trustEvaluationPortalLoader !== "function") {
         throw new TypeError(
@@ -153,12 +156,42 @@ export async function startOperationalGateway({
           "Trust Evaluation Portal module must export attachOperationalTrustEvaluationPortal",
         );
       }
+      if (typeof trustFaceLabLiveBootstrapLoader !== "function") {
+        throw new TypeError(
+          "trustFaceLabLiveBootstrapLoader must be a function",
+        );
+      }
+      const faceLabBootstrapModule = await trustFaceLabLiveBootstrapLoader();
+      const shouldResolveFaceLabLiveRuntime =
+        faceLabBootstrapModule?.shouldResolveGlobalTrustFaceLabLiveRuntime;
+      const resolveFaceLabLiveRuntime =
+        faceLabBootstrapModule?.resolveGlobalTrustFaceLabLiveRuntime;
+      if (
+        typeof shouldResolveFaceLabLiveRuntime !== "function" ||
+        typeof resolveFaceLabLiveRuntime !== "function"
+      ) {
+        throw new TypeError(
+          "Face Lab live bootstrap module must export shouldResolveGlobalTrustFaceLabLiveRuntime and resolveGlobalTrustFaceLabLiveRuntime",
+        );
+      }
+      if (shouldResolveFaceLabLiveRuntime(env)) {
+        faceLabLiveRuntime = await resolveFaceLabLiveRuntime({ env });
+        if (!faceLabLiveRuntime) {
+          throw new TypeError(
+            "Face Lab live runtime must resolve when live gates are enabled",
+          );
+        }
+      }
     }
 
     gatewayTransform = ({ gateway }) => {
       const evaluationGateway = attachEvaluation({ gateway });
       return attachPortal
-        ? attachPortal({ gateway: evaluationGateway })
+        ? attachPortal({
+            gateway: evaluationGateway,
+            ...(faceLabLiveRuntime ? { faceLabLiveRuntime } : {}),
+            env,
+          })
         : evaluationGateway;
     };
   }
