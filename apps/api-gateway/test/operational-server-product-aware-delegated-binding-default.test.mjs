@@ -81,6 +81,46 @@ test("operational gateway default delegated binding resolver is product-aware fo
   assert.equal(signer.signBinding({ productId: "unknown" }), null);
 });
 
+test("operational gateway passes delegated binding credential provider to the product-aware resolver", async () => {
+  const credentialProvider = async () => ({
+    scheme: "bearer",
+    bytes: Buffer.from("0123456789abcdef-test-token"),
+  });
+  let resolverOptions;
+  let runtimeOptions;
+
+  await startOperationalGateway({
+    env: {},
+    cwd: "/tmp",
+    logger: { log() {} },
+    delegatedBindingCredentialProvider: credentialProvider,
+    async delegatedBindingSignerResolver(options) {
+      resolverOptions = options;
+      return {
+        configured: false,
+        signer: null,
+        descriptor: Object.freeze({
+          configured: false,
+          mode: "deny-by-default",
+        }),
+      };
+    },
+    runtimeFactory(options) {
+      runtimeOptions = options;
+      return {
+        app: { handleRequest() {} },
+        host: "127.0.0.1",
+        port: 0,
+        descriptor: Object.freeze({ mode: "test" }),
+      };
+    },
+    serverFactory: createServerFactory(),
+  });
+
+  assert.equal(resolverOptions.credentialProvider, credentialProvider);
+  assert.equal(Object.hasOwn(runtimeOptions, "delegatedBindingSigner"), false);
+});
+
 test("operational gateway default delegated binding resolver remains deny-by-default when no product is configured", async () => {
   let runtimeOptions;
 
