@@ -1,6 +1,7 @@
 const PRODUCT_AGENT_POLICY = Object.freeze({
   "product:uni-co": Object.freeze(["uni.co"]),
   "product:nexus": Object.freeze(["nexus"]),
+  "product:radar": Object.freeze(["nexus"]),
 });
 
 export function resolveAllowedAgents(productId) {
