@@ -6,9 +6,10 @@ import {
   sign as cryptoSign,
 } from "node:crypto";
 
-export const ZUNI_DELEGATED_BINDING_VERSION = "zuni-delegated-binding/v1";
-export const ZUNI_DELEGATED_BINDING_ALGORITHM = "RSA-PSS-SHA256";
-export const ZUNI_DELEGATED_BINDING_AUDIENCE = "unico-api-platform:zuni-documents";
+export const UNIJURI_DELEGATED_BINDING_VERSION = "uni-juri-delegated-binding/v1";
+export const UNIJURI_DELEGATED_BINDING_ALGORITHM = "RSA-PSS-SHA256";
+export const UNIJURI_DELEGATED_BINDING_AUDIENCE = "unico-api-platform:uni-juri";
+export const UNIJURI_DELEGATED_BINDING_PRODUCT_ID = "uni-juri";
 
 function requiredText(value, name) {
   const normalized = String(value ?? "").trim();
@@ -22,8 +23,8 @@ function toB64u(value) {
 
 function canonicalPayload(input = {}) {
   return JSON.stringify({
-    version: ZUNI_DELEGATED_BINDING_VERSION,
-    audience: ZUNI_DELEGATED_BINDING_AUDIENCE,
+    version: UNIJURI_DELEGATED_BINDING_VERSION,
+    audience: UNIJURI_DELEGATED_BINDING_AUDIENCE,
     tenantId: requiredText(input.tenantId, "tenantId"),
     workspaceId: requiredText(input.workspaceId, "workspaceId"),
     accessGrantId: requiredText(input.accessGrantId, "accessGrantId"),
@@ -47,7 +48,7 @@ function normalizePrivateKey(privateKeyPem) {
   return key;
 }
 
-export function createZuniDelegatedBindingSigner({
+export function createUniJuriDelegatedBindingSigner({
   privateKeyPem,
   keyId,
   clock = () => new Date(),
@@ -58,6 +59,7 @@ export function createZuniDelegatedBindingSigner({
   const publicKey = createPublicKey(privateKey);
   const normalizedKeyId = requiredText(keyId, "keyId");
   const ttl = Number(ttlSeconds);
+
   if (!Number.isSafeInteger(ttl) || ttl < 15 || ttl > 300) {
     throw new TypeError("ttlSeconds must be an integer between 15 and 300");
   }
@@ -65,13 +67,13 @@ export function createZuniDelegatedBindingSigner({
   if (typeof nonceFactory !== "function") throw new TypeError("nonceFactory must be a function");
 
   return Object.freeze({
-    algorithm: ZUNI_DELEGATED_BINDING_ALGORITHM,
+    algorithm: UNIJURI_DELEGATED_BINDING_ALGORITHM,
     keyId: normalizedKeyId,
     publicKeyPem: publicKey.export({ type: "spki", format: "pem" }),
 
     signBinding(binding = {}) {
       const productId = requiredText(binding.productId, "productId");
-      if (productId !== "zuni") return null;
+      if (productId !== UNIJURI_DELEGATED_BINDING_PRODUCT_ID) return null;
 
       const now = clock();
       const issuedAt = new Date(now).toISOString();
@@ -95,8 +97,8 @@ export function createZuniDelegatedBindingSigner({
       ).toString("base64url");
 
       return Object.freeze({
-        version: ZUNI_DELEGATED_BINDING_VERSION,
-        algorithm: ZUNI_DELEGATED_BINDING_ALGORITHM,
+        version: UNIJURI_DELEGATED_BINDING_VERSION,
+        algorithm: UNIJURI_DELEGATED_BINDING_ALGORITHM,
         keyId: normalizedKeyId,
         proof: `${payloadB64u}.${signature}`,
         expiresAt,

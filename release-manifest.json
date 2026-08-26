@@ -3,7 +3,7 @@
   "format": "managed-node-zip",
   "service": "api-gateway",
   "version": "0.7.0",
-  "sourceRevision": "49db9303f50547edddd063e7d4d3fc91fb51aeaf",
+  "sourceRevision": "b5ddcf152aa9022cb02546038bd28fae204d8b00",
   "runtime": {
     "node": ">=22",
     "entrypoint": "src/hostinger-entry.mjs",
@@ -237,6 +237,11 @@
       "path": "src/global-trust-evaluation-tenant.mjs",
       "bytes": 11842,
       "sha256": "10753034f2ebc2389ae81cfc8cd7fc969e7e9271fa9bbcc59be7fa6fe54410b1"
+    },
+    {
+      "path": "src/global-trust-face-lab-http.mjs",
+      "bytes": 6427,
+      "sha256": "976fc39ae44e14e955ade9e2618bc3bd6bab81a90dcb0ccf09a83b9ed30fc20d"
     },
     {
       "path": "src/global-trust-human-approval-http.mjs",
@@ -565,8 +570,8 @@
     },
     {
       "path": "src/operational-server-runtime.mjs",
-      "bytes": 7728,
-      "sha256": "69a36346e357b8318cafb3094dd28e9d5f294c5d48e2cfbb765d9e993ae86b8a"
+      "bytes": 7772,
+      "sha256": "eb08cd98af4674b2a1f1d4ce47a7dfe7cbec9b39b26962c8cf352e4d193c61ac"
     },
     {
       "path": "src/operational-server.mjs",
@@ -585,8 +590,8 @@
     },
     {
       "path": "src/operational-trust-evaluation-portal-composition.mjs",
-      "bytes": 3970,
-      "sha256": "2f245b0633457f9480158f8b3044417009d72bd246727ff395de6598f10a47b5"
+      "bytes": 4233,
+      "sha256": "856024694447f5c4de109c34948b122faccab31b1dd68db4f1e7acf9d600e7ed"
     },
     {
       "path": "src/operational-use-case-registry-composition.mjs",
@@ -750,8 +755,8 @@
     },
     {
       "path": "src/product-agent-policy.mjs",
-      "bytes": 644,
-      "sha256": "a730ae12fed306abbbd970dce9cd07a0877634f875f11653b469f031e6c11b65"
+      "bytes": 689,
+      "sha256": "10e177e4afa69e3bf1d150ebf50078e918ae1b67828d52eaa2bcaf062ab42fc7"
     },
     {
       "path": "src/readiness.mjs",
@@ -774,9 +779,19 @@
       "sha256": "1111aa3f4317bb62c70d784ee80269321b1534ebe3bafea149fdddb87d0a80d8"
     },
     {
+      "path": "src/saas-delegated-binding-operational-resolver.mjs",
+      "bytes": 2634,
+      "sha256": "c62faab01368982da67822cc6a6ddd8413b544b1b591cb1f9f2659d30051a42b"
+    },
+    {
+      "path": "src/saas-delegated-binding-product-router.mjs",
+      "bytes": 1159,
+      "sha256": "592b7ff07e0e9ae3fe0703a25f1d8c645b09cbe5fa4ae144b9667a5b65bcf253"
+    },
+    {
       "path": "src/saas-delegated-binding-proof.mjs",
-      "bytes": 3478,
-      "sha256": "aebf5bc74c39ba1d73579346727b42f14ce02326920b116fbec23d96936a7968"
+      "bytes": 3613,
+      "sha256": "2c92bdd2662ef8cd14e4753016bf9425824e2fbe18c4c569ab0425f1731db661"
     },
     {
       "path": "src/saas-delegated-binding-remote-signer-daemon.mjs",
@@ -837,6 +852,21 @@
       "path": "src/saas-uni-co-provisioning.mjs",
       "bytes": 8719,
       "sha256": "3cbcb4fc441539b3b8f4e4b8860d7e0a495fd108ad619fa04011d06074136463"
+    },
+    {
+      "path": "src/saas-unijuri-delegated-binding-proof.mjs",
+      "bytes": 3733,
+      "sha256": "533df9b7c9b4a06edea9eaff6bc7a1d4c9d627a6ee5b1f59e6164f89c912acf5"
+    },
+    {
+      "path": "src/saas-unijuri-delegated-binding-runtime-config.mjs",
+      "bytes": 3090,
+      "sha256": "cd953ae61185681b7ca30fbd10f8ac049f649ef16e4011db93ae12088c1a554e"
+    },
+    {
+      "path": "src/saas-unijuri-delegated-binding-secret-loader.mjs",
+      "bytes": 1119,
+      "sha256": "67118b60bcac177d0c1bf8c01d19669090fe600c4b1fc61c106c94205ea8dc55"
     },
     {
       "path": "src/saas-zuni-operational-readiness-adapter.mjs",
@@ -965,8 +995,8 @@
     },
     {
       "path": "src/web-agent-surface-policy.mjs",
-      "bytes": 1894,
-      "sha256": "f90ed1241feb4a4c65539fa521f15021f1aa1aa94a1a537275487cacb2014080"
+      "bytes": 2120,
+      "sha256": "93f19746ae3df441885f237815cbbfe153342ab333b0dc659f0c3d10cf50625d"
     },
     {
       "path": "src/web-international-context-resolver.mjs",
