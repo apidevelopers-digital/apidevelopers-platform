@@ -2,8 +2,8 @@
   "schemaVersion": 2,
   "format": "managed-node-zip",
   "service": "api-gateway",
-  "version": "0.7.0",
-  "sourceRevision": "6eb1bbaef2876ba527eb352504e04a088cc55e9b",
+  "version": "0.8.0",
+  "sourceRevision": "7908830e2e911002927b3edd1e86aec87e400779",
   "runtime": {
     "node": ">=22",
     "entrypoint": "src/hostinger-entry.mjs",
@@ -86,12 +86,12 @@
     {
       "path": "package-lock.json",
       "bytes": 5822,
-      "sha256": "eac4015dba1ac9303a76753899978537a8fe2ad6bcae186b13f3e83b135a1322"
+      "sha256": "1708c4e38061dfe78d015b5f1e5e2fe76e052e7be39ceb3306437afb5210619c"
     },
     {
       "path": "package.json",
       "bytes": 1037,
-      "sha256": "606f7a86c8a98ca5f81705982394e95f199b723ef0307c63610fb9a8fbef0c70"
+      "sha256": "d8383ec3734373caecf8dd84e2ec64706f47113dc7b18e9b6976e25c3f9d88d3"
     },
     {
       "path": "src/audit-query-http.mjs",
@@ -242,6 +242,16 @@
       "path": "src/global-trust-face-lab-http.mjs",
       "bytes": 6488,
       "sha256": "ea2beeee56a15ccacaf5a407fefb51e7a291185d70dd1775f2d4f1312c398545"
+    },
+    {
+      "path": "src/global-trust-face-lab-live-provider.mjs",
+      "bytes": 1034,
+      "sha256": "8910ce704523aa874ebd1d695ede68aed360dd5f0a9900e2c8b8805aad2817cb"
+    },
+    {
+      "path": "src/global-trust-face-lab-live-runtime.mjs",
+      "bytes": 7861,
+      "sha256": "bdbd8d1d6a1bf145561272cb91e62972cfdeade7908882e2ad9ab78d95fabe4b"
     },
     {
       "path": "src/global-trust-human-approval-http.mjs",
@@ -590,8 +600,8 @@
     },
     {
       "path": "src/operational-trust-evaluation-portal-composition.mjs",
-      "bytes": 4510,
-      "sha256": "5defe40e803e333d8d5d7f816b711c522cae145a72d33b9ec217c33d49749211"
+      "bytes": 4852,
+      "sha256": "c5470f5372792a4cfbdc2bae1d0853a4690e1a8a58c027d1acca106c2bfe390d"
     },
     {
       "path": "src/operational-use-case-registry-composition.mjs",
