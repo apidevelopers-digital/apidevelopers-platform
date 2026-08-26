@@ -407,7 +407,7 @@ if (
 ) {
   main().catch((error) => {
     console.error(
-      JSON.stringify{
+      JSON.stringify({
         event: "api_gateway_failed",
         message: error instanceof Error ? error.message : "Unknown error",
       }),
