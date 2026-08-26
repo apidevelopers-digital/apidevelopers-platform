@@ -27,7 +27,7 @@ function parseBoolean(value, name) {
   const normalized = String(value ?? "").trim().toLowerCase();
   if (!normalized || normalized === "false") return false;
   if (normalized === "true") return true;
-  throw new TypeError($${name} must be true or false$);
+  throw new TypeError(name + " must be true or false");
 }
 
 function isDirectExecution() {
@@ -52,14 +52,14 @@ export async function runProductionReadinessEnforcement({
     requireParent: parseBoolean(env.GATEWAY_REQUIRE_PARENT_READY, "GATEWAY_REQUIRE_PARENT_READY"),
   });
 
-  process.stdout.write(`${JSON.stringify(result, null, 2)}\n`);
+  process.stdout.write(JSON.stringify(result, null, 2) + "\n");
   if (!result.healthy) process.exitCode = 1;
   return result;
 }
 
 if (isDirectExecution()) {
   runProductionReadinessEnforcement().catch((error) => {
-    process.stderr.write(`${error instanceof Error ? error.message : String(error)}\n`);
+    process.stderr.write((error instanceof Error ? error.message : String(error)) + "\n");
     process.exitCode = 1;
   });
 }
