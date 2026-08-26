@@ -1,0 +1,66 @@
+name: UniJuri Keychain Provisioning
+
+on:
+  workflow_dispatch:
+    inputs:
+      approval:
+        description: "Exact approval token for create-only UniJuri key provisioning"
+        required: true
+        type: string
+
+permissions:
+  contents: read
+
+concurrency:
+  group: unijuri-keychain-provisioning
+  cancel-in-progress: false
+
+jobs:
+  provision:
+    runs-on:
+      - self-hosted
+      - macOS
+      - X64
+    timeout-minutes: 10
+    steps:
+      - name: Checkout approved revision
+        uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+
+      - name: Validate provisioning contract
+        working-directory: apps/api-gateway
+        shell: bash
+        run: |
+          set -euo pipefail
+          node --test test/saas-unijuri-delegated-binding-keychain-provisioner.test.mjs
+
+      - name: Provision create-only UniJuri keypair
+        working-directory: apps/api-gateway
+        shell: bash
+        env:
+          APPROVAL: ${{ inputs.approval }}
+        run: |
+          set -euo pipefail
+          if [[ "$APPROVAL" != "IGOR_APROVA_UNIJURI_KEYCHAIN_PROVISIONING" ]]; then
+            echo "::error::Invalid provisioning approval"
+            exit 2
+          fi
+          PUBLIC_KEY_PATH="$RUNNER_TEMP/unijuri-binding-20260826-v1-public.pem"
+          node scripts/provision-unijuri-delegated-binding-keypair.mjs "$APPROVAL" "$PUBLIC_KEY_PATH" \
+            | tee "$RUNNER_TEMP/unijuri-keychain-provisioning-evidence.json"
+
+      - name: Upload public key and sanitized evidence only
+        uses: actions/upload-artifact@v4
+        with:
+          name: unijuri-binding-20260826-v1-public-material
+          path: |
+            ${{ runner.temp }}/unijuri-binding-20260826-v1-public.pem
+            ${{ runner.temp }}/unijuri-keychain-provisioning-evidence.json
+          if-no-files-found: error
+          retention-days: 7
