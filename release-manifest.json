@@ -3,7 +3,7 @@
   "format": "managed-node-zip",
   "service": "api-gateway",
   "version": "0.8.0",
-  "sourceRevision": "cbdafe4b421d94d11ceb9c3c81709ab20f81be7b",
+  "sourceRevision": "3b8bd86f1835e58d5b2468c6f4883eb2efd02692",
   "runtime": {
     "node": ">=22",
     "entrypoint": "src/hostinger-entry.mjs",
@@ -247,6 +247,11 @@
       "path": "src/global-trust-face-lab-http.mjs",
       "bytes": 6488,
       "sha256": "ea2beeee56a15ccacaf5a407fefb51e7a291185d70dd1775f2d4f1312c398545"
+    },
+    {
+      "path": "src/global-trust-face-lab-live-bootstrap.mjs",
+      "bytes": 1482,
+      "sha256": "805951cc1a7cdab8180df516730049337fd8a9167ac4029cfa7a60448ff85a0d"
     },
     {
       "path": "src/global-trust-face-lab-live-provider.mjs",
@@ -585,8 +590,8 @@
     },
     {
       "path": "src/operational-server-runtime.mjs",
-      "bytes": 7772,
-      "sha256": "eb08cd98af4674b2a1f1d4ce47a7dfe7cbec9b39b26962c8cf352e4d193c61ac"
+      "bytes": 9229,
+      "sha256": "52bcee09c33f2b78fe10c479f496f9d1638f0c0accc6d51b75b6f941cc59da68"
     },
     {
       "path": "src/operational-server.mjs",
@@ -785,8 +790,8 @@
     },
     {
       "path": "src/saas-delegated-access-v2.mjs",
-      "bytes": 5456,
-      "sha256": "ba7f02c823a664b0e09159afc3750509d68fe53923440e88978462054b386fff"
+      "bytes": 5462,
+      "sha256": "a667ee2e675c0fccfe2b92a07eac370808ab1dc6cffc0f49ef29b6f4aa912181"
     },
     {
       "path": "src/saas-delegated-access.mjs",
@@ -795,8 +800,8 @@
     },
     {
       "path": "src/saas-delegated-binding-operational-resolver.mjs",
-      "bytes": 2634,
-      "sha256": "c62faab01368982da67822cc6a6ddd8413b544b1b591cb1f9f2659d30051a42b"
+      "bytes": 2676,
+      "sha256": "f853ff0cd0cab3a0c7b13cc530f3f12be577b8796014a577cce2dfa9f48f4ec8"
     },
     {
       "path": "src/saas-delegated-binding-product-router.mjs",
@@ -874,9 +879,34 @@
       "sha256": "533df9b7c9b4a06edea9eaff6bc7a1d4c9d627a6ee5b1f59e6164f89c912acf5"
     },
     {
+      "path": "src/saas-unijuri-delegated-binding-remote-signer-daemon.mjs",
+      "bytes": 4176,
+      "sha256": "89aa0a2736887a615277e94b694afcc0da6eb8f2fd31954afc26dce2668106e3"
+    },
+    {
+      "path": "src/saas-unijuri-delegated-binding-remote-signer-https-transport.mjs",
+      "bytes": 5707,
+      "sha256": "af4d0b9c8bb26c19df37c770f958cb488b929c1fdde34c5b79a0af5a9ba6ec16"
+    },
+    {
+      "path": "src/saas-unijuri-delegated-binding-remote-signer-keychain.mjs",
+      "bytes": 2458,
+      "sha256": "bd2d4386dc30fa9053e3bf6e5a468bae74b9c3bd67ffec4a810c01c492ce7203"
+    },
+    {
+      "path": "src/saas-unijuri-delegated-binding-remote-signer-service.mjs",
+      "bytes": 3249,
+      "sha256": "86d608c4009e1ab17d34e30359d3d50774c0020ce0f7423765ec98fd9b770ebc"
+    },
+    {
+      "path": "src/saas-unijuri-delegated-binding-remote-signer.mjs",
+      "bytes": 3550,
+      "sha256": "e311c8c18ca555f08ca1885be51d65a6abefd96fa14fa87496c7b2ec8178697b"
+    },
+    {
       "path": "src/saas-unijuri-delegated-binding-runtime-config.mjs",
-      "bytes": 3090,
-      "sha256": "cd953ae61185681b7ca30fbd10f8ac049f649ef16e4011db93ae12088c1a554e"
+      "bytes": 5730,
+      "sha256": "d97736d28a718133ebdf60b55a907b2a4d22ad25cb0504437bad1bc7dce0efb2"
     },
     {
       "path": "src/saas-unijuri-delegated-binding-secret-loader.mjs",

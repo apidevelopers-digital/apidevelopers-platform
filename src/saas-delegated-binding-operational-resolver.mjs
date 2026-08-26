@@ -39,6 +39,7 @@ function normalizeResolution(value, name) {
 export async function resolveProductAwareDelegatedBindingOperationalSigner({
   env = process.env,
   secretProvider,
+  credentialProvider,
   zuniResolver = resolveZuniDelegatedBindingSigner,
   uniJuriResolver = resolveUniJuriDelegatedBindingSigner,
 } = {}) {
@@ -50,7 +51,7 @@ export async function resolveProductAwareDelegatedBindingOperationalSigner({
     "zuniResolver",
   );
   const uniJuri = normalizeResolution(
-    await resolveUniJuri({ env, secretProvider }),
+    await resolveUniJuri({ env, secretProvider, credentialProvider }),
     "uniJuriResolver",
   );
 

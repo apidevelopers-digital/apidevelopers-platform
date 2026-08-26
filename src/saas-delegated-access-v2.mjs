@@ -139,7 +139,7 @@ export function createDelegatedSaasAccessApp({
 
       const bindingProof =
         decision.allowed && bindingSigner
-          ? bindingSigner.signBinding({
+          ? await bindingSigner.signBinding({
               ...publicBinding,
               principalId: principal.principalId,
             })
