@@ -3,7 +3,7 @@
   "format": "managed-node-zip",
   "service": "api-gateway",
   "version": "0.8.0",
-  "sourceRevision": "7908830e2e911002927b3edd1e86aec87e400779",
+  "sourceRevision": "cbdafe4b421d94d11ceb9c3c81709ab20f81be7b",
   "runtime": {
     "node": ">=22",
     "entrypoint": "src/hostinger-entry.mjs",
@@ -237,6 +237,11 @@
       "path": "src/global-trust-evaluation-tenant.mjs",
       "bytes": 11842,
       "sha256": "10753034f2ebc2389ae81cfc8cd7fc969e7e9271fa9bbcc59be7fa6fe54410b1"
+    },
+    {
+      "path": "src/global-trust-face-lab-aws-sdk-loader.mjs",
+      "bytes": 2342,
+      "sha256": "fb4d85f41a597f4becb5d6f37701016bd5ac7c261523ee7bada802c9c8d0fc12"
     },
     {
       "path": "src/global-trust-face-lab-http.mjs",
