@@ -15,10 +15,15 @@ test("OpenAPI document exposes only the current gateway surface", () => {
     "/health",
     "/openapi.json",
     "/ready",
+    "/v1/radar/events",
     "/v1/whoami",
   ]);
   assert.equal(
     document.paths["/v1/whoami"].get.security[0].ApiKeyAuth.length,
+    0,
+  );
+  assert.equal(
+    document.paths["/v1/radar/events"].post.security[0].ApiKeyAuth.length,
     0,
   );
   assert.deepEqual(document.paths["/health"].get.security, []);
@@ -59,6 +64,7 @@ test("GET /openapi.json returns the machine-readable contract", async () => {
   assert.equal(document.openapi, "3.1.0");
   assert.ok(document.paths["/ready"]);
   assert.ok(document.paths["/v1/whoami"]);
+  assert.ok(document.paths["/v1/radar/events"]);
 });
 
 test("HTTP server exposes the current OpenAPI document", async (t) => {
@@ -76,6 +82,7 @@ test("HTTP server exposes the current OpenAPI document", async (t) => {
   const document = await response.json();
 
   assert.equal(response.status, 200);
-  assert.equal(document.info.version, "0.7.0");
+  assert.equal(document.info.version, "0.8.0");
   assert.ok(document.paths["/ready"]);
+  assert.ok(document.paths["/v1/radar/events"]);
 });
