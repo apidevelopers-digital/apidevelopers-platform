@@ -3,8 +3,8 @@ name: UniJuri Keychain Provisioning
 on:
   workflow_dispatch:
     inputs:
-      approval:
-        description: "Exact approval token for create-only UniJuri key provisioning"
+      example:
+        description: "Exact governed approval token for create-only UniJuri key provisioning"
         required: true
         type: string
 
@@ -44,7 +44,7 @@ jobs:
         working-directory: apps/api-gateway
         shell: bash
         env:
-          APPROVAL: ${{ inputs.approval }}
+          APPROVAL: ${{ inputs.example }}
         run: |
           set -euo pipefail
           if [[ "$APPROVAL" != "IGOR_APROVA_UNIJURI_KEYCHAIN_PROVISIONING" ]]; then
