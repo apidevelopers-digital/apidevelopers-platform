@@ -8,41 +8,57 @@ permissions:
 jobs:
   diagnose:
     runs-on: [self-hosted, macOS, X64]
-    timeout-minutes: 10
-    env:
-      GATEWAY_PARENT_READY_URL: "https://dodgerblue-heron-996886.hostingersite.com/ready"
-      GATEWAY_PRODUCTION_READY_URL: "https://gateway.apidevelopers.digital/ready"
+    timeout-minutes: 5
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
-        with:
-          node-version: "22"
-      - name: Diagnose readiness
+      - name: Probe sanitized readiness
         shell: bash
+        env:
+          PARENT_URL: "https://dodgerblue-heron-996886.hostingersite.com/ready"
+          PRODUCTION_URL: "https://gateway.apidevelopers.digital/ready"
         run: |
-          set +e
-          report="$RUNNER_TEMP/readiness.json"
-          node apps/api-gateway/scripts/observe-production-readiness.mjs --output "$report"
-          code=$?
-          set -e
-          node --input-type=module - "$report" "$code" <<'NODE'
-          import fs from "node:fs";
-          const [path, code] = process.argv.slice(2);
-          const r = JSON.parse(fs.readFileSync(path, "utf8"));
-          const pick = t => ({
-            httpStatus: t?.httpStatus ?? null,
-            valid: t?.valid === true,
-            service: t?.service ?? null,
-            status: t?.status ?? null,
-            persistence: t?.persistence ?? null,
-            error: t?.error ?? null,
-          });
-          console.log(JSON.stringify({
-            classification: r?.classification ?? null,
-            probeExitCode: Number(code),
-            parent: pick(r?.targets?.hostingerParent),
-            production: pick(r?.targets?.productionDomain),
-            writeExecuted: false,
-          }, null, 2));
-          NODE
-          exit 0
+          set -euo pipefail
+          probe() {
+            local name="$1"
+            local url="$2"
+            local body="$RUNNER_TEMP/${name}.json"
+            local status
+            status="$(curl --silent --show-error --location --connect-timeout 10 --max-time 20 --output "$body" --write-out "%{http_code}" "$url" || true)"
+            python3 - "$name" "$status" "$body" <<'PY'
+          import json, sys
+          name, status, path = sys.argv[1:]
+          try:
+              payload = json.load(open(path, encoding="utf-8"))
+          except Exception as exc:
+              payload = {}
+              parse_error = type(exc).__name__
+          else:
+              parse_error = None
+          checks = payload.get("checks") if isinstance(payload.get("checks"), list) else []
+          persistence = next((c for c in checks if isinstance(c, dict) and c.get("name") == "persistence"), None)
+          valid = (
+              status == "200"
+              and payload.get("service") == "api-gateway"
+              and payload.get("status") == "ready"
+              and isinstance(persistence, dict)
+              and persistence.get("critical") is True
+              and persistence.get("status") == "ok"
+              and persistence.get("code") == "readable"
+          )
+          print(json.dumps({
+              "name": name,
+              "httpStatus": int(status) if status.isdigit() else None,
+              "valid": valid,
+              "service": payload.get("service"),
+              "status": payload.get("status"),
+              "persistence": None if not isinstance(persistence, dict) else {
+                  "critical": persistence.get("critical"),
+                  "status": persistence.get("status"),
+                  "code": persistence.get("code"),
+              },
+              "parseError": parse_error,
+              "writeExecuted": False,
+          }, separators=(",", ":")))
+          PY
+          }
+          probe parent "$PARENT_URL"
+          probe production "$PRODUCTION_URL"
