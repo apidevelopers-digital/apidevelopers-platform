@@ -1,0 +1,32 @@
+name: UniJuri Keychain Helper Readiness PR
+
+on:
+  pull_request:
+    branches:
+      - main
+    paths:
+      - "apps/api-gateway/scripts/check-unijuri-keychain-helper-readiness.mjs"
+      - ".github/workflows/unijuri-keychain-helper-readiness-pr.yml"
+
+permissions:
+  contents: read
+
+jobs:
+  check:
+    runs-on:
+      - self-hosted
+      - macOS
+      - X64
+    timeout-minutes: 5
+    steps:
+      - name: Checkout PR revision
+        uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+
+      - name: Check native Keychain helper
+        working-directory: apps/api-gateway
+        shell: bash
+        run: |
+          set -euo pipefail
+          node scripts/check-unijuri-keychain-helper-readiness.mjs
