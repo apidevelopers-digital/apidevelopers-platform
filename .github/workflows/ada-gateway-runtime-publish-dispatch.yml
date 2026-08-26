@@ -1,0 +1,34 @@
+name: ADA Gateway Runtime Publish Dispatch
+
+on:
+  repository_dispatch:
+    types:
+      - ada_gateway_runtime_publish_v1
+
+permissions:
+  contents: read
+  actions: write
+
+concurrency:
+  group: ada-gateway-runtime-publish-dispatch
+  cancel-in-progress: false
+
+jobs:
+  dispatch:
+    runs-on:
+      - self-hosted
+      - macOS
+      - X64
+    timeout-minutes: 10
+    steps:
+      - name: Checkout current main
+        uses: actions/checkout@v4
+        with:
+          ref: main
+          fetch-depth: 1
+
+      - name: Validate and dispatch approved runtime publish
+        env:
+          ADA_GATEWAY_RUNTIME_DISPATCH_PAYLOAD: ${{ github.event.client_payload.example }}
+          GITHUB_TOKEN: ${{ github.token }}
+        run: node apps/api-gateway/scripts/ada-gateway-runtime-dispatch.mjs
