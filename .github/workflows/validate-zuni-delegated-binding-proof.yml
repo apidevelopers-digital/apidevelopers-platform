@@ -10,15 +10,20 @@ on:
       - "apps/api-gateway/src/saas-operational-http-composition.mjs"
       - "apps/api-gateway/src/saas-delegated-binding-secret-loader.mjs"
       - "apps/api-gateway/src/saas-delegated-binding-runtime-config.mjs"
+      - "apps/api-gateway/src/saas-unijuri-delegated-binding-runtime-config.mjs"
+      - "apps/api-gateway/src/saas-unijuri-delegated-binding-remote-signer.mjs"
+      - "apps/api-gateway/src/saas-unijuri-delegated-binding-remote-signer-https-transport.mjs"
       - "apps/api-gateway/src/operator-readonly-composition.mjs"
       - "apps/api-gateway/src/operational-runtime.mjs"
       - "apps/api-gateway/src/operational-server.mjs"
       - "apps/api-gateway/scripts/link-local-dependencies.mjs"
       - "apps/api-gateway/test/saas-delegated-binding-proof.test.mjs"
       - "apps/api-gateway/test/saas-delegated-access-binding-proof.test.mjs"
+      - "apps/api-gateway/test/saas-delegated-access-async-binding-proof.test.mjs"
       - "apps/api-gateway/test/saas-delegated-binding-secret-loader.test.mjs"
       - "apps/api-gateway/test/saas-delegated-binding-runtime-config.test.mjs"
       - "apps/api-gateway/test/saas-delegated-binding-secret-provider-required.test.mjs"
+      - "apps/api-gateway/test/saas-unijuri-delegated-binding-remote-runtime-config.test.mjs"
       - "apps/api-gateway/test/zuni-delegated-binding-runtime-wiring.test.mjs"
       - ".github/workflows/validate-zuni-delegated-binding-proof.yml"
   pull_request:
@@ -28,15 +33,20 @@ on:
       - "apps/api-gateway/src/saas-operational-http-composition.mjs"
       - "apps/api-gateway/src/saas-delegated-binding-secret-loader.mjs"
       - "apps/api-gateway/src/saas-delegated-binding-runtime-config.mjs"
+      - "apps/api-gateway/src/saas-unijuri-delegated-binding-runtime-config.mjs"
+      - "apps/api-gateway/src/saas-unijuri-delegated-binding-remote-signer.mjs"
+      - "apps/api-gateway/src/saas-unijuri-delegated-binding-remote-signer-https-transport.mjs"
       - "apps/api-gateway/src/operator-readonly-composition.mjs"
       - "apps/api-gateway/src/operational-runtime.mjs"
       - "apps/api-gateway/src/operational-server.mjs"
       - "apps/api-gateway/scripts/link-local-dependencies.mjs"
       - "apps/api-gateway/test/saas-delegated-binding-proof.test.mjs"
       - "apps/api-gateway/test/saas-delegated-access-binding-proof.test.mjs"
+      - "apps/api-gateway/test/saas-delegated-access-async-binding-proof.test.mjs"
       - "apps/api-gateway/test/saas-delegated-binding-secret-loader.test.mjs"
       - "apps/api-gateway/test/saas-delegated-binding-runtime-config.test.mjs"
       - "apps/api-gateway/test/saas-delegated-binding-secret-provider-required.test.mjs"
+      - "apps/api-gateway/test/saas-unijuri-delegated-binding-remote-runtime-config.test.mjs"
       - "apps/api-gateway/test/zuni-delegated-binding-runtime-wiring.test.mjs"
       - ".github/workflows/validate-zuni-delegated-binding-proof.yml"
 
@@ -61,6 +71,9 @@ jobs:
           node --check src/saas-operational-http-composition.mjs
           node --check src/saas-delegated-binding-secret-loader.mjs
           node --check src/saas-delegated-binding-runtime-config.mjs
+          node --check src/saas-unijuri-delegated-binding-runtime-config.mjs
+          node --check src/saas-unijuri-delegated-binding-remote-signer.mjs
+          node --check src/saas-unijuri-delegated-binding-remote-signer-https-transport.mjs
           node --check src/operator-readonly-composition.mjs
           node --check src/operational-runtime.mjs
           node --check src/operational-server.mjs
@@ -89,9 +102,11 @@ jobs:
           set -Eeuo pipefail
           node --test test/saas-delegated-binding-proof.test.mjs
           node --test test/saas-delegated-access-binding-proof.test.mjs
+          node --test test/saas-delegated-access-async-binding-proof.test.mjs
           node --test test/saas-delegated-binding-secret-loader.test.mjs
           node --test test/saas-delegated-binding-runtime-config.test.mjs
           node --test test/saas-delegated-binding-secret-provider-required.test.mjs
+          node --test test/saas-unijuri-delegated-binding-remote-runtime-config.test.mjs
           node --test test/zuni-delegated-binding-runtime-wiring.test.mjs
 
   guards:
@@ -111,14 +126,12 @@ jobs:
           grep -Fq 'decision.allowed && bindingSigner' src/saas-delegated-access-v2.mjs
           grep -Fq 'ZUNI_DELEGATED_BINDING_PRIVATE_KEY_REF' src/saas-delegated-binding-runtime-config.mjs
           grep -Fq 'ZUNI_DELEGATED_BINDING_PRIVATE_KEY_PEM' src/saas-delegated-binding-runtime-config.mjs
+          grep -Fq 'UNIJURI_DELEGATED_BINDING_PRIVATE_KEY_PEM' src/saas-unijuri-delegated-binding-runtime-config.mjs
+          grep -Fq 'UNIJURI_DELEGATED_BINDING_REMOTE_SIGNER_ENDPOINT' src/saas-unijuri-delegated-binding-runtime-config.mjs
+          grep -Fq 'credential provider is required' src/saas-unijuri-delegated-binding-runtime-config.mjs
           grep -Fq 'withOperatorSecret' src/saas-delegated-binding-secret-loader.mjs
           grep -Fq 'secret provider is required' src/saas-delegated-binding-runtime-config.mjs
-          if grep -ERq 'BEGIN (RSA )?PRIVATE KEY' \
-            src/saas-delegated-binding-proof.mjs \
-            src/saas-delegated-binding-secret-loader.mjs \
-            src/saas-delegated-binding-runtime-config.mjs \
-            src/operational-runtime.mjs \
-            src/operational-server.mjs; then
+          if grep -ERq 'BEGIN (RSA )?PRIVATE KEY'             src/saas-delegated-binding-proof.mjs             src/saas-delegated-binding-secret-loader.mjs             src/saas-delegated-binding-runtime-config.mjs             src/saas-unijuri-delegated-binding-runtime-config.mjs             src/saas-unijuri-delegated-binding-remote-signer.mjs             src/saas-unijuri-delegated-binding-remote-signer-https-transport.mjs             src/operational-runtime.mjs             src/operational-server.mjs; then
             echo "Private key material must not be committed in runtime source."
             exit 1
           fi

@@ -62,6 +62,7 @@ export async function startOperationalGateway({
   serverFactory = startOperationalHttpServer,
   delegatedBindingSigner,
   delegatedBindingSecretProvider,
+  delegatedBindingCredentialProvider,
   delegatedBindingSignerResolver = resolveProductAwareDelegatedBindingOperationalSigner,
   trustEvaluationLoader = () =>
     import("./operational-trust-evaluation-composition.mjs"),
@@ -100,6 +101,7 @@ export async function startOperationalGateway({
     const resolvedBinding = await delegatedBindingSignerResolver({
       env,
       secretProvider: delegatedBindingSecretProvider,
+      credentialProvider: delegatedBindingCredentialProvider,
     });
 
     if (resolvedBinding?.configured) {
