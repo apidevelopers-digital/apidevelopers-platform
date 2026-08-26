@@ -142,4 +142,4 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          test "${{ steps.observe.outputs.exit_code }}" = "0"
+          node apps/api-gateway/scripts/enforce-production-readiness-report.mjs "${{ steps.observe.outputs.report_path }}"
