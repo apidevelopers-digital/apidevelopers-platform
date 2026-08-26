@@ -107,7 +107,7 @@ export async function startUniJuriRemoteSignerDaemon({
   port = 0,
   serverFactory = createServer,
 } = {}) {
-  if (host !== DEFAUL_HOST) {
+  if (host !== DEFAULT_HOST) {
     throw new Error("remote_signer_external_bind_not_authorized");
   }
 
@@ -129,7 +129,7 @@ export async function startUniJuriRemoteSignerDaemon({
 }
 
 export const UNIJURI_REMOTE_SIGNER_DAEMON_CONTRACT = Object.freeze({
-  bindHost: DEFAUL_HOST,
+  bindHost: DEFAULT_HOST,
   signPath: SIGN_PATH,
   auth: "bearer-required",
   externalBind: "denied",
