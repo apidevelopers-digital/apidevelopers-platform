@@ -15,6 +15,35 @@ test("GET /health returns service readiness", async () => {
   });
 });
 
+test("GET /health allows only Radar browser origins", async () => {
+  const app = createApp();
+
+  for (const origin of [
+    "https://radar-preview.apidevelopers.digital",
+    "https://radar.apidevelopers.digital",
+  ]) {
+    const response = await app.handleRequest({
+      method: "GET",
+      url: "/health",
+      headers: { origin },
+    });
+
+    assert.equal(response.status, 200);
+    assert.equal(response.headers["access-control-allow-origin"], origin);
+    assert.equal(response.headers.vary, "Origin");
+  }
+
+  const rejected = await app.handleRequest({
+    method: "GET",
+    url: "/health",
+    headers: { origin: "https://example.invalid" },
+  });
+
+  assert.equal(rejected.status, 200);
+  assert.equal(rejected.headers["access-control-allow-origin"], undefined);
+  assert.equal(rejected.headers.vary, undefined);
+});
+
 test("unknown route returns 404", async () => {
   const app = createApp();
   const response = await app.handleRequest({ method: "GET", url: "/missing" });
