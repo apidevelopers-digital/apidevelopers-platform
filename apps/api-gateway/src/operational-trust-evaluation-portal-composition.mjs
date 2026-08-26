@@ -47,6 +47,8 @@ export function attachOperationalTrustEvaluationPortal({
   gateway: gatewayInput,
   clock,
   sessionTtlMs,
+  faceLabLiveRuntime = null,
+  env = process.env,
 } = {}) {
   const gateway = requireGateway(gatewayInput);
 
@@ -66,6 +68,8 @@ export function attachOperationalTrustEvaluationPortal({
   });
   const faceLabHttp = createGlobalTrustFaceLabHttpHandler({
     portalSession: evaluationPortalSession,
+    liveRuntime: faceLabLiveRuntime,
+    env,
   });
   const evaluationApprovedOnboarding =
     createGlobalTrustEvaluationApprovedOnboardingService({
@@ -95,6 +99,7 @@ export function attachOperationalTrustEvaluationPortal({
     evaluationPortalInbox,
     evaluationPortalHttp,
     faceLabHttp,
+    faceLabLiveRuntime,
     evaluationApprovedOnboarding,
     evaluationDeliveryChannel: "in_product_portal",
     evaluationExternalEnvelopeEgress: false,
@@ -119,5 +124,9 @@ export function createOperationalTrustEvaluationPortalGateway(options = {}) {
     ...(options.portalSessionTtlMs === undefined
       ? {}
       : { sessionTtlMs: options.portalSessionTtlMs }),
+    ...(options.faceLabLiveRuntime
+      ? { faceLabLiveRuntime: options.faceLabLiveRuntime }
+      : {}),
+    ...(options.env ? { env: options.env } : {}),
   });
 }
