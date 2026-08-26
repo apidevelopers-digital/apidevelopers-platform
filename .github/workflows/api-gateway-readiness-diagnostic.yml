@@ -62,3 +62,4 @@ jobs:
           }
           probe parent "$PARENT_URL"
           probe production "$PRODUCTION_URL"
+# diagnostic refresh: 2026-08-26T13:07-03:00
