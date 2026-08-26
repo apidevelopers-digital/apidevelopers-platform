@@ -21,8 +21,19 @@ jobs:
       - self-hosted
       - macOS
       - X64
+      - igor-mac-runner
     timeout-minutes: 15
     steps:
+      - name: Preflight canonical Keychain runner
+        shell: bash
+        run: |
+          set -euo pipefail
+          if [[ "${RUNNER_NAME:-}" != "igor-mac-runner" ]]; then
+            echo "::error::UniJuri helper installation must run on canonical runner igor-mac-runner"
+            exit 5
+          fi
+          echo "::notice::Canonical Keychain runner preflight passed"
+
       - name: Validate explicit approval
         shell: bash
         env:
@@ -65,7 +76,7 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          DEVELOPER_DIR="$DEVELOPER_DIR" xcrun swift build             --package-path apps/api-gateway/native/operator-keychain-helper             --configuration release             --product operator-keychain-helper             --jobs 2
+          DEVELOPER_DIR="$DEVELOPER_DIR" xcrun swift build            --package-path apps/api-gateway/native/operator-keychain-helper             --configuration release            --product operator-keychain-helper             --jobs 2
           BIN="$(find apps/api-gateway/native/operator-keychain-helper/.build -type f -path '*/release/operator-keychain-helper' -perm -111 | head -n 1)"
           if [[ -z "$BIN" || ! -x "$BIN" ]]; then
             echo "::error::Built helper executable not found"
