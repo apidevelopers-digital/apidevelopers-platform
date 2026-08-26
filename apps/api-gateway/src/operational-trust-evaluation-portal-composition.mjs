@@ -25,7 +25,7 @@ function requireGateway(gateway) {
   return gateway;
 }
 
-function wrapTdtpApp({ app, handler }) {
+function wrapHttpApp({ app, handler }) {
   if (
     typeof app?.handleRequest !== "function" ||
     typeof handler?.handleRequest !== "function"
@@ -84,7 +84,7 @@ export function attachOperationalTrustEvaluationPortal({
         }),
     });
 
-  const portalApp = wrapTdtpApp({
+  const portalApp = wrapHttpApp({
     app: gateway.app,
     handler: evaluationPortalHttp,
   });
@@ -124,7 +124,9 @@ export function createOperationalTrustEvaluationPortalGateway(options = {}) {
     ...(options.portalSessionTtlMs === undefined
       ? {}
       : { sessionTtlMs: options.portalSessionTtlMs }),
-    ...(options.faceLabLiveRuntime ? { faceLabLiveRuntime: options.faceLabLiveRuntime } : {}),
+    ...(options.faceLabLiveRuntime
+      ? { faceLabLiveRuntime: options.faceLabLiveRuntime }
+      : {}),
     ...(options.env ? { env: options.env } : {}),
   });
 }
