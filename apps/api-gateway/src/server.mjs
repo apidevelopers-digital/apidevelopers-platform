@@ -4,6 +4,11 @@ import { pathToFileURL } from "node:url";
 import { createGatewayGlobalTrustAudit } from "./global-trust-audit.mjs";
 import { createGatewayGlobalTrustTenantContext } from "./global-trust-context.mjs";
 import { getOpenApiDocument } from "./openapi.mjs";
+import {
+  RadarSignalConflictError,
+  RadarSignalValidationError,
+  parseAndValidateRadarSignalEvent,
+} from "./radar-signal-event.mjs";
 import { createReadinessService } from "./readiness.mjs";
 
 const JSON_HEADERS = Object.freeze({
@@ -13,6 +18,16 @@ const RADAR_HEALTH_ORIGINS = Object.freeze(new Set([
   "https://radar.apidevelopers.digital",
   "https://radar-preview.apidevelopers.digital",
 ]));
+const MAX_BODY_BYTES = 64 * 1024;
+
+class RequestTransportError extends Error {
+  constructor(status, code) {
+    super(code);
+    this.name = "RequestTransportError";
+    this.status = status;
+    this.code = code;
+  }
+}
 
 function jsonResponse(status, payload, headers = JSON_HEADERS) {
   return {
@@ -61,11 +76,42 @@ function toGatewayTenantContext(identity, headers) {
   });
 }
 
+function hasScope(identity, scope) {
+  const scopes = identity?.principal?.scopes;
+  return Array.isArray(scopes) && scopes.includes(scope);
+}
+
+async function readBody(request, maxBytes = MAX_BODY_BYTES) {
+  const method = String(request.method ?? "GET").toUpperCase();
+  if (!["POST", "PUT", "PATCH"].includes(method)) return undefined;
+
+  const declaredLength = Number(request.headers["content-length"] ?? 0);
+  if (Number.isFinite(declaredLength) && declaredLength > maxBytes) {
+    throw new RequestTransportError(413, "payload_too_large");
+  }
+
+  const chunks = [];
+  let total = 0;
+
+  for await (const chunk of request) {
+    const buffer = Buffer.isBuffer(chunk) ? chunk : Buffer.from(chunk);
+    total += buffer.length;
+    if (total > maxBytes) {
+      throw new RequestTransportError(413, "payload_too_large");
+    }
+    chunks.push(buffer);
+  }
+
+  if (chunks.length === 0) return undefined;
+  return Buffer.concat(chunks).toString("utf8");
+}
+
 export function createApp({
   authenticator,
   audit = createGatewayGlobalTrustAudit(),
   readiness = createReadinessService(),
   saasAccess,
+  radarEvents,
 } = {}) {
   if (
     authenticator !== undefined &&
@@ -79,6 +125,12 @@ export function createApp({
   ) {
     throw new TypeError("saasAccess.evaluateAccess must be a function");
   }
+  if (
+    radarEvents !== undefined &&
+    typeof radarEvents?.ingest !== "function"
+  ) {
+    throw new TypeError("radarEvents.ingest must be a function");
+  }
   if (typeof audit?.recordTenantContextIssued !== "function") {
     throw new TypeError("audit.recordTenantContextIssued must be a function");
   }
@@ -91,6 +143,7 @@ export function createApp({
       method = "GET",
       url = "/",
       headers = {},
+      body,
     } = {}) {
       const normalizedMethod = String(method).toUpperCase();
       const requestUrl = new URL(String(url), "http://api-gateway.local");
@@ -114,6 +167,71 @@ export function createApp({
 
       if (normalizedMethod === "GET" && pathname === "/openapi.json") {
         return jsonResponse(200, getOpenApiDocument());
+      }
+
+      if (normalizedMethod === "POST" && pathname === "/v1/radar/events") {
+        if (!authenticator) {
+          return jsonResponse(503, {
+            accepted: false,
+            reason: "authentication_unavailable",
+          });
+        }
+        if (!radarEvents) {
+          return jsonResponse(503, {
+            accepted: false,
+            reason: "radar_ingestion_unavailable",
+          });
+        }
+
+        const identity = await authenticator.authenticate(headers);
+        if (!identity) {
+          return jsonResponse(401, {
+            accepted: false,
+            reason: "unauthorized",
+          });
+        }
+
+        const tenantId = identity?.principal?.tenantId;
+        if (!tenantId) {
+          return jsonResponse(403, {
+            accepted: false,
+            reason: "tenant_context_unavailable",
+          });
+        }
+
+        if (!hasScope(identity, "radar:events:write")) {
+          return jsonResponse(403, {
+            accepted: false,
+            reason: "insufficient_scope",
+          });
+        }
+
+        try {
+          const event = parseAndValidateRadarSignalEvent(body, { tenantId });
+          const result = await radarEvents.ingest(event);
+
+          return jsonResponse(result.duplicate ? 200 : 202, {
+            ...result,
+            mode: "shadow",
+            outboundTriggered: false,
+          });
+        } catch (error) {
+          if (error instanceof RadarSignalValidationError) {
+            const status = error.code === "tenant_mismatch" ? 403 : 400;
+            return jsonResponse(status, {
+              accepted: false,
+              reason: error.code,
+              field: error.field,
+            });
+          }
+          if (error instanceof RadarSignalConflictError) {
+            return jsonResponse(409, {
+              accepted: false,
+              reason: error.code,
+            });
+          }
+          throw error;
+        }
       }
 
       if (normalizedMethod === "GET" && pathname === "/v1/saas/access") {
@@ -210,18 +328,29 @@ export function createApp({
   };
 }
 
-export function createHttpServer({ app = createApp() } = {}) {
+export function createHttpServer({
+  app = createApp(),
+  maxBodyBytes = MAX_BODY_BYTES,
+} = {}) {
   return http.createServer(async (request, response) => {
     try {
+      const body = await readBody(request, maxBodyBytes);
       const result = await app.handleRequest({
         method: request.method,
         url: request.url,
         headers: request.headers,
+        body,
       });
 
       response.writeHead(result.status, result.headers);
       response.end(result.body);
     } catch (error) {
+      if (error instanceof RequestTransportError) {
+        response.writeHead(error.status, JSON_HEADERS);
+        response.end(JSON.stringify({ error: error.code }));
+        return;
+      }
+
       response.writeHead(500, JSON_HEADERS);
       response.end(
         JSON.stringify({
@@ -237,8 +366,9 @@ export async function startServer({
   port = Number(process.env.PORT ?? 3000),
   host = process.env.HOST ?? "127.0.0.1",
   app,
+  maxBodyBytes,
 } = {}) {
-  const server = createHttpServer({ app });
+  const server = createHttpServer({ app, maxBodyBytes });
 
   await new Promise((resolve, reject) => {
     server.once("error", reject);
@@ -277,7 +407,7 @@ if (
 ) {
   main().catch((error) => {
     console.error(
-      JSON.stringify({
+      JSON.stringify{
         event: "api_gateway_failed",
         message: error instanceof Error ? error.message : "Unknown error",
       }),
