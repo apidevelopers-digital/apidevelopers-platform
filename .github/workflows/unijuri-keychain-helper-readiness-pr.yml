@@ -21,7 +21,7 @@ jobs:
     timeout-minutes: 5
     steps:
       - name: Checkout PR revision
-        uses: actions/checkout4v4
+        uses: actions/checkout@v4
         with:
           persist-credentials: false
 
