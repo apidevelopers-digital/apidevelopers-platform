@@ -1,0 +1,64 @@
+name: UniJuri Remote Signer macOS Read-Only Preflight PR
+
+on:
+  pull_request:
+    branches:
+      - main
+    paths:
+      - "apps/api-gateway/src/saas-unijuri-delegated-binding-keychain-preflight.mjs"
+      - "apps/api-gateway/scripts/preflight-unijuri-remote-signer-keychain.mjs"
+      - "apps/api-gateway/test/saas-unijuri-delegated-binding-keychain-preflight.test.mjs"
+      - ".github/workflows/unijuri-remote-signer-macos-read-only-preflight-pr.yml"
+
+permissions:
+  contents: read
+
+concurrency:
+  group: unijuri-remote-signer-macos-read-only-preflight-pr
+  cancel-in-progress: false
+
+jobs:
+  preflight:
+    runs-on:
+      - self-hosted
+      - macOS
+      - X64
+    timeout-minutes: 10
+    steps:
+      - name: Checkout PR revision
+        uses: actions/checkout4v4
+        with:
+          persist-credentials: false
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+
+      - name: Revalidate read-only contract
+        shell: bash
+        working-directory: apps/api-gateway
+        run: |
+          set -euo pipefail
+          node --test test/saas-unijuri-delegated-binding-keychain-preflight.test.mjs"
+
+      - name: Execute read-only Keychain preflight
+        id: preflight
+        shell: bash
+        working-directory: apps/api-gateway
+        run: |
+          set -euo pipefail
+          node scripts/preflight-unijuri-remote-signer-keychain.mjs | tee "$RUNNER_TEMP/unijuri-keychain-preflight.json"
+
+      - name: Summarize sanitized preflight
+        if: always()
+        shell: bash
+        run: |
+          if [[ -f "$RUNNER_TEMP/unijuri-keychain-preflight.json" ]]; then
+            {
+              echo "## UniJuri Keychain read-only preflight"
+              echo '```json'
+              cat "$RUNNER_TEMP/unijuri-keychain-preflight.json"
+              echo '```'
+            } >> "$GITHUB_STEP_SUMMARY"
+          fi
