@@ -7,6 +7,7 @@ on:
     paths:
       - "apps/api-gateway/src/saas-unijuri-delegated-binding-keychain-preflight.mjs"
       - "apps/api-gateway/scripts/preflight-unijuri-remote-signer-keychain.mjs"
+      - "apps/api-gateway/scripts/report-unijuri-keychain-preflight-metadata.mjs"
       - "apps/api-gateway/test/saas-unijuri-delegated-binding-keychain-preflight.test.mjs"
       - ".github/workflows/unijuri-remote-signer-macos-read-only-preflight-pr.yml"
 
@@ -26,7 +27,7 @@ jobs:
     timeout-minutes: 10
     steps:
       - name: Checkout PR revision
-        uses: actions/checkout4v4
+        uses: actions/checkout@v4
         with:
           persist-credentials: false
 
@@ -53,17 +54,12 @@ jobs:
       - name: Emit sanitized preflight metadata
         if: always()
         shell: bash
+        working-directory: apps/api-gateway
         run: |
           set -euo pipefail
           FILE="$RUNNER_TEMP/unijuri-keychain-preflight.json"
           if [[ -f "$FILE" ]]; then
-            node -e '
-              const fs = require("fs");
-              const p = JSON.parse(fs.readFileSync(process.argv[1], "utf8"));
-              const item = (p.checks || []).find((c) => c.id === "keychain_item_present");
-              const state = item && item.detail === "present" ? "present" : "absent";
-              console.log(`::notice title=UniJuri preflight::safeToProvision=${p.safeToProvision}; writesPerformed=${p.writesPerformed}; keychainItem=${state}`);
-            ' "$FILE"
+            node scripts/report-unijuri-keychain-preflight-metadata.mjs "$FILE"
           fi
 
       - name: Summarize sanitized preflight
