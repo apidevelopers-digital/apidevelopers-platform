@@ -9,13 +9,28 @@ import { createReadinessService } from "./readiness.mjs";
 const JSON_HEADERS = Object.freeze({
   "content-type": "application/json; charset=utf-8",
 });
+const RADAR_HEALTH_ORIGINS = Object.freeze(new Set([
+  "https://radar.apidevelopers.digital",
+  "https://radar-preview.apidevelopers.digital",
+]));
 
-function jsonResponse(status, payload) {
+function jsonResponse(status, payload, headers = JSON_HEADERS) {
   return {
     status,
-    headers: JSON_HEADERS,
+    headers,
     body: JSON.stringify(payload),
   };
+}
+
+function healthHeaders(origin) {
+  const normalizedOrigin = String(origin ?? "").trim();
+  if (!RADAR_HEALTH_ORIGINS.has(normalizedOrigin)) return JSON_HEADERS;
+
+  return Object.freeze({
+    ...JSON_HEADERS,
+    "access-control-allow-origin": normalizedOrigin,
+    vary: "Origin",
+  });
 }
 
 function toPublicIdentity(identity) {
@@ -82,10 +97,14 @@ export function createApp({
       const pathname = requestUrl.pathname;
 
       if (normalizedMethod === "GET" && pathname === "/health") {
-        return jsonResponse(200, {
-          service: "api-gateway",
-          status: "ok",
-        });
+        return jsonResponse(
+          200,
+          {
+            service: "api-gateway",
+            status: "ok",
+          },
+          healthHeaders(headers.origin),
+        );
       }
 
       if (normalizedMethod === "GET" && pathname === "/ready") {
