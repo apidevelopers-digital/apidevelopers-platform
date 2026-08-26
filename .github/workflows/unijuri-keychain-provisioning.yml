@@ -21,8 +21,24 @@ jobs:
       - self-hosted
       - macOS
       - X64
+      - igor-mac-runner
     timeout-minutes: 10
     steps:
+      - name: Preflight canonical Keychain runner
+        shell: bash
+        run: |
+          set -euo pipefail
+          if [[ "${RUNNER_NAME:-}" != "igor-mac-runner" ]]; then
+            echo "::error::UniJuri provisioning must run on canonical runner igor-mac-runner"
+            exit 3
+          fi
+          helper="/usr/local/libexec/apidevelopers/operator-keychain-helper"
+          if [[ ! -x "$helper" ]]; then
+            echo "::error::Canonical Keychain helper is unavailable or not executable"
+            exit 4
+          fi
+          echo "::notice::Canonical Keychain runner preflight passed"
+
       - name: Checkout approved revision
         uses: actions/checkout@v4
         with:
