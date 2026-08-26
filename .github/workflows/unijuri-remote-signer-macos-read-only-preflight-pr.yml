@@ -26,7 +26,7 @@ jobs:
     timeout-minutes: 10
     steps:
       - name: Checkout PR revision
-        uses: actions/checkout4v4
+        uses: actions/checkout@v4
         with:
           persist-credentials: false
 
@@ -40,7 +40,7 @@ jobs:
         working-directory: apps/api-gateway
         run: |
           set -euo pipefail
-          node --test test/saas-unijuri-delegated-binding-keychain-preflight.test.mjs"
+          node --test test/saas-unijuri-delegated-binding-keychain-preflight.test.mjs
 
       - name: Execute read-only Keychain preflight
         id: preflight
