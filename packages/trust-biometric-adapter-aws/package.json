@@ -1,15 +1,16 @@
 {
   "name": "@apidevelopers/trust-biometric-adapter-aws",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "private": true,
-  "description": "Offline, credential-free AWS Rekognition Face Liveness + CompareFaces planning and normalization adapter for Trust M4 sandbox conformance.",
+  "description": "AWS Rekognition Face Liveness + CompareFaces adapter for Trust, with dry-run planning and fail-closed gated live runtime.",
   "type": "module",
   "exports": {
-    ".": "./src/index.mjs"
+    ".": "./src/index.mjs",
+    "./live-runtime": "./src/live-runtime.mjs"
   },
   "scripts": {
     "test": "node --test test/*.test.mjs",
-    "check": "node --check src/index.mjs && npm test"
+    "check": "node --check src/index.mjs && node --check src/live-runtime.mjs && npm test"
   },
   "dependencies": {
     "@apidevelopers/trust-biometric-adapter-contract": "file:../trust-biometric-adapter-contract"
