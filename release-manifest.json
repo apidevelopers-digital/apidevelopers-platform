@@ -3,7 +3,7 @@
   "format": "managed-node-zip",
   "service": "api-gateway",
   "version": "0.8.0",
-  "sourceRevision": "3b8bd86f1835e58d5b2468c6f4883eb2efd02692",
+  "sourceRevision": "1ea0fb060fa5fb537c706d236c220fe27be81ba9",
   "runtime": {
     "node": ">=22",
     "entrypoint": "src/hostinger-entry.mjs",
@@ -525,8 +525,8 @@
     },
     {
       "path": "src/openapi.mjs",
-      "bytes": 6622,
-      "sha256": "4b77fbc81a6b4cf3c95d6dea0b98cc45d5e300c343873c5bc36c3ee4305c3a60"
+      "bytes": 12307,
+      "sha256": "6bc1333673f297167f4aa74ec71724512a8b441d425790dc4c6d2f819a8c79e7"
     },
     {
       "path": "src/operational-composition.mjs",
@@ -619,6 +619,11 @@
       "sha256": "9b44aa8d6cc3731fc3359f7ae28d696d15873d6906a7905f82b7c71e6fd99662"
     },
     {
+      "path": "src/operator-bounded-spawn-process-runner.mjs",
+      "bytes": 2068,
+      "sha256": "e22fa027a94cfe0077bc51116b07e64346c025f67fef49152036d4e9086d711d"
+    },
+    {
       "path": "src/operator-github-app-pilot-manifest-v2.mjs",
       "bytes": 8249,
       "sha256": "4b7e17d30115eb481726edb200eaaec43f24bfce765f2bc8f4435d6ad60ce9a9"
@@ -705,8 +710,8 @@
     },
     {
       "path": "src/operator-macos-keychain-helper-bridge.mjs",
-      "bytes": 7908,
-      "sha256": "93743fb31be629660d91aa453eb28a2e5f0812b3fcc4ae3f946801917889000b"
+      "bytes": 7689,
+      "sha256": "69dda4e595ae42ca65ba133b244eb8ecf9dcf6e3e949e9ae54c8f0eb890455ad"
     },
     {
       "path": "src/operator-macos-keychain-native-writer.mjs",
@@ -777,6 +782,11 @@
       "path": "src/product-agent-policy.mjs",
       "bytes": 689,
       "sha256": "10e177e4afa69e3bf1d150ebf50078e918ae1b67828d52eaa2bcaf062ab42fc7"
+    },
+    {
+      "path": "src/radar-signal-event.mjs",
+      "bytes": 6672,
+      "sha256": "fa5ba1a09c13e75f8a8831efcd7880153c96e03f78913046cc9875adf113ad25"
     },
     {
       "path": "src/readiness.mjs",
@@ -874,6 +884,11 @@
       "sha256": "3cbcb4fc441539b3b8f4e4b8860d7e0a495fd108ad619fa04011d06074136463"
     },
     {
+      "path": "src/saas-unijuri-delegated-binding-keychain-provisioner.mjs",
+      "bytes": 3347,
+      "sha256": "db21312f1368f9122203622593ddbd390fffe0c6a46249a4207d83b3002f805b"
+    },
+    {
       "path": "src/saas-unijuri-delegated-binding-proof.mjs",
       "bytes": 3733,
       "sha256": "533df9b7c9b4a06edea9eaff6bc7a1d4c9d627a6ee5b1f59e6164f89c912acf5"
@@ -945,8 +960,8 @@
     },
     {
       "path": "src/server.mjs",
-      "bytes": 8117,
-      "sha256": "6b2fc90a843c17c41acb711bcb8c41df34ab39610ceec9963354342862ed6f1f"
+      "bytes": 11877,
+      "sha256": "a6ecb3103fc2f2315fb7cf8fbd6de95640e26b3d312a0b8ec085249e7d219e24"
     },
     {
       "path": "src/trust-sandbox-governance.mjs",

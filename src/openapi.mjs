@@ -59,6 +59,79 @@ const ROUTES = Object.freeze([
     },
   }),
   Object.freeze({
+    method: "post",
+    path: "/v1/radar/events",
+    operationId: "ingestRadarSignalEvent",
+    summary: "Validate and ingest a Radar signal event in shadow mode",
+    security: [{ ApiKeyAuth: [] }],
+    requestBody: {
+      required: true,
+      content: {
+        "application/json": {
+          schema: { $ref: "#/components/schemas/RadarSignalEvent" },
+        },
+      },
+    },
+    responses: {
+      202: {
+        description: "New event accepted in shadow mode",
+        content: {
+          "application/json": {
+            schema: { $ref: "#/components/schemas/RadarSignalAccepted" },
+          },
+        },
+      },
+      200: {
+        description: "Idempotent duplicate accepted without duplicate effect",
+        content: {
+          "application/json": {
+            schema: { $ref: "#/components/schemas/RadarSignalAccepted" },
+          },
+        },
+      },
+      400: {
+        description: "Invalid Radar signal payload",
+        content: {
+          "application/json": {
+            schema: { $ref: "#/components/schemas/RadarSignalRejected" },
+          },
+        },
+      },
+      401: {
+        description: "Authentication rejected",
+        content: {
+          "application/json": {
+            schema: { $ref: "#/components/schemas/RadarSignalRejected" },
+          },
+        },
+      },
+      403: {
+        description: "Tenant context, scope, or tenant boundary rejected",
+        content: {
+          "application/json": {
+            schema: { $ref: "#/components/schemas/RadarSignalRejected" },
+          },
+        },
+      },
+      409: {
+        description: "event_id reused for a different event",
+        content: {
+          "application/json": {
+            schema: { $ref: "#/components/schemas/RadarSignalRejected" },
+          },
+        },
+      },
+      503: {
+        description: "Authentication or Radar ingestion composition unavailable",
+        content: {
+          "application/json": {
+            schema: { $ref: "#/components/schemas/RadarSignalRejected" },
+          },
+        },
+      },
+    },
+  }),
+  Object.freeze({
     method: "get",
     path: "/v1/whoami",
     operationId: "getAuthenticatedIdentity",
@@ -110,6 +183,7 @@ function buildPaths() {
           operationId: route.operationId,
           summary: route.summary,
           security: route.security,
+          ...(route.requestBody ? { requestBody: route.requestBody } : {}),
           responses: route.responses,
         },
       },
@@ -121,7 +195,7 @@ const OPEN_API_DOCUMENT = Object.freeze({
   openapi: "3.1.0",
   info: Object.freeze({
     title: "API Developers.digital Gateway API",
-    version: "0.7.0",
+    version: "0.8.0",
     description:
       "Current public developer and operational surface of the institutional API gateway.",
   }),
@@ -186,6 +260,112 @@ const OPEN_API_DOCUMENT = Object.freeze({
           message: { type: "string" },
         },
         additionalProperties: true,
+      }),
+      RadarSignalEvent: Object.freeze({
+        type: "object",
+        required: [
+          "schema",
+          "event_id",
+          "event_type",
+          "occurred_at",
+          "received_at",
+          "organization_id",
+          "tenant_id",
+          "product_id",
+          "source",
+          "subject",
+          "correlation_id",
+          "consent",
+          "context",
+          "payload",
+        ],
+        properties: {
+          schema: { type: "string", const: "radar.signal.v1" },
+          event_id: { type: "string", minLength: 1 },
+          event_type: { type: "string", minLength: 1 },
+          occurred_at: { type: "string", format: "date-time" },
+          received_at: { type: "string", format: "date-time" },
+          organization_id: { type: "string", minLength: 1 },
+          tenant_id: { type: "string", minLength: 1 },
+          product_id: { type: "string", const: "product:radar" },
+          source: {
+            type: "object",
+            required: ["channel", "surface", "provider"],
+            properties: {
+              channel: {
+                type: "string",
+                enum: ["web", "whatsapp", "instagram", "facebook", "other"],
+              },
+              surface: { type: "string", minLength: 1 },
+              provider: { type: "string", minLength: 1 },
+            },
+            additionalProperties: false,
+          },
+          subject: {
+            type: "object",
+            required: ["kind", "subject_id"],
+            properties: {
+              kind: {
+                type: "string",
+                enum: ["anonymous", "lead", "customer"],
+              },
+              subject_id: { type: "string", minLength: 1 },
+            },
+            additionalProperties: false,
+          },
+          correlation_id: { type: "string", minLength: 1 },
+          consent: {
+            type: "object",
+            required: ["status", "purpose"],
+            properties: {
+              status: {
+                type: "string",
+                enum: ["unknown", "granted", "denied", "revoked"],
+              },
+              purpose: {
+                type: "string",
+                enum: ["analytics", "commercial", "support", "handoff"],
+              },
+              evidence_id: { type: "string", minLength: 1 },
+            },
+            additionalProperties: false,
+          },
+          context: { type: "object" },
+          payload: { type: "object" },
+        },
+        additionalProperties: true,
+      }),
+      RadarSignalAccepted: Object.freeze({
+        type: "object",
+        required: [
+          "accepted",
+          "duplicate",
+          "eventId",
+          "correlationId",
+          "schema",
+          "mode",
+          "outboundTriggered",
+        ],
+        properties: {
+          accepted: { type: "boolean", const: true },
+          duplicate: { type: "boolean" },
+          eventId: { type: "string" },
+          correlationId: { type: "string" },
+          schema: { type: "string", const: "radar.signal.v1" },
+          mode: { type: "string", const: "shadow" },
+          outboundTriggered: { type: "boolean", const: false },
+        },
+        additionalProperties: false,
+      }),
+      RadarSignalRejected: Object.freeze({
+        type: "object",
+        required: ["accepted", "reason"],
+        properties: {
+          accepted: { type: "boolean", const: false },
+          reason: { type: "string" },
+          field: { type: "string" },
+        },
+        additionalProperties: false,
       }),
       PublicPrincipal: Object.freeze({
         type: "object",
