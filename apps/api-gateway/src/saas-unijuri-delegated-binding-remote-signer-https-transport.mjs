@@ -63,7 +63,7 @@ async function readBoundedResponse(response) {
     if (buffer.byteLength > MAX_RESPONSE_BYTES) {
       throw new Error("remote_signer_response_too_large");
     }
-    return buffer.toString(utf8");
+    return buffer.toString("utf8");
   } finally {
     buffer.fill(0);
   }
