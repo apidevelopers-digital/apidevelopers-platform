@@ -1,4 +1,4 @@
-import { createAwsRekognitionLiveRuntime } from "@apidevelopers/trust-biometric-adapter-aws/live-runtime";
+import { createAwsRekognitionLiveRuntime } from "./global-trust-face-lab-live-runtime.mjs";
 
 const APPROVAL = "IGOR_APROVA_TRUST_AWS_SANDBOX_REAL";
 const REGION = "sa-east-1";
