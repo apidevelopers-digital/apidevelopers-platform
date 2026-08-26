@@ -7,9 +7,20 @@ const JSON_HEADERS = Object.freeze({
 });
 
 const PREFIX = "/v1/trust/evaluation/portal/face-lab";
+const FACE_LAB_VERSION = "trust-face-lab/v2";
+const PROVIDER = "aws-rekognition";
+const REGION = "sa-east-1";
+const LIVE_APPROVAL = "IGOR_APROVA_TRUST_AWS_SANDBOX_REAL";
 
 function reply(status, payload) {
-  return Object.freeze({ status, headers: JSON_HEADERS, body: JSON.stringify(payload) });
+  return Object.freeze({
+    status,
+    headers: Object.freeze({
+      ...JSON_HEADERS,
+      "x-trust-face-lab": FACE_LAB_VERSION,
+    }),
+    body: JSON.stringify(payload),
+  });
 }
 
 function parseBody(body) {
@@ -19,7 +30,9 @@ function parseBody(body) {
     throw error;
   }
   let parsed;
-  try { parsed = JSON.parse(body); } catch {
+  try {
+    parsed = JSON.parse(body);
+  } catch {
     const error = new Error("request body must be valid JSON");
     error.code = "TRUST_FACE_LAB_INVALID_JSON";
     throw error;
@@ -73,17 +86,34 @@ function safeSession(session) {
   });
 }
 
-function previewBase(session) {
+function liveFlags(env) {
   return Object.freeze({
-    version: "trust-face-lab/v1",
+    liveCallsEnabled: String(env?.TRUST_AWS_LIVE_CALLS_ENABLED ?? "") === "true",
+    credentialsAllowed: String(env?.TRUST_AWS_CREDENTIALS_ALLOWED ?? "") === "true",
+    sandboxApproved: String(env?.TRUST_AWS_SANDBOX_APPROVAL ?? "") === LIVE_APPROVAL,
+  });
+}
+
+function liveAvailable(liveRuntime, env) {
+  const flags = liveFlags(env);
+  return Boolean(liveRuntime) && flags.liveCallsEnabled && flags.credentialsAllowed && flags.sandboxApproved;
+}
+
+function basePayload(session, liveRuntime, env) {
+  const flags = liveFlags(env);
+  return Object.freeze({
+    version: FACE_LAB_VERSION,
     mode: "dry-run",
     environment: "sandbox",
-    provider: "aws-rekognition",
-    region: "sa-east-1",
+    provider: PROVIDER,
+    region: REGION,
     session: safeSession(session),
     controls: Object.freeze({
-      liveCallsEnabled: false,
-      credentialsAllowed: false,
+      liveRuntimeWired: Boolean(liveRuntime),
+      liveCallsEnabled: flags.liveCallsEnabled,
+      credentialsAllowed: flags.credentialsAllowed,
+      sandboxApproved: flags.sandboxApproved,
+      liveAvailable: liveAvailable(liveRuntime, env),
       productionEnabled: false,
       biometricMaterialAccepted: false,
       auditImagesLimit: 0,
@@ -91,19 +121,108 @@ function previewBase(session) {
   });
 }
 
+function previewLiveness(base, payload) {
+  const verificationId = requireText(payload.verificationId, "verificationId");
+  return Object.freeze({
+    allowed: true,
+    preview: Object.freeze({
+      ...base,
+      verificationId,
+      operation: "CreateFaceLivenessSession",
+      clientAction: "StartFaceLivenessSession",
+      resultAction: "GetFaceLivenessSessionResults",
+      sessionTtlSeconds: 180,
+      rawBiometricMaterialForwarded: false,
+      rawBiometricMaterialPersisted: false,
+      governedDecisionProduced: false,
+    }),
+  });
+}
+
+function previewCompare(base, payload) {
+  const verificationId = requireText(payload.verificationId, "verificationId");
+  const sourceReferenceRef = requireOpaqueRef(payload.sourceReferenceRef, "sourceReferenceRef");
+  const targetReferenceRef = requireOpaqueRef(payload.targetReferenceRef, "targetReferenceRef");
+  return Object.freeze({
+    allowed: true,
+    preview: Object.freeze({
+      ...base,
+      verificationId,
+      sourceReferenceRef,
+      targetReferenceRef,
+      operation: "CompareFaces",
+      similarityThreshold: 0,
+      qualityFilter: "NONE",
+      providerScoreIsSignalOnly: true,
+      governedDecisionProduced: false,
+      rawBiometricMaterialForwarded: false,
+      rawBiometricMaterialPersisted: false,
+    }),
+  });
+}
+
+function requireLiveRuntime(liveRuntime, env) {
+  if (!liveAvailable(liveRuntime, env)) {
+    const error = new Error("face lab live runtime is not available");
+    error.code = "TRUST_FACE_LAB_LIVE_NOT_AVAILABLE";
+    throw error;
+  }
+  return liveRuntime;
+}
+
+function requireS3Ref(value, name) {
+  if (!value || typeof value !== "object" || Array.isArray(valu)) {
+    const error = new Error(`${name} is required`);
+    error.code = "TRUST_FACE_LAB_INVALID_INPUT";
+    throw error;
+  }
+  if (Object.hasOwn(value, "Bytes")) {
+    const error = new Error(${name}.Bytes is forbidden`);
+    error.code = "TRUST_FACE_LAB_RAW_BIOMETRIC_FORBIDDEN";
+    throw error;
+  }
+  const ref = {
+    Bucket: requireText(value.Bucket, `${name}.Bucket`, 255),
+    Name: requireText(value.Name, ${name}.Name`, 1024),
+  };
+  if (value.Version != null) ref.Version = requireText(value.Version, `${name}.Version`, 1024);
+  return Object.freeze(ref);
+}
+
 function knownFailure(error) {
   const map = {
     TRUST_FACE_LAB_INVALID_JSON: [400, "invalid_json"],
     TRUST_FACE_LAB_INVALID_INPUT: [400, "invalid_input"],
     TRUST_FACE_LAB_INVALID_REFERENCE: [400, "opaque_reference_required"],
+    TRUST_FACE_LAB_RAW_BIOMETRIC_FORBIDDEN: [400, "raw_biometric_material_forbidden"],
     TRUST_FACE_LAB_UNAUTHORIZED: [401, "unauthorized"],
     TRUST_EVALUATION_PORTAL_SESSION_INVALID_TOKEN: [401, "unauthorized"],
     TRUST_EVALUATION_PORTAL_SESSION_UNAUTHORIZED: [401, "unauthorized"],
+    TRUST_FACE_LAB_LIVE_NOT_AVAILABLE: [503, "face_lab_live_not_available"],
   };
-  return map[error?.code] ?? null;
+  if (map[error?.code]) return map[error.code];
+  if (typeof error?.code === "string" && (
+    error.code.startsWith("invalid_")
+    || error.code.startsWith("s3_")
+    || error.code.startsWith("raw_")
+    || error.code.startsWith("multiple_")
+    || error.code.startsWith("reference_")
+    || error.code.startsWith("session_")
+    || error.code.startsWith("live_")
+    || error.code.startsWith("credentials_")
+    || error.code.startsWith("sandbox_")
+    || error.code.startsWith("region_")
+  )) {
+    return [400, error.code];
+  }
+  return null;
 }
 
-export function createGlobalTrustFaceLabHttpHandler({ portalSession } = {}) {
+export function createGlobalTrustFaceLabHttpHandler({
+  portalSession,
+  liveRuntime = null,
+  env = process.env,
+} = {}) {
   if (typeof portalSession?.authenticate !== "function") {
     throw new TypeError("portalSession.authenticate must be a function");
   }
@@ -117,67 +236,63 @@ export function createGlobalTrustFaceLabHttpHandler({ portalSession } = {}) {
 
       try {
         const session = await portalSession.authenticate({ token: bearerToken(headers) });
-        const base = previewBase(session);
+        const base = basePayload(session, liveRuntime, env);
 
         if (normalizedMethod === "GET" && pathname === `${PREFIX}/status`) {
           return reply(200, {
             allowed: true,
             faceLab: Object.freeze({
               ...base,
-              status: "preview-ready",
-              capabilities: Object.freeze(["liveness_preview", "compare_faces_preview"]),
-              nextLiveDependency: "aws_provider_execution_authorization",
+              status: liveAvailable(liveRuntime, env) ? "live-ready" : "preview-ready",
+              capabilities: Object.freeze(["liveness_preview", "compare_faces_preview", "liveness_live", "compare_faces_live"]),
+              nextLiveDependency: liveAvailable(liveRuntime, env) ? null : "aws_provider_execution_authorization",
             }),
           });
         }
 
         if (normalizedMethod === "POST" && pathname === `${PREFIX}/liveness/preview`) {
-          const payload = parseBody(body);
-          const verificationId = requireText(payload.verificationId, "verificationId");
-          return reply(200, {
-            allowed: true,
-            preview: Object.freeze({
-              ...base,
-              verificationId,
-              operation: "CreateFaceLivenessSession",
-              clientAction: "StartFaceLivenessSession",
-              resultAction: "GetFaceLivenessSessionResults",
-              sessionTtlSeconds: 180,
-              rawBiometricMaterialForwarded: false,
-              rawBiometricMaterialPersisted: false,
-              governedDecisionProduced: false,
-            }),
-          });
+          return reply(200, previewLiveness(base, parseBody(body)));
         }
 
         if (normalizedMethod === "POST" && pathname === `${PREFIX}/compare/preview`) {
+          return reply(200, previewCompare(base, parseBody(body)));
+        }
+
+        if (normalizedMethod === "POST" && pathname === `${PREFIX}/liveness/session`) {
           const payload = parseBody(body);
-          const verificationId = requireText(payload.verificationId, "verificationId");
-          const sourceReferenceRef = requireOpaqueRef(payload.sourceReferenceRef, "sourceReferenceRef");
-          const targetReferenceRef = requireOpaqueRef(payload.targetReferenceRef, "targetReferenceRef");
-          return reply(200, {
-            allowed: true,
-            preview: Object.freeze({
-              ...base,
-              verificationId,
-              sourceReferenceRef,
-              targetReferenceRef,
-              operation: "CompareFaces",
-              similarityThreshold: 0,
-              qualityFilter: "NONE",
-              providerScoreIsSignalOnly: true,
-              governedDecisionProduced: false,
-              rawBiometricMaterialForwarded: false,
-              rawBiometricMaterialPersisted: false,
+          const runtime = requireLiveRuntime(liveRuntime, env);
+          const result = await runtime.createLivenessSession({
+            clientRequestToken: requireText(payload.clientRequestToken, "clientRequestToken, 64),
+            outputConfig: Object.freeze({
+              S3Bucket: requireText(payload.outputConfig?.S3Bucket, "outputConfig.S3Bucket", 255),
+              S3KeyPrefix: requireText(payload.outputConfig?.S3KeyPrefix, "outputConfig.S3KeyPrefix", 1024),
             }),
           });
+          return reply(201, { allowed: true, operation: "face-liveness-session", result });
+        }
+
+        if (normalizedMethod === "POST" && pathname === `${PREFIX}/liveness/result`) {
+          const payload = parseBody(body);
+          const runtime = requireLiveRuntime(liveRuntime, env);
+          const result = await runtime.getLivenessResult({ sessionId: requireText(payload.sessionId, "sessionId", 128) });
+          return reply(200, { allowed: true, operation: "face-liveness-result", result });
+        }
+
+        if (normalizedMethod === "POST" && pathname === `${PREFIX}/compare`) {
+          const payload = parseBody(body);
+          const runtime = requireLiveRuntime(liveRuntime, env);
+          const result = await runtime.compareFaces({
+            sourceS3Object: requireS3Ref(payload.sourceS3Object, "sourceS3Object"),
+            targetS3Object: requireS3Ref(payload.targetS3Object, "targetS3Object"),
+          });
+          return reply(200, { allowed: true, operation: "compare-faces", providerSignal: result, trustDecision: null });
         }
 
         return reply(404, { allowed: false, reason: "face_lab_route_not_found" });
       } catch (error) {
         const failure = knownFailure(error);
-        if (!failure) throw error;
-        return reply(failure[0], { allowed: false, reason: failure[1] });
+        if (!failur) throw error;
+        return reply(failur[0], { allowed: false, reason: failure[1] });
       }
     },
   });
