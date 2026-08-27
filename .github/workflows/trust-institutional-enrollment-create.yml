@@ -18,10 +18,7 @@ concurrency:
 jobs:
   enroll:
     if: github.ref == 'refs/heads/main' && github.event.inputs.approval == 'IGOR_APROVA_TRUST_INSTITUTIONAL_ENROLLMENT_CREATE'
-    runs-on:
-      - self-hosted
-      - macOS
-      - X64
+    runs-on: [self-hosted, macOS, X64]
     timeout-minutes: 10
     env:
       API_GATEWAY_ADMIN_KEY: ${{ secrets.API_GATEWAY_ADMIN_KEY }}
@@ -29,116 +26,13 @@ jobs:
       GATEWAY: https://gateway.apidevelopers.digital
       ORGANIZATION_ID: component.organization.apidevelopers-digital
     steps:
+      - uses: actions/checkout@v4
       - name: Validate governed prerequisites
         shell: bash
         run: |
           set -euo pipefail
-          if [[ -z "${API_GATEWAY_ADMIN_KEY:-}" ]]; then
-            echo "::error title=Credential unavailable::API_GATEWAY_ADMIN_KEY is not configured"
-            exit 2
-          fi
-          if [[ -z "${TRUST_INSTITUTIONAL_PRIVATE_KEY_PEM:-}" ]]; then
-            echo "::error title=Institutional key unavailable::TRUST_INSTITUTIONAL_PRIVATE_KEY_PEM is not configured"
-            exit 3
-          fi
-
+          test -n "${API_GATEWAY_ADMIN_KEY:-}"
+          test -n "${TRUST_INSTITUTIONAL_PRIVATE_KEY_PEM:-}"
       - name: Create or confirm institutional enrollment
         shell: bash
-        run: |
-          set -euo pipefail
-          node <<'NODE'
-          const {
-            constants,
-            createPrivateKey,
-            createPublicKey,
-            sign,
-          } = await import("node:crypto");
-
-          const gateway = process.env.GATEWAY;
-         ÛÛœÝÜ™Ø[š^˜][Û’YH›ØÙ\ÜË™[‹“Ô‘ÐS’VUSÓ—ÒQÂˆÛÛœÝYZ[’Ù^HH›ØÙ\ÜË™[‹TWÑÐUUÐVWÐQRS—ÒÑVNÂˆÛÛœÝš]˜]RÙ^T[HH›ØÙ\ÜË™[‹••TÕÒS”ÕUUSÓSÔ’UUWÒÑVWÔSNÂ‚ˆ\Þ[˜È[˜Ý[Ûˆ™\]Y\Ý
-]ÈY]ÙH‘ÑU‹›ÙHHHßJHÂˆÛÛœÝ™\ÜÛœÙHH]ØZ]™]Ú
-	ÙØ]]Ø^_IÜ]XÂˆY]ÙˆXY\œÎˆÂˆXØÙ\ˆ˜\XØ][Û‹ÚœÛÛˆ‹ˆ˜ÛÛ[]\HŽˆ˜\XØ][Û‹ÚœÛÛˆ‹ˆžX\KZÙ^HŽˆYZ[’Ù^KˆKˆ‹‹Š›ÙHOOH[™Yš[™YÈßHˆÈ›ÙNˆ”ÓÓ‹œÝš[™ÚYžJ›ÙJHJKˆJNÂˆÛÛœÝ^H]ØZ]™\ÜÛœÙK^
-
-NÂˆ]^[ØYHßNÂˆžHÂˆ^[ØYH^È”ÓÓ‹œ\œÙJ^
-HˆßNÂˆHØ]ÚÂˆ›ÝÈ™]È\œ›ÜŠ›Û‹ZœÛÛˆ™\ÜÛœÙHœ›ÛH	Ü]X
-NÂˆBˆYˆ
-\™\ÜÛœÙK›ÚÊHÂˆ›ÝÈ™]È\œ›ÜŠ	Ü]H˜Z[YÚ]	Ü™\ÜÛœÙKœÝ]\ßNˆ	Ü^[ØYœ™X\ÛÛˆÏÈ[šÛ›ÝÛˆŸX
-NÂˆBˆ™]\›ˆ^[ØYÂˆB‚ˆÛÛœÝ™XY[™\ÜÔ]Bˆ‹ÝŒKÝ\ÝÙ]˜[X][Û‹ÛÜ\˜]Ü‹Ú[œÝ]][Û˜[Y[œ›ÛY[ŽÂˆÛÛœÝ™Y›Ü™HH]ØZ]™\]Y\Ý
-™XY[™\ÜÔ]
-NÂˆYˆ
-™Y›Ü™OËš[œÝ]][ÛË›Ü™Ø[š^˜][Û’YOOHÜ™Ø[š^˜][Û’Y
-HÂˆ›ÝÈ™]È\œ›ÜŠ[™^XÝY[œÝ]][Û˜[Ü™Ø[š^˜][Û’YŠNÂˆBˆYˆ
-™Y›Ü™OË™[œ›ÛY[Ë™[œ›ÛY[™\Ù[OOHYJHÂˆÛÛœÝØY™HHÂˆÜ™Ø[š^˜][Û’Yˆ[œ›ÛY[™\Ù[ˆYKˆÝ]\ÎˆÝš[™Ê™Y›Ü™K™[œ›ÛY[œÝ]\ÈÏÈˆŠKˆ™XÚ\Y[Ù^Qš[™Ù\œš[ˆÝš[™Êˆ™Y›Ü™K™[œ›ÛY[œ™XÚ\Y[Ù^Qš[™Ù\œš[ÏÈˆ‹ˆ
-KˆÙ^TÜÜÙ\ÜÚ[Û•™\šYšYY‚ˆ™Y›Ü™K™[œ›ÛY[šÙ^TÜÜÙ\ÜÚ[Û•™\šYšYYOOHYKˆÜ™X]Yˆ˜[ÙKˆNÂˆÛÛœÛÛK›ÙÊ”ÓÓ‹œÝš[™ÚYžJØY™JJNÂˆ›ØÙ\ÜË™^]
-
-NÂˆB‚ˆ6öç7B&—fFT¶W’Ò7&VFU&—fFT¶W’‡&—fFT¶W•VÒ“°¢–b‡&—fFT¶W’æ7–ÖÖWG&–4¶W•G—RÓÒ''6"’°¢F‡&÷ræWrW'&÷"‚&–ç7F—GWF–öæÂ&—fFR¶W’×W7B&R%4"“°¢Ð¢6öç7BÖöGVÇW4ÆVæwF‚ÒçVÖ&W"€¢&—fFT¶W’æ7–ÖÖWG&–4¶W”FWF–Ç3òæÖöGVÇW4ÆVæwF‚óòÀ¢“°¢–b†ÖöGVÇW4ÆVæwF‚Â#C‚’°¢F‡&÷ræWrW'&÷"‚&–ç7F—GWF–öæÂ%4¶W’×W7B&RBÆV7B#C‚&—G2"“°¢Ð¢6öç7B&V6—–VçEV&Æ–4¶W’Ò7&VFUV&Æ–4¶W’‡&—fFT¶W’¢æW‡÷'B‡²G—S¢'7¶’"Âf÷&ÖC¢'VÒ"Ò¢çFõ7G&–ær‚“° ¢6öç7B6†ÆÆVævU&W7öç6RÒv—B&WVW7B€¢G·&VF–æW75F‡Òö6†ÆÆVævVÀ¢°¢ÖWF†öC¢%õ5B"À¢&öG“¢°¢&V6—–VçEV&Æ–4¶W’À¢6÷'&VÆF–öä–C¢G'W7B×&Wf–WrÖf6RÒG´FFRææ÷r‚—ÖÀ¢ÒÀ¢ÒÀ¢“°¢–b†6†ÆÆVævU&W7öç6Ræ÷&væ—¦F–öä–BÓÒ÷&væ—¦F–öä–B’°¢F‡&÷ræWrW'&÷"‚&6†ÆÆVævR÷&væ—¦F–öâÖ—6ÖF6‚"“°¢Ð¢6öç7B6†ÆÆVævRÒ6†ÆÆVævU&W7öç6Ræ6†ÆÆVævS°¢–b€¢6†ÆÆVævSòæ6†ÆÆVævT–BÇÀ¢6†ÆÆVævSòç6–væ–æu–ÆöD#cGP¢’°¢F‡&÷ræWrW'&÷"‚&6†ÆÆVævR&W7öç6R—2–æ6ö×ÆWFR"“°¢Ð ¢6öç7B6–væGW&RÒ6–vâ€¢'6†#Sb"À¢'VffW"æg&öÒ†6†ÆÆVævRç6–væ–æu–ÆöD#cGRÂ&&6ScGW&Â"’À¢°¢¶W“¢&—fFT¶W’À¢FF–æs¢6öç7FçG2å%4õ´53õ55õDD”ärÀ¢6ÇDÆVæwFƒ¢3"À¢ÒÀ¢“° ¢½¹ÍÐÁÉ½½™I•ÍÁ½¹Í”€ô…Ý…¥ÐÉ•ÅÕ•ÍÐ¡€‘íÉ•…‘¥¹•ÍÍA…Ñ¡ô½ÁÉ½½™€°ì(€€€€€€€€€€€µ•Ñ¡½è€‰A=MPˆ°(€€€€€€€€€€€‰½‘äèì(€€€€€€€€€€€€€¡…±±•¹•%è¡…±±•¹”¹¡…±±•¹•%°(€€€€€€€€€€€€€É•¥Á¥•¹ÑAÕ‰±¥-•ä°(€€€€€€€€€€€€€Í¥¹…ÑÕÉ•ØÑÔèÍ¥¹…ÑÕÉ”¹Ñ½MÑÉ¥¹œ ‰‰…Í”ØÑÕÉ°ˆ¤°(€€€€€€€€€€€ô°(€€€€€€€€€ô¤ì(€€€€€€€€€¥˜€¡ÁÉ½½™I•ÍÁ½¹Í”ü¹ÁÉ½½˜ü¹­•åA½ÍÍ•ÍÍ¥½¹Y•É¥™¥•€„ôôÑÉÕ”¤ì(€€€€€€€€€€€Ñ¡É½Ü¹•ÜÉÉ½È ‰­•äÁ½ÍÍ•ÍÍ¥½¸ÁÉ½½˜Ý…Ì¹½ÐÙ•É¥™¥•ˆ¤ì(€€€€€€€€€ô((€€€€€€€€€const approvedAt = String(proofResponse?.proof?.verifiedAt ?? "");
-          if (!approvedAt || Number.isNaN(Date.parse(approvedAt))) {
-            throw new Error("proof verifiedAt is unavailable");
-          }
-          const enrollmentResponse = await request(readinessPath, {
-            method: "POST",
-            body: {
-              recipientPublicKey,
-              keyProofChallengeId: challenge.challengeId,
-              institutionalApproval: {
-                decision: "approved",
-                assertion: "organization_and_recipient_authorized",
-                reference:
-                  "trust-preview-face-institutional-enrollment-2026-08-27",
-                authority: "API Developers.digital",
-                approvedBy: "igor",
-                approvedAt,
-                subjectOrganizationId: organizationId,
-              },
-            },
-          });
-          if (
-            enrollmentResponse?.enrollment?.status !== "approved" ||
-            enrollmentResponse?.organizationId !== organizationId
-          ) {
-            throw new Error("institutional enrollment was not approved");
-          }
-
-          const after = await request(readinessPath);
-          const safe = {
-            organizationId,
-            enrollmentPresent:
-              after?.enrollment?.enrollmentPresent === true,
-            status: String(after?.enrollment?.status ?? ""),
-            recipientKeyFingerprint: String(
-              after?.enrollment?.recipientKeyFingerprint ?? "",
-            ),
-            keyPossessionVerified:
-              after?.enrollment?.keyPossessionVerified === true,
-            identityVerifiedByThisService:
-              after?.enrollment?.identityVerifiedByThisService === true,
-            secretsIncluded: after?.secretsIncluded === true,
-            privateKeyIncluded: after?.privateKeyIncluded === true,
-            created: enrollmentResponse?.enrollment?.created === true,
-          };
-          if (
-            !safe.enrollmentPresent ||
-            safe.status !== "approved" ||
-            !safe.keyPossessionVerified ||
-            safe.secretsIncluded ||
-            safe.privateKeyIncluded
-          ) {
-            throw new Error("post-enrollment readiness verification failed");
-          }
-
-          console.log(JSON.stringify(safe));
-          const lines = [
-            "### Trust institutional enrollment",
-            "",
-            `- organizationId: \`${safe.organizationId}\``,
-            `- enrollmentPresent: \`${safe.enrollmentPresent}\``,
-            `- status: \`${safe.status}\``,
-            `- recipientKeyFingerprint: \`${safe.recipientKeyFingerprint}\``,
-            `- keyPossessionVerified: \`${safe.keyPossessionVerified}\``,
-            `- privateKeyIncluded: \`${safe.privateKeyIncluded}\``,
-          ];
-          (await import("node:fs")).appendFileSync(
-            process.env.GITHUB_STEP_SUMMARY,
-            `${lines.join("\n")}\n`,
-          );
-          NODE
+        run: node scripts/trust-institutional-enrollment-create.mjs
