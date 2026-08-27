@@ -21,18 +21,18 @@ jobs:
       - self-hosted
       - macOS
       - X64
-      - igor-mac-runner
+      - unijuri-keychain
     timeout-minutes: 15
     steps:
-      - name: Preflight canonical Keychain runner
+      - name: Preflight dedicated Keychain runner
         shell: bash
         run: |
           set -euo pipefail
-          if [[ "${RUNNER_NAME:-}" != "igor-mac-runner" ]]; then
-            echo "::error::UniJuri helper installation must run on canonical runner igor-mac-runner"
+          if [[ "${RUNNER_NAME:-}" != "apidevelopers-mac-ci-05" ]]; then
+            echo "::error::UniJuri helper installation must run on dedicated runner apidevelopers-mac-ci-05"
             exit 5
           fi
-          echo "::notice::Canonical Keychain runner preflight passed"
+          echo "::notice::Dedicated UniJuri Keychain runner preflight passed"
 
       - name: Validate explicit approval
         shell: bash
@@ -58,7 +58,7 @@ jobs:
           selected=""
           candidates=("/Applications/Xcode.app/Contents/Developer")
           for app in /Applications/Xcode*.app; do
-            candidates+=("$app/Contents/Developer")
+            candidates += ("$app/Contents/Developer")
           done
           for candidate in "${candidates[@]}"; do
             if [[ -d "$candidate/Platforms/MacOSX.platform" ]]; then
@@ -76,7 +76,11 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          DEVELOPER_DIR="$DEVELOPER_DIR" xcrun swift build            --package-path apps/api-gateway/native/operator-keychain-helper             --configuration release            --product operator-keychain-helper             --jobs 2
+          DEVELOPER_DIR="$DEVELOPER_DIR" xcrun swift build \
+            --package-path apps/api-gateway/native/operator-keychain-helper \
+            --configuration release \
+            --product operator-keychain-helper \
+            --jobs 2
           BIN="$(find apps/api-gateway/native/operator-keychain-helper/.build -type f -path '*/release/operator-keychain-helper' -perm -111 | head -n 1)"
           if [[ -z "$BIN" || ! -x "$BIN" ]]; then
             echo "::error::Built helper executable not found"
