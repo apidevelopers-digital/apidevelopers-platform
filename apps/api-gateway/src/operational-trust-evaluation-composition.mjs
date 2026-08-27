@@ -6,11 +6,15 @@ import { createGlobalTrustEvaluationOperatorProvisioningService } from "./global
 import { createGlobalTrustEvaluationRecipientKeyEnrollmentService } from "./global-trust-evaluation-recipient-key-enrollment.mjs";
 import { createTrustEvaluationRecipientKeyProofService } from "./global-trust-evaluation-recipient-key-proof.mjs";
 import { createGlobalTrustEvaluationTenantService } from "./global-trust-evaluation-tenant.mjs";
+import { createTrustInstitutionalEnrollmentHttpHandler } from "./global-trust-institutional-enrollment-http.mjs";
 import { createOperationalGateway } from "./operational-composition.mjs";
 
-function wrapEvaluationApp({ app, evaluationHttp }) {
+function wrapEvaluationApp({ app, institutionalEnrollmentHttp, evaluationHttp }) {
   if (typeof app?.handleRequest !== "function") {
     throw new TypeError("app.handleRequest must be a function");
+  }
+  if (typeof institutionalEnrollmentHttp?.handleRequest !== "function") {
+    throw new TypeError("institutionalEnrollmentHttp.handleRequest must be a function");
   }
   if (typeof evaluationHttp?.handleRequest !== "function") {
     throw new TypeError("evaluationHttp.handleRequest must be a function");
@@ -18,6 +22,8 @@ function wrapEvaluationApp({ app, evaluationHttp }) {
 
   return Object.freeze({
     async handleRequest(request = {}) {
+      const institutional = await institutionalEnrollmentHttp.handleRequest(request);
+      if (institutional !== null) return institutional;
       const routed = await evaluationHttp.handleRequest(request);
       if (routed !== null) return routed;
       return app.handleRequest(request);
@@ -31,21 +37,21 @@ function assertGateway(gateway) {
     throw new TypeError("gateway is required");
   }
   if (
-    !gateway.store
-    || typeof gateway.store.read !== "function"
-    || typeof gateway.store.transaction !== "function"
+    !gateway.store ||
+    typeof gateway.store.read !== "function" ||
+    typeof gateway.store.transaction !== "function"
   ) {
     throw new TypeError("gateway.store must provide read and transaction");
   }
   if (
-    !gateway.apiKeyLifecycle
-    || typeof gateway.apiKeyLifecycle.issueApiKey !== "function"
+    !gateway.apiKeyLifecycle ||
+    typeof gateway.apiKeyLifecycle.issueApiKey !== "function"
   ) {
     throw new TypeError("gateway.apiKeyLifecycle is unavailable");
   }
   if (
-    !gateway.authenticator
-    || typeof gateway.authenticator.authenticate !== "function"
+    !gateway.authenticator ||
+    typeof gateway.authenticator.authenticate !== "function"
   ) {
     throw new TypeError("gateway.authenticator is unavailable");
   }
@@ -79,6 +85,12 @@ export function attachOperationalTrustEvaluationGateway({
       store: gateway.store,
       ...(clock ? { clock } : {}),
     });
+  const institutionalEnrollmentHttp =
+    createTrustInstitutionalEnrollmentHttpHandler({
+      authenticator: gateway.authenticator,
+      recipientKeyProofService: evaluationRecipientKeyProof,
+      recipientKeyEnrollmentService: evaluationRecipientKeyEnrollment,
+    });
   const evaluationHttp = createGlobalTrustEvaluationHttpHandler({
     authenticator: gateway.authenticator,
     evaluationTenantService,
@@ -86,6 +98,7 @@ export function attachOperationalTrustEvaluationGateway({
   });
   const app = wrapEvaluationApp({
     app: gateway.app,
+    institutionalEnrollmentHttp,
     evaluationHttp,
   });
 
@@ -111,6 +124,7 @@ export function attachOperationalTrustEvaluationGateway({
     saasRuntime,
     evaluationTenantService,
     evaluationHttp,
+    institutionalEnrollmentHttp,
     evaluationRecipientKeyProof,
     evaluationRecipientKeyEnrollment,
     ...(evaluationOperatorProvisioning ? { evaluationOperatorProvisioning } : {}),
