@@ -80,8 +80,14 @@ jobs:
           set -euo pipefail
           TARGET_DIR="/usr/local/libexec/apidevelopers"
           TARGET="$TARGET_DIR/operator-keychain-helper"
+          ERR_FILE="$(mktemp -t unijuri-helper-install.XXXXXX)"
+          cleanup() {
+            rm -f "$ERR_FILE"
+          }
+          trap cleanup EXIT
 
-          /usr/bin/osascript - "$HELPER_BIN" "$TARGET_DIR" "$TARGET" <<'APPLESCRIPT'
+          set +e
+          /usr/bin/osascript - "$HELPER_BIN" "$TARGET_DIR" "$TARGET" 2>"$ERR_FILE" <<'APPLESCRIPT'
           on run argv
             set helperBin to item 1 of argv
             set targetDir to item 2 of argv
@@ -90,6 +96,36 @@ jobs:
             do shell script commandText with administrator privileges
           end run
           APPLESCRIPT
+          osascript_rc=$?
+          set -e
+
+          if [[ "$osascript_rc" -ne 0 ]]; then
+            error_category="osascript-error"
+            if grep -Eqi 'user canceled|\(-128\)' "$ERR_FILE"; then
+              error_category="user-canceled"
+            elif grep -Eqi 'not authorized|authorization denied|not permitted|privilege violation|administrator privileges' "$ERR_FILE"; then
+              error_category="authorization-denied"
+            elif grep -Eqi 'execution error|script error' "$ERR_FILE"; then
+              error_category="applescript-execution-error"
+            fi
+
+            target_dir_present=false
+            helper_present=false
+            helper_executable=false
+            helper_matches_built_hash=false
+
+            [[ -d "$TARGET_DIR" ]] && target_dir_present=true
+            [[ -e "$TARGET" ]] && helper_present=true
+            [[ -x "$TARGET" ]] && helper_executable=true
+
+            if [[ -f "$TARGET" ]]; then
+              installed_hash="$(shasum -a 256 "$TARGET" | awk '{print $1}')"
+              [[ "$installed_hash" == "$BUILT_SHA256" ]] && helper_matches_built_hash=true
+            fi
+
+            echo "::error title=UniJuri helper install failed::osascriptExitCode=$osascript_rc; category=$error_category; targetDirPresentAfterFailure=$target_dir_present; helperPresentAfterFailure=$helper_present; helperExecutableAfterFailure=$helper_executable; helperMatchesBuiltHashAfterFailure=$helper_matches_built_hash"
+            exit "$osascript_rc"
+          fi
 
           INSTALLED_SHA256="$(shasum -a 256 "$TARGET" | awk '{print $1}')"
           [[ "$INSTALLED_SHA256" == "$BUILT_SHA256" ]] || { echo "::error::Installed helper hash mismatch"; exit 4; }
