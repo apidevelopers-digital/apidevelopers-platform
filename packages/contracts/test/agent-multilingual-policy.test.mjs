@@ -9,13 +9,13 @@ import {
   buildAgentMultilingualInstructions,
 } from "../src/agent-multilingual-policy.mjs";
 
-test("agent multilingual baseline has the 11 institutional locales", () => {
+test("baseline has 11 institutional locales", () => {
   assert.deepEqual(AGENT_MULTILINGUAL_BASELINE_LOCALES, [
     "pt-BR", "en", "es", "fr", "de", "it", "nl", "ja", "ko", "zh-CN", "ar",
   ]);
 });
 
-test("creates a channel-neutral multilingual policy", () => {
+test("creates a channel-neutral policy", () => {
   const policy = createAgentMultilingualPolicy();
   assert.equal(policy.contract, "AgentMultilingualPolicy");
   assert.equal(policy.defaultLocale, "pt-BR");
@@ -24,7 +24,7 @@ test("creates a channel-neutral multilingual policy", () => {
   assertAgentMultilingualPolicy(policy);
 });
 
-test("explicit user language request wins", () => {
+test("explicit request wins", () => {
   const policy = createAgentMultilingualPolicy();
   assert.equal(resolveAgentResponseLocale({
     detectedLocale: "en",
@@ -34,15 +34,12 @@ test("explicit user language request wins", () => {
   }), "es");
 });
 
-test("conversation language persists when no new language is detected", () => {
+test("previous language persists when no new language is detected", () => {
   const policy = createAgentMultilingualPolicy();
-  assert.equal(resolveAgentResponseLocale({
-    previousLocale: "fr",
-    policy,
-  }), "fr");
+  assert.equal(resolveAgentResponseLocale({ previousLocale: "fr", policy }), "fr");
 });
 
-test("detected supported language can switch the conversation language", () => {
+test("supported detected language switches conversation", () => {
   const policy = createAgentMultilingualPolicy();
   assert.equal(resolveAgentResponseLocale({
     previousLocale: "pt-BR",
@@ -51,7 +48,7 @@ test("detected supported language can switch the conversation language", () => {
   }), "de");
 });
 
-test("unsupported detected language preserves the previous supported language", () => {
+test("unsupported detected language preserves supported previous language", () => {
   const policy = createAgentMultilingualPolicy();
   assert.equal(resolveAgentResponseLocale({
     previousLocale: "fr",
@@ -60,31 +57,21 @@ test("unsupported detected language preserves the previous supported language", 
   }), "fr");
 });
 
-test("unsupported explicit language request falls back safely", () => {
+test("unsupported explicit request falls back safely", () => {
   const policy = createAgentMultilingualPolicy();
-  assert.equal(resolveAgentResponseLocale({
-    requestedLocale: "ru",
-    policy,
-  }), "pt-BR");
+  assert.equal(resolveAgentResponseLocale({ requestedLocale: "ru", policy }), "pt-BR");
 });
 
-
-test("best-effort mode can keep a valid non-baseline BCP 47 locale", () => {
-  const policy = createAgentMultilingualPolicy({
-    unsupportedLocaleBehavior: "best-effort",
-  });
-  assert.equal(resolveAgentResponseLocale({
-    detectedLocale: "ru",
-    policy,
-  }), "ru");
+test("best-effort accepts valid non-baseline BCP 47 locale", () => {
+  const policy = createAgentMultilingualPolicy({ unsupportedLocaleBehavior: "best-effort" });
+  assert.equal(resolveAgentResponseLocale({ detectedLocale: "ru", policy }), "ru");
 });
 
-test("instructions keep multilingual capability shared but personas isolated", () => {
+test("instructions keep shared multilingual capability and isolated persona", () => {
   const text = buildAgentMultilingualInstructions({
     agentName: "NEXUS",
     brandName: "API Developers.digital",
   });
-
   assert.match(text, /Supported baseline locales:/);
   assert.match(text, /preserve factual memory/i);
   assert.match(text, /proper nouns/i);
