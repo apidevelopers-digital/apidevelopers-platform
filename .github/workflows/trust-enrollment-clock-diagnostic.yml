@@ -1,0 +1,32 @@
+name: Trust Enrollment Clock Diagnostic
+on:
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  diagnose:
+    runs-on: [self-hosted, macOS, X64]
+    env:
+      API_GATEWAY_ADMIN_KEY: ${{ secrets.API_GATEWAY_ADMIN_KEY }}
+      TRUST_INSTITUTIONAL_PRIVATE_KEY_PEM: ${{ secrets.TRUST_INSTITUTIONAL_PRIVATE_KEY_PEM }}
+    steps:
+      - shell: bash
+        run: |
+          set -euo pipefail
+          test -n "${API_GATEWAY_ADMIN_KEY:-}"
+          test -n "${TRUST_INSTITUTIONAL_PRIVATE_KEY_PEM:-}"
+          node <<'NODE'
+          const {createPrivateKey,createPublicKey}=require("node:crypto");
+          const priv=createPrivateKey(process.env.TRUST_INSTITUTIONAL_PRIVATE_KEY_PEM);
+          const pub=createPublicKey(priv).export({type:"spki",format:"pem"}).toString();
+          const path="/v1/trust/evaluation/operator/institutional-enrollment/challenge";
+          const runnerBefore=Date.now();
+          const r=await fetch("https://gateway.apidevelopers.digital"+path,{method:"POST",headers:{"content-type":"application/json","x-api-key":process.env.API_GATEWAY_ADMIN_KEY},body:JSON.stringify({recipientPublicKey:pub,correlationId:`clock-diagnostic-${runnerBefore}`})});
+          const p=await r.json();
+          if(!r.ok) throw new Error(`challenge HTTP ${r.status}`);
+          const server=Date.parse(p?.challenge?.issuedAt);
+          if(!Number.isFinite(server)) throw new Error("missing server issuedAt");
+          const runnerAfter=Date.now();
+          const midpoint=Math.round((runnerBefore+runnerAfter)/2);
+          console.log(JSON.stringify({httpStatus:r.status,organizationId:p.organizationId,runnerServerSkewMs:midpoint-server,secretsIncluded:p.secretsIncluded===true,privateKeyIncluded:p.privateKeyIncluded===true}));
+          NODE
