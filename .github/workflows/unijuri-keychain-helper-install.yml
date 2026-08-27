@@ -58,7 +58,7 @@ jobs:
           selected=""
           candidates=("/Applications/Xcode.app/Contents/Developer")
           for app in /Applications/Xcode*.app; do
-            candidates += ("$app/Contents/Developer")
+            candidates+=("$app/Contents/Developer")
           done
           for candidate in "${candidates[@]}"; do
             if [[ -d "$candidate/Platforms/MacOSX.platform" ]]; then
@@ -76,11 +76,7 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          DEVELOPER_DIR="$DEVELOPER_DIR" xcrun swift build \
-            --package-path apps/api-gateway/native/operator-keychain-helper \
-            --configuration release \
-            --product operator-keychain-helper \
-            --jobs 2
+          DEVELOPER_DIR="$DEVELOPER_DIR" xcrun swift build             --package-path apps/api-gateway/native/operator-keychain-helper             --configuration release             --product operator-keychain-helper             --jobs 2
           BIN="$(find apps/api-gateway/native/operator-keychain-helper/.build -type f -path '*/release/operator-keychain-helper' -perm -111 | head -n 1)"
           if [[ -z "$BIN" || ! -x "$BIN" ]]; then
             echo "::error::Built helper executable not found"
