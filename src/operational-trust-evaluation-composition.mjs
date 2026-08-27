@@ -70,10 +70,6 @@ export function attachOperationalTrustEvaluationGateway({
     apiKeyLifecycle: gateway.apiKeyLifecycle,
     ...(clock ? { clock } : {}),
   });
-  const evaluationHttp = createGlobalTrustEvaluationHttpHandler({
-    authenticator: gateway.authenticator,
-    evaluationTenantService,
-  });
   const evaluationRecipientKeyProof = createTrustEvaluationRecipientKeyProofService({
     store: gateway.store,
     ...(clock ? { clock } : {}),
@@ -83,6 +79,11 @@ export function attachOperationalTrustEvaluationGateway({
       store: gateway.store,
       ...(clock ? { clock } : {}),
     });
+  const evaluationHttp = createGlobalTrustEvaluationHttpHandler({
+    authenticator: gateway.authenticator,
+    evaluationTenantService,
+    recipientKeyEnrollmentService: evaluationRecipientKeyEnrollment,
+  });
   const app = wrapEvaluationApp({
     app: gateway.app,
     evaluationHttp,
