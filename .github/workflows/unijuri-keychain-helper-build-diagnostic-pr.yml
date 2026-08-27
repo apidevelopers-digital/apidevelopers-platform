@@ -45,7 +45,10 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          swift_processes="$(ps -axo comm= | grep -E '(^|/)(swift|swiftc|swift-driver|llbuild)$' | wc -l | tr -d ' ')"
+          swift_processes="$(ps -axo comm= | awk '
+            /(^|\/)(swift|swiftc|swift-driver|llbuild)$/ { count++ }
+            END { print count + 0 }
+          ')"
           echo "::notice title=UniJuri Swift process snapshot::matchingProcesses=${swift_processes}; writesPerformed=false"
 
       - name: Build fail-closed native Keychain helper on dedicated runner
