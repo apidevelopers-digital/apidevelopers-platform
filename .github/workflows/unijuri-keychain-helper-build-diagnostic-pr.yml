@@ -1,0 +1,89 @@
+name: UniJuri Keychain Helper Build Diagnostic PR
+
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - ".github/workflows/unijuri-keychain-helper-build-diagnostic-pr.yml"
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    runs-on: [self-hosted, macOS, X64, unijuri-keychain]
+    timeout-minutes: 6
+    steps:
+      - name: Validate dedicated UniJuri Keychain runner
+        shell: bash
+        run: |
+          set -euo pipefail
+          [[ "${RUNNER_NAME:-}" == "apidevelopers-mac-ci-05" ]] || { echo "::error::Wrong UniJuri Keychain runner"; exit 5; }
+
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+
+      - name: Resolve full Xcode developer directory
+        shell: bash
+        run: |
+          set -euo pipefail
+          shopt -s nullglob
+          selected=""
+          candidates=("/Applications/Xcode.app/Contents/Developer")
+          for app in /Applications/Xcode*.app; do candidates+=("$app/Contents/Developer"); done
+          for candidate in "${candidates[@]}"; do
+            if [[ -d "$candidate/Platforms/MacOSX.platform" ]]; then selected="$candidate"; break; fi
+          done
+          [[ -n "$selected" ]] || { echo "::error::Full Xcode unavailable"; exit 1; }
+          echo "DEVELOPER_DIR=$selected" >> "$GITHUB_ENV"
+          DEVELOPER_DIR="$selected" xcrun --sdk macosx --show-sdk-platform-path
+          DEVELOPER_DIR="$selected" xcrun swift --version
+
+      - name: Snapshot Swift build process state
+        shell: bash
+        run: |
+          set -euo pipefail
+          swift_processes="$(ps -axo comm= | awk '
+            /(^|\/)(swift|swiftc|swift-driver|llbuild)$/ { count++ }
+            END { print count + 0 }
+          ')"
+          echo "::notice title=UniJuri Swift process snapshot::matchingProcesses=${swift_processes}; writesPerformed=false"
+
+      - name: Build fail-closed native Keychain helper on dedicated runner
+        shell: bash
+        run: |
+          set -euo pipefail
+          log_file="$RUNNER_TEMP/unijuri-keychain-helper-build-diagnostic.log"
+          rm -f "$log_file"
+          set +e
+          DEVELOPER_DIR="$DEVELOPER_DIR" xcrun swift build             --package-path apps/api-gateway/native/operator-keychain-helper             --configuration release             --product operator-keychain-helper             --jobs 1             --verbose >"$log_file" 2>&1 &
+          build_pid=$!
+          elapsed=0
+          timeout_seconds=180
+          while kill -0 "$build_pid" 2>/dev/null; do
+            if (( elapsed >= timeout_seconds )); then
+              echo "::error title=UniJuri helper build timeout::elapsedSeconds=${elapsed}; runner=${RUNNER_NAME}"
+              kill -TERM "$build_pid" 2>/dev/null || true
+              sleep 3
+              kill -KILL "$build_pid" 2>/dev/null || true
+              wait "$build_pid" 2>/dev/null
+              tail -n 80 "$log_file" || true
+              exit 124
+            fi
+            sleep 10
+            elapsed=$((elapsed + 10))
+            echo "::notice title=UniJuri helper build heartbeat::elapsedSeconds=${elapsed}; runner=${RUNNER_NAME}"
+          done
+          wait "$build_pid"
+          rc=$?
+          set -e
+          if [[ "$rc" -ne 0 ]]; then
+            echo "::error title=UniJuri helper build failed::exitCode=${rc}; runner=${RUNNER_NAME}"
+            tail -n 80 "$log_file" || true
+            exit "$rc"
+          fi
+          bin="$(find apps/api-gateway/native/operator-keychain-helper/.build -type f -path '*/release/operator-keychain-helper' -perm -111 | head -n 1)"
+          [[ -n "$bin" && -x "$bin" ]] || { echo "::error::Built helper executable not found"; exit 1; }
+          echo "::notice title=UniJuri helper build diagnostic::buildCompleted=true; runner=${RUNNER_NAME}; writesPerformed=false"
