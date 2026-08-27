@@ -1,4 +1,5 @@
 name: Trust Institutional Enrollment Create
+
 on:
   workflow_dispatch:
     inputs:
@@ -6,15 +7,21 @@ on:
         description: "Exact governed approval token"
         required: true
         type: string
+
 permissions:
   contents: read
+
 concurrency:
   group: trust-institutional-enrollment-create
   cancel-in-progress: false
+
 jobs:
   enroll:
     if: github.ref == 'refs/heads/main' && github.event.inputs.approval == 'IGOR_APROVA_TRUST_INSTITUTIONAL_ENROLLMENT_CREATE'
-    runs-on: [self-hosted, macOS, X64]
+    runs-on:
+      - self-hosted
+      - macOS
+      - X64
     timeout-minutes: 10
     env:
       API_GATEWAY_ADMIN_KEY: ${{ secrets.API_GATEWAY_ADMIN_KEY }}
@@ -26,27 +33,112 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          test -n "${API_GATEWAY_ADMIN_KEY:-}" || { echo "::error title=Credential unavailable::API_GATEWAY_ADMIN_KEY is not configured"; exit 2; }
-          test -n "${TRUST_INSTITUTIONAL_PRIVATE_KEY_PEM:-}" || { echo "::error title=Institutional key unavailable::TRUST_INSTITUTIONAL_PRIVATE_KEY_PEM is not configured"; exit 3; }
+          if [[ -z "${API_GATEWAY_ADMIN_KEY:-}" ]]; then
+            echo "::error title=Credential unavailable::API_GATEWAY_ADMIN_KEY is not configured"
+            exit 2
+          fi
+          if [[ -z "${TRUST_INSTITUTIONAL_PRIVATE_KEY_PEM:-}" ]]; then
+            echo "::error title=Institutional key unavailable::TRUST_INSTITUTIONAL_PRIVATE_KEY_PEM is not configured"
+            exit 3
+          fi
+
       - name: Create or confirm institutional enrollment
         shell: bash
         run: |
           set -euo pipefail
           node <<'NODE'
-          const {constants,createPrivateKey,createPublicKey,sign}=await import("node:crypto");
-          const {appendFileSync}=await import("node:fs");
-          const gateway=process.env.GATEWAY,organizationId=process.env.ORGANIZATION_ID,adminKey=process.env.API_GATEWAY_ADMIN_KEY,privateKeyPem=process.env.TRUST_INSTITUTIONAL_PRIVATE_KEY_PEM;
-          async function request(path,{method="GET",body}={}){const r=await fetch(`${gateway}${path}`,{method,headers:{accept:"application/json","content-type":"application/json","x-api-key":adminKey},...(body===undefined?{}:{body:JSON.stringify(body)})});const t=await r.text();let p={};try{p=t?JSON.parse(t):{}}catch{throw new Error(`non-json response from ${path}`)}if(!r.ok)throw new Error(`${path} failed with HTTP ${r.status}: ${p.reason??"unknown"}`);return p}
-          const readinessPath="/v1/trust/evaluation/operator/institutional-enrollment";
-          const before=await request(readinessPath);
-          if(before?.institution?.organizationId!==organizationId)throw new Error("unexpected institutional organizationId");
-          if(before?.enrollment?.enrollmentPresent===true){console.log(JSON.stringify({organizationId,enrollmentPresent:true,status:String(before.enrollment.status??""),recipientKeyFingerprint:String(before.enrollment.recipientKeyFingerprint??""),keyPossessionVerified:before.enrollment.keyPossessionVerified===true,created:false}));process.exit(0)}
-          const privateKey=createPrivateKey(privateKeyPem);
-          if(privateKey.asymmetricKeyType!=="rsa"||Number(privateKey.asymmetricKeyDetails?.modulusLength??0)<2048)throw new Error("institutional private key must be RSA >= 2048 bits");
-          const recipientPublicKey=createPublicKey(privateKey).export({type:"spki",format:"pem"}).toString();
-         ÛÛœİÚ[[™ÙT™\ÜÛœÙOX]ØZ]™\]Y\İ
-	Ü™XY[™\ÜÔ]KØÚ[[™ÙXÛY]Ùˆ”ÔÕ‹›ÙNÜ™XÚ\Y[X›XÒÙ^KÛÜœ™[][Û’Y˜\İ\™]šY]ËY˜XÙKIÑ]K››İÊ
-_X_JNÂˆYŠÚ[[™ÙT™\ÜÛœÙK›Ü™Ø[š^˜][Û’YOO[Ü™Ø[š^˜][Û’Y
-]›İÈ™]È\œ›ÜŠ˜Ú[[™ÙHÜ™Ø[š^˜][ÛˆZ\ÛX]ÚŠNÂˆ6öç7B6†ÆÆVævSÖ6†ÆÆVævU&W7öç6Ræ6†ÆÆVævS°¢–b‚6†ÆÆVævSòæ6†ÆÆVævT–GÇÂ6†ÆÆVævSòç6–væ–æu–ÆöD#cGR—F‡&÷ræWrW'&÷"‚&6†ÆÆVævR&W7öç6R—2–æ6ö×ÆWFR"“°¢½¹ÍĞÍ¥¹…ÑÕÉ”õÍ¥¸ ‰Í¡„ÈÔØˆ±	Õ™™•È¹™É½´¡¡…±±•¹”¹Í¥¹¥¹A…å±½…‘ØÑÔ°‰‰…Í”ØÑÕÉ°ˆ¤±í­•äéÁÉ¥Ù…Ñ•-•ä±Á…‘‘¥¹œé½¹ÍÑ…¹ÑÌ¹IM}A-LÅ}AMM}A%9±Í…±Ñ1•¹Ñ èÌÉô¤ì(€€€€€€€€€½¹ÍĞÁÉ½½™I•ÍÁ½¹Í”õ…İ…¥ĞÉ•ÅÕ•ÍĞ¡€‘íÉ•…‘¥¹•ÍÍA…Ñ¡ô½ÁÉ½½™€±íµ•Ñ¡½è‰A=MPˆ±‰½‘äéí¡…±±•¹•%é¡…±±•¹”¹¡…±±•¹•%±É•¥Á¥•¹ÑAÕ‰±¥-•ä±Í¥¹…ÑÕÉ•ØÑÔéÍ¥¹…ÑÕÉ”¹Ñ½MÑÉ¥¹œ ‰‰…Í”ØÑÕÉ°ˆ¥õô¤ì(€€€€€€€€€¥˜¡ÁÉ½½™I•ÍÁ½¹Í”ü¹ÁÉ½½˜ü¹­•åA½ÍÍ•ÍÍ¥½¹Y•É¥™¥•„ôõÑÉÕ”¥Ñ¡É½Ü¹•ÜÉÉ½È ‰­•äÁ½ÍÍ•ÍÍ¥½¸ÁÉ½½˜İ…Ì¹½ĞÙ•É¥™¥•ˆ¤ì(€€€€€€€€€½¹ÍĞ…ÁÁÉ½Ù•‘ĞõMÑÉ¥¹œ¡ÁÉ½½™I•ÍÁ½¹Í”ü¹ÁÉ½½˜ü¹Ù•É¥™¥•‘Ğüüˆˆ¤ì(€€€€€€€€€¥˜ ……ÁÁÉ½Ù•‘Ñññ9Õµ‰•È¹¥Í9…8¡…Ñ”¹Á…ÉÍ”¡…ÁÁÉ½Ù•‘Ğ¤¤¥Ñ¡É½Ü¹•ÜÉÉ½È ‰ÁÉ½½˜Ù•É¥™¥•‘Ğ¥ÌÕ¹…Ù…¥±…‰±”ˆ¤ì(€€€€€€€€€½¹ÍĞ•¹É½±±µ•¹ÑI•ÍÁ½¹Í”õ…İ…¥ĞÉ•ÅÕ•ÍĞ¡É•…‘¥¹•ÍÍA…Ñ ±íµ•Ñ¡½è‰A=MPˆ±‰½‘äéíÉ•¥Á¥•¹ÑAÕ‰±¥-•ä±­•åAÉ½½™¡…±±•¹•%é¡…±±•¹”¹¡…±±•¹•%±¥¹ÍÑ¥ÑÕÑ¥½¹…±ÁÁÉ½Ù…°éí‘•¥Í¥½¸è‰…ÁÁÉ½Ù•ˆ±…ÍÍ•ÉÑ¥½¸è‰½É…¹¥é…Ñ¥½¹}…¹‘}É•¥Á¥•¹Ñ}…ÕÑ¡½É¥é•ˆ±É•™•É•¹”è‰ÑÉÕÍĞµÁÉ•Ù¥•Üµ™…”µ¥¹ÍÑ¥ÑÕÑ¥½¹…°µ•¹É½±±µ•¹Ğ´ÈÀÈØ´Àà´ÈÜˆ±…ÕÑ¡½É¥Ñäè‰A$•Ù•±½Á•ÉÌ¹‘¥¥Ñ…°ˆ±…ÁÁÉ½Ù•‘	äè‰¥½Èˆ±…ÁÁÉ½Ù•‘Ğ±ÍÕ‰©•Ñ=É…¹¥é…Ñ¥½¹%é½É…¹¥é…Ñ¥½¹%‘õõô¤ì(€€€€€€€€€¥˜¡•¹É½±±µ•¹ÑI•ÍÁ½¹Í”ü¹•¹É½±±µ•¹Ğü¹ÍÑ…ÑÕÌ„ôô‰…ÁÁÉ½Ù•‰ññ•¹É½±±µ•¹ÑI•ÍÁ½¹Í”ü¹½É…¹¥é…Ñ¥½¹%„ôõ½É…¹¥é…Ñ¥½¹%¥Ñ¡É½Ü¹•ÜÉÉ½È ‰¥¹ÍÑ¥ÑÕÑ¥½¹…°•¹É½±±µ•¹Ğİ…Ì¹½Ğ…ÁÁÉ½Ù•ˆ¤ì(€€€€€€€€€½¹ÍĞ…™Ñ•Èõ…İ…¥ĞÉ•ÅÕ•ÍĞ¡É•…‘¥¹•ÍÍA…Ñ ¤ì(€€€€€€€€€½¹ÍĞÍ…™”õí½É…¹¥é…Ñ¥½¹%±•¹É½±±µ•¹ÑAÉ•Í•¹Ğé…™Ñ•Èü¹•¹É½±±µ•¹Ğü¹•¹É½±±µ•¹ÑAÉ•Í•¹ĞôôõÑÉÕ”±ÍÑ…ÑÕÌéMÑÉ¥¹œ¡…™Ñ•Èü¹•¹É½±±µ•¹Ğü¹ÍÑ…ÑÕÌüüˆˆ¤±É•¥Á¥•¹Ñ-•å¥¹•ÉÁÉ¥¹ĞéMÑÉ¥¹œ¡…™Ñ•Èü¹•¹É½±±µ•¹Ğü¹É•¥Á¥•¹Ñ-•å¥¹•ÉÁÉ¥¹Ğüüˆˆ¤±­•åA½ÍÍ•ÍÍ¥½¹Y•É¥™¥•é…™Ñ•Èü¹•¹É½±±µ•¹Ğü¹­•åA½ÍÍ•ÍÍ¥½¹Y•É¥™¥•ôôõÑÉÕ”±¥‘•¹Ñ¥ÑåY•É¥™¥•‘	åQ¡¥ÍM•ÉÙ¥”é…™Ñ•Èü¹•¹É½±±µ•¹Ğü¹¥‘•¹Ñ¥ÑåY•É¥™¥•‘	åQ¡¥ÍM•ÉÙ¥”ôôõÑÉÕ”±Í•É•ÑÍ%¹±Õ‘•é…™Ñ•Èü¹Í•É•ÑÍ%¹±Õ‘•ôôõÑÉÕ”±ÁÉ¥Ù…Ñ•-•å%¹±Õ‘•é…™Ñ•Èü¹ÁÉ¥Ù…Ñ•-•å%¹±Õ‘•ôôõÑÉÕ”±É•…Ñ•é•¹É½±±µ•¹ÑI•ÍÁ½¹Í”ü¹•¹É½±±µ•¹Ğü¹É•…Ñ•ôôõÑÉÕ•ôì(€€€€€€€€€¥˜ …Í…™”¹•¹É½±±µ•¹ÑAÉ•Í•¹ÑññÍ…™”¹ÍÑ…ÑÕÌ„ôô‰…ÁÁÉ½Ù•‰ñğ…Í…™”¹­•åA½ÍÍ•ÍÍ¥½¹Y•É¥™¥•‘ññÍ…™”¹Í•É•ÑÍ%¹±Õ‘•‘ññÍ…™”¹ÁÉ¥Ù…Ñ•-•å%¹±Õ‘•¥Ñ¡É½Ü¹•ÜÉÉ½È ‰Á½ÍĞµ•¹É½±±µ•¹ĞÉ•…‘¥¹•ÍÌÙ•É¥™¥…Ñ¥½¸™…¥±•ˆ¤ì(€€€€€€€€€console.log(JSON.stringify(safe));
-          appendFileSync(process.env.GITHUB_STEP_SUMMARY,`### Trust institutional enrollment\n\n- organizationId: \`${safe.organizationId}\`\n- enrollmentPresent: \`${safe.enrollmentPresent}\`\n- status: \`${safe.status}\`\n- recipientKeyFingerprint: \`${safe.recipientKeyFingerprint}\`\n- keyPossessionVerified: \`${safe.keyPossessionVerified}\`\n- privateKeyIncluded: \`${safe.privateKeyIncluded}\`\n`);
+          const {
+            constants,
+            createPrivateKey,
+            createPublicKey,
+            sign,
+          } = await import("node:crypto");
+
+          const gateway = process.env.GATEWAY;
+         ÛÛœİÜ™Ø[š^˜][Û’YH›ØÙ\ÜË™[‹“Ô‘ĞS’VUSÓ—ÒQÂˆÛÛœİYZ[’Ù^HH›ØÙ\ÜË™[‹TWÑĞUUĞVWĞQRS—ÒÑVNÂˆÛÛœİš]˜]RÙ^T[HH›ØÙ\ÜË™[‹••TÕÒS”ÕUUSÓSÔ’UUWÒÑVWÔSNÂ‚ˆ\Ş[˜È[˜İ[Ûˆ™\]Y\İ
+]ÈY]ÙH‘ÑU‹›ÙHHHßJHÂˆÛÛœİ™\ÜÛœÙHH]ØZ]™]Ú
+	ÙØ]]Ø^_IÜ]XÂˆY]ÙˆXY\œÎˆÂˆXØÙ\ˆ˜\XØ][Û‹ÚœÛÛˆ‹ˆ˜ÛÛ[]\Hˆ˜\XØ][Û‹ÚœÛÛˆ‹ˆX\KZÙ^HˆYZ[’Ù^KˆKˆ‹‹Š›ÙHOOH[™Yš[™YÈßHˆÈ›ÙNˆ”ÓÓ‹œİš[™ÚYJ›ÙJHJKˆJNÂˆÛÛœİ^H]ØZ]™\ÜÛœÙK^
+
+NÂˆ]^[ØYHßNÂˆHÂˆ^[ØYH^È”ÓÓ‹œ\œÙJ^
+HˆßNÂˆHØ]ÚÂˆ›İÈ™]È\œ›ÜŠ›Û‹ZœÛÛˆ™\ÜÛœÙHœ›ÛH	Ü]X
+NÂˆBˆYˆ
+\™\ÜÛœÙK›ÚÊHÂˆ›İÈ™]È\œ›ÜŠ	Ü]H˜Z[YÚ]	Ü™\ÜÛœÙKœİ]\ßNˆ	Ü^[ØYœ™X\ÛÛˆÏÈ[šÛ›İÛˆŸX
+NÂˆBˆ™]\›ˆ^[ØYÂˆB‚ˆÛÛœİ™XY[™\ÜÔ]Bˆ‹İŒKİ\İÙ]˜[X][Û‹ÛÜ\˜]Ü‹Ú[œİ]][Û˜[Y[œ›ÛY[ÂˆÛÛœİ™Y›Ü™HH]ØZ]™\]Y\İ
+™XY[™\ÜÔ]
+NÂˆYˆ
+™Y›Ü™OËš[œİ]][ÛË›Ü™Ø[š^˜][Û’YOOHÜ™Ø[š^˜][Û’Y
+HÂˆ›İÈ™]È\œ›ÜŠ[™^XİY[œİ]][Û˜[Ü™Ø[š^˜][Û’YŠNÂˆBˆYˆ
+™Y›Ü™OË™[œ›ÛY[Ë™[œ›ÛY[™\Ù[OOHYJHÂˆÛÛœİØY™HHÂˆÜ™Ø[š^˜][Û’Yˆ[œ›ÛY[™\Ù[ˆYKˆİ]\Îˆİš[™Ê™Y›Ü™K™[œ›ÛY[œİ]\ÈÏÈˆŠKˆ™XÚ\Y[Ù^Qš[™Ù\œš[ˆİš[™Êˆ™Y›Ü™K™[œ›ÛY[œ™XÚ\Y[Ù^Qš[™Ù\œš[ÏÈˆ‹ˆ
+KˆÙ^TÜÜÙ\ÜÚ[Û•™\šYšYY‚ˆ™Y›Ü™K™[œ›ÛY[šÙ^TÜÜÙ\ÜÚ[Û•™\šYšYYOOHYKˆÜ™X]Yˆ˜[ÙKˆNÂˆÛÛœÛÛK›ÙÊ”ÓÓ‹œİš[™ÚYJØY™JJNÂˆ›ØÙ\ÜË™^]
+
+NÂˆB‚ˆ6öç7B&—fFT¶W’Ò7&VFU&—fFT¶W’‡&—fFT¶W•VÒ“°¢–b‡&—fFT¶W’æ7–ÖÖWG&–4¶W•G—RÓÒ''6"’°¢F‡&÷ræWrW'&÷"‚&–ç7F—GWF–öæÂ&—fFR¶W’×W7B&R%4"“°¢Ğ¢6öç7BÖöGVÇW4ÆVæwF‚ÒçVÖ&W"€¢&—fFT¶W’æ7–ÖÖWG&–4¶W”FWF–Ç3òæÖöGVÇW4ÆVæwF‚óòÀ¢“°¢–b†ÖöGVÇW4ÆVæwF‚Â#C‚’°¢F‡&÷ræWrW'&÷"‚&–ç7F—GWF–öæÂ%4¶W’×W7B&RBÆV7B#C‚&—G2"“°¢Ğ¢6öç7B&V6—–VçEV&Æ–4¶W’Ò7&VFUV&Æ–4¶W’‡&—fFT¶W’¢æW‡÷'B‡²G—S¢'7¶’"Âf÷&ÖC¢'VÒ"Ò¢çFõ7G&–ær‚“° ¢6öç7B6†ÆÆVævU&W7öç6RÒv—B&WVW7B€¢G·&VF–æW75F‡Òö6†ÆÆVævVÀ¢°¢ÖWF†öC¢%õ5B"À¢&öG“¢°¢&V6—–VçEV&Æ–4¶W’À¢6÷'&VÆF–öä–C¢G'W7B×&Wf–WrÖf6RÒG´FFRææ÷r‚—ÖÀ¢ÒÀ¢ÒÀ¢“°¢–b†6†ÆÆVævU&W7öç6Ræ÷&væ—¦F–öä–BÓÒ÷&væ—¦F–öä–B’°¢F‡&÷ræWrW'&÷"‚&6†ÆÆVævR÷&væ—¦F–öâÖ—6ÖF6‚"“°¢Ğ¢6öç7B6†ÆÆVævRÒ6†ÆÆVævU&W7öç6Ræ6†ÆÆVævS°¢–b€¢6†ÆÆVævSòæ6†ÆÆVævT–BÇÀ¢6†ÆÆVævSòç6–væ–æu–ÆöD#cGP¢’°¢F‡&÷ræWrW'&÷"‚&6†ÆÆVævR&W7öç6R—2–æ6ö×ÆWFR"“°¢Ğ ¢6öç7B6–væGW&RÒ6–vâ€¢'6†#Sb"À¢'VffW"æg&öÒ†6†ÆÆVævRç6–væ–æu–ÆöD#cGRÂ&&6ScGW&Â"’À¢°¢¶W“¢&—fFT¶W’À¢FF–æs¢6öç7FçG2å%4õ´53õ55õDD”ärÀ¢6ÇDÆVæwFƒ¢3"À¢ÒÀ¢“° ¢½¹ÍĞÁÉ½½™I•ÍÁ½¹Í”€ô…İ…¥ĞÉ•ÅÕ•ÍĞ¡€‘íÉ•…‘¥¹•ÍÍA…Ñ¡ô½ÁÉ½½™€°ì(€€€€€€€€€€€µ•Ñ¡½è€‰A=MPˆ°(€€€€€€€€€€€‰½‘äèì(€€€€€€€€€€€€€¡…±±•¹•%è¡…±±•¹”¹¡…±±•¹•%°(€€€€€€€€€€€€€É•¥Á¥•¹ÑAÕ‰±¥-•ä°(€€€€€€€€€€€€€Í¥¹…ÑÕÉ•ØÑÔèÍ¥¹…ÑÕÉ”¹Ñ½MÑÉ¥¹œ ‰‰…Í”ØÑÕÉ°ˆ¤°(€€€€€€€€€€€ô°(€€€€€€€€€ô¤ì(€€€€€€€€€¥˜€¡ÁÉ½½™I•ÍÁ½¹Í”ü¹ÁÉ½½˜ü¹­•åA½ÍÍ•ÍÍ¥½¹Y•É¥™¥•€„ôôÑÉÕ”¤ì(€€€€€€€€€€€Ñ¡É½Ü¹•ÜÉÉ½È ‰­•äÁ½ÍÍ•ÍÍ¥½¸ÁÉ½½˜İ…Ì¹½ĞÙ•É¥™¥•ˆ¤ì(€€€€€€€€€ô((€€€€€€€€€const approvedAt = String(proofResponse?.proof?.verifiedAt ?? "");
+          if (!approvedAt || Number.isNaN(Date.parse(approvedAt))) {
+            throw new Error("proof verifiedAt is unavailable");
+          }
+          const enrollmentResponse = await request(readinessPath, {
+            method: "POST",
+            body: {
+              recipientPublicKey,
+              keyProofChallengeId: challenge.challengeId,
+              institutionalApproval: {
+                decision: "approved",
+                assertion: "organization_and_recipient_authorized",
+                reference:
+                  "trust-preview-face-institutional-enrollment-2026-08-27",
+                authority: "API Developers.digital",
+                approvedBy: "igor",
+                approvedAt,
+                subjectOrganizationId: organizationId,
+              },
+            },
+          });
+          if (
+            enrollmentResponse?.enrollment?.status !== "approved" ||
+            enrollmentResponse?.organizationId !== organizationId
+          ) {
+            throw new Error("institutional enrollment was not approved");
+          }
+
+          const after = await request(readinessPath);
+          const safe = {
+            organizationId,
+            enrollmentPresent:
+              after?.enrollment?.enrollmentPresent === true,
+            status: String(after?.enrollment?.status ?? ""),
+            recipientKeyFingerprint: String(
+              after?.enrollment?.recipientKeyFingerprint ?? "",
+            ),
+            keyPossessionVerified:
+              after?.enrollment?.keyPossessionVerified === true,
+            identityVerifiedByThisService:
+              after?.enrollment?.identityVerifiedByThisService === true,
+            secretsIncluded: after?.secretsIncluded === true,
+            privateKeyIncluded: after?.privateKeyIncluded === true,
+            created: enrollmentResponse?.enrollment?.created === true,
+          };
+          if (
+            !safe.enrollmentPresent ||
+            safe.status !== "approved" ||
+            !safe.keyPossessionVerified ||
+            safe.secretsIncluded ||
+            safe.privateKeyIncluded
+          ) {
+            throw new Error("post-enrollment readiness verification failed");
+          }
+
+          console.log(JSON.stringify(safe));
+          const lines = [
+            "### Trust institutional enrollment",
+            "",
+            `- organizationId: \`${safe.organizationId}\``,
+            `- enrollmentPresent: \`${safe.enrollmentPresent}\``,
+            `- status: \`${safe.status}\``,
+            `- recipientKeyFingerprint: \`${safe.recipientKeyFingerprint}\``,
+            `- keyPossessionVerified: \`${safe.keyPossessionVerified}\``,
+            `- privateKeyIncluded: \`${safe.privateKeyIncluded}\``,
+          ];
+          (await import("node:fs")).appendFileSync(
+            process.env.GITHUB_STEP_SUMMARY,
+            `${lines.join("\n")}\n`,
+          );
           NODE
