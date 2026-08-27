@@ -1,0 +1,82 @@
+name: Trust Institutional Enrollment Diagnostic
+
+on:
+  workflow_dispatch:
+    inputs:
+      approval:
+        description: "Exact governed approval token"
+        required: true
+        type: string
+
+permissions:
+  contents: read
+
+jobs:
+  probe:
+    if: github.ref == 'refs/heads/main' && github.event.inputs.approval == 'IGOR_APROVA_TRUST_INSTITUTIONAL_ENROLLMENT_READ'
+    runs-on:
+      - self-hosted
+      - macOS
+      - X64
+    timeout-minutes: 10
+    env:
+      API_GATEWAY_ADMIN_KEY: ${{ secrets.API_GATEWAY_ADMIN_KEY }}
+      ENDPOINT: https://gateway.apidevelopers.digital/v1/trust/evaluation/operator/institutional-enrollment
+    steps:
+      - name: Validate admin credential presence
+        shell: bash
+        run: |
+          set -euo pipefail
+          if [[ -z "${API_GATEWAY_ADMIN_KEY:-}" ]]; then
+            echo "::error title=Credential unavailable::API_GATEWAY_ADMIN_KEY secret is not configured"
+            exit 2
+          fi
+
+      - name: Query sanitized institutional enrollment readiness
+        shell: bash
+        run: |
+          set -euo pipefail
+          response_file="$(mktemp)"
+          trap 'rm -f "$response_file"' EXIT
+          status="$(curl --silent --show-error --output "$response_file" --write-out '%{http_code}' --request GET --header 'Accept: application/json' --header "X-API-Key: ${API_GATEWAY_ADMIN_KEY}" "$ENDPOINT")"
+          if [[ "$status" != "200" ]]; then
+            echo "::error title=Enrollment diagnostic failed::HTTP $status"
+            exit 3
+          fi
+          node - "$response_file" <<'NODE'
+          const fs = require("fs");
+          const body = JSON.parse(fs.readFileSync(process.argv[2], "utf8"));
+          const safe = {
+            allowed: body?.allowed === true,
+            institution: {
+              displayName: String(body?.institution?.displayName ?? ""),
+              githubOrganization: String(body?.institution?.githubOrganization ?? ""),
+              organizationId: String(body?.institution?.organizationId ?? ""),
+            },
+            enrollment: {
+              enrollmentPresent: body?.enrollment?.enrollmentPresent === true,
+              status: String(body?.enrollment?.status ?? ""),
+              recipientKeyFingerprint: String(body?.enrollment?.recipientKeyFingerprint ?? ""),
+              keyPossessionVerified: body?.enrollment?.keyPossessionVerified === true,
+              identityVerifiedByThisService: body?.enrollment?.identityVerifiedByThisService === true,
+            },
+            secretsIncluded: body?.secretsIncluded === true,
+            privateKeyIncluded: body?.privateKeyIncluded === true,
+          };
+          if (safe.secretsIncluded || safe.privateKeyIncluded) throw new Error("unsafe enrollment response");
+          if (safe.institution.organizationId !== "component.organization.apidevelopers-digital") throw new Error("unexpected institutional organizationId");
+          const lines = [
+            "### Trust institutional enrollment diagnostic",
+            "",
+            `- organizationId: \`${safe.institution.organizationId}\``,
+            `- enrollmentPresent: \`${safe.enrollment.enrollmentPresent}\``,
+            `- status: \`${safe.enrollment.status || "missing"}\``,
+            `- recipientKeyFingerprint: \`${safe.enrollment.recipientKeyFingerprint || "missing"}\``,
+            `- keyPossessionVerified: \`${safe.enrollment.keyPossessionVerified}\``,
+            `- identityVerifiedByThisService: \`${safe.enrollment.identityVerifiedByThisService}\``,
+            `- secretsIncluded: \`${safe.secretsIncluded}\``,
+            `- privateKeyIncluded: \`${safe.privateKeyIncluded}\``,
+          ];
+          fs.appendFileSync(process.env.GITHUB_STEP_SUMMARY, `${lines.join("\n")}\n`);
+          console.log(JSON.stringify(safe));
+          NODE
