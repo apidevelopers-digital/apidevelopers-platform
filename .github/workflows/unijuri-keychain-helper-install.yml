@@ -17,22 +17,14 @@ concurrency:
 
 jobs:
   install:
-    runs-on:
-      - self-hosted
-      - macOS
-      - X64
-      - unijuri-keychain
+    runs-on: [self-hosted, macOS, X64, unijuri-keychain]
     timeout-minutes: 15
     steps:
       - name: Preflight dedicated Keychain runner
         shell: bash
         run: |
           set -euo pipefail
-          if [[ "${RUNNER_NAME:-}" != "apidevelopers-mac-ci-05" ]]; then
-            echo "::error::UniJuri helper installation must run on dedicated runner apidevelopers-mac-ci-05"
-            exit 5
-          fi
-          echo "::notice::Dedicated UniJuri Keychain runner preflight passed"
+          [[ "${RUNNER_NAME:-}" == "apidevelopers-mac-ci-05" ]] || { echo "::error::Wrong UniJuri Keychain runner"; exit 5; }
 
       - name: Validate explicit approval
         shell: bash
@@ -40,52 +32,34 @@ jobs:
           APPROVAL: ${{ inputs.example }}
         run: |
           set -euo pipefail
-          if [[ "$APPROVAL" != "IGOR_APROVA_UNIJURI_KEYCHAIN_HELPER_INSTALL" ]]; then
-            echo "::error::Invalid helper installation approval"
-            exit 2
-          fi
+          [[ "$APPROVAL" == "IGOR_APROVA_UNIJURI_KEYCHAIN_HELPER_INSTALL" ]] || { echo "::error::Invalid approval"; exit 2; }
 
       - name: Checkout approved revision
-        uses: actions/checkout4
+        uses: actions/checkout@v4
         with:
           persist-credentials: false
 
-      - name: Resolve full Xcode developer directory
+      - name: Resolve Xcode
         shell: bash
         run: |
           set -euo pipefail
           shopt -s nullglob
-          selected=""
-          candidates=("/Applications/Xcode.app/Contents/Developer")
-          for app in /Applications/Xcode*.app; do
-            candidates+=("$app/Contents/Developer")
-          done
-          for candidate in "${candidates[@]}"; do
+          for candidate in /Applications/Xcode.app/Contents/Developer /Applications/Xcode*.app/Contents/Developer; do
             if [[ -d "$candidate/Platforms/MacOSX.platform" ]]; then
-              selected="$candidate"
-              break
+              echo "DEVELOPER_DIR=$candidate" >> "$GITHUB_ENV"
+              exit 0
             fi
           done
-          if [[ -z "$selected" ]]; then
-            echo "::error title=Full Xcode unavailable::No macOS SDK found"
-            exit 1
-          fi
-          echo "DEVELOPER_DIR=$selected" >> "$GITHUB_ENV"
+          echo "::error::No full Xcode macOS SDK found"
+          exit 1
 
       - name: Build native Keychain helper
         shell: bash
         run: |
           set -euo pipefail
-          DEVELOPER_DIR="$DEVELOPER_DIR" xcrun swift build \
-            --package-path apps/api-gateway/native/operator-keychain-helper \
-            --configuration release \
-            --product operator-keychain-helper \
-            --jobs 2
+          DEVELOPER_DIR="$DEVELOPER_DIR" xcrun swift build             --package-path apps/api-gateway/native/operator-keychain-helper             --configuration release             --product operator-keychain-helper             --jobs 2
           BIN="$(find apps/api-gateway/native/operator-keychain-helper/.build -type f -path '*/release/operator-keychain-helper' -perm -111 | head -n 1)"
-          if [[ -z "$BIN" || ! -x "$BIN" ]]; then
-            echo "::error::Built helper executable not found"
-            exit 1
-          fi
+          [[ -n "$BIN" && -x "$BIN" ]] || { echo "::error::Built helper executable not found"; exit 1; }
           echo "HELPER_BIN=$BIN" >> "$GITHUB_ENV"
           shasum -a 256 "$BIN" | awk '{print "BUILT_SHA256="$1}' >> "$GITHUB_ENV"
 
@@ -95,18 +69,9 @@ jobs:
           set -euo pipefail
           runner_user="$(id -un)"
           console_user="$(/usr/bin/stat -f '%Su' /dev/console 2>/dev/null || true)"
-
-          if [[ -z "$console_user" || "$console_user" != "$runner_user" ]]; then
-            echo "::error title=Interactive privilege unavailable::Runner user must own the active macOS console session"
-            exit 3
-          fi
-
-          if [[ ! -x /usr/bin/osascript ]]; then
-            echo "::error title=Interactive privilege unavailable::/usr/bin/osascript is required"
-            exit 3
-          fi
-
-          test -x "$HELPER_BIN"
+          [[ -n "$console_user" && "$console_user" == "$runner_user" ]] || { echo "::error::Runner user must own active macOS console"; exit 3; }
+          [[ -x /usr/bin/osascript ]] || { echo "::error::osascript unavailable"; exit 3; }
+          [[ -x "$HELPER_BIN" ]] || exit 1
           echo "::notice title=Interactive privilege readiness::consoleUserMatchesRunner=true; osascriptExecutable=true"
 
       - name: Install helper with local macOS administrator prompt
@@ -127,18 +92,12 @@ jobs:
           APPLESCRIPT
 
           INSTALLED_SHA256="$(shasum -a 256 "$TARGET" | awk '{print $1}')"
-          if [[ "$INSTALLED_SHA256" != "$BUILT_SHA256" ]]; then
-            echo "::error::Installed helper hash mismatch"
-            exit 4
-          fi
+          [[ "$INSTALLED_SHA256" == "$BUILT_SHA256" ]] || { echo "::error::Installed helper hash mismatch"; exit 4; }
 
-          OWNER_GROUP_MODE="$(/usr/bin/stat -f '%Su:%Sg:%Lp' "$TARGET")"
-          if [[ "$OWNER_GROUP_MODE" != "root:wheel:755" ]]; then
-            echo "::error title=Installed helper metadata mismatch::expected=root:wheel:755; actual=$OWNER_GROUP_MODE"
-            exit 6
-          fi
+          META="$(/usr/bin/stat -f '%Su:%Sg:%Lp' "$TARGET")"
+          [[ "$META" == "root:wheel:755" ]] || { echo "::error title=Installed helper metadata mismatch::expected=root:wheel:755; actual=$META"; exit 6; }
 
-          echo "::notice title=UniJuri helper install::installed=true; target=$TARGET; sha256=$INSTALLED_SHA256; ownerGroupMode=$OWNER_GROUP_MODE"
+          echo "::notice title=UniJuri helper install::installed=true; target=$TARGET; sha256=$INSTALLED_SHA256; ownerGroupMode=$META"
 
       - name: Verify executable
         shell: bash
