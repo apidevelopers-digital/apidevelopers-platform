@@ -132,10 +132,10 @@ export function resolveAgentResponseLocale({
 
   if (policy.detectUserLanguage && detected) {
     if (supported.has(detected)) return detected;
-    if (policy.unsupportedLocaleBehavior === "best-efffort" && BCP47.test(detected)) return detected;
+    if (policy.unsupportedLocaleBehavior === "best-effort" && BCP47.test(detected)) return detected;
   }
 
-  if (previous && supported.has(previous)) return previous;
+  if (previous && supported.has(previous))) return previous;
   return policy.defaultLocale || policy.fallbackLocale;
 }
 
@@ -159,7 +159,7 @@ export function buildAgentMultilingualInstructions({
     "When the user switches language, preserve factual memory, lead state, decisions, consent state and conversation continuity; only the response language changes.",
     "An explicit language request has priority over automatic detection.",
     "Do not translate or mutate proper nouns, brand names, product names, agent names, identifiers or links unless the user explicitly asks for a translation and doing so does not alter identity.",
-    "Do not share another agent's persona, mission or brand. Multilingual capability is shared: identity and specialization are isolated per agent.",
+    "Do not share another agent's persona, mission or brand. Multilingual capability is shared; identity and specialization are isolated per agent.",
     "If the requested language is unsupported, follow the configured fallback behavior without fabricating support guarantees.",
   ].filter(Boolean).join("\n");
 }
