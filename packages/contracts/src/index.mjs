@@ -13,6 +13,7 @@ export * from "./cognitive-pipeline.mjs";
 export * from "./web-agent-conversation.mjs";
 export * from "./web-international-context.mjs";
 export * from "./web-agent-international-envelope.mjs";
+export * from "./agent-multilingual-policy.mjs";
 export * from "./decision-policy.mjs";
 export * from "./policy-runtime.mjs";
 export * from "./runtime-evidence.mjs";
