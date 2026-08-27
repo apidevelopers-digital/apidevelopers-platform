@@ -1,5 +1,4 @@
 name: Trust Institutional Enrollment Create
-
 on:
   workflow_dispatch:
     inputs:
@@ -7,21 +6,15 @@ on:
         description: "Exact governed approval token"
         required: true
         type: string
-
 permissions:
   contents: read
-
 concurrency:
   group: trust-institutional-enrollment-create
   cancel-in-progress: false
-
 jobs:
   enroll:
     if: github.ref == 'refs/heads/main' && github.event.inputs.approval == 'IGOR_APROVA_TRUST_INSTITUTIONAL_ENROLLMENT_CREATE'
-    runs-on:
-      - self-hosted
-      - macOS
-      - X64
+    runs-on: [self-hosted, macOS, X64]
     timeout-minutes: 10
     env:
       API_GATEWAY_ADMIN_KEY: ${{ secrets.API_GATEWAY_ADMIN_KEY }}
@@ -33,199 +26,27 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          if [[ -z "${API_GATEWAY_ADMIN_KEY:-}" ]]; then
-            echo "::error title=Credential unavailable::API_GATEWAY_ADMIN_KEY is not configured"
-            exit 2
-          fi
-          if [[ -z "${TRUST_INSTITUTIONAL_PRIVATE_KEY_PEM:-}" ]]; then
-            echo "::error title=Institutional key unavailable::TRUST_INSTITUTIONAL_PRIVATE_KEY_PEM is not configured"
-            exit 3
-          fi
-
+          test -n "${API_GATEWAY_ADMIN_KEY:-}" || { echo "::error title=Credential unavailable::API_GATEWAY_ADMIN_KEY is not configured"; exit 2; }
+          test -n "${TRUST_INSTITUTIONAL_PRIVATE_KEY_PEM:-}" || { echo "::error title=Institutional key unavailable::TRUST_INSTITUTIONAL_PRIVATE_KEY_PEM is not configured"; exit 3; }
       - name: Create or confirm institutional enrollment
         shell: bash
         run: |
           set -euo pipefail
           node <<'NODE'
-          const {
-            constants,
-            createPrivateKey,
-            createPublicKey,
-            sign,
-          } = require("node:crypto");
-
-          const gateway = process.env.GATEWAY;
-          const organizationId = process.env.ORGANIZATION_ID;
-          const adminKey = process.env.API_GATEWAY_ADMIN_KEY;
-          const privateKeyPem = process.env.TRUST_INSTITUTIONAL_PRIVATE_KEY_PEM;
-
-          async function request(path, { method = "GET", body } = {}) {
-            const response = await fetch(`${gateway}${path}`, {
-              method,
-              headers: {
-                accept: "application/json",
-                "content-type": "application/json",
-                "x-api-key": adminKey,
-              },
-              ...(body === undefined ? {} : { body: JSON.stringify(body) }),
-            });
-            const text = await response.text();
-            let payload = {};
-            try {
-              payload = text ? JSON.parse(text) : {};
-            } catch {
-              throw new Error(`non-json response from ${path}`);
-            }
-            if (!response.ok) {
-              throw new Error(`${path} failed with HTTP ${response.status}: ${payload.reason ?? "unknown"}`);
-            }
-            return payload;
-          }
-
-          const readinessPath =
-            "/v1/trust/evaluation/operator/institutional-enrollment";
-          const before = await request(readinessPath);
-          if (before?.institution?.organizationId !== organizationId) {
-            throw new Error("unexpected institutional organizationId");
-          }
-          if (before?.enrollment?.enrollmentPresent === true) {
-            const safe = {
-              organizationId,
-              enrollmentPresent: true,
-              status: String(before.enrollment.status ?? ""),
-              recipientKeyFingerprint: String(
-                before.enrollment.recipientKeyFingerprint ?? "",
-              ),
-              keyPossessionVerified:
-                before.enrollment.keyPossessionVerified === true,
-              created: false,
-            };
-            console.log(JSON.stringify(safe));
-            process.exit(0);
-          }
-
-          const privateKey = createPrivateKey(privateKeyPem);
-          if (privateKey.asymmetricKeyType !== "rsa") {
-            throw new Error("institutional private key must be RSA");
-          }
-          const modulusLength = Number(
-            privateKey.asymmetricKeyDetails?.modulusLength ?? 0,
-          );
-          if (modulusLength < 2048) {
-            throw new Error("institutional RSA key must be at least 2048 bits");
-          }
-          const recipientPublicKey = createPublicKey(privateKey)
-            .export({ type: "spki", format: "pem" })
-            .toString();
-
-          const challengeResponse = await request(
-            `${readinessPath}/challenge`,
-            {
-              method: "POST",
-              body: {
-                recipientPublicKey,
-                correlationId: `trust-preview-face-${Date.now()}`,
-              },
-            },
-          );
-          if (challengeResponse.organizationId !== organizationId) {
-            throw new Error("challenge organization mismatch");
-          }
-          const challenge = challengeResponse.challenge;
-          if (
-            !challenge?.challengeId ||
-            !challenge?.signingPayloadB64u
-          ) {
-            throw new Error("challenge response is incomplete");
-          }
-
-          const signature = sign(
-            "sha256",
-            Buffer.from(challenge.signingPayloadB64u, "base64url"),
-            {
-              key: privateKey,
-              padding: constants.RSA_PKCS1_PSS_PADDING,
-              saltLength: 32,
-            },
-          );
-
-          const proofResponse = await request(`${readinessPath}/proof`, {
-            method: "POST",
-            body: {
-              challengeId: challenge.challengeId,
-              recipientPublicKey,
-              signatureB64u: signature.toString("base64url"),
-            },
-          });
-          if (proofResponse?.proof?.keyPossessionVerified !== true) {
-            throw new Error("key possession proof was not verified");
-          }
-
-          const approvedAt = new Date(Date.now() - 1000).toISOString();
-          const enrollmentResponse = await request(readinessPath, {
-            method: "POST",
-            body: {
-              recipientPublicKey,
-              keyProofChallengeId: challenge.challengeId,
-              institutionalApproval: {
-                decision: "approved",
-                assertion: "organization_and_recipient_authorized",
-                reference:
-                  "trust-preview-face-institutional-enrollment-2026-08-27",
-                authority: "API Developers.digital",
-                approvedBy: "igor",
-                approvedAt,
-                subjectOrganizationId: organizationId,
-              },
-            },
-          });
-          if (
-            enrollmentResponse?.enrollment?.status !== "approved" ||
-            enrollmentResponse?.organizationId !== organizationId
-          ) {
-            throw new Error("institutional enrollment was not approved");
-          }
-
-          const after = await request(readinessPath);
-          const safe = {
-            organizationId,
-            enrollmentPresent:
-              after?.enrollment?.enrollmentPresent === true,
-            status: String(after?.enrollment?.status ?? ""),
-            recipientKeyFingerprint: String(
-              after?.enrollment?.recipientKeyFingerprint ?? "",
-            ),
-            keyPossessionVerified:
-              after?.enrollment?.keyPossessionVerified === true,
-            identityVerifiedByThisService:
-              after?.enrollment?.identityVerifiedByThisService === true,
-            secretsIncluded: after?.secretsIncluded === true,
-            privateKeyIncluded: after?.privateKeyIncluded === true,
-            created: enrollmentResponse?.enrollment?.created === true,
-          };
-          if (
-            !safe.enrollmentPresent ||
-            safe.status !== "approved" ||
-            !safe.keyPossessionVerified ||
-            safe.secretsIncluded ||
-            safe.privateKeyIncluded
-          ) {
-            throw new Error("post-enrollment readiness verification failed");
-          }
-
-          console.log(JSON.stringify(safe));
-          const lines = [
-            "### Trust institutional enrollment",
-            "",
-            `- organizationId: \`${safe.organizationId}\``,
-            `- enrollmentPresent: \`${safe.enrollmentPresent}\``,
-            `- status: \`${safe.status}\``,
-            `- recipientKeyFingerprint: \`${safe.recipientKeyFingerprint}\``,
-            `- keyPossessionVerified: \`${safe.keyPossessionVerified}\``,
-            `- privateKeyIncluded: \`${safe.privateKeyIncluded}\``,
-          ];
-          require("node:fs").appendFileSync(
-            process.env.GITHUB_STEP_SUMMARY,
-            `${lines.join("\n")}\n`,
-          );
+          const {constants,createPrivateKey,createPublicKey,sign}=await import("node:crypto");
+          const {appendFileSync}=await import("node:fs");
+          const gateway=process.env.GATEWAY,organizationId=process.env.ORGANIZATION_ID,adminKey=process.env.API_GATEWAY_ADMIN_KEY,privateKeyPem=process.env.TRUST_INSTITUTIONAL_PRIVATE_KEY_PEM;
+          async function request(path,{method="GET",body}={}){const r=await fetch(`${gateway}${path}`,{method,headers:{accept:"application/json","content-type":"application/json","x-api-key":adminKey},...(body===undefined?{}:{body:JSON.stringify(body)})});const t=await r.text();let p={};try{p=t?JSON.parse(t):{}}catch{throw new Error(`non-json response from ${path}`)}if(!r.ok)throw new Error(`${path} failed with HTTP ${r.status}: ${p.reason??"unknown"}`);return p}
+          const readinessPath="/v1/trust/evaluation/operator/institutional-enrollment";
+          const before=await request(readinessPath);
+          if(before?.institution?.organizationId!==organizationId)throw new Error("unexpected institutional organizationId");
+          if(before?.enrollment?.enrollmentPresent===true){console.log(JSON.stringify({organizationId,enrollmentPresent:true,status:String(before.enrollment.status??""),recipientKeyFingerprint:String(before.enrollment.recipientKeyFingerprint??""),keyPossessionVerified:before.enrollment.keyPossessionVerified===true,created:false}));process.exit(0)}
+          const privateKey=createPrivateKey(privateKeyPem);
+          if(privateKey.asymmetricKeyType!=="rsa"||Number(privateKey.asymmetricKeyDetails?.modulusLength??0)<2048)throw new Error("institutional private key must be RSA >= 2048 bits");
+          const recipientPublicKey=createPublicKey(privateKey).export({type:"spki",format:"pem"}).toString();
+         ÛÛœİÚ[[™ÙT™\ÜÛœÙOX]ØZ]™\]Y\İ
+	Ü™XY[™\ÜÔ]KØÚ[[™ÙXÛY]Ùˆ”ÔÕ‹›ÙNÜ™XÚ\Y[X›XÒÙ^KÛÜœ™[][Û’Y˜\İ\™]šY]ËY˜XÙKIÑ]K››İÊ
+_X_JNÂˆYŠÚ[[™ÙT™\ÜÛœÙK›Ü™Ø[š^˜][Û’YOO[Ü™Ø[š^˜][Û’Y
+]›İÈ™]È\œ›ÜŠ˜Ú[[™ÙHÜ™Ø[š^˜][ÛˆZ\ÛX]ÚŠNÂˆ6öç7B6†ÆÆVævSÖ6†ÆÆVævU&W7öç6Ræ6†ÆÆVævS°¢–b‚6†ÆÆVævSòæ6†ÆÆVævT–GÇÂ6†ÆÆVævSòç6–væ–æu–ÆöD#cGR—F‡&÷ræWrW'&÷"‚&6†ÆÆVævR&W7öç6R—2–æ6ö×ÆWFR"“°¢½¹ÍĞÍ¥¹…ÑÕÉ”õÍ¥¸ ‰Í¡„ÈÔØˆ±	Õ™™•È¹™É½´¡¡…±±•¹”¹Í¥¹¥¹A…å±½…‘ØÑÔ°‰‰…Í”ØÑÕÉ°ˆ¤±í­•äéÁÉ¥Ù…Ñ•-•ä±Á…‘‘¥¹œé½¹ÍÑ…¹ÑÌ¹IM}A-LÅ}AMM}A%9±Í…±Ñ1•¹Ñ èÌÉô¤ì(€€€€€€€€€½¹ÍĞÁÉ½½™I•ÍÁ½¹Í”õ…İ…¥ĞÉ•ÅÕ•ÍĞ¡€‘íÉ•…‘¥¹•ÍÍA…Ñ¡ô½ÁÉ½½™€±íµ•Ñ¡½è‰A=MPˆ±‰½‘äéí¡…±±•¹•%é¡…±±•¹”¹¡…±±•¹•%±É•¥Á¥•¹ÑAÕ‰±¥-•ä±Í¥¹…ÑÕÉ•ØÑÔéÍ¥¹…ÑÕÉ”¹Ñ½MÑÉ¥¹œ ‰‰…Í”ØÑÕÉ°ˆ¥õô¤ì(€€€€€€€€€¥˜¡ÁÉ½½™I•ÍÁ½¹Í”ü¹ÁÉ½½˜ü¹­•åA½ÍÍ•ÍÍ¥½¹Y•É¥™¥•„ôõÑÉÕ”¥Ñ¡É½Ü¹•ÜÉÉ½È ‰­•äÁ½ÍÍ•ÍÍ¥½¸ÁÉ½½˜İ…Ì¹½ĞÙ•É¥™¥•ˆ¤ì(€€€€€€€€€½¹ÍĞ…ÁÁÉ½Ù•‘ĞõMÑÉ¥¹œ¡ÁÉ½½™I•ÍÁ½¹Í”ü¹ÁÉ½½˜ü¹Ù•É¥™¥•‘Ğüüˆˆ¤ì(€€€€€€€€€¥˜ ……ÁÁÉ½Ù•‘Ñññ9Õµ‰•È¹¥Í9…8¡…Ñ”¹Á…ÉÍ”¡…ÁÁÉ½Ù•‘Ğ¤¤¥Ñ¡É½Ü¹•ÜÉÉ½È ‰ÁÉ½½˜Ù•É¥™¥•‘Ğ¥ÌÕ¹…Ù…¥±…‰±”ˆ¤ì(€€€€€€€€€½¹ÍĞ•¹É½±±µ•¹ÑI•ÍÁ½¹Í”õ…İ…¥ĞÉ•ÅÕ•ÍĞ¡É•…‘¥¹•ÍÍA…Ñ ±íµ•Ñ¡½è‰A=MPˆ±‰½‘äéíÉ•¥Á¥•¹ÑAÕ‰±¥-•ä±­•åAÉ½½™¡…±±•¹•%é¡…±±•¹”¹¡…±±•¹•%±¥¹ÍÑ¥ÑÕÑ¥½¹…±ÁÁÉ½Ù…°éí‘•¥Í¥½¸è‰…ÁÁÉ½Ù•ˆ±…ÍÍ•ÉÑ¥½¸è‰½É…¹¥é…Ñ¥½¹}…¹‘}É•¥Á¥•¹Ñ}…ÕÑ¡½É¥é•ˆ±É•™•É•¹”è‰ÑÉÕÍĞµÁÉ•Ù¥•Üµ™…”µ¥¹ÍÑ¥ÑÕÑ¥½¹…°µ•¹É½±±µ•¹Ğ´ÈÀÈØ´Àà´ÈÜˆ±…ÕÑ¡½É¥Ñäè‰A$•Ù•±½Á•ÉÌ¹‘¥¥Ñ…°ˆ±…ÁÁÉ½Ù•‘	äè‰¥½Èˆ±…ÁÁÉ½Ù•‘Ğ±ÍÕ‰©•Ñ=É…¹¥é…Ñ¥½¹%é½É…¹¥é…Ñ¥½¹%‘õõô¤ì(€€€€€€€€€¥˜¡•¹É½±±µ•¹ÑI•ÍÁ½¹Í”ü¹•¹É½±±µ•¹Ğü¹ÍÑ…ÑÕÌ„ôô‰…ÁÁÉ½Ù•‰ññ•¹É½±±µ•¹ÑI•ÍÁ½¹Í”ü¹½É…¹¥é…Ñ¥½¹%„ôõ½É…¹¥é…Ñ¥½¹%¥Ñ¡É½Ü¹•ÜÉÉ½È ‰¥¹ÍÑ¥ÑÕÑ¥½¹…°•¹É½±±µ•¹Ğİ…Ì¹½Ğ…ÁÁÉ½Ù•ˆ¤ì(€€€€€€€€€½¹ÍĞ…™Ñ•Èõ…İ…¥ĞÉ•ÅÕ•ÍĞ¡É•…‘¥¹•ÍÍA…Ñ ¤ì(€€€€€€€€€½¹ÍĞÍ…™”õí½É…¹¥é…Ñ¥½¹%±•¹É½±±µ•¹ÑAÉ•Í•¹Ğé…™Ñ•Èü¹•¹É½±±µ•¹Ğü¹•¹É½±±µ•¹ÑAÉ•Í•¹ĞôôõÑÉÕ”±ÍÑ…ÑÕÌéMÑÉ¥¹œ¡…™Ñ•Èü¹•¹É½±±µ•¹Ğü¹ÍÑ…ÑÕÌüüˆˆ¤±É•¥Á¥•¹Ñ-•å¥¹•ÉÁÉ¥¹ĞéMÑÉ¥¹œ¡…™Ñ•Èü¹•¹É½±±µ•¹Ğü¹É•¥Á¥•¹Ñ-•å¥¹•ÉÁÉ¥¹Ğüüˆˆ¤±­•åA½ÍÍ•ÍÍ¥½¹Y•É¥™¥•é…™Ñ•Èü¹•¹É½±±µ•¹Ğü¹­•åA½ÍÍ•ÍÍ¥½¹Y•É¥™¥•ôôõÑÉÕ”±¥‘•¹Ñ¥ÑåY•É¥™¥•‘	åQ¡¥ÍM•ÉÙ¥”é…™Ñ•Èü¹•¹É½±±µ•¹Ğü¹¥‘•¹Ñ¥ÑåY•É¥™¥•‘	åQ¡¥ÍM•ÉÙ¥”ôôõÑÉÕ”±Í•É•ÑÍ%¹±Õ‘•é…™Ñ•Èü¹Í•É•ÑÍ%¹±Õ‘•ôôõÑÉÕ”±ÁÉ¥Ù…Ñ•-•å%¹±Õ‘•é…™Ñ•Èü¹ÁÉ¥Ù…Ñ•-•å%¹±Õ‘•ôôõÑÉÕ”±É•…Ñ•é•¹É½±±µ•¹ÑI•ÍÁ½¹Í”ü¹•¹É½±±µ•¹Ğü¹É•…Ñ•ôôõÑÉÕ•ôì(€€€€€€€€€¥˜ …Í…™”¹•¹É½±±µ•¹ÑAÉ•Í•¹ÑññÍ…™”¹ÍÑ…ÑÕÌ„ôô‰…ÁÁÉ½Ù•‰ñğ…Í…™”¹­•åA½ÍÍ•ÍÍ¥½¹Y•É¥™¥•‘ññÍ…™”¹Í•É•ÑÍ%¹±Õ‘•‘ññÍ…™”¹ÁÉ¥Ù…Ñ•-•å%¹±Õ‘•¥Ñ¡É½Ü¹•ÜÉÉ½È ‰Á½ÍĞµ•¹É½±±µ•¹ĞÉ•…‘¥¹•ÍÌÙ•É¥™¥…Ñ¥½¸™…¥±•ˆ¤ì(€€€€€€€€€console.log(JSON.stringify(safe));
+          appendFileSync(process.env.GITHUB_STEP_SUMMARY,`### Trust institutional enrollment\n\n- organizationId: \`${safe.organizationId}\`\n- enrollmentPresent: \`${safe.enrollmentPresent}\`\n- status: \`${safe.status}\`\n- recipientKeyFingerprint: \`${safe.recipientKeyFingerprint}\`\n- keyPossessionVerified: \`${safe.keyPossessionVerified}\`\n- privateKeyIncluded: \`${safe.privateKeyIncluded}\`\n`);
           NODE
