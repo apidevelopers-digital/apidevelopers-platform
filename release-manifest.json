@@ -3,7 +3,7 @@
   "format": "managed-node-zip",
   "service": "api-gateway",
   "version": "0.8.0",
-  "sourceRevision": "24c0f052b7304154c79e28dd28b7a5fa1f46d539",
+  "sourceRevision": "367285930f5d312a6ee095b71d1ae17a061d65d7",
   "runtime": {
     "node": ">=22",
     "entrypoint": "src/hostinger-entry.mjs",
@@ -287,6 +287,11 @@
       "path": "src/global-trust-incident-queue.mjs",
       "bytes": 11736,
       "sha256": "3a1607154f9c8f303176a179d37ed4dcdf027d4078cf758e05a1bb964778ad7f"
+    },
+    {
+      "path": "src/global-trust-institutional-enrollment-http.mjs",
+      "bytes": 4331,
+      "sha256": "1548a2b884d331d006af2dfb16bc80483d73add29c65a5a179e6ea040976d08b"
     },
     {
       "path": "src/global-trust-integrity-backfill-confirmation.mjs",
@@ -605,8 +610,8 @@
     },
     {
       "path": "src/operational-trust-evaluation-composition.mjs",
-      "bytes": 4682,
-      "sha256": "3465ea9b676204eb9aa2843cf5e0552eab8806b2541d5f82d0de19ffe3c46069"
+      "bytes": 5474,
+      "sha256": "cd69bd32674c3a0faccaed3efeca37fc71e4192b577db0c5eca6a780655ce6c8"
     },
     {
       "path": "src/operational-trust-evaluation-portal-composition.mjs",
