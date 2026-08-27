@@ -1,32 +1,22 @@
 export const AGENT_MULTILINGUAL_CONTRACT_VERSION = "1.0.0";
 
 export const AGENT_MULTILINGUAL_BASELINE_LOCALES = Object.freeze([
-  "pt-BR",
-  "en",
-  "es",
-  "fr",
-  "de",
-  "it",
-  "nl",
-  "ja",
-  "ko",
-  "zh-CN",
-  "ar",
+  "pt-BR", "en", "es", "fr", "de", "it", "nl", "ja", "ko", "zh-CN", "ar",
 ]);
 
 const BCP47 = /^[A-Za-z]{2,3}(?:-[A-Za-z0-9]{2,8})*$/;
 
-function nonEmptyString(value, name) {
+function requireText(value, name) {
   if (typeof value !== "string" || !value.trim()) {
-    throw new Error(`${name} must be a non-empty string`);
+    throw new Error(name + " must be a non-empty string");
   }
   return value.trim();
 }
 
-function assertLocale(locale, name) {
-  const value = nonEmptyString(locale, name);
-  if (!BCP47.test(value)) throw new Error(`${name} must be a BCP 47 tag`);
-  return value;
+function requireLocale(value, name) {
+  const locale = requireText(value, name);
+  if (!BCP47.test(locale)) throw new Error(name + " must be a BCP 47 tag");
+  return locale;
 }
 
 export function isAgentBaselineLocale(locale) {
@@ -46,27 +36,23 @@ export function createAgentMultilingualPolicy({
   preserveMemoryAcrossLanguageSwitch = true,
   unsupportedLocaleBehavior = "fallback",
 } = {}) {
-  const normalizedSupportedLocales = [...new Set(
+  const locales = [...new Set(
     (Array.isArray(supportedLocales) ? supportedLocales : []).map((locale) =>
-      assertLocale(locale, "supportedLocales[]"),
+      requireLocale(locale, "supportedLocales[]"),
     ),
   )];
 
-  if (!normalizedSupportedLocales.length) {
-    throw new Error("supportedLocales must contain at least one locale");
-  }
+  if (!locales.length) throw new Error("supportedLocales must contain at least one locale");
 
-  const normalizedDefaultLocale = assertLocale(defaultLocale, "defaultLocale");
-  const normalizedFallbackLocale = assertLocale(fallbackLocale, "fallbackLocale");
+  const normalizedDefault = requireLocale(defaultLocale, "defaultLocale");
+  const normalizedFallback = requireLocale(fallbackLocale, "fallbackLocale");
 
-  if (!normalizedSupportedLocales.includes(normalizedDefaultLocale)) {
+  if (!locales.includes(normalizedDefault)) {
     throw new Error("defaultLocale must be included in supportedLocales");
   }
-
-  if (!normalizedSupportedLocales.includes(normalizedFallbackLocale)) {
+  if (!locales.includes(normalizedFallback)) {
     throw new Error("fallbackLocale must be included in supportedLocales");
   }
-
   if (!["fallback", "best-effort"].includes(unsupportedLocaleBehavior)) {
     throw new Error("unsupportedLocaleBehavior must be fallback or best-effort");
   }
@@ -74,9 +60,9 @@ export function createAgentMultilingualPolicy({
   return Object.freeze({
     contract: "AgentMultilingualPolicy",
     version: AGENT_MULTILINGUAL_CONTRACT_VERSION,
-    defaultLocale: normalizedDefaultLocale,
-    fallbackLocale: normalizedFallbackLocale,
-    supportedLocales: Object.freeze(normalizedSupportedLocales),
+    defaultLocale: normalizedDefault,
+    fallbackLocale: normalizedFallback,
+    supportedLocales: Object.freeze(locales),
     detectUserLanguage: Boolean(detectUserLanguage),
     preserveConversationLanguage: Boolean(preserveConversationLanguage),
     allowLanguageSwitch: Boolean(allowLanguageSwitch),
@@ -89,20 +75,14 @@ export function createAgentMultilingualPolicy({
 }
 
 export function assertAgentMultilingualPolicy(value, name = "agentMultilingualPolicy") {
-  if (!value || typeof value !== "object") throw new Error($`{name} must be an object`$);
+  if (!value || typeof value !== "object") throw new Error(name + " must be an object");
   if (value.contract !== "AgentMultilingualPolicy") {
-    throw new Error($`{name}.contract must be AgentMultilingualPolicy`$);
+    throw new Error(name + ".contract must be AgentMultilingualPolicy");
   }
   if (value.version !== AGENT_MULTILINGUAL_CONTRACT_VERSION) {
-    throw new Error($`{name}.version must be ${AGENT_MULTILINGUAL_CONTRACT_VERSION}`$);
+    throw new Error(name + ".version must be " + AGENT_MULTILINGUAL_CONTRACT_VERSION);
   }
-
-  const policy = createAgentMultilingualPolicy(value);
-
-  for (const locale of policy.supportedLocales) {
-    assertLocale(locale, `${name}.supportedLocales[]`);
-  }
-
+  createAgentMultilingualPolicy(value);
   return value;
 }
 
@@ -145,15 +125,15 @@ export function buildAgentMultilingualInstructions({
   policy = createAgentMultilingualPolicy(),
 } = {}) {
   assertAgentMultilingualPolicy(policy, "policy");
-  const agent = nonEmptyString(agentName, "agentName");
+  const agent = requireText(agentName, "agentName");
   const brand = String(brandName ?? "").trim();
 
   return [
     "MULTILINGUAL AGENT CONTRACT",
-    `Agent identity: ${agent}.`,
-    brand ? `Brand/organization identity: ${brand}.` : "",
-    `Supported baseline locales: ${policy.supportedLocales.join(", ")}.`,
-    `Default locale: ${policy.defaultLocale}. Fallback locale: ${policy.fallbackLocale}.`,
+    "Agent identity: " + agent + ".",
+    brand ? "Brand/organization identity: " + brand + "." : "",
+    "Supported baseline locales: " + policy.supportedLocales.join(", ") + ".",
+    "Default locale: " + policy.defaultLocale + ". Fallback locale: " + policy.fallbackLocale + ".",
     "Detect the user's language from the conversation and answer in that language when supported.",
     "Keep the conversation language stable across memory unless the user clearly switches language or explicitly asks for another language.",
     "When the user switches language, preserve factual memory, lead state, decisions, consent state and conversation continuity; only the response language changes.",
