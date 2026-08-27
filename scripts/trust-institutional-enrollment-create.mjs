@@ -149,12 +149,12 @@ appendFileSync(
   [
     "### Trust institutional enrollment",
     "",
-    `- organizationId: \\`${safe.organizationId}\\``,
-    `- enrollmentPresent: \\`${safe.enrollmentPresent}\\``,
-    `- status: \\`${safe.status}\\``,
-    `- recipientKeyFingerprint: \\`${safe.recipientKeyFingerprint}\\``,
-    `- keyPossessionVerified: \\`${safe.keyPossessionVerified}\\``,
-    `- privateKeyIncluded: \\`${safe.privateKeyIncluded}\\``,
+    `- organizationId: ${safe.organizationId}`,
+    `- enrollmentPresent: ${safe.enrollmentPresent}`,
+    `- status: ${safe.status}`,
+    `- recipientKeyFingerprint: ${safe.recipientKeyFingerprint}`,
+    `- keyPossessionVerified: ${safe.keyPossessionVerified}`,
+    `- privateKeyIncluded: ${safe.privateKeyIncluded}`,
     "",
   ].join("\n"),
 );
