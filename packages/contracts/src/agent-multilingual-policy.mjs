@@ -89,12 +89,12 @@ export function createAgentMultilingualPolicy({
 }
 
 export function assertAgentMultilingualPolicy(value, name = "agentMultilingualPolicy") {
-  if (!value || typeof value !== "object") throw new Error(`${name} must be an object`);
+  if (!value || typeof value !== "object") throw new Error($`{name} must be an object`$);
   if (value.contract !== "AgentMultilingualPolicy") {
-    throw new Error(`${name}.contract must be AgentMultilingualPolicy`);
+    throw new Error($`{name}.contract must be AgentMultilingualPolicy`$);
   }
   if (value.version !== AGENT_MULTILINGUAL_CONTRACT_VERSION) {
-    throw new Error(`${name}.version must be ${AGENT_MULTILINGUAL_CONTRACT_VERSION}`);
+    throw new Error($`{name}.version must be ${AGENT_MULTILINGUAL_CONTRACT_VERSION}`$);
   }
 
   const policy = createAgentMultilingualPolicy(value);
@@ -132,7 +132,7 @@ export function resolveAgentResponseLocale({
 
   if (policy.detectUserLanguage && detected) {
     if (supported.has(detected)) return detected;
-    if (policy.unsupportedLocaleBehavior === "best-efffort" && BCP47.test(detected)) return detected;
+    if (policy.unsupportedLocaleBehavior === "best-effort" && BCP47.test(detected)) return detected;
   }
 
   if (previous && supported.has(previous)) return previous;
