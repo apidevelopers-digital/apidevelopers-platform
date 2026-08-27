@@ -16,7 +16,7 @@ jobs:
           test -n "${API_GATEWAY_ADMIN_KEY:-}"
           test -n "${TRUST_INSTITUTIONAL_PRIVATE_KEY_PEM:-}"
           node <<'NODE'
-          const {createPrivateKey,createPublicKey}=require("node:crypto");
+          const {createPrivateKey,createPublicKey}=await import("node:crypto");
           const priv=createPrivateKey(process.env.TRUST_INSTITUTIONAL_PRIVATE_KEY_PEM);
           const pub=createPublicKey(priv).export({type:"spki",format:"pem"}).toString();
           const path="/v1/trust/evaluation/operator/institutional-enrollment/challenge";
