@@ -68,6 +68,17 @@ test("unsupported explicit language request falls back safely", () => {
   }), "pt-BR");
 });
 
+
+test("best-effort mode can keep a valid non-baseline BCP 47 locale", () => {
+  const policy = createAgentMultilingualPolicy({
+    unsupportedLocaleBehavior: "best-effort",
+  });
+  assert.equal(resolveAgentResponseLocale({
+    detectedLocale: "ru",
+    policy,
+  }), "ru");
+});
+
 test("instructions keep multilingual capability shared but personas isolated", () => {
   const text = buildAgentMultilingualInstructions({
     agentName: "NEXUS",
