@@ -1,69 +1,119 @@
-# Trust Preview / Face — Runner Route
+# Trust Preview / Face — Continuity
 
-**Status:** continuity checkpoint
-**Date:** 2026-08-26
-**Repository:** `apidevelopers-digital/apidevelopers-platform`
-**Front:** Trust Preview / Face / UniJuri Keychain
+**Status:** corrected continuity checkpoint  
+**Date:** 2026-08-26  
+**Repository:** `apidevelopers-digital/apidevelopers-platform`  
+**Main checkpoint:** `33c10c6d073055e6fca97d67fdd5f99425e54c56`  
+**Front:** `trust-preview.apidevelopers.digital` → Face
 
-## 1. Operational source of truth
+## 1. Scope
 
-Do not assume a runner name from stale GPT memory. Before changing `runs-on`, verify the live organization runner inventory.
+This checkpoint covers only the Trust Preview / Face front.
 
-Evidence supplied from GitHub Organization Settings > Actions > Runners on 2026-08-26 shows six active self-hosted macOS runners:
+The active scope is the Global Trust / biometric / Face path implemented in the API Gateway and its Trust-specific CI, governance, Evaluation sandbox, adapter and live-provider boundaries.
 
-- `apidevelopers-mac-ci-01`
-- `apidevelopers-mac-ci-02`
-- `apidevelopers-mac-ci-03`
-- `apidevelopers-mac-ci-04`
-- `apidevelopers-mac-ci-05`
-- `pidevelopers-mac-ci-06`
+## 2. Explicitly out of scope
 
-Observed common labels include `self-hosted`, `macOS`, `X64`, and `apidevelopers`; some runners also show `organization-macos-ci`.
+The following are separate work and must not be counted as Trust Preview / Face progress:
 
-At this checkpoint, no runner named or labeled `igor-mac-runner` was visible in the live inventory.
+- UniJuri delegated binding;
+- UniJuri Keychain provisioning;
+- UniJuri Keychain helper installation;
+- UniJuri runner selection or Keychain capability labels;
+- PR #316 and any UniJuri provisioning runs;
+- draft PR #319 and its `unijuri-keychain` runner work.
 
-## 2. Current blocking evidence
+Presence in the same `api-gateway` repository does not establish a dependency between Trust Face and UniJuri.
 
-- PR #316 merged to `main` at `adffd04d65dc9e71b5aa5c3e8040ea6c9d23e00e`.
-- The merged UniJuri provisioning workflow currently requires the extra selector `igor-mac-runner`.
-- Provisioning run #3 (`33024424849`) remained queued with `runner_id: 0` and no assigned runner.
-- A separate `UniJuri Keychain Helper Install` run landed on `apidevelopers-mac-ci-05`.
-- On `apidevelopers-mac-ci-05`, the native helper build succeeded; the job failed at `Preflight privileged install` because the workflow requires passwordless non-interactive `sudo`.
+## 3. Correction of the previous checkpoint
 
-## 3. Chosen runner for this front
+The previous content of this document incorrectly mixed Trust Preview / Face continuity with UniJuri Keychain runner work.
 
-Use **`apidevelopers-mac-ci-05`** as the first dedicated UniJuri Keychain operator host.
+That association is superseded by this checkpoint.
 
-Reason: it is the runner with direct existing evidence for this exact helper-install path. Keeping the same host minimizes variables while resolving the privileged-install boundary.
+PR #318 preserved a continuity document but the content was contaminated by the same cross-front assumption. The merge itself is historical evidence only; its UniJuri details are not a blocker or progress signal for Trust Preview / Face.
 
-Do not rely on the runner *name* as a `runs-on` label unless GitHub confirms that label exists.
+Do not inherit the previously stated 94% or 95% Trust Face percentages from UniJuri work. Recompute progress from Trust-only evidence.
 
-## 4. Safe routing rule
+## 4. Confirmed Trust-only implementation
 
-Preferred deterministic route:
+Current `main` contains Trust-specific implementation and active workflows including:
 
-1. add/verify one unique runner label on `apidevelopers-mac-ci-05`, e.g. `unijuri-keychain`;
-2. target provisioning/helper workflows with:
-   - `self-hosted`
-   - `macOS`
-   - `X64`
-   - `unijuri-keychain`
-3. make the helper available on that runner and verify `/usr/local/libexec/apidevelopers/operator-keychain-helper` is executable;
-4. only then execute create-only UniJuri provisioning;
-5. collect only the public key and sanitized evidence;
-6. continue Trust Preview / Face end-to-end validation.
+- `Global Trust Biometric Payment CI`;
+- `Global Trust Biometric Payment PostgreSQL Durability CO`;
+- `Global Trust Biometric Payment Production Activation CI`;
+- `Global Trust Evaluation Approved Onboarding CI`;
+- `Global Trust Evaluation Credential Envelope CI`;
+- `Global Trust Evaluation Envelope Transport CI`;
+- `Global Trust Evaluation Operational CI`;
+- `Global Trust Evaluation Portal CI`;
+- `Global Trust Evaluation Recipient Key Enrollment CI`;
+- `Global Trust Evaluation Recipient Key Proof CI`;
+- `Global Trust Evaluation Sealed Handoff Integration CI`;
+- `Global Trust Evaluation Tenant CI`;
+- `Global Trust Staging Harness CI`;
+- `Global Trust Staging Harness Hardening CI`;
+- `Global Trust Staging Operational Bindings CI`;
+- `Trust Governance Runtime CI`;
+- `Trust M3 Operational CI`;
+- `Trust M3 Packaging CI`;
+- `Trust M4 Adapter Contract Preflight CI`;
+- `Trust M4 AWS Adapter Dry Run CI`.
 
-## 5. Safety boundary
+The gateway package also declares Trust-specific runtime dependencies:
 
-Do not repeat provisioning blindly while a prior create-only attempt may have partially written local state.
+- `@apidevelopers/trust-biometric-adapter-aws`;
+- `@apidevelopers/trust-biometric-adapter-contract`;
+- `@apidevelopers/trust-governance-runtime`.
 
-Before another real provisioning run, confirm:
-- deterministic runner selection;
-- helper executable readiness;
-- create-only semantics;
-- no secret output;
-- exact approved `main` SHA.
+## 5. Face-specific boundary
 
-## 6. Next operational action
+`apps/api-gateway/src/global-trust-face-lab-live-provider.mjs` is a Trust Face live-provider boundary.
 
-First fix deterministic runner selection around `apidevelopers-mac-ci-05` and its unique capability label. Do not start a new provisioning run until that route is verified.
+It is fail-closed: the provider is created only when the required Trust AWS live-call flags, explicit sandbox approval, region and S3 configuration are present. Otherwise it returns no live provider.
+
+This file is Trust-specific and is the correct implementation family for the Face continuation.
+
+## 6. Evaluation safety boundary
+
+The current Evaluation onboarding documentation explicitly keeps Evaluation in sandbox:
+
+- `environment = sandbox`;
+- `financialEgress = blocked`;
+- `realMoney = false`;
+- `biometricMaterialAccepted = false`.
+
+It also states that code/test success is not evidence of deploy, real-customer onboarding, external credential delivery, production activation or real-money approval.
+
+Therefore Evaluation readiness must not be confused with live Face preview readiness.
+
+## 7. Verified historical CI evidence
+
+The `Global Trust Biometric Payment CI` workflow has a recorded successful run for PR #171 at head `358a6f22b96676647f9427b57b8754c4546f26b0`.
+
+This confirms code/test evidence for the biometric payment contract family. It does not by itself prove that the current public Face preview is deployed or operational end to end.
+
+## 8. Current reanchored direction
+
+From this checkpoint onward, continue only through the Trust Face path:
+
+1. identify the public Face entrypoint behind `trust-preview.apidevelopers.digital`;
+2. map it to the current Trust Face / biometric gateway implementation;
+3. verify the current deployment/runtime surface;
+4. verify the Face flow end to end with Trust-specific evidence;
+5. recompute the front percentage only from those findings;
+6. close remaining Trust-only gaps toward 100%.
+
+## 9. Continuity rule
+
+When resuming this front:
+
+- read this checkpoint;
+- re-read current `main`;
+- inspect Trust-specific PRs, workflows, runs and commits;
+- ignore UniJuri unless an explicit, current GitHub authority proves a direct dependency;
+- never use UniJuri runner or Keychain work as Trust Face progress.
+
+## 10. Next action
+
+Audit the live/public Face route and its binding to the current Trust Face implementation before making any further code or infrastructure change.
