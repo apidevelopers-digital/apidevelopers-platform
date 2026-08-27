@@ -63,75 +63,48 @@ jobs:
           echo "HELPER_BIN=$BIN" >> "$GITHUB_ENV"
           shasum -a 256 "$BIN" | awk '{print "BUILT_SHA256="$1}' >> "$GITHUB_ENV"
 
-      - name: Preflight interactive privileged install
+      - name: Preflight governed root bootstrap
         shell: bash
         run: |
           set -euo pipefail
-          runner_user="$(id -un)"
-          console_user="$(/usr/bin/stat -f '%Su' /dev/console 2>/dev/null || true)"
-          [[ -n "$console_user" && "$console_user" == "$runner_user" ]] || { echo "::error::Runner user must own active macOS console"; exit 3; }
-          [[ -x /usr/bin/osascript ]] || { echo "::error::osascript unavailable"; exit 3; }
-          [[ -x "$HELPER_BIN" ]] || exit 1
-          echo "::notice title=Interactive privilege readiness::consoleUserMatchesRunner=true; osascriptExecutable=true"
-
-      - name: Install helper with local macOS administrator prompt
-        shell: bash
-        run: |
-          set -euo pipefail
-          TARGET_DIR="/usr/local/libexec/apidevelopers"
-          TARGET="$TARGET_DIR/operator-keychain-helper"
-          ERR_FILE="$(mktemp -t unijuri-helper-install.XXXXXX)"
-          cleanup() {
-            rm -f "$ERR_FILE"
+          BOOTSTRAP="/usr/local/libexec/apidevelopers/unijuri-keychain-helper-installer"
+          [[ -x "$BOOTSTRAP" ]] || {
+            echo "::error title=UniJuri root bootstrap unavailable::requiredBootstrap=$BOOTSTRAP; writesPerformed=false"
+            exit 3
           }
-          trap cleanup EXIT
-
+          META="$(/usr/bin/stat -f '%Su:%Sg:%Lp' "$BOOTSTRAP")"
+          [[ "$META" == "root:wheel:755" ]] || {
+            echo "::error title=UniJuri root bootstrap metadata mismatch::expected=root:wheel:755; actual=$META; writesPerformed=false"
+            exit 3
+          }
           set +e
-          /usr/bin/osascript - "$HELPER_BIN" "$TARGET_DIR" "$TARGET" 2>"$ERR_FILE" <<'APPLESCRIPT'
-          on run argv
-            set helperBin to item 1 of argv
-            set targetDir to item 2 of argv
-            set targetPath to item 3 of argv
-            set commandText to "/usr/bin/install -d -o root -g wheel -m 0755 " & quoted form of targetDir & " && /usr/bin/install -o root -g wheel -m 0755 " & quoted form of helperBin & " " & quoted form of targetPath
-            do shell script commandText with administrator privileges
-          end run
-          APPLESCRIPT
-          osascript_rc=$?
+          /usr/bin/sudo -n "$BOOTSTRAP" --preflight >/dev/null 2>&1
+          sudo_rc=$?
           set -e
+          [[ "$sudo_rc" -eq 0 ]] || {
+            echo "::error title=UniJuri root bootstrap not authorized::sudoNonInteractive=false; writesPerformed=false"
+            exit 3
+          }
+          echo "::notice title=UniJuri root bootstrap readiness::bootstrapPresent=true; bootstrapMetadata=root:wheel:755; sudoNonInteractive=true; writesPerformed=false"
 
-          if [[ "$osascript_rc" -ne 0 ]]; then
-            error_category="osascript-error"
-            if grep -Eqi 'user canceled|\(-128\)' "$ERR_FILE"; then
-              error_category="user-canceled"
-            elif grep -Eqi 'not authorized|authorization denied|not permitted|privilege violation|administrator privileges' "$ERR_FILE"; then
-              error_category="authorization-denied"
-            elif grep -Eqi 'execution error|script error' "$ERR_FILE"; then
-              error_category="applescript-execution-error"
-            fi
+      - name: Install helper through governed root bootstrap
+        shell: bash
+        run: |
+          set -euo pipefail
+          BOOTSTRAP="/usr/local/libexec/apidevelopers/unijuri-keychain-helper-installer"
+          TARGET="/usr/local/libexec/apidevelopers/operator-keychain-helper"
 
-            target_dir_present=false
-            helper_present=false
-            helper_executable=false
-            helper_matches_built_hash=false
+          /usr/bin/sudo -n "$BOOTSTRAP"             --source "$HELPER_BIN"             --expected-sha256 "$BUILT_SHA256"
 
-            [[ -d "$TARGET_DIR" ]] && target_dir_present=true
-            [[ -e "$TARGET" ]] && helper_present=true
-            [[ -x "$TARGET" ]] && helper_executable=true
-
-            if [[ -f "$TARGET" ]]; then
-              installed_hash="$(shasum -a 256 "$TARGET" | awk '{print $1}')"
-              [[ "$installed_hash" == "$BUILT_SHA256" ]] && helper_matches_built_hash=true
-            fi
-
-            echo "::error title=UniJuri helper install failed::osascriptExitCode=$osascript_rc; category=$error_category; targetDirPresentAfterFailure=$target_dir_present; helperPresentAfterFailure=$helper_present; helperExecutableAfterFailure=$helper_executable; helperMatchesBuiltHashAfterFailure=$helper_matches_built_hash"
-            exit "$osascript_rc"
-          fi
-
+          [[ -x "$TARGET" ]] || { echo "::error::Installed helper is not executable"; exit 4; }
           INSTALLED_SHA256="$(shasum -a 256 "$TARGET" | awk '{print $1}')"
           [[ "$INSTALLED_SHA256" == "$BUILT_SHA256" ]] || { echo "::error::Installed helper hash mismatch"; exit 4; }
 
           META="$(/usr/bin/stat -f '%Su:%Sg:%Lp' "$TARGET")"
-          [[ "$META" == "root:wheel:755" ]] || { echo "::error title=Installed helper metadata mismatch::expected=root:wheel:755; actual=$META"; exit 6; }
+          [[ "$META" == "root:wheel:755" ]] || {
+            echo "::error title=Installed helper metadata mismatch::expected=root:wheel:755; actual=$META"
+            exit 6
+          }
 
           echo "::notice title=UniJuri helper install::installed=true; target=$TARGET; sha256=$INSTALLED_SHA256; ownerGroupMode=$META"
 

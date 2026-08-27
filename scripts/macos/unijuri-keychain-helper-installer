@@ -1,0 +1,51 @@
+#!/bin/bash
+set -euo pipefail
+
+TARGET_DIR="/usr/local/libexec/apidevelopers"
+TARGET="$TARGET_DIR/operator-keychain-helper"
+
+fail() {
+  printf '%s\n' "$1" >&2
+  exit "${2:-1}"
+}
+
+[[ "${EUID:-$(id -u)}" -eq 0 ]] || fail "root-required" 10
+
+if [[ "${1:-}" == "--preflight" && "$#" -eq 1 ]]; then
+  printf '%s\n' "ready=true"
+  exit 0
+fi
+
+[[ "$#" -eq 4 ]] || fail "invalid-arguments" 11
+[[ "$1" == "--source" ]] || fail "invalid-source-argument" 11
+SOURCE="$2"
+[[ "$3" == "--expected-sha256" ]] || fail "invalid-hash-argument" 11
+EXPECTED_SHA256="$4"
+
+[[ "$EXPECTED_SHA256" =~ ^[0-9a-f]{64}$ ]] || fail "invalid-sha256" 12
+[[ -f "$SOURCE" && -x "$SOURCE" && ! -L "$SOURCE" ]] || fail "invalid-source" 13
+
+SOURCE_SHA256="$(/usr/bin/shasum -a 256 "$SOURCE" | /usr/bin/awk '{print $1}')"
+[[ "$SOURCE_SHA256" == "$EXPECTED_SHA256" ]] || fail "source-hash-mismatch" 14
+
+/usr/bin/install -d -o root -g wheel -m 0755 "$TARGET_DIR"
+TMP_TARGET="$TARGET_DIR/.operator-keychain-helper.new.$$"
+cleanup() {
+  /bin/rm -f "$TMP_TARGET"
+}
+trap cleanup EXIT
+
+/usr/bin/install -o root -g wheel -m 0755 "$SOURCE" "$TMP_TARGET"
+TMP_SHA256="$(/usr/bin/shasum -a 256 "$TMP_TARGET" | /usr/bin/awk '{print $1}')"
+[[ "$TMP_SHA256" == "$EXPECTED_SHA256" ]] || fail "staged-hash-mismatch" 15
+
+/bin/mv -f "$TMP_TARGET" "$TARGET"
+trap - EXIT
+
+INSTALLED_SHA256="$(/usr/bin/shasum -a 256 "$TARGET" | /usr/bin/awk '{print $1}')"
+[[ "$INSTALLED_SHA256" == "$EXPECTED_SHA256" ]] || fail "installed-hash-mismatch" 16
+
+META="$(/usr/bin/stat -f '%Su:%Sg:%Lp' "$TARGET")"
+[[ "$META" == "root:wheel:755" ]] || fail "installed-metadata-mismatch" 17
+
+printf '%s\n' "installed=true"
