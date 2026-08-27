@@ -46,7 +46,7 @@ jobs:
           fi
 
       - name: Checkout approved revision
-        uses: actions/checkout@v4
+        uses: actions/checkout4
         with:
           persist-credentials: false
 
@@ -76,7 +76,11 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          DEVELOPER_DIR="$DEVELOPER_DIR" xcrun swift build             --package-path apps/api-gateway/native/operator-keychain-helper             --configuration release             --product operator-keychain-helper             --jobs 2
+          DEVELOPER_DIR="$DEVELOPER_DIR" xcrun swift build \
+            --package-path apps/api-gateway/native/operator-keychain-helper \
+            --configuration release \
+            --product operator-keychain-helper \
+            --jobs 2
           BIN="$(find apps/api-gateway/native/operator-keychain-helper/.build -type f -path '*/release/operator-keychain-helper' -perm -111 | head -n 1)"
           if [[ -z "$BIN" || ! -x "$BIN" ]]; then
             echo "::error::Built helper executable not found"
@@ -85,30 +89,56 @@ jobs:
           echo "HELPER_BIN=$BIN" >> "$GITHUB_ENV"
           shasum -a 256 "$BIN" | awk '{print "BUILT_SHA256="$1}' >> "$GITHUB_ENV"
 
-      - name: Preflight privileged install
+      - name: Preflight interactive privileged install
         shell: bash
         run: |
           set -euo pipefail
-          if ! sudo -n true; then
-            echo "::error title=Privilege unavailable::Passwordless non-interactive sudo is required"
+          runner_user="$(id -un)"
+          console_user="$(/usr/bin/stat -f '%Su' /dev/console 2>/dev/null || true)"
+
+          if [[ -z "$console_user" || "$console_user" != "$runner_user" ]]; then
+            echo "::error title=Interactive privilege unavailable::Runner user must own the active macOS console session"
             exit 3
           fi
-          test -x "$HELPER_BIN"
 
-      - name: Install helper create-or-replace binary
+          if [[ ! -x /usr/bin/osascript ]]; then
+            echo "::error title=Interactive privilege unavailable::/usr/bin/osascript is required"
+            exit 3
+          fi
+
+          test -x "$HELPER_BIN"
+          echo "::notice title=Interactive privilege readiness::consoleUserMatchesRunner=true; osascriptExecutable=true"
+
+      - name: Install helper with local macOS administrator prompt
         shell: bash
         run: |
           set -euo pipefail
           TARGET_DIR="/usr/local/libexec/apidevelopers"
           TARGET="$TARGET_DIR/operator-keychain-helper"
-          sudo -n install -d -o root -g wheel -m 0755 "$TARGET_DIR"
-          sudo -n install -o root -g wheel -m 0755 "$HELPER_BIN" "$TARGET"
+
+          /usr/bin/osascript - "$HELPER_BIN" "$TARGET_DIR" "$TARGET" <<'APPLESCRIPT'
+          on run argv
+            set helperBin to item 1 of argv
+            set targetDir to item 2 of argv
+            set targetPath to item 3 of argv
+            set commandText to "/usr/bin/install -d -o root -g wheel -m 0755 " & quoted form of targetDir & " && /usr/bin/install -o root -g wheel -m 0755 " & quoted form of helperBin & " " & quoted form of targetPath
+            do shell script commandText with administrator privileges
+          end run
+          APPLESCRIPT
+
           INSTALLED_SHA256="$(shasum -a 256 "$TARGET" | awk '{print $1}')"
           if [[ "$INSTALLED_SHA256" != "$BUILT_SHA256" ]]; then
             echo "::error::Installed helper hash mismatch"
             exit 4
           fi
-          echo "::notice title=UniJuri helper install::installed=true; target=$TARGET; sha256=$INSTALLED_SHA256"
+
+          OWNER_GROUP_MODE="$(/usr/bin/stat -f '%Su:%Sg:%Lp' "$TARGET")"
+          if [[ "$OWNER_GROUP_MODE" != "root:wheel:755" ]]; then
+            echo "::error title=Installed helper metadata mismatch::expected=root:wheel:755; actual=$OWNER_GROUP_MODE"
+            exit 6
+          fi
+
+          echo "::notice title=UniJuri helper install::installed=true; target=$TARGET; sha256=$INSTALLED_SHA256; ownerGroupMode=$OWNER_GROUP_MODE"
 
       - name: Verify executable
         shell: bash
