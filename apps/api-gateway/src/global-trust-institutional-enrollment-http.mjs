@@ -1,0 +1,20 @@
+const H=Object.freeze({"content-type":"application/json; charset=utf-8","cache-control":"no-store, max-age=0"});
+export const TRUST_PREVIEW_INSTITUTION_ORGANIZATION_ID="component.organization.apidevelopers-digital";
+const R=(s,p)=>Object.freeze({status:s,headers:H,body:JSON.stringify(p)});
+const B=b=>{try{const x=JSON.parse(String(b??"{}"));if(!x||typeof x!=="object"||Array.isArray(x))throw 0;return x}catch{const e=new Error("invalid json");e.code="TRUST_BOOTSTRAP_INVALID_JSON";throw e}};
+const A=i=>{const p=i?.principal??{},s=Array.isArray(p.scopes)?p.scopes:[];if(i?.role!=="admin"||p.status!=="active"||!String(p.id??"").trim()||!s.includes("admin:*")){const e=new Error("admin required");e.code="TRUST_BOOTSTRAP_FORBIDDEN";throw e}return i};
+const M=e=>({TRUST_BOOTSTRAP_INVALID_JSON:[400,"invalid_json"],TRUST_BOOTSTRAP_FORBIDDEN:[403,"admin_scope_required"],TRUST_EVALUATION_KEY_PROOF_INVALID_INPUT:[400,"invalid_input"],TRUST_EVALUATION_KEY_PROOF_INVALID_PUBLIC_KEY:[400,"invalid_public_key"],TRUST_EVALUATION_KEY_PROOF_UNSUPPORTED_PUBLIC_KEY:[400,"unsupported_public_key"],TRUST_EVALUATION_KEY_PROOF_WEAK_PUBLIC_KEY:[400,"weak_public_key"],TRUST_EVALUATION_KEY_PROOF_INVALID_SIGNATURE:[403,"invalid_signature"],TRUST_EVALUATION_KEY_PROOF_CHALLENGE_NOT_FOUND:[404,"challenge_not_found"],TRUST_EVALUATION_KEY_PROOF_EXPIRED:[410,"challenge_expired"],TRUST_EVALUATION_KEY_PROOF_REPLAY:[409,"challenge_replayed"],TRUST_EVALUATION_KEY_ENROLLMENT_APPROVAL_REQUIRED:[400,"approval_required"],TRUST_EVALUATION_KEY_ENROLLMENT_NOT_APPROVED:[403,"not_approved"],TRUST_EVALUATION_KEY_ENROLLMENT_INVALID_APPROVAL_ASSERTION:[400,"invalid_approval"],TRUST_EVALUATION_KEY_ENROLLMENT_APPROVAL_SUBJECT_MISMATCH:[400,"approval_subject_mismatch"],TRUST_EVALUATION_KEY_ENROLLMENT_APPROVAL_IN_FUTURE:[400,"approval_in_future"],TRUST_EVALUATION_KEY_ENROLLMENT_PROOF_NOT_FOUND:[404,"proof_not_found"],TRUST_EVALUATION_KEY_ENROLLMENT_PROOF_NOT_CONSUMED:[409,"proof_not_consumed"],TRUST_EVALUATION_KEY_ENROLLMENT_PROOF_KEY_MISMATCH:[409,"proof_key_mismatch"],TRUST_EVALUATION_KEY_ENROLLMENT_CONFLICT:[409,"enrollment_conflict"]})[e?.code]??null;
+export function createTrustInstitutionalEnrollmentHttpHandler({authenticator:a,recipientKeyProofService:p,recipientKeyEnrollmentService:n}={}){
+ if(typeof a?.authenticate!=="function"||typeof p?.issueChallenge!=="function"||typeof p?.verifyAndConsume!=="function"||typeof n?.recordApprovedEnrollment!=="function")throw new TypeError("invalid bootstrap dependencies");
+ return Object.freeze({async handleRequest({method="GET",url="/",headers={},body}={}){
+  const q=new URL(String(url),"http://local").pathname,m=String(method).toUpperCase(),c="/v1/trust/evaluation/operator/institutional-enrollment/challenge",v="/v1/trust/evaluation/operator/institutional-enrollment/proof",e="/v1/trust/evaluation/operator/institutional-enrollment";
+  if(m!=="POST"||![c,v,e].includes(q))return null;
+  const i=A(await a.authenticate(headers));
+  try{
+   const x=B(body);
+   if(q===c)return R(200,{allowed:true,organizationId:TRUST_PREVIEW_INSTITUTION_ORGANIZATION_ID,challenge:await p.issueChallenge({organizationId:TRUST_PREVIEW_INSTITUTION_ORGANIZATION_ID,recipientPublicKey:x.recipientPublicKey,correlationId:String(x.correlationId??`trust-institutional-${Date.now()}`)}),secretsIncluded:false,privateKeyIncluded:false});
+   if(q===v)return R(200,{allowed:true,organizationId:TRUST_PREVIEW_INSTITUTION_ORGANIZATION_ID,proof:await p.verifyAndConsume({challengeId:x.khallengeId,recipientPublicKey:x.recipientPublicKey,signatureB64u:x.signatureB64u}),secretsIncluded:false,privateKeyIncluded:false});
+   return R(200,{allowed:true,organizationId:TRUST_PREVIEW_INSTITUTION_ORGANIZATION_ID,enrollment:await n.recordApprovedEnrollment({identity:i,organizationId:TRUST_PREVIEW_INSTITUTION_ORGANIZATION_ID,recipientPublicKey:x.recipientPublicKey,keyProofChallengeId:x.keyProofChallengeId,institutionalApproval:x.institutionalApproval}),secretsIncluded:false,privateKeyIncluded:false});
+  }catch(z){const f=M(z);if(!f)throw z;return R(f[0],{allowed:false,reason:f[1],secretsIncluded:false,privateKeyIncluded:false})}
+ }});
+}
