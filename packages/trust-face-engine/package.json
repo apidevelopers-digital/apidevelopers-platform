@@ -1,6 +1,6 @@
 {
   "name": "@apidevelopers/trust-face-engine",
-  "version": "0.4.0",
+  "version": "0.5.0",
   "private": true,
   "description": "Owned Trust Face verification kernel and laboratory biometric training/evaluation components.",
   "type": "module",
@@ -8,11 +8,12 @@
     ".": "./src/index.mjs",
     "./lab-baseline": "./src/lab-baseline.mjs",
     "./metric-lab": "./src/metric-lab.mjs",
-    "./detector-landmarks-lab": "./src/detector-landmarks-lab.mjs"
+    "./detector-landmarks-lab": "./src/detector-landmarks-lab.mjs",
+    "./evaluation-lab": "./src/evaluation-lab.mjs"
   },
   "scripts": {
     "test": "node --test test/*.test.mjs",
-    "check": "node --check src/index.mjs && node --check src/lab-baseline.mjs && node --check src/metric-lab.mjs && node --check src/detector-landmarks-lab.mjs && npm test"
+    "check": "node --check src/index.mjs && node --check src/lab-baseline.mjs && node --check src/metric-lab.mjs && node --check src/detector-landmarks-lab.mjs && node --check src/evaluation-lab.mjs && npm test"
   },
   "engines": {
     "node": ">=22"
