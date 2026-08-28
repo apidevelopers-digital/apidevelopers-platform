@@ -1,16 +1,17 @@
 {
   "name": "@apidevelopers/trust-face-engine",
-  "version": "0.2.0",
+  "version": "0.3.0",
   "private": true,
-  "description": "Owned Trust Face verification kernel and laboratory image-to-embedding baselines.",
+  "description": "Owned Trust Face verification kernel, image-to-embedding lab baseline, and supervised metric training/evaluation lab.",
   "type": "module",
   "exports": {
     ".": "./src/index.mjs",
-    "./lab-baseline": "./src/lab-baseline.mjs"
+    "./lab-baseline": "./src/lab-baseline.mjs",
+    "./metric-lab": "./src/metric-lab.mjs"
   },
   "scripts": {
     "test": "node --test test/*.test.mjs",
-    "check": "node --check src/index.mjs && node --check src/lab-baseline.mjs && npm test"
+    "check": "node --check src/index.mjs && node --check src/lab-baseline.mjs && node --check src/metric-lab.mjs && npm test"
   },
   "engines": {
     "node": ">=22"
