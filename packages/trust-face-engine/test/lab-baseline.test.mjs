@@ -1,4 +1,3 @@
-
 import assert from "node:assert/strict";
 import test from "node:test";
 
@@ -12,6 +11,10 @@ function syntheticFace(width = 32, height = 32, shiftX = 0) {
   const pixels = new Uint8Array(width * height);
   const cx = width / 2 + shiftX;
   const cy = height / 2;
+  const eyeRadius = width * (2.2 / 32);
+  const noseHalfWidth = width * (1.2 / 32);
+  const noseTopOffset = height * (1 / 32);
+  const mouthHalfHeight = height * (1.1 / 32);
 
   for (let y = 0; y < height; y += 1) {
     for (let x = 0; x < width; x += 1) {
@@ -19,12 +22,10 @@ function syntheticFace(width = 32, height = 32, shiftX = 0) {
       const dy = (y - cy) / (height * 0.42);
       const ellipse = dx * dx + dy * dy;
       let value = ellipse <= 1 ? 150 : 25;
-
-      const leftEye = Math.hypot(x - (cx - width * 0.11), y - (cy - height * 0.09)) < 2.2;
-      const rightEye = Math.hypot(x - (cx + width * 0.11), y - (cy - height * 0.09)) < 2.2;
-      const nose = Math.abs(x - cx) < 1.2 && y > cy - 1 && y < cy + height * 0.12;
-      const mouth = Math.abs(y - (cy + height * 0.16)) < 1.1 && Math.abs(x - cx) < width * 0.13;
-
+      const leftEye = Math.hypot(x - (cx - width * 0.11), y - (cy - height * 0.09)) < eyeRadius;
+      const rightEye = Math.hypot(x - (cx + width * 0.11), y - (cy - height * 0.09)) < eyeRadius;
+      const nose = Math.abs(x - cx) < noseHalfWidth && y > cy - noseTopOffset && y < cy + height * 0.12;
+      const mouth = Math.abs(y - (cy + height * 0.16)) < mouthHalfHeight && Math.abs(x - cx) < width * 0.13;
       if (leftEye || rightEye) value = 35;
       if (nose) value = 95;
       if (mouth) value = 55;
@@ -49,7 +50,6 @@ test("gray face crop produces deterministic 128-dimensional normalized embedding
   assert.equal(first.vector.length, 128);
   assert.deepEqual(first.vector, second.vector);
   assert.equal(first.modelVersion, "trust-face-handcrafted/v0-lab");
-
   const magnitude = Math.sqrt(first.vector.reduce((sum, value) => sum + value * value, 0));
   assert.ok(Math.abs(magnitude - 1) < 1e-12);
 });
