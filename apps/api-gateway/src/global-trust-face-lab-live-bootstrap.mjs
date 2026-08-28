@@ -1,4 +1,7 @@
-import { shouldResolveGlobalTrustFaceLabAwsSdk, resolveGlobalTrustFaceLabAwsSdk } from "./global-trust-face-lab-aws-sdk-loader.mjs";
+import {
+  shouldResolveGlobalTrustFaceLabAwsSdk,
+  resolveGlobalTrustFaceLabAwsSdk,
+} from "./global-trust-face-lab-aws-sdk-loader.mjs";
 import { createGlobalTrustFaceLabLiveProvider } from "./global-trust-face-lab-live-provider.mjs";
 
 export function shouldResolveGlobalTrustFaceLabLiveRuntime(env = process.env) {
@@ -19,7 +22,12 @@ export async function resolveGlobalTrustFaceLabLiveRuntime({
   }
 
   const sdk = await sdkResolver({ env });
-  if (!sdk?.client || !sdk?.commands) {
+  if (
+    !sdk?.client ||
+    !sdk?.commands ||
+    !sdk?.s3Client ||
+    !sdk?.s3Commands
+  ) {
     const error = new Error(
       "Face Lab AWS SDK primitives are unavailable after live gates were enabled",
     );
@@ -31,6 +39,8 @@ export async function resolveGlobalTrustFaceLabLiveRuntime({
     env,
     client: sdk.client,
     commands: sdk.commands,
+    s3Client: sdk.s3Client,
+    s3Commands: sdk.s3Commands,
   });
   if (!runtime) {
     const error = new Error(
