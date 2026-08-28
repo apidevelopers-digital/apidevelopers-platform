@@ -1,15 +1,16 @@
 {
   "name": "@apidevelopers/trust-face-engine",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "private": true,
-  "description": "Owned Trust Face verification kernel: quality gates, normalized embeddings, cosine similarity, versioned thresholds, and provider-neutral 1:1 decision signals.",
+  "description": "Owned Trust Face verification kernel and laboratory image-to-embedding baselines.",
   "type": "module",
   "exports": {
-    ".": "./src/index.mjs"
+    ".": "./src/index.mjs",
+    "./lab-baseline": "./src/lab-baseline.mjs"
   },
   "scripts": {
     "test": "node --test test/*.test.mjs",
-    "check": "node --check src/index.mjs && npm test"
+    "check": "node --check src/index.mjs && node --check src/lab-baseline.mjs && npm test"
   },
   "engines": {
     "node": ">=22"
