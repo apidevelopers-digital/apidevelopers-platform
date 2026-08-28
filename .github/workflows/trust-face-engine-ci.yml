@@ -1,0 +1,36 @@
+name: Trust Face Engine CI
+
+on:
+  pull_request:
+    paths:
+      - "packages/trust-face-engine/**"
+      - ".github/workflows/trust-face-engine-ci.yml"
+  push:
+    branches:
+      - main
+    paths:
+      - "packages/trust-face-engine/**"
+      - ".github/workflows/trust-face-engine-ci.yml"
+
+permissions:
+  contents: read
+
+jobs:
+  trust-face-engine:
+    runs-on:
+      - self-hosted
+      - macOS
+      - X64
+    timeout-minutes: 10
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Runtime versions
+        run: |
+          node --version
+          npm --version
+
+      - name: Syntax and tests
+        working-directory: packages/trust-face-engine
+        run: npm run check
