@@ -23,6 +23,10 @@ test("SDK loader remains untouched while live gates are incomplete", async () =>
       loads += 1;
       throw new Error("must not load");
     },
+    s3SdkLoader: async () => {
+      loads += 1;
+      throw new Error("must not load");
+    },
   });
 
   assert.equal(result, null);
@@ -30,13 +34,14 @@ test("SDK loader remains untouched while live gates are incomplete", async () =>
   assert.equal(shouldResolveGlobalTrustFaceLabAwsSdk({}), false);
 });
 
-test("SDK loader resolves client and exact Rekognition commands without sending network calls", async () => {
-  let clientConfig;
+test("SDK loader resolves Rekognition and S3 primitives without sending network calls", async () => {
+  let rekognitionConfig;
+  let s3Config;
   let sends = 0;
 
   class RekognitionClient {
     constructor(config) {
-      clientConfig = config;
+      rekognitionConfig = config;
     }
     async send() {
       sends += 1;
@@ -47,6 +52,18 @@ test("SDK loader resolves client and exact Rekognition commands without sending 
   class GetFaceLivenessSessionResultsCommand {}
   class CompareFacesCommand {}
 
+  class S3Client {
+    constructor(config) {
+      s3Config = config;
+    }
+    async send() {
+      sends += 1;
+      throw new Error("send must not run during bootstrap");
+    }
+  }
+  class PutObjectCommand {}
+  class DeleteObjectCommand {}
+
   const resolved = await resolveGlobalTrustFaceLabAwsSdk({
     env: LIVE_ENV,
     sdkLoader: async () => ({
@@ -55,30 +72,39 @@ test("SDK loader resolves client and exact Rekognition commands without sending 
       GetFaceLivenessSessionResultsCommand,
       CompareFacesCommand,
     }),
+    s3SdkLoader: async () => ({
+      S3Client,
+      PutObjectCommand,
+      DeleteObjectCommand,
+    }),
   });
 
-  assert.deepEqual(clientConfig, { region: "sa-east-1" });
+  assert.deepEqual(rekognitionConfig, { region: "sa-east-1" });
+  assert.deepEqual(s3Config, { region: "sa-east-1" });
   assert.equal(sends, 0);
   assert.equal(typeof resolved.client.send, "function");
-  assert.equal(resolved.commands.CreateFaceLivenessSessionCommand, CreateFaceLivenessSessionCommand);
-  assert.equal(resolved.commands.GetFaceLivenessSessionResultsCommand, GetFaceLivenessSessionResultsCommand);
+  assert.equal(typeof resolved.s3Client.send, "function");
   assert.equal(resolved.commands.CompareFacesCommand, CompareFacesCommand);
+  assert.equal(resolved.s3Commands.PutObjectCommand, PutObjectCommand);
+  assert.equal(resolved.s3Commands.DeleteObjectCommand, DeleteObjectCommand);
   assert.deepEqual(resolved.descriptor, {
     provider: "aws-rekognition",
     region: "sa-east-1",
     sdk: "@aws-sdk/client-rekognition",
+    s3Sdk: "@aws-sdk/client-s3",
     networkCalled: false,
     credentialsResolved: false,
   });
 });
 
-test("SDK loader fails closed when package is absent after all gates become explicit", async () => {
+test("SDK loader fails closed when an SDK package is absent after all gates become explicit", async () => {
   await assert.rejects(
     resolveGlobalTrustFaceLabAwsSdk({
       env: LIVE_ENV,
       sdkLoader: async () => {
         throw new Error("module not found");
       },
+      s3SdkLoader: async () => ({}),
     }),
     (error) => error?.code === "TRUST_FACE_LAB_AWS_SDK_UNAVAILABLE",
   );
