@@ -1,0 +1,68 @@
+{
+  "profileId": "imuni.health.v1",
+  "productId": "imuni",
+  "domain": "health",
+  "jurisdiction": "BR",
+  "status": "draft",
+  "riskClass": "high",
+  "roles": [
+    "clinical_assistant",
+    "clinical_documentation",
+    "medical_retrieval"
+  ],
+  "prohibitedRoles": [
+    "autonomous_physician",
+    "autonomous_diagnostician",
+    "autonomous_prescriber"
+  ],
+  "memory": {
+    "isolation": "tenant-workspace-patient-purpose",
+    "crossProductDefault": "deny"
+  },
+  "sourcePolicy": {
+    "mode": "official_or_licensed",
+    "traceable": true,
+    "versioned": true
+  },
+  "tools": {
+    "allow": [
+      "retrieval.medical",
+      "triage.manchester",
+      "coding.cid",
+      "transcription"
+    ],
+    "deny": [
+      "autonomous_prescription",
+      "autonomous_diagnosis"
+    ]
+  },
+  "humanReview": {
+    "required": true,
+    "gates": [
+      "diagnosis",
+      "final_cid",
+      "prescription",
+      "clinical_conduct",
+      "clinical_document"
+    ]
+  },
+  "training": {
+    "userDataAllowed": false,
+    "fineTuningRequiresLicensedDataset": true
+  },
+  "evidence": {
+    "required": true,
+    "sourceTraceRequired": true
+  },
+  "evaluations": [
+    "red_flags",
+    "cid_hypothesis",
+    "source_grounding",
+    "escalation",
+    "negative_cases"
+  ],
+  "activation": {
+    "failClosed": true,
+    "approved": false
+  }
+}

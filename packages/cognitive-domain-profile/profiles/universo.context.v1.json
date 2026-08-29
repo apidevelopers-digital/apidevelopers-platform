@@ -1,0 +1,58 @@
+{
+  "profileId": "universo.context.v1",
+  "productId": "uni.verso",
+  "domain": "context",
+  "jurisdiction": "global",
+  "status": "draft",
+  "riskClass": "standard",
+  "roles": [
+    "context_organizer",
+    "personal_map",
+    "governed_router"
+  ],
+  "prohibitedRoles": [
+    "clinical_authority",
+    "legal_authority"
+  ],
+  "memory": {
+    "isolation": "tenant-workspace-user-purpose",
+    "crossProductDefault": "deny"
+  },
+  "sourcePolicy": {
+    "mode": "approved_sources",
+    "traceable": true
+  },
+  "tools": {
+    "allow": [
+      "context.organize",
+      "routing.governed"
+    ],
+    "deny": [
+      "silent_cross_product_memory_copy"
+    ]
+  },
+  "humanReview": {
+    "required": false,
+    "gates": [
+      "high_risk_handoff"
+    ]
+  },
+  "training": {
+    "userDataAllowed": false,
+    "fineTuningRequiresLicensedDataset": true
+  },
+  "evidence": {
+    "required": true,
+    "sourceTraceRequired": false
+  },
+  "evaluations": [
+    "consent",
+    "memory_isolation",
+    "routing_minimization",
+    "negative_cases"
+  ],
+  "activation": {
+    "failClosed": true,
+    "approved": false
+  }
+}
