@@ -1,4 +1,3 @@
-
 import { createHash } from "node:crypto";
 
 export const TRUST_FACE_RESIDUAL_BACKPROP_LAB_V1_PROFILE = Object.freeze({
@@ -36,7 +35,7 @@ function rng(seed) {
   };
 }
 
-function zeros(n') {
+function zeros(n) {
   return Array.from({ length: n }, () => 0);
 }
 
@@ -47,7 +46,7 @@ function matrix(rows, cols, value = 0) {
 function stable(value) {
   if (Array.isArray(value)) return `[${value.map(stable).join(",")}]`;
   if (value && typeof value === "object") {
-    return `${${Object.keys(value).sort().map((k) => `${JSON.stringify(k)}:${stable(value[k])}`).join(",")}}`;
+    return `{${Object.keys(value).sort().map((k) => `${JSON.stringify(k)}:${stable(value[k])}`).join(",")}}`;
   }
   return JSON.stringify(value);
 }
@@ -308,8 +307,13 @@ function applyGradients(model, g, lr) {
 function gradNorm(g) {
   let sum = 0;
   const visit = (value) => {
-    if (Array.isArray(value)) for (const child of value) visit(child);
-    else if (Number.isFinite(value)) sum += value * value;
+    if (Array.isArray(value)) {
+      for (const child of value) visit(child);
+    } else if (value && typeof value === "object") {
+      for (const child of Object.values(value)) visit(child);
+    } else if (Number.isFinite(value)) {
+      sum += value * value;
+    }
   };
   visit(g);
   return Math.sqrt(sum);
@@ -379,7 +383,7 @@ export function runResidualBackpropSmokeTraining({
   }
 
   const final = evaluate(model, batch);
-  const checkpointDigest = digest({seed,epochs,learningRate,samplesPerClass,stemW:model.stemW.map((r)=>r.map((x)=>Number(x.toFixed(8)))),depthwiseW:model.depthwiseW.map((r)=>r.map((x)=>Number(x.toFixed(8)))), pointW:model.pointW.map((r)=>r.map((x)=>Number(x.toFixed(8))), projDigest: digest(model.projW.map((r)=>r.map((x)=>Number(x.toFixed(8))))), headDigest: digest(model.headW.map((r)=>r.map((x)=>Number(x.toFixed(8)))) });
+  const checkpointDigest = digest({ seed, epochs, learningRate, samplesPerClass, stemW: model.stemW.map((r) => r.map((x) => Number(x.toFixed(8)))), depthwiseW: model.depthwiseW.map((r) => r.map((x) => Number(x.toFixed(8)))), pointW: model.pointW.map((r) => r.map((x) => Number(x.toFixed(8)))), projDigest: digest(model.projW.map((r) => r.map((x) => Number(x.toFixed(8))))), headDigest: digest(model.headW.map((r) => r.map((x) => Number(x.toFixed(8)))) });
 
   return Object.freeze({
     profile: TRUST_FACE_RESIDUAL_BACKPROP_LAB_V1_PROFILE,
