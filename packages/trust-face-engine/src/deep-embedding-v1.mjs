@@ -55,6 +55,7 @@ export function createDeepEmbeddingModelManifest({modelId,modelVersion,architect
   if(typeof training.datasetManifestDigest!=="string"||!training.datasetManifestDigest.startsWith("sha256:"))fail("invalid_dataset_digest","training.datasetManifestDigest must be a sha256 digest");
   if(typeof training.codeCommit!=="string"||training.codeCommit.length<7)fail("invalid_training_commit","training.codeCommit is required");
   if(!Number.isInteger(training.seed))fail("invalid_training_seed","training.seed must be an integer");
+  clean({architecture,training,calibration},"input");
   const manifest={
     profileVersion:TRUST_FACE_DEEP_EMBEDDING_V1_PROFILE.version,modelId:modelId.trim(),modelVersion:modelVersion.trim(),
     architecture:{inputWidth:architecture.inputWidth??112,inputHeight:architecture.inputHeight??112,channels:architecture.channels??3,embeddingDim:architecture.embeddingDim??512,backboneClass:architecture.backboneClass??"mobile-residual-cnn",parameters:architecture.parameters??null},
