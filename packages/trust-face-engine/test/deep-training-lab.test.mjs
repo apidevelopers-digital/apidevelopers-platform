@@ -34,7 +34,7 @@ test("run spec is deterministic and audit-bound", () => {
     seed: 42,
     epochs: 3,
   };
-  const a = createDeepTrainingRunSpec((input);
+  const a = createDeepTrainingRunSpec(input);
   const b = createDeepTrainingRunSpec(input);
   assert.equal(a.digest, b.digest);
   assert.equal(a.backboneWeightsTrained, false);
