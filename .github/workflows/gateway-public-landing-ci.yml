@@ -22,14 +22,11 @@ permissions:
 
 jobs:
   gateway-landing:
-    runs-on:
-      - self-hosted
-      - macOS
-      - X64
+    runs-on: [self-hosted, macOS, X64]
     timeout-minutes: 10
     steps:
       - uses: actions/checkout@v4
-     - name: Setup Node.js
+      - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
           node-version: "22"
