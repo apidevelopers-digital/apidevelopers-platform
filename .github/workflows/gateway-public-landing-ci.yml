@@ -1,0 +1,40 @@
+name: Gateway Public Landing CI
+
+on:
+  pull_request:
+    paths:
+      - "apps/api-gateway/src/node-public-landing.mjs"
+      - "apps/api-gateway/src/operational-http-transport.mjs"
+      - "apps/api-gateway/test/node-public-landing.test.mjs"
+      - ".github/workflows/gateway-public-landing-ci.yml"
+  push:
+    branches:
+      - "ada/gateway-public-landing-20260829"
+    paths:
+      - "apps/api-gateway/src/node-public-landing.mjs"
+      - "apps/api-gateway/src/operational-http-transport.mjs"
+      - "apps/api-gateway/test/node-public-landing.test.mjs"
+      - ".github/workflows/gateway-public-landing-ci.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  gateway-landing:
+    runs-on:
+      - self-hosted
+      - macOS
+      - X64
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+     - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+      - name: Validate gateway landing
+        run: |
+          node --check apps/api-gateway/src/node-public-landing.mjs
+          node --check apps/api-gateway/src/operational-http-transport.mjs
+          node --test apps/api-gateway/test/node-public-landing.test.mjs
