@@ -1,6 +1,6 @@
 {
   "name": "@apidevelopers/trust-face-engine",
-  "version": "0.7.0",
+  "version": "0.8.0",
   "private": true,
   "description": "Owned Trust Face verification kernel and laboratory biometric training/evaluation components.",
   "type": "module",
@@ -11,11 +11,12 @@
     "./detector-landmarks-lab": "./src/detector-landmarks-lab.mjs",
     "./evaluation-lab": "./src/evaluation-lab.mjs",
     "./consented-lab": "./src/consented-lab.mjs",
-    "./deep-embedding-v1": "./src/deep-embedding-v1.mjs"
+    "./deep-embedding-v1": "./src/deep-embedding-v1.mjs",
+    "./deep-training-lab": "./src/deep-training-lab.mjs"
   },
   "scripts": {
     "test": "node --test test/*.test.mjs",
-    "check": "node --check src/index.mjs && node --check src/lab-baseline.mjs && node --check src/metric-lab.mjs && node --check src/detector-landmarks-lab.mjs && node --check src/evaluation-lab.mjs && node --check src/consented-lab.mjs && node --check src/deep-embedding-v1.mjs && npm test"
+    "check": "node --check src/index.mjs && node --check src/lab-baseline.mjs && node --check src/metric-lab.mjs && node --check src/detector-landmarks-lab.mjs && node --check src/evaluation-lab.mjs && node --check src/consented-lab.mjs && node --check src/deep-embedding-v1.mjs && node --check src/deep-training-lab.mjs && npm test"
   },
   "engines": {
     "node": ">=22"
