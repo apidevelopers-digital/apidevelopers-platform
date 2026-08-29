@@ -1,0 +1,37 @@
+name: Client Operator Actions CI
+
+on:
+  pull_request:
+    paths:
+      - "apps/client-operator-actions/**"
+      - ".github/workflows/client-operator-actions-ci.yml"
+  push:
+    branches:
+      - "feat/petra-client-actions-20260731"
+    paths:
+      - "apps/client-operator-actions/**"
+      - ".github/workflows/client-operator-actions-ci.yml"
+
+permissions:
+  contents: read
+
+jobs:
+  test:
+    runs-on:
+      - self-hosted
+      - macOS
+      - X64
+    defaults:
+      run:
+        working-directory: apps/client-operator-actions
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+      - name: Install
+        run: npm install --ignore-scripts
+      - name: Check and test
+        run: npm run check
