@@ -1,4 +1,5 @@
 import http from "node:http";
+import { maybeHandleGatewayPublicLanding } from "./node-public-landing.mjs";
 
 const DEFAULT_MAX_BODY_BYTES = 64 * 1024;
 const WEB_AGENT_CONVERSATION_PATH = "/v1/web-agent/conversations";
@@ -96,6 +97,8 @@ export function createOperationalHttpServer({
   return http.createServer(async (request, response) => {
     const path = requestPath(request.url);
     const isConversation = path === WEB_AGENT_CONVERSATION_PATH;
+
+    if (maybeHandleGatewayPublicLanding(request, response)) return;
 
     try {
       const body = await readRequestBody(request, bodyLimit);
