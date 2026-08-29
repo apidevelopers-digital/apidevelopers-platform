@@ -3,7 +3,7 @@
   "format": "managed-node-zip",
   "service": "api-gateway",
   "version": "0.8.0",
-  "sourceRevision": "367285930f5d312a6ee095b71d1ae17a061d65d7",
+  "sourceRevision": "0208a06f355b6b82502f31cf6fd4d4107ef3e984",
   "runtime": {
     "node": ">=22",
     "entrypoint": "src/hostinger-entry.mjs",
@@ -240,8 +240,18 @@
     },
     {
       "path": "src/global-trust-face-lab-aws-sdk-loader.mjs",
-      "bytes": 2342,
-      "sha256": "fb4d85f41a597f4becb5d6f37701016bd5ac7c261523ee7bada802c9c8d0fc12"
+      "bytes": 2538,
+      "sha256": "8f310ccb03e50fcdec68dfeca35c2e551d61fee282bfc97a7e8e290e563d5a3f"
+    },
+    {
+      "path": "src/global-trust-face-lab-aws-sigv4-transport.mjs",
+      "bytes": 9743,
+      "sha256": "e1acebf0b6e7705b7c71c1ec08e96af84a4635e7993203d9d089436d19b9b3af"
+    },
+    {
+      "path": "src/global-trust-face-lab-ephemeral-s3-lifecycle.mjs",
+      "bytes": 2292,
+      "sha256": "b3606f67ec5dc75612f1d87de9326c1015692a74bb4e3723619d8b93f4402574"
     },
     {
       "path": "src/global-trust-face-lab-http.mjs",
@@ -250,13 +260,13 @@
     },
     {
       "path": "src/global-trust-face-lab-live-bootstrap.mjs",
-      "bytes": 1482,
-      "sha256": "805951cc1a7cdab8180df516730049337fd8a9167ac4029cfa7a60448ff85a0d"
+      "bytes": 1605,
+      "sha256": "8deae382ed46deafbf7423133ba8e27ee16190c35687bdba848b5eefc5d5b007"
     },
     {
       "path": "src/global-trust-face-lab-live-provider.mjs",
-      "bytes": 1034,
-      "sha256": "8910ce704523aa874ebd1d695ede68aed360dd5f0a9900e2c8b8805aad2817cb"
+      "bytes": 4145,
+      "sha256": "c414791ea4882d5cdcdeea1e468c319b3267111704078c10cfdf0656d2550e02"
     },
     {
       "path": "src/global-trust-face-lab-live-runtime.mjs",
@@ -524,6 +534,11 @@
       "sha256": "4fe357539d41458b7419ac4ba62fe7b9deb3213ab6f0c5a16d5dafa06248fbbb"
     },
     {
+      "path": "src/node-public-landing.mjs",
+      "bytes": 2898,
+      "sha256": "e7802a7b8fac405f6836ccdb026048a21dc56782f723aeda91d914c7fa899109"
+    },
+    {
       "path": "src/observable-operational-composition.mjs",
       "bytes": 1042,
       "sha256": "641b336c00ffc50c49e15ccc4c03abab3eba5e92ce6430be2f3c2864f5a8da00"
@@ -550,8 +565,8 @@
     },
     {
       "path": "src/operational-http-transport.mjs",
-      "bytes": 5063,
-      "sha256": "808e89ae8da2d26a6a2233fab1d3d1c1f748d3d116edec16ed0906967a5dbbe3"
+      "bytes": 5209,
+      "sha256": "103755bb82ac4d4733edfc2e5e8f9ee8d64f784c6580f6f3f2d8aea28cd0fa9c"
     },
     {
       "path": "src/operational-http.mjs",
@@ -1124,6 +1139,11 @@
       "sha256": "c5cbb4c20f297dd690e8f4361d68dddc0f3d6c6da613600d8debc4e4b0ffae78"
     },
     {
+      "path": "vendor/contracts/src/agent-multilingual-policy.mjs",
+      "bytes": 6111,
+      "sha256": "151cfc79e43c09e3139eed22f827c5edf986ac0a35bd0a2cb024ec2c49f4373d"
+    },
+    {
       "path": "vendor/contracts/src/audit-evolution.mjs",
       "bytes": 6850,
       "sha256": "252cf56e2b8e410775cb018eaaf51302a6d64840abc97d88c7445b8f87ffd961"
@@ -1200,8 +1220,8 @@
     },
     {
       "path": "vendor/contracts/src/index.mjs",
-      "bytes": 2024,
-      "sha256": "ef837a3858df4e6ef4070657a180d9cf60d36d42844f40a1cff0f6482c039a63"
+      "bytes": 2073,
+      "sha256": "4d8191d7ed57da8ae11ff3205226e6c0a2886f67a38c1ca32520d04996976632"
     },
     {
       "path": "vendor/contracts/src/multi-agent-orchestration.mjs",
