@@ -1,7 +1,7 @@
 import { detectFaceLandmarks } from "./detector-landmarks-lab.mjs";
 import { alignFaceFromLandmarks } from "./alignment-lab.mjs";
 import { createLabFaceEmbeddingFromGrayImage } from "./lab-baseline.mjs";
-import { applyMetricModel, evaluateVerification } from "./metric-lab.mjs";
+import { evaluateVerification } from "./metric-lab.mjs";
 
 export const TRUST_FACE_EVALUATION_LAB_PROFILE = Object.freeze({
   version: "trust-face-evaluation/v0-lab",
@@ -40,7 +40,10 @@ function nme(predicted, expected) {
   ));
   let sum = 0;
   for (const key of keys) {
-    sum += Math.hypot(predicted[key].x - expected[key].x, predicted[key].y - expected[key].y) / norm;
+    sum += Math.hypot(
+      predicted[key].x - expected[key].x,
+      predicted[key].y - expected[key].y,
+    ) / norm;
   }
   return sum / keys.length;
 }
@@ -55,24 +58,30 @@ function detectorMetrics(records) {
     else if (!expected && predicted) fp += 1;
     else if (!expected && !predicted) tn += 1;
     else fn += 1;
+
     if (expected && predicted && record.sample.landmarks && record.detection.landmarks) {
       landmarkErrors.push(nme(record.detection.landmarks, record.sample.landmarks));
     }
   }
+
   return Object.freeze({
-    samples: records.length, tp, fp, tn, fn,
+    samples: records.length,
+    tp, fp, tn, fn,
     precision: tp + fp ? tp / (tp + fp) : 0,
     recall: tp + fn ? tp / (tp + fn) : 0,
     specificity: tn + fp ? tn / (tn + fp) : 0,
-    landmarkNme: landmarkErrors.length ? landmarkErrors.reduce((s, v) => s + v, 0) / landmarkErrors.length : null,
+    landmarkNme: landmarkErrors.length
+      ? landmarkErrors.reduce((sum, value) => sum + value, 0) / landmarkErrors.length
+      : null,
     landmarkEvaluatedSamples: landmarkErrors.length,
   });
 }
 
-function sampleEmbeddings(records, metricModel) {
+function sampleEmbeddings(records) {
   const map = new Map();
   for (const record of records) {
     if (!record.sample.facePresent || !record.detection.facePresent || !record.detection.landmarks) continue;
+
     const aligned = alignFaceFromLandmarks({
       width: record.sample.width,
       height: record.sample.height,
@@ -80,13 +89,16 @@ function sampleEmbeddings(records, metricModel) {
       landmarks: record.detection.landmarks,
     });
     if (!aligned.quality.passed) continue;
+
     const baseline = createLabFaceEmbeddingFromGrayImage({
       width: aligned.width,
       height: aligned.height,
       pixels: aligned.pixels,
     });
-    const metric = applyMetricModel({ model: metricModel, vector: baseline.vector });
-    map.set(record.sample.sampleId, metric.vector);
+
+    // Keep the baseline vector here. evaluateVerification/scoreVerificationPair
+    // is the single authority that applies metricModel weights.
+    map.set(record.sample.sampleId, baseline.vector);
   }
   return map;
 }
@@ -119,14 +131,18 @@ export function evaluateTrustFacePipeline({
   });
 
   const detection = detectorMetrics(records);
-  const embeddings = sampleEmbeddings(records, metricModel);
+  const embeddings = sampleEmbeddings(records);
   const pairs = verificationPairs.map((pair, index) => {
     const referenceVector = embeddings.get(pair.referenceSampleId);
     const probeVector = embeddings.get(pair.probeSampleId);
     if (!referenceVector || !probeVector) {
       fail("pair_embedding_unavailable", `verificationPairs[${index}] references a sample without usable embedding`);
     }
-    return Object.freeze({ sameSubject: Boolean(pair.sameSubject), referenceVector, probeVector });
+    return Object.freeze({
+      sameSubject: Boolean(pair.sameSubject),
+      referenceVector,
+      probeVector,
+    });
   });
 
   const verification = evaluateVerification({ model: metricModel, pairs, thresholds });
