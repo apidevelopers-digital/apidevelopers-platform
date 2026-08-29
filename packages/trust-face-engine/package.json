@@ -1,6 +1,6 @@
 {
   "name": "@apidevelopers/trust-face-engine",
-  "version": "0.10.0",
+  "version": "0.11.0",
   "private": true,
   "description": "Owned Trust Face verification kernel and laboratory biometric training/evaluation components.",
   "type": "module",
@@ -14,11 +14,12 @@
     "./deep-embedding-v1": "./src/deep-embedding-v1.mjs",
     "./deep-training-lab": "./src/deep-training-lab.mjs",
     "./cnn-backprop-lab": "./src/cnn-backprop-lab.mjs",
-    "./residual-backprop-lab-v1": "./src/residual-backprop-lab-v1.mjs"
+    "./residual-backprop-lab-v1": "./src/residual-backprop-lab-v1.mjs",
+    "./canonical-backbone-graph-v1": "./src/canonical-backbone-graph-v1.mjs"
   },
   "scripts": {
     "test": "node --test test/*.test.mjs",
-    "check": "node --check src/index.mjs && node --check src/lab-baseline.mjs && node --check src/metric-lab.mjs && node --check src/detector-landmarks-lab.mjs && node --check src/evaluation-lab.mjs && node --check src/consented-lab.mjs && node --check src/deep-embedding-v1.mjs && node --check src/deep-training-lab.mjs && node --check src/cnn-backprop-lab.mjs && node --check src/residual-backprop-lab-v1.mjs && npm test"
+    "check": "node --check src/index.mjs && node --check src/lab-baseline.mjs && node --check src/metric-lab.mjs && node --check src/detector-landmarks-lab.mjs && node --check src/evaluation-lab.mjs && node --check src/consented-lab.mjs && node --check src/deep-embedding-v1.mjs && node --check src/deep-training-lab.mjs && node --check src/cnn-backprop-lab.mjs && node --check src/residual-backprop-lab-v1.mjs && node --check src/canonical-backbone-graph-v1.mjs && npm test"
   },
   "engines": {
     "node": ">=22"
