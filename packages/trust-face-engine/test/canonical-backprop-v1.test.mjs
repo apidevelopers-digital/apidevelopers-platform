@@ -28,42 +28,48 @@ test("synthetic fixture remains 112x112 RGB and contains no biometric authority"
   }
 });
 
-test("gradient reaches and updates all eight canonical residual blocks", () => {
-  const result = runCanonicalBackpropSyntheticTraining({
-    seed: 13,
-    classCount: 3,
-    samplesPerClass: 2,
-    epochs: 3,
-    learningRate: 0.0005,
-    scale: 12,
-    marginRadians: 0.15,
-  });
+const result = runCanonicalBackpropSyntheticTraining({
+  seed: 13,
+  classCount: 3,
+  samplesPerClass: 2,
+  epochs: 3,
+  learningRate: 0.0005,
+  scale: 12,
+  marginRadians: 0.15,
+});
 
-  console.error("TRUST_FACE_CANONICAL_BACKPROP_DIAGNOSTIC", JSON.stringify({
-    blockCount: result.blockCount,
-    stageWidths: result.stageWidths,
-    stageDepths: result.stageDepths,
-    embeddingDim: result.embeddingDim,
-    gradientReachedAllBlocks: result.gradientReachedAllBlocks,
-    allBlocksUpdated: result.allBlocksUpdated,
-    canonicalGraphBackpropReady: result.canonicalGraphBackpropReady,
-    embeddingNormApproximatelyOne: result.embeddingNormApproximatelyOne,
-    blockGradientNorms: result.blockGradientNorms,
-    initial: result.initial,
-    final: result.final,
-    checkpointDigest: result.checkpointDigest,
-  }));
-
+test("canonical backprop topology remains 8 blocks / 4 stages / 512D", () => {
   assert.equal(result.blockCount, 8);
   assert.deepEqual(result.stageWidths, [64, 96, 160, 256]);
   assert.deepEqual(result.stageDepths, [1, 2, 3, 2]);
   assert.equal(result.embeddingDim, 512);
+});
+
+test("canonical backprop gradient reaches all 8 residual blocks", () => {
   assert.equal(result.gradientReachedAllBlocks, true);
+});
+
+test("canonical backprop updates parameters in all 8 residual blocks", () => {
   assert.equal(result.allBlocksUpdated, true);
+});
+
+test("canonical backprop reports ready only when gradient and updates both hold", () => {
   assert.equal(result.canonicalGraphBackpropReady, true);
+});
+
+test("canonical backprop keeps 512D embedding L2-normalized", () => {
   assert.equal(result.embeddingNormApproximatelyOne, true);
+});
+
+test("canonical backprop exposes finite non-zero gradient norm for every block", () => {
   assert.ok(result.blockGradientNorms.every((v) => Number.isFinite(v) && v > 0));
+});
+
+test("canonical backprop emits deterministic checkpoint digest", () => {
   assert.match(result.checkpointDigest, /^sha256:[0-9a-f]{64}$/);
+});
+
+test("canonical backprop keeps spatial/biometric/production readiness disabled", () => {
   assert.equal(result.spatialConvolutionBackpropReady, false);
   assert.equal(result.biometricBackboneReady, false);
   assert.equal(result.productionReady, false);
