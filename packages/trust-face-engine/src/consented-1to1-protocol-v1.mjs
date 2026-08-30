@@ -24,7 +24,7 @@ function fail(code, message) {
 
 function required(value, field) {
   if (typeof value !== "string" || !value.trim()) {
-    fail("invalid_protocol_field", $${field} is required`);
+    fail("invalid_protocol_field", `${field} is required`);
   }
   return value.trim();
 }
@@ -32,7 +32,7 @@ function required(value, field) {
 function assertMetadataOnly(sample, index) {
   for (const field of ["pixels","bytes","buffer","image","imageData","rawImage","embedding","template","biometricTemplate"]) {
     if (field in sample) {
-      fail("raw_biometric_payload_forbidden", $samples[${index}].${field} is forbidden`);
+      fail("raw_biometric_payload_forbidden", `samples[${index}].${field} is forbidden`);
     }
   }
 }
@@ -100,7 +100,7 @@ export function buildConsented1to1EvaluationProtocol({
     for (const enrollment of enrollments) {
       for (const probe of probes) {
         genuinePairs.push(Object.freeze({
-          pairId: `genuine:$${enrollment.sampleId}::${probe.sampleId}`,
+          pairId: `genuine:${enrollment.sampleId}::${probe.sampleId}`,
           sameSubject: true,
           subjectId,
           referenceSampleId: enrollment.sampleId,
