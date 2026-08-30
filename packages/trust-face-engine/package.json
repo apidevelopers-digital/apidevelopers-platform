@@ -1,6 +1,6 @@
 {
   "name": "@apidevelopers/trust-face-engine",
-  "version": "0.20.0",
+  "version": "0.21.0",
   "private": true,
   "description": "Owned Trust Face verification kernel and laboratory biometric training/evaluation components.",
   "type": "module",
@@ -24,11 +24,12 @@
     "./backbone-inference-v1": "./src/backbone-inference-v1.mjs",
     "./embedding-score-adapter-v1": "./src/embedding-score-adapter-v1.mjs",
     "./trained-checkpoint-manifest-v1": "./src/trained-checkpoint-manifest-v1.mjs",
-    "./train-eval-run-spec-v1": "./src/train-eval-run-spec-v1.mjs"
+    "./train-eval-run-spec-v1": "./src/train-eval-run-spec-v1.mjs",
+    "./run-spec-synthetic-executor-v1": "./src/run-spec-synthetic-executor-v1.mjs"
   },
   "scripts": {
     "test": "node --test test/*.test.mjs",
-    "check": "node --check src/index.mjs && node --check src/lab-baseline.mjs && node --check src/metric-lab.mjs && node --check src/detector-landmarks-lab.mjs && node --check src/evaluation-lab.mjs && node --check src/consented-lab.mjs && node --check src/deep-embedding-v1.mjs && node --check src/deep-training-lab.mjs && node --check src/cnn-backprop-lab.mjs && node --check src/residual-backprop-lab-v1.mjs && node --check src/canonical-backbone-graph-v1.mjs && node --check src/canonical-backprop-v1.mjs && node --check src/spatial-stem-backprop-v1.mjs && node --check src/e2e-spatial-canonical-v1.mjs && node --check src/consented-1to1-protocol-v1.mjs && node --check src/consented-1to1-evaluator-v1.mjs && node --check src/backbone-inference-v1.mjs && node --check src/embedding-score-adapter-v1.mjs && node --check src/trained-checkpoint-manifest-v1.mjs && node --check src/train-eval-run-spec-v1.mjs && npm test"
+    "check": "node --check src/index.mjs && node --check src/lab-baseline.mjs && node --check src/metric-lab.mjs && node --check src/detector-landmarks-lab.mjs && node --check src/evaluation-lab.mjs && node --check src/consented-lab.mjs && node --check src/deep-embedding-v1.mjs && node --check src/deep-training-lab.mjs && node --check src/cnn-backprop-lab.mjs && node --check src/residual-backprop-lab-v1.mjs && node --check src/canonical-backbone-graph-v1.mjs && node --check src/canonical-backprop-v1.mjs && node --check src/spatial-stem-backprop-v1.mjs && node --check src/e2e-spatial-canonical-v1.mjs && node --check src/consented-1to1-protocol-v1.mjs && node --check src/consented-1to1-evaluator-v1.mjs && node --check src/backbone-inference-v1.mjs && node --check src/embedding-score-adapter-v1.mjs && node --check src/trained-checkpoint-manifest-v1.mjs && node --check src/train-eval-run-spec-v1.mjs && node --check src/run-spec-synthetic-executor-v1.mjs && npm test"
   },
   "engines": {
     "node": ">=22"
