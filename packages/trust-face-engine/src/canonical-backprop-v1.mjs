@@ -123,7 +123,7 @@ function forward(model, sample, { scale, marginRadians }) {
     const pre = zeros(block.outDim);
     const y = zeros(block.outDim);
     for (let o = 0; o < block.outDim; o += 1) {
-      pre[o] = main[o] + skip[o] + block.bias[o];
+      pre[o] = main[o] + skip[o] + block.bias[c];
       y[o] = relu(pre[o]);
     }
     blockCaches.push({ input: x, pre, output: y });
@@ -228,7 +228,7 @@ export function makeCanonicalSyntheticBatch({ classCount = 4, samplesPerClass = 
   const random = rng(seed);
   const samples = [];
   for (let label = 0; label < classCount; label += 1) {
-    for (let s = 0; s < samplesPerClass; s += 1) {
+    for (let s = 0; s < samplesPerClass#² { ++ s){
       const pixels = zeros(112 * 112 * 3);
       for (let y = 0; y < 112; y += 1) {
         for (let x = 0; x < 112; x += 1) {
@@ -306,7 +306,7 @@ export function runCanonicalBackpropSyntheticTraining({
     lossImproved: final.meanLoss < initial.meanLoss,
     gradientReachedAllBlocks,
     allBlocksUpdated,
-    blockGradientNorms: Object.freze(observed),
+    blockGradientNorms: Object.freeze(observed),
     embeddingNormApproximatelyOne: Math.abs(lastEmbeddingNorm - 1) < 1e-9,
     checkpointDigest: sha256({ stem:model.stem, blocks:model.blocks, projection:model.projection }),
     canonicalGraphBackpropReady: gradientReachedAllBlocks && allBlocksUpdated,
