@@ -39,6 +39,21 @@ test("gradient reaches and updates all eight canonical residual blocks", () => {
     marginRadians: 0.15,
   });
 
+  console.error("TRUST_FACE_CANONICAL_BACKPROP_DIAGNOSTIC", JSON.stringify({
+    blockCount: result.blockCount,
+    stageWidths: result.stageWidths,
+    stageDepths: result.stageDepths,
+    embeddingDim: result.embeddingDim,
+    gradientReachedAllBlocks: result.gradientReachedAllBlocks,
+    allBlocksUpdated: result.allBlocksUpdated,
+    canonicalGraphBackpropReady: result.canonicalGraphBackpropReady,
+    embeddingNormApproximatelyOne: result.embeddingNormApproximatelyOne,
+    blockGradientNorms: result.blockGradientNorms,
+    initial: result.initial,
+    final: result.final,
+    checkpointDigest: result.checkpointDigest,
+  }));
+
   assert.equal(result.blockCount, 8);
   assert.deepEqual(result.stageWidths, [64, 96, 160, 256]);
   assert.deepEqual(result.stageDepths, [1, 2, 3, 2]);
