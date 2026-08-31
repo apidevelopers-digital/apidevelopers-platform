@@ -37,7 +37,7 @@ function expected(overrides = {}) {
     authorizationDigest: d("b"),
     consentLedgerDigest: d("c"),
     scoreSourceManifestDigest: d("d"),
-    checkpointManifestDigest: digest("e"),
+    checkpointManifestDigest: d("e"),
     weightsDigest: d("f"),
     scorerCodeDigest: d("1"),
     scorerVersion: "trust-face-owned-scorer/v1",
@@ -105,7 +105,7 @@ test("verification rejects score-set and source drift", () => {
   );
 });
 
-test,"verification rejects checkpoint, weights and scorer drift", () => {
+test("verification rejects checkpoint, weights and scorer drift", () => {
   const item = receipt();
   for (const [override, code] of [
     [{ checkpointManifestDigest: d("5") }, "generation_checkpointManifestDigest_mismatch"],
@@ -117,7 +117,7 @@ test,"verification rejects checkpoint, weights and scorer drift", () => {
   }
 });
 
-test,"verification rejects tampering and receipts completed in the future", () => {
+test("verification rejects tampering and receipts completed in the future", () => {
   const tampered = { ...receipt(), pairCount: 129 };
   assert.throws(
     () => verify({ receipt: tampered, ...expected({ pairCount: 129 }) }),
