@@ -171,7 +171,7 @@ test("valid source-bound evidence is accepted without claiming real biometric me
   assert.equal(result.biometricClaimReady, false);
 });
 
-test,"evidence for a different score batch is rejected", () => {
+test("evidence for a different score batch is rejected", () => {
   const auth = authorization();
   const source = scoreSourceManifest();
   const changed = scores.map((item) => ({ ...item }));
