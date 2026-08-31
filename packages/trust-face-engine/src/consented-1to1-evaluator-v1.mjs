@@ -116,7 +116,7 @@ export function evaluateConsented1to1Scores({
     return Object.freeze({
       sameSubject: pair.sameSubject,
       referenceVector: vectors.referenceVector,
-      probeVector: vectors.probeVector0,
+      probeVector: vectors.probeVector,
     });
   });
 
