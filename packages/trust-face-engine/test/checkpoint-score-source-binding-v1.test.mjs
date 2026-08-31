@@ -40,6 +40,19 @@ function binding(cp = checkpoint(), overrides = {}) {
   });
 }
 
+function assertion(item, cp = checkpoint(), overrides = {}) {
+  return assertCheckpointBoundScoreSource({
+    binding: item,
+    checkpointManifest: cp,
+    protocolDigest: d("e"),
+    codeCommit: commit,
+    scorerCodeDigest: d("f"),
+    scorerVersion: "trust-face-owned-scorer/v1",
+    now: "2026-08-31T16:00:00Z",
+    ...overrides,
+  });
+}
+
 test("profile preserves non-production and non-claim state", () => {
   assert.equal(TRUST_FACE_CHECKPOINT_SCORE_SOURCE_BINDING_V1.originAttested, false);
   assert.equal(TRUST_FACE_CHECKPOINT_SCORE_SOURCE_BINDING_V1.realMetricsReady, false);
@@ -56,6 +69,8 @@ test("binding deterministically connects checkpoint manifest and score source", 
   assert.equal(a.weightsDigest, cp.weightsDigest);
   assert.equal(a.sourceManifest.checkpointManifestDigest, cp.manifestDigest);
   assert.equal(a.sourceManifest.weightsDigest, cp.weightsDigest);
+  assert.equal(a.sourceManifestDigest, a.sourceManifest.sourceManifestDigest);
+  assert.equal(a.scorerCodeDigest, a.sourceManifest.scorerCodeDigest);
   assert.equal(a.checkpointAuthorityBasis, "synthetic");
   assert.equal(a.checkpointTrainedBiometricWeightsIncluded, false);
   assert.equal(a.checkpointBiometricBackboneReady, false);
@@ -66,17 +81,12 @@ test("binding deterministically connects checkpoint manifest and score source", 
 test("assertion validates exact checkpoint, commit, protocol and scorer", () => {
   const cp = checkpoint();
   const item = binding(cp);
-  const checked = assertCheckpointBoundScoreSource({
-    binding: item,
-    checkpointManifest: cp,
-    protocolDigest: d("e"),
-    codeCommit: commit,
-    scorerVersion: "trust-face-owned-scorer/v1",
-  });
+  const checked = assertion(item, cp);
   assert.equal(checked.valid, true);
   assert.equal(checked.bindingDigest, item.bindingDigest);
   assert.equal(checked.checkpointManifestDigest, cp.manifestDigest);
   assert.equal(checked.weightsDigest, cp.weightsDigest);
+  assert.equal(checked.scorerCodeDigest, d("f"));
 });
 
 test("binding rejects incomplete checkpoint state", () => {
@@ -90,19 +100,19 @@ test("binding rejects incomplete checkpoint state", () => {
   );
 });
 
-test("assertion rejects checkpoint drift", () => {
+test("assertion rejects checkpoint drift and non-canonical checkpoint contents", () => {
   const cp = checkpoint();
   const item = binding(cp);
   const drifted = checkpoint({ weightsDigest: d("9") });
   assert.throws(
-    () => assertCheckpointBoundScoreSource({
-      binding: item,
-      checkpointManifest: drifted,
-      protocolDigest: d("e"),
-      codeCommit: commit,
-      scorerVersion: "trust-face-owned-scorer/v1",
-    }),
+    () => assertion(item, drifted),
     (error) => ["checkpoint_manifest_digest_mismatch", "checkpoint_weights_digest_mismatch"].includes(error?.code),
+  );
+
+  const tampered = { ...cp, checkpointId: "tampered-checkpoint-id" };
+  assert.throws(
+    () => assertion(item, tampered),
+    (error) => error?.code === "checkpoint_manifest_digest_mismatch",
   );
 });
 
@@ -110,16 +120,39 @@ test("assertion rejects protocol, commit and scorer drift", () => {
   const cp = checkpoint();
   const item = binding(cp);
   assert.throws(
-    () => assertCheckpointBoundScoreSource({ binding: item, checkpointManifest: cp, protocolDigest: d("9"), codeCommit: commit, scorerVersion: "trust-face-owned-scorer/v1" }),
+    () => assertion(item, cp, { protocolDigest: d("9") }),
     (error) => error?.code === "checkpoint_protocol_digest_mismatch",
   );
   assert.throws(
-    () => assertCheckpointBoundScoreSource({ binding: item, checkpointManifest: cp, protocolDigest: d("e"), codeCommit: "1111111111111111111111111111111111111111", scorerVersion: "trust-face-owned-scorer/v1" }),
+    () => assertion(item, cp, { codeCommit: "1111111111111111111111111111111111111111" }),
     (error) => error?.code === "checkpoint_commit_mismatch",
   );
   assert.throws(
-    () => assertCheckpointBoundScoreSource({ binding: item, checkpointManifest: cp, protocolDigest: d("e"), codeCommit: commit, scorerVersion: "different-scorer" }),
+    () => assertion(item, cp, { scorerCodeDigest: d("8") }),
+    (error) => error?.code === "checkpoint_scorer_code_digest_mismatch",
+  );
+  assert.throws(
+    () => assertion(item, cp, { scorerVersion: "different-scorer" }),
     (error) => error?.code === "checkpoint_scorer_version_mismatch",
+  );
+});
+
+test("assertion rejects tampered nested source manifest and policy state", () => {
+  const cp = checkpoint();
+  const item = binding(cp);
+  const sourceTampered = {
+    ...item,
+    sourceManifest: { ...item.sourceManifest, scorerCodeDigest: d("9") },
+  };
+  assert.throws(
+    () => assertion(sourceTampered, cp),
+    (error) => error?.code === "score_source_manifest_digest_mismatch",
+  );
+
+  const policyTampered = { ...item, productionReady: true };
+  assert.throws(
+    () => assertion(policyTampered, cp),
+    (error) => error?.code === "checkpoint_score_source_binding_policy_mismatch",
   );
 });
 
