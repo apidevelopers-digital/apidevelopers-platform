@@ -1,4 +1,5 @@
 import { evaluateVerification } from "./metric-lab.mjs";
+import { assertConsentedRealEvaluationAuthorization } from "./consented-real-eval-auth-gate-v1.mjs";
 
 export const TRUST_FACE_CONSENTED_1TO1_EVALUATOR_V1 = Object.freeze({
   version: "trust-face-consented-1to1-evaluator/v1",
@@ -36,7 +37,7 @@ export function evaluateConsented1to1Scores({
   protocol,
   scores,
   thresholds = [0.5, 0.6, 0.7, 0.8, 0.9],
-  execution = { mode: "synthetic", realBiometricExecutionAuthorized: false },
+  execution = { mode: "synthetic" },
 } = {}) {
   if (!protocol || typeof protocol !== "object" || !Array.isArray(protocol.pairs)) {
     fail("invalid_protocol", "protocol.pairs is required");
@@ -55,8 +56,15 @@ export function evaluateConsented1to1Scores({
   if (!TRUST_FACE_CONSENTED_1TO1_EVALUATOR_V1.acceptedExecutionModes.includes(mode)) {
     fail("invalid_execution_mode", "execution.mode must be synthetic or consented-real");
   }
-  if (mode === "consented-real" && execution?.realBiometricExecutionAuthorized !== true) {
-    fail("real_biometric_execution_not_authorized", "consented-real execution requires explicit runtime authorization");
+
+  let realAuthorization = null;
+  if (mode === "consented-real") {
+    realAuthorization = assertConsentedRealEvaluationAuthorization({
+      authorization: execution?.authorization,
+      protocolDigest: protocol.protocolDigest,
+      codeCommit: execution?.codeCommit,
+      now: execution?.now,
+    });
   }
 
   const protocolByPairId = new Map(protocol.pairs.map((pair) => [pair.pairId, pair]));
@@ -108,7 +116,10 @@ export function evaluateConsented1to1Scores({
     pairCount: protocol.pairs.length,
     operatingPoints: evaluation.operatingPoints,
     approximateEerPoint: evaluation.approximateEerPoint,
-    realMetricsReady: mode === "consented-real" && execution.realBiometricExecutionAuthorized === true,
+    authorizationId: realAuthorization?.authorizationId ?? null,
+    authorizationDigest: realAuthorization?.authorizationDigest ?? null,
+    codeCommit: realAuthorization?.codeCommit ?? null,
+    realMetricsReady: mode === "consented-real" && realAuthorization?.authorized === true,
     productionReady: false,
     biometricClaimReady: false,
   });
