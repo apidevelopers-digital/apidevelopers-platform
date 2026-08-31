@@ -53,6 +53,7 @@ test("profile remains declaration-only and non-production", () => {
   assert.equal(PROFILE.trainingUsed, false);
   assert.equal(PROFILE.rawBiometricsRetained, false);
   assert.equal(PROFILE.rawEmbeddingsRetained, false);
+  assert.equal(PROFILE.provenanceClass, "declared-consented-score-generation");
   assert.equal(PROFILE.originAttested, false);
   assert.equal(PROFILE.realMetricsReady, false);
   assert.equal(PROFILE.productionReady, false);
@@ -64,6 +65,7 @@ test("receipt is deterministic for the exact generation metadata", () => {
   const b = receipt();
   assert.deepEqual(a, b);
   assert.match(a.generationReceiptDigest, /^sha256:[0-9a-f]{64}$/);
+  assert.equal(a.provenanceClass, "declared-consented-score-generation");
 });
 
 test("receipt verification binds authorization, source, checkpoint, weights, scorer and score set", () => {
@@ -78,8 +80,11 @@ test("receipt verification binds authorization, source, checkpoint, weights, sco
   assert.equal(checked.checkpointManifestDigest, d("e"));
   assert.equal(checked.weightsDigest, d("f"));
   assert.equal(checked.scorerCodeDigest, d("1"));
+  assert.equal(checked.provenanceClass, "declared-consented-score-generation");
   assert.equal(checked.originAttested, false);
   assert.equal(checked.realMetricsReady, false);
+  assert.equal(checked.productionReady, false);
+  assert.equal(checked.biometricClaimReady, false);
 });
 
 test("creation rejects training or biometric/embedding retention", () => {
@@ -113,11 +118,14 @@ test("verification rejects checkpoint, weights and scorer drift", () => {
     [{ scorerCodeDigest: d("7") }, "generation_scorerCodeDigest_mismatch"],
     [{ scorerVersion: "different-scorer" }, "generation_scorerVersion_mismatch"],
   ]) {
-    assert.throws(() => verify({ receipt: item, ...expected(override) }), (error) => error?.code === code);
+    assert.throws(
+      () => verify({ receipt: item, ...expected(override) }),
+      (error) => error?.code === code,
+    );
   }
 });
 
-test("verification rejects tampering and receipts completed in the future", () => {
+test("verification rejects digest-covered body tampering and receipts completed in the future", () => {
   const tampered = { ...receipt(), pairCount: 129 };
   assert.throws(
     () => verify({ receipt: tampered, ...expected({ pairCount: 129 }) }),
@@ -127,4 +135,20 @@ test("verification rejects tampering and receipts completed in the future", () =
     () => verify({ receipt: receipt(), ...expected({ now: "2026-08-31T16:02:00Z" }) }),
     (error) => error?.code === "generation_receipt_from_future",
   );
+});
+
+test("verification fails closed on provenance and claim-state tampering", () => {
+  const item = receipt();
+  for (const override of [
+    { provenanceClass: "cryptographically-attested" },
+    { originAttested: true },
+    { realMetricsReady: true },
+    { productionReady: true },
+    { biometricClaimReady: true },
+  ]) {
+    assert.throws(
+      () => verify({ receipt: { ...item, ...override }, ...expected() }),
+      (error) => error?.code === "generation_receipt_claim_state_mismatch",
+    );
+  }
 });
