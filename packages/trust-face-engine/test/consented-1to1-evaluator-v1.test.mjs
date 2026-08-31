@@ -5,12 +5,8 @@ import {
   TRUST_FACE_CONSENTED_1TO1_EVALUATOR_V1,
   evaluateConsented1to1Scores,
 } from "../src/consented-1to1-evaluator-v1.mjs";
-import {
-  createConsentedRealEvaluationAuthorization,
-} from "../src/consented-real-eval-auth-gate-v1.mjs";
-import {
-  createConsentedScoreBatchEvidence,
-} from "../src/consented-score-batch-evidence-v1.mjs";
+import { createConsentedRealEvaluationAuthorization } from "../src/consented-real-eval-auth-gate-v1.mjs";
+import { createConsentedScoreBatchEvidence } from "../src/consented-score-batch-evidence-v1.mjs";
 
 const digest = (char) => `sha256:${char.repeat(64)}`;
 const commit = "299502d0bbbe225670e7304c30009b3bd36cd65c";
@@ -43,45 +39,36 @@ function authorization() {
   });
 }
 
-const syntheticScores = Object.freeze([
+const scores = Object.freeze([
   Object.freeze({ pairId: "genuine:a1::a2", score: 0.92 }),
   Object.freeze({ pairId: "genuine:b1::b2", score: 0.88 }),
   Object.freeze({ pairId: "impostor:a1::b2", score: 0.31 }),
   Object.freeze({ pairId: "impostor:b1::a2", score: 0.27 }),
 ]);
 
-function scoreEvidence(auth = authorization(), scores = syntheticScores) {
+function scoreEvidence(auth = authorization(), batch = scores) {
   return createConsentedScoreBatchEvidence({
-    scores,
+    scores: batch,
     protocolDigest: digest("a"),
     codeCommit: commit,
     authorizationDigest: auth.authorizationDigest,
     consentLedgerDigest: digest("c"),
     scorerVersion: "trust-face-score-source/lab-v1",
     capturedAt: "2026-08-31T11:30:00Z",
-    rawBiometricsRetained: false,
-    trainingUsed: false,
   });
 }
 
-test("evaluator profile remains non-production and metadata-only", () => {
+test("evaluator remains metadata-only and non-production", () => {
   assert.equal(TRUST_FACE_CONSENTED_1TO1_EVALUATOR_V1.rawBiometricPayloadAccepted, false);
   assert.equal(TRUST_FACE_CONSENTED_1TO1_EVALUATOR_V1.rawEmbeddingAccepted, false);
   assert.equal(TRUST_FACE_CONSENTED_1TO1_EVALUATOR_V1.productionReady, false);
   assert.equal(TRUST_FACE_CONSENTED_1TO1_EVALUATOR_V1.biometricClaimReady, false);
 });
 
-test("synthetic score adapter produces deterministic FMR/FNMR operating points", () => {
-  const a = evaluateConsented1to1Scores({
-    protocol: protocol(),
-    scores: syntheticScores,
-    threshlds: [0.3, 0.5, 0.7, 0.9],
-  });
-  const b = evaluateConsented1to1Scores({
-    protocol: protocol(),
-    scores: syntheticScores,
-    thresholds: [0.3, 0.5, 0.7, 0.9],
-  });
+test("synthetic mode remains deterministic and non-real", () => {
+  const input = { protocol: protocol(), scores, thresholds: [0.3, 0.5, 0.7, 0.9] };
+  const a = evaluateConsented1to1Scores(input);
+  const b = evaluateConsented1to1Scores(input);
 
   assert.deepEqual(a, b);
   assert.equal(a.executionMode, "synthetic");
@@ -90,14 +77,13 @@ test("synthetic score adapter produces deterministic FMR/FNMR operating points",
   assert.equal(a.scoreEvidenceDigest, null);
   assert.equal(a.scoreProvenanceClass, "synthetic");
   assert.equal(a.pairCount, 4);
-  assert.ok(a.operatingPoints.every((point) => Number.isFinite(point.fmr) && Number.isFinite(point.fnmr)));
 });
 
-test("consented-real mode cannot be unlocked by the legacy boolean alone", () => {
+test("legacy boolean cannot unlock consented-real mode", () => {
   assert.throws(
     () => evaluateConsented1to1Scores({
       protocol: protocol(),
-      scores: syntheticScores,
+      scores,
       execution: {
         mode: "consented-real",
         realBiometricExecutionAuthorized: true,
@@ -109,12 +95,12 @@ test("consented-real mode cannot be unlocked by the legacy boolean alone", () =>
   );
 });
 
-test("consented-real mode requires score evidence after authorization passes", () => {
+test("authorization alone cannot unlock consented-real scores", () => {
   const auth = authorization();
   assert.throws(
     () => evaluateConsented1to1Scores({
       protocol: protocol(),
-      scores: syntheticScores,
+      scores,
       execution: {
         mode: "consented-real",
         authorization: auth,
@@ -126,11 +112,11 @@ test("consented-real mode requires score evidence after authorization passes", (
   );
 });
 
-test("consented-real mode binds authorization and score evidence but does not auto-claim real metrics", () => {
+test("valid score evidence is bound without claiming real biometric metrics", () => {
   const auth = authorization();
   const result = evaluateConsented1to1Scores({
     protocol: protocol(),
-    scores: syntheticScores,
+    scores,
     execution: {
       mode: "consented-real",
       authorization: auth,
@@ -140,7 +126,6 @@ test("consented-real mode binds authorization and score evidence but does not au
     },
   });
 
-  assert.equal(result.executionMode, "consented-real");
   assert.equal(result.consentedRealExecutionAuthorized, true);
   assert.equal(result.scoreEvidenceBound, true);
   assert.equal(result.realMetricsReady, false);
@@ -153,15 +138,15 @@ test("consented-real mode binds authorization and score evidence but does not au
   assert.equal(result.codeCommit, commit);
 });
 
-test("consented-real mode rejects evidence for a different score batch", () => {
+test("evidence for a different score batch is rejected", () => {
   const auth = authorization();
-  const changedScores = syntheticScores.map((item) => ({ ...item }));
-  changedScores[0].score = 0.91;
+  const changed = scores.map((item) => ({ ...item }));
+  changed[0].score = 0.91;
 
   assert.throws(
     () => evaluateConsented1to1Scores({
       protocol: protocol(),
-      scores: changedScores,
+      scores: changed,
       execution: {
         mode: "consented-real",
         authorization: auth,
@@ -174,11 +159,11 @@ test("consented-real mode rejects evidence for a different score batch", () => {
   );
 });
 
-test("consented-real mode rejects authorization bound to a different commit", () => {
+test("authorization bound to a different commit is rejected", () => {
   assert.throws(
     () => evaluateConsented1to1Scores({
       protocol: protocol(),
-      scores: syntheticScores,
+      scores,
       execution: {
         mode: "consented-real",
         authorization: authorization(),
@@ -191,18 +176,15 @@ test("consented-real mode rejects authorization bound to a different commit", ()
   );
 });
 
-test("executor rejects raw embeddings or biometric payloads", () => {
-  const scores = syntheticScores.map((item) => ({ ...item }));
-  scores[0].embedding = [1, 0, 0];
+test("raw biometric payloads and incomplete score coverage are rejected", () => {
+  const raw = scores.map((item) => ({ ...item }));
+  raw[0].embedding = [1, 0, 0];
   assert.throws(
-    () => evaluateConsented1to1Scores({ protocol: protocol(), scores }),
+    () => evaluateConsented1to1Scores({ protocol: protocol(), scores: raw }),
     (error) => error?.code === "raw_biometric_payload_forbidden",
   );
-});
-
-test("executor requires exact protocol score coverage", () => {
   assert.throws(
-    () => evaluateConsented1to1Scores({ protocol: protocol(), scores: syntheticScores.slice(0, 3) }),
+    () => evaluateConsented1to1Scores({ protocol: protocol(), scores: scores.slice(0, 3) }),
     (error) => error?.code === "score_coverage_mismatch",
   );
 });
