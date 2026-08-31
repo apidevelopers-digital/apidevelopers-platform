@@ -5,10 +5,16 @@ import {
   TRUST_FACE_CONSENTED_1TO1_EVALUATOR_V1,
   evaluateConsented1to1Scores,
 } from "../src/consented-1to1-evaluator-v1.mjs";
+import {
+  createConsentedRealEvaluationAuthorization,
+} from "../src/consented-real-eval-auth-gate-v1.mjs";
+
+const digest = (char) => `sha256:${char.repeat(64)}`;
+const commit = "e6a01d59ded41bee87862fe5543783f70f92ff88";
 
 function protocol() {
   return Object.freeze({
-    protocolDigest: "sha256:fixture",
+    protocolDigest: digest("a"),
     authorityBasis: "consented-lab",
     realMetricsReady: false,
     pairs: Object.freeze([
@@ -17,6 +23,20 @@ function protocol() {
       Object.freeze({ pairId: "impostor:a1::b2", sameSubject: false }),
       Object.freeze({ pairId: "impostor:b1::a2", sameSubject: false }),
     ]),
+  });
+}
+
+function authorization() {
+  return createConsentedRealEvaluationAuthorization({
+    authorizationId: "eval-auth-binding-001",
+    scope: "face-1to1-evaluation",
+    protocolDigest: digest("a"),
+    codeCommit: commit,
+    issuedAt: "2026-08-31T10:00:00Z",
+    expiresAt: "2026-08-31T14:00:00Z",
+    evaluationOnly: true,
+    trainingAuthorized: false,
+    realBiometricEvaluationAuthorized: true,
   });
 }
 
@@ -45,21 +65,63 @@ test("synthetic score adapter produces deterministic FMR/FNMR operating points",
     scores: syntheticScores,
     thresholds: [0.3, 0.5, 0.7, 0.9],
   });
+
   assert.deepEqual(a, b);
   assert.equal(a.executionMode, "synthetic");
   assert.equal(a.realMetricsReady, false);
+  assert.equal(a.authorizationId, null);
   assert.equal(a.pairCount, 4);
   assert.ok(a.operatingPoints.every((point) => Number.isFinite(point.fmr) && Number.isFinite(point.fnmr)));
 });
 
-test("consented-real mode remains blocked without explicit runtime authorization", () => {
+test("consented-real mode cannot be unlocked by the legacy boolean alone", () => {
   assert.throws(
     () => evaluateConsented1to1Scores({
       protocol: protocol(),
       scores: syntheticScores,
-      execution: { mode: "consented-real", realBiometricExecutionAuthorized: false },
+      execution: {
+        mode: "consented-real",
+        realBiometricExecutionAuthorized: true,
+        codeCommit: commit,
+        now: "2026-08-31T12:00:00Z",
+      },
     }),
-    (error) => error?.code === "real_biometric_execution_not_authorized",
+    (error) => error?.code === "authorization_required",
+  );
+});
+
+test("consented-real mode requires an active authorization bound to protocol and commit", () => {
+  const result = evaluateConsented1to1Scores({
+    protocol: protocol(),
+    scores: syntheticScores,
+    execution: {
+      mode: "consented-real",
+      authorization: authorization(),
+      codeCommit: commit,
+      now: "2026-08-31T12:00:00Z",
+    },
+  });
+
+  assert.equal(result.executionMode, "consented-real");
+  assert.equal(result.realMetricsReady, true);
+  assert.equal(result.authorizationId, "eval-auth-binding-001");
+  assert.match(result.authorizationDigest, /^sha256:[0-9a-f]{64}$/);
+  assert.equal(result.codeCommit, commit);
+});
+
+test("consented-real mode rejects authorization bound to a different commit", () => {
+  assert.throws(
+    () => evaluateConsented1to1Scores({
+      protocol: protocol(),
+      scores: syntheticScores,
+      execution: {
+        mode: "consented-real",
+        authorization: authorization(),
+        codeCommit: "different-commit",
+        now: "2026-08-31T12:00:00Z",
+      },
+    }),
+    (error) => error?.code === "code_commit_mismatch",
   );
 });
 
