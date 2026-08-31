@@ -7,9 +7,11 @@ import {
 } from "../src/consented-1to1-evaluator-v1.mjs";
 import { createConsentedRealEvaluationAuthorization } from "../src/consented-real-eval-auth-gate-v1.mjs";
 import { createConsentedScoreBatchEvidence } from "../src/consented-score-batch-evidence-v1.mjs";
+import { createConsentedScoreSourceManifest } from "../src/consented-score-source-manifest-v1.mjs";
 
 const digest = (char) => `sha256:${char.repeat(64)}`;
-const commit = "299502d0bbbe225670e7304c30009b3bd36cd65c";
+const commit = "71a1fb983a1b23c90005125ee8ffb3ae9182a1c1";
+const scorerVersion = "trust-face-owned-scorer/v1";
 
 function protocol() {
   return Object.freeze({
@@ -46,14 +48,30 @@ const scores = Object.freeze([
   Object.freeze({ pairId: "impostor:b1::a2", score: 0.27 }),
 ]);
 
-function scoreEvidence(auth = authorization(), batch = scores) {
+function scoreSourceManifest(overrides = {}) {
+  return createConsentedScoreSourceManifest({
+    sourceId: "owned-checkpoint-eval-001",
+    protocolDigest: digest("a"),
+    codeCommit: commit,
+    scorerCodeDigest: digest("d"),
+    checkpointManifestDigest: digest("e"),
+    weightsDigest: digest("f"),
+    scorerVersion,
+    issuedAt: "2026-08-31T10:00:00Z",
+    expiresAt: "2026-08-31T14:00:00Z",
+    ...overrides,
+  });
+}
+
+function scoreEvidence(auth = authorization(), source = scoreSourceManifest(), batch = scores) {
   return createConsentedScoreBatchEvidence({
     scores: batch,
     protocolDigest: digest("a"),
     codeCommit: commit,
     authorizationDigest: auth.authorizationDigest,
     consentLedgerDigest: digest("c"),
-    scorerVersion: "trust-face-score-source/lab-v1",
+    scorerVersion,
+    scoreSourceManifest: source,
     capturedAt: "2026-08-31T11:30:00Z",
   });
 }
@@ -75,6 +93,10 @@ test("synthetic mode remains deterministic and non-real", () => {
   assert.equal(a.realMetricsReady, false);
   assert.equal(a.authorizationId, null);
   assert.equal(a.scoreEvidenceDigest, null);
+  assert.equal(a.scoreSourceManifestDigest, null);
+  assert.equal(a.scoreSourceId, null);
+  assert.equal(a.scoreSourceOriginAttested, false);
+  assert.equal(a.scoreSourceBound, false);
   assert.equal(a.scoreProvenanceClass, "synthetic");
   assert.equal(a.pairCount, 4);
 });
@@ -95,8 +117,10 @@ test("legacy boolean cannot unlock consented-real mode", () => {
   );
 });
 
-test("authorization alone cannot unlock consented-real scores", () => {
+test("authorization and score evidence without score source manifest cannot unlock consented-real mode", () => {
   const auth = authorization();
+  const source = scoreSourceManifest();
+  const evidence = scoreEvidence(auth, source);
   assert.throws(
     () => evaluateConsented1to1Scores({
       protocol: protocol(),
@@ -104,23 +128,26 @@ test("authorization alone cannot unlock consented-real scores", () => {
       execution: {
         mode: "consented-real",
         authorization: auth,
+        scoreEvidence: evidence,
         codeCommit: commit,
         now: "2026-08-31T12:00:00Z",
       },
     }),
-    (error) => error?.code === "score_evidence_required",
+    (error) => error?.code === "score_source_manifest_required",
   );
 });
 
-test("valid score evidence is bound without claiming real biometric metrics", () => {
+test("valid source-bound evidence is accepted without claiming real biometric metrics", () => {
   const auth = authorization();
+  const source = scoreSourceManifest();
   const result = evaluateConsented1to1Scores({
     protocol: protocol(),
     scores,
     execution: {
       mode: "consented-real",
       authorization: auth,
-      scoreEvidence: scoreEvidence(auth),
+      scoreEvidence: scoreEvidence(auth, source),
+      scoreSourceManifest: source,
       codeCommit: commit,
       now: "2026-08-31T12:00:00Z",
     },
@@ -128,18 +155,25 @@ test("valid score evidence is bound without claiming real biometric metrics", ()
 
   assert.equal(result.consentedRealExecutionAuthorized, true);
   assert.equal(result.scoreEvidenceBound, true);
+  assert.equal(result.scoreSourceBound, true);
   assert.equal(result.realMetricsReady, false);
   assert.equal(result.authorizationId, "eval-auth-binding-001");
   assert.match(result.authorizationDigest, /^sha256:[0-9a-f]{64}$/);
   assert.match(result.scoreEvidenceDigest, /^sha256:[0-9a-f]{64}$/);
   assert.match(result.scoreSetDigest, /^sha256:[0-9a-f]{64}$/);
+  assert.match(result.scoreSourceManifestDigest, /^sha256:[0-9a-f]{64}$/);
+  assert.equal(result.scoreSourceId, "owned-checkpoint-eval-001");
+  assert.equal(result.scoreSourceOriginAttested, false);
   assert.equal(result.consentLedgerDigest, digest("c"));
-  assert.equal(result.scoreProvenanceClass, "declared-consented-score-batch");
+  assert.equal(result.scoreProvenanceClass, "declared-consented-score-batch-with-owned-source");
   assert.equal(result.codeCommit, commit);
+  assert.equal(result.productionReady, false);
+  assert.equal(result.biometricClaimReady, false);
 });
 
-test("evidence for a different score batch is rejected", () => {
+test,"evidence for a different score batch is rejected", () => {
   const auth = authorization();
+  const source = scoreSourceManifest();
   const changed = scores.map((item) => ({ ...item }));
   changed[0].score = 0.91;
 
@@ -150,12 +184,35 @@ test("evidence for a different score batch is rejected", () => {
       execution: {
         mode: "consented-real",
         authorization: auth,
-        scoreEvidence: scoreEvidence(auth),
+        scoreEvidence: scoreEvidence(auth, source),
+        scoreSourceManifest: source,
         codeCommit: commit,
         now: "2026-08-31T12:00:00Z",
       },
     }),
     (error) => error?.code === "score_set_digest_mismatch",
+  );
+});
+
+test("source manifest drift is rejected", () => {
+  const auth = authorization();
+  const source = scoreSourceManifest();
+  const otherSource = scoreSourceManifest({ weightsDigest: digest("9") });
+
+  assert.throws(
+    () => evaluateConsented1to1Scores({
+      protocol: protocol(),
+      scores,
+      execution: {
+        mode: "consented-real",
+        authorization: auth,
+        scoreEvidence: scoreEvidence(auth, source),
+        scoreSourceManifest: otherSource,
+        codeCommit: commit,
+        now: "2026-08-31T12:00:00Z",
+      },
+    }),
+    (error) => error?.code === "score_source_manifest_digest_mismatch",
   );
 });
 
@@ -168,6 +225,7 @@ test("authorization bound to a different commit is rejected", () => {
         mode: "consented-real",
         authorization: authorization(),
         scoreEvidence: scoreEvidence(),
+        scoreSourceManifest: scoreSourceManifest(),
         codeCommit: "different-commit",
         now: "2026-08-31T12:00:00Z",
       },
