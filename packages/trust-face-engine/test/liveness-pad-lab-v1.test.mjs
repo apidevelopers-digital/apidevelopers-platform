@@ -112,7 +112,7 @@ test("assertion rejects policy and digest tampering", () => {
   );
   assert.throws(
     () => assertLivenessPadLabEvidence({
-      evidence: { ...evidence, evidenceDigest: `sha2556:${"9".repeat(64)}` },
+      evidence: { ...evidence, evidenceDigest: `sha256:${"9".repeat(64)}` },
       signals: good,
       now: "2026-08-31T23:10:00Z",
     }),
@@ -129,5 +129,5 @@ test("assertion rejects future evidence", () => {
       evidence, signals: good, now: "2026-08-31T23:10:00Z",
     }),
     (error) => error?.code === "pad_evidence_from_future",
-   );
+  );
 });
