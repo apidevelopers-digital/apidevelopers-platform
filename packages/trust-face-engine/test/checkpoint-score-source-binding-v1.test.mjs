@@ -154,6 +154,15 @@ test("assertion rejects tampered nested source manifest and policy state", () =>
     () => assertion(policyTampered, cp),
     (error) => error?.code === "checkpoint_score_source_binding_policy_mismatch",
   );
+
+  const sourcePolicyTampered = {
+    ...item,
+    sourceManifest: { ...item.sourceManifest, productionReady: true },
+  };
+  assert.throws(
+    () => assertion(sourcePolicyTampered, cp),
+    (error) => error?.code === "source_manifest_claim_state_mismatch",
+  );
 });
 
 test("binding rejects unsupported checkpoint authority", () => {
