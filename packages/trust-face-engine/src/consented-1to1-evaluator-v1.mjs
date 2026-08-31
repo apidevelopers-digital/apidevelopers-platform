@@ -1,6 +1,7 @@
 import { evaluateVerification } from "./metric-lab.mjs";
 import { assertConsentedRealEvaluationAuthorization } from "./consented-real-eval-auth-gate-v1.mjs";
 import { assertConsentedScoreBatchEvidence } from "./consented-score-batch-evidence-v1.mjs";
+import { assertScoreGenerationEvidenceBinding } from "./score-generation-evidence-binding-v1.mjs";
 
 export const TRUST_FACE_CONSENTED_1TO1_EVALUATOR_V1 = Object.freeze({
   version: "trust-face-consented-1to1-evaluator/v1",
@@ -8,6 +9,7 @@ export const TRUST_FACE_CONSENTED_1TO1_EVALUATOR_V1 = Object.freeze({
   acceptedExecutionModes: Object.freeze(["synthetic", "consented-real"]),
   rawBiometricPayloadAccepted: false,
   rawEmbeddingAccepted: false,
+  scoreGenerationEvidenceBindingRequiredInConsentedReal: true,
   productionReady: false,
   biometricClaimReady: false,
 });
@@ -60,6 +62,7 @@ export function evaluateConsented1to1Scores({
 
   let realAuthorization = null;
   let scoreEvidence = null;
+  let scoreGenerationEvidenceBinding = null;
   if (mode === "consented-real") {
     realAuthorization = assertConsentedRealEvaluationAuthorization({
       authorization: execution?.authorization,
@@ -74,6 +77,19 @@ export function evaluateConsented1to1Scores({
       codeCommit: execution?.codeCommit,
       authorizationDigest: realAuthorization.authorizationDigest,
       scoreSourceManifest: execution?.scoreSourceManifest,
+    });
+    scoreGenerationEvidenceBinding = assertScoreGenerationEvidenceBinding({
+      binding: execution?.scoreGenerationEvidenceBinding,
+      generationReceipt: execution?.scoreGenerationReceipt,
+      scoreEvidence: execution?.scoreEvidence,
+      scores,
+      scoreSourceManifest: execution?.scoreSourceManifest,
+      protocolDigest: protocol.protocolDigest,
+      codeCommit: execution?.codeCommit,
+      authorizationDigest: realAuthorization.authorizationDigest,
+      consentLedgerDigest: scoreEvidence.consentLedgerDigest,
+      scorerVersion: scoreEvidence.scorerVersion,
+      now: execution?.now,
     });
   }
 
@@ -130,6 +146,8 @@ export function evaluateConsented1to1Scores({
     authorizationDigest: realAuthorization?.authorizationDigest ?? null,
     codeCommit: realAuthorization?.codeCommit ?? null,
     scoreEvidenceDigest: scoreEvidence?.evidenceDigest ?? null,
+    scoreGenerationReceiptDigest: scoreGenerationEvidenceBinding?.generationReceiptDigest ?? null,
+    scoreGenerationEvidenceBindingDigest: scoreGenerationEvidenceBinding?.bindingDigest ?? null,
     scoreSetDigest: scoreEvidence?.scoreSetDigest ?? null,
     consentLedgerDigest: scoreEvidence?.consentLedgerDigest ?? null,
     scoreSourceManifestDigest: scoreEvidence?.scoreSourceManifestDigest ?? null,
@@ -139,6 +157,7 @@ export function evaluateConsented1to1Scores({
     consentedRealExecutionAuthorized: mode === "consented-real" && realAuthorization?.authorized === true,
     scoreEvidenceBound: mode === "consented-real" && scoreEvidence?.valid === true,
     scoreSourceBound: mode === "consented-real" && typeof scoreEvidence?.scoreSourceManifestDigest === "string",
+    scoreGenerationEvidenceBound: mode === "consented-real" && scoreGenerationEvidenceBinding?.valid === true,
     realMetricsReady: false,
     productionReady: false,
     biometricClaimReady: false,

@@ -8,6 +8,8 @@ import {
 import { createConsentedRealEvaluationAuthorization } from "../src/consented-real-eval-auth-gate-v1.mjs";
 import { createConsentedScoreBatchEvidence } from "../src/consented-score-batch-evidence-v1.mjs";
 import { createConsentedScoreSourceManifest } from "../src/consented-score-source-manifest-v1.mjs";
+import { createConsentedScoreGenerationReceipt } from "../src/consented-score-generation-receipt-v1.mjs";
+import { createScoreGenerationEvidenceBinding } from "../src/score-generation-evidence-binding-v1.mjs";
 
 const digest = (char) => `sha256:${char.repeat(64)}`;
 const commit = "71a1fb983a1b23c90005125ee8ffb3ae9182a1c1";
@@ -76,9 +78,49 @@ function scoreEvidence(auth = authorization(), source = scoreSourceManifest(), b
   });
 }
 
+function scoreGenerationReceipt(auth, evidence) {
+  return createConsentedScoreGenerationReceipt({
+    generationId: "score-generation-evaluator-001",
+    protocolDigest: digest("a"),
+    codeCommit: commit,
+    authorizationDigest: auth.authorizationDigest,
+    consentLedgerDigest: evidence.consentLedgerDigest,
+    scoreSourceManifestDigest: evidence.scoreSourceManifestDigest,
+    checkpointManifestDigest: evidence.checkpointManifestDigest,
+    weightsDigest: evidence.weightsDigest,
+    scorerCodeDigest: evidence.scorerCodeDigest,
+    scorerVersion: evidence.scorerVersion,
+    scoreSetDigest: evidence.scoreSetDigest,
+    pairCount: scores.length,
+    startedAt: "2026-08-31T11:20:00Z",
+    completedAt: "2026-08-31T11:25:00Z",
+  });
+}
+
+function consentedRealFixture() {
+  const auth = authorization();
+  const source = scoreSourceManifest();
+  const evidence = scoreEvidence(auth, source);
+  const receipt = scoreGenerationReceipt(auth, evidence);
+  const binding = createScoreGenerationEvidenceBinding({
+    generationReceipt: receipt,
+    scoreEvidence: evidence,
+    scores,
+    scoreSourceManifest: source,
+    protocolDigest: digest("a"),
+    codeCommit: commit,
+    authorizationDigest: auth.authorizationDigest,
+    consentLedgerDigest: evidence.consentLedgerDigest,
+    scorerVersion,
+    now: "2026-08-31T12:00:00Z",
+  });
+  return Object.freeze({ auth, source, evidence, receipt, binding });
+}
+
 test("evaluator remains metadata-only and non-production", () => {
   assert.equal(TRUST_FACE_CONSENTED_1TO1_EVALUATOR_V1.rawBiometricPayloadAccepted, false);
   assert.equal(TRUST_FACE_CONSENTED_1TO1_EVALUATOR_V1.rawEmbeddingAccepted, false);
+  assert.equal(TRUST_FACE_CONSENTED_1TO1_EVALUATOR_V1.scoreGenerationEvidenceBindingRequiredInConsentedReal, true);
   assert.equal(TRUST_FACE_CONSENTED_1TO1_EVALUATOR_V1.productionReady, false);
   assert.equal(TRUST_FACE_CONSENTED_1TO1_EVALUATOR_V1.biometricClaimReady, false);
 });
@@ -97,6 +139,9 @@ test("synthetic mode remains deterministic and non-real", () => {
   assert.equal(a.scoreSourceId, null);
   assert.equal(a.scoreSourceOriginAttested, false);
   assert.equal(a.scoreSourceBound, false);
+  assert.equal(a.scoreGenerationReceiptDigest, null);
+  assert.equal(a.scoreGenerationEvidenceBindingDigest, null);
+  assert.equal(a.scoreGenerationEvidenceBound, false);
   assert.equal(a.scoreProvenanceClass, "synthetic");
   assert.equal(a.pairCount, 4);
 });
@@ -137,17 +182,39 @@ test("authorization and score evidence without score source manifest cannot unlo
   );
 });
 
-test("valid source-bound evidence is accepted without claiming real biometric metrics", () => {
+test("consented-real mode requires the generation/evidence binding", () => {
   const auth = authorization();
   const source = scoreSourceManifest();
+  const evidence = scoreEvidence(auth, source);
+  assert.throws(
+    () => evaluateConsented1to1Scores({
+      protocol: protocol(),
+      scores,
+      execution: {
+        mode: "consented-real",
+        authorization: auth,
+        scoreEvidence: evidence,
+        scoreSourceManifest: source,
+        codeCommit: commit,
+        now: "2026-08-31T12:00:00Z",
+      },
+    }),
+    (error) => error?.code === "generation_evidence_binding_required",
+  );
+});
+
+test("valid generation-bound score evidence is accepted without claiming real biometric metrics", () => {
+  const { auth, source, evidence, receipt, binding } = consentedRealFixture();
   const result = evaluateConsented1to1Scores({
     protocol: protocol(),
     scores,
     execution: {
       mode: "consented-real",
       authorization: auth,
-      scoreEvidence: scoreEvidence(auth, source),
+      scoreEvidence: evidence,
       scoreSourceManifest: source,
+      scoreGenerationReceipt: receipt,
+      scoreGenerationEvidenceBinding: binding,
       codeCommit: commit,
       now: "2026-08-31T12:00:00Z",
     },
@@ -156,6 +223,9 @@ test("valid source-bound evidence is accepted without claiming real biometric me
   assert.equal(result.consentedRealExecutionAuthorized, true);
   assert.equal(result.scoreEvidenceBound, true);
   assert.equal(result.scoreSourceBound, true);
+  assert.equal(result.scoreGenerationEvidenceBound, true);
+  assert.equal(result.scoreGenerationReceiptDigest, receipt.generationReceiptDigest);
+  assert.equal(result.scoreGenerationEvidenceBindingDigest, binding.bindingDigest);
   assert.equal(result.realMetricsReady, false);
   assert.equal(result.authorizationId, "eval-auth-binding-001");
   assert.match(result.authorizationDigest, /^sha256:[0-9a-f]{64}$/);
@@ -169,6 +239,27 @@ test("valid source-bound evidence is accepted without claiming real biometric me
   assert.equal(result.codeCommit, commit);
   assert.equal(result.productionReady, false);
   assert.equal(result.biometricClaimReady, false);
+});
+
+test("tampered generation/evidence binding is rejected before evaluation", () => {
+  const { auth, source, evidence, receipt, binding } = consentedRealFixture();
+  assert.throws(
+    () => evaluateConsented1to1Scores({
+      protocol: protocol(),
+      scores,
+      execution: {
+        mode: "consented-real",
+        authorization: auth,
+        scoreEvidence: evidence,
+        scoreSourceManifest: source,
+        scoreGenerationReceipt: receipt,
+        scoreGenerationEvidenceBinding: { ...binding, bindingDigest: digest("9") },
+        codeCommit: commit,
+        now: "2026-08-31T12:00:00Z",
+      },
+    }),
+    (error) => error?.code === "generation_evidence_binding_digest_mismatch",
+  );
 });
 
 test("evidence for a different score batch is rejected", () => {
