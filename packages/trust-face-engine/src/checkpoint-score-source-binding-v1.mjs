@@ -160,6 +160,22 @@ export function assertCheckpointBoundScoreSource({
   ) {
     fail("checkpoint_score_source_binding_policy_mismatch", "checkpoint score source binding policy state mismatch");
   }
+  if (
+    !binding.sourceManifest ||
+    typeof binding.sourceManifest !== "object" ||
+    Array.isArray(binding.sourceManifest)
+  ) {
+    fail("source_manifest_required", "binding source manifest is required");
+  }
+  if (
+    binding.sourceManifest.provenanceClass !== "declared-owned-score-source" ||
+    binding.sourceManifest.originAttested !== false ||
+    binding.sourceManifest.realMetricsReady !== false ||
+    binding.sourceManifest.productionReady !== false ||
+    binding.sourceManifest.biometricClaimReady !== false
+  ) {
+    fail("source_manifest_claim_state_mismatch", "source manifest must remain declared, unattested, non-production and non-claim-ready");
+  }
 
   const normalizedCommit = required(codeCommit, "codeCommit");
   const expectedProtocolDigest = digest(protocolDigest, "protocolDigest");
