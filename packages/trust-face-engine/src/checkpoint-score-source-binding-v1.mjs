@@ -1,5 +1,9 @@
 import { createHash } from "node:crypto";
-import { createConsentedScoreSourceManifest } from "./consented-score-source-manifest-v1.mjs";
+import {
+  createConsentedScoreSourceManifest,
+  assertConsentedScoreSourceManifest,
+} from "./consented-score-source-manifest-v1.mjs";
+import { createTrainedCheckpointManifest } from "./trained-checkpoint-manifest-v1.mjs";
 
 export const TRUST_FACE_CHECKPOINT_SCORE_SOURCE_BINDING_V1 = Object.freeze({
   version: "trust-face-checkpoint-score-source-binding/v1",
@@ -48,12 +52,41 @@ function assertCheckpoint(checkpointManifest, codeCommit) {
   if (checkpointManifest.trainingCompleted !== true) fail("checkpoint_training_incomplete", "checkpoint trainingCompleted must be true");
   if (checkpointManifest.evaluationCompleted !== true) fail("checkpoint_evaluation_incomplete", "checkpoint evaluationCompleted must be true");
   if (checkpointManifest.productionReady !== false || checkpointManifest.biometricClaimReady !== false) fail("checkpoint_claim_state_invalid", "checkpoint must remain non-production and non-claim-ready");
+
+  let canonical;
+  try {
+    canonical = createTrainedCheckpointManifest({
+      checkpointId: checkpointManifest.checkpointId,
+      codeCommit: checkpointManifest.codeCommit,
+      runSpecDigest: checkpointManifest.runSpecDigest,
+      datasetManifestDigest: checkpointManifest.datasetManifestDigest,
+      authorityBasis: checkpointManifest.authorityBasis,
+      authorizationId: checkpointManifest.authorizationId,
+      embeddingDim: checkpointManifest.embeddingDim,
+      backboneTopology: checkpointManifest.backboneTopology,
+      weightsDigest: checkpointManifest.weightsDigest,
+      trainingCompleted: checkpointManifest.trainingCompleted,
+      evaluationCompleted: checkpointManifest.evaluationCompleted,
+      evaluationDigest: checkpointManifest.evaluationDigest,
+      realBiometricTrainingAuthorized:
+        checkpointManifest.authorityBasis === "consented-training" &&
+        checkpointManifest.trainedBiometricWeightsIncluded === true,
+    });
+  } catch (error) {
+    fail("checkpoint_manifest_invalid", `trained checkpoint manifest is invalid: ${error?.code ?? error?.message ?? "unknown error"}`);
+  }
+
+  if (canonical.manifestDigest !== manifestDigest) fail("checkpoint_manifest_digest_mismatch", "checkpoint manifest digest does not match canonical checkpoint contents");
+  if (canonical.weightsDigest !== weightsDigest) fail("checkpoint_weights_digest_mismatch", "checkpoint weights digest does not match canonical checkpoint contents");
+  if (checkpointManifest.trainedBiometricWeightsIncluded !== canonical.trainedBiometricWeightsIncluded) fail("checkpoint_trained_weights_state_mismatch", "checkpoint trained biometric weights state mismatch");
+  if (checkpointManifest.biometricBackboneReady !== canonical.biometricBackboneReady) fail("checkpoint_backbone_state_mismatch", "checkpoint biometric backbone state mismatch");
+
   return Object.freeze({
-    manifestDigest,
-    weightsDigest,
-    authorityBasis: checkpointManifest.authorityBasis,
-    trainedBiometricWeightsIncluded: checkpointManifest.trainedBiometricWeightsIncluded === true,
-    biometricBackboneReady: checkpointManifest.biometricBackboneReady === true,
+    manifestDigest: canonical.manifestDigest,
+    weightsDigest: canonical.weightsDigest,
+    authorityBasis: canonical.authorityBasis,
+    trainedBiometricWeightsIncluded: canonical.trainedBiometricWeightsIncluded,
+    biometricBackboneReady: canonical.biometricBackboneReady,
   });
 }
 
@@ -92,10 +125,10 @@ export function createCheckpointBoundScoreSource({
     checkpointAuthorityBasis: checkpoint.authorityBasis,
     checkpointTrainedBiometricWeightsIncluded: checkpoint.trainedBiometricWeightsIncluded,
     checkpointBiometricBackboneReady: checkpoint.biometricBackboneReady,
-    codeCommit: normalizedCommit,
-    protocolDigest: digest(protocolDigest, "protocolDigest"),
-    scorerCodeDigest: digest(scorerCodeDigest, "scorerCodeDigest"),
-    scorerVersion: required(scorerVersion, "scorerVersion"),
+    codeCommit: sourceManifest.codeCommit,
+    protocolDigest: sourceManifest.protocolDigest,
+    scorerCodeDigest: sourceManifest.scorerCodeDigest,
+    scorerVersion: sourceManifest.scorerVersion,
     evaluationOnly: true,
     trainingAuthorized: false,
     originAttested: false,
@@ -111,31 +144,63 @@ export function assertCheckpointBoundScoreSource({
   checkpointManifest,
   protocolDigest,
   codeCommit,
+  scorerCodeDigest,
   scorerVersion,
+  now,
 } = {}) {
   if (!binding || typeof binding !== "object" || Array.isArray(binding)) fail("checkpoint_score_source_binding_required", "checkpoint score source binding is required");
   if (binding.version !== TRUST_FACE_CHECKPOINT_SCORE_SOURCE_BINDING_V1.version) fail("checkpoint_score_source_binding_version_mismatch", "unsupported checkpoint score source binding version");
+  if (
+    binding.evaluationOnly !== true ||
+    binding.trainingAuthorized !== false ||
+    binding.originAttested !== false ||
+    binding.realMetricsReady !== false ||
+    binding.productionReady !== false ||
+    binding.biometricClaimReady !== false
+  ) {
+    fail("checkpoint_score_source_binding_policy_mismatch", "checkpoint score source binding policy state mismatch");
+  }
+
   const normalizedCommit = required(codeCommit, "codeCommit");
+  const expectedProtocolDigest = digest(protocolDigest, "protocolDigest");
+  const expectedScorerCodeDigest = digest(scorerCodeDigest, "scorerCodeDigest");
+  const expectedScorerVersion = required(scorerVersion, "scorerVersion");
   const checkpoint = assertCheckpoint(checkpointManifest, normalizedCommit);
+
   if (binding.checkpointManifestDigest !== checkpoint.manifestDigest) fail("checkpoint_manifest_digest_mismatch", "binding checkpoint manifest digest mismatch");
   if (binding.weightsDigest !== checkpoint.weightsDigest) fail("checkpoint_weights_digest_mismatch", "binding weights digest mismatch");
-  if (binding.protocolDigest !== digest(protocolDigest, "protocolDigest")) fail("checkpoint_protocol_digest_mismatch", "binding protocol digest mismatch");
+  if (binding.checkpointAuthorityBasis !== checkpoint.authorityBasis) fail("checkpoint_authority_binding_mismatch", "binding checkpoint authorityBasis mismatch");
+  if (binding.checkpointTrainedBiometricWeightsIncluded !== checkpoint.trainedBiometricWeightsIncluded) fail("checkpoint_trained_weights_binding_mismatch", "binding trained biometric weights state mismatch");
+  if (binding.checkpointBiometricBackboneReady !== checkpoint.biometricBackboneReady) fail("checkpoint_backbone_binding_mismatch", "binding biometric backbone state mismatch");
+  if (binding.protocolDigest !== expectedProtocolDigest) fail("checkpoint_protocol_digest_mismatch", "binding protocol digest mismatch");
   if (binding.codeCommit !== normalizedCommit) fail("checkpoint_binding_commit_mismatch", "binding codeCommit mismatch");
-  if (binding.scorerVersion !== required(scorerVersion, "scorerVersion")) fail("checkpoint_scorer_version_mismatch", "binding scorerVersion mismatch");
-  if (binding.sourceManifest?.checkpointManifestDigest !== checkpoint.manifestDigest) fail("source_checkpoint_digest_mismatch", "source manifest checkpoint digest mismatch");
-  if (binding.sourceManifest?.weightsDigest !== checkpoint.weightsDigest) fail("source_weights_digest_mismatch", "source manifest weights digest mismatch");
+  if (binding.scorerCodeDigest !== expectedScorerCodeDigest) fail("checkpoint_scorer_code_digest_mismatch", "binding scorerCodeDigest mismatch");
+  if (binding.scorerVersion !== expectedScorerVersion) fail("checkpoint_scorer_version_mismatch", "binding scorerVersion mismatch");
+
+  const source = assertConsentedScoreSourceManifest({
+    manifest: binding.sourceManifest,
+    protocolDigest: expectedProtocolDigest,
+    codeCommit: normalizedCommit,
+    scorerVersion: expectedScorerVersion,
+    now,
+  });
+  if (binding.sourceManifestDigest !== source.sourceManifestDigest) fail("source_manifest_digest_mismatch", "binding source manifest digest mismatch");
+  if (source.checkpointManifestDigest !== checkpoint.manifestDigest) fail("source_checkpoint_digest_mismatch", "source manifest checkpoint digest mismatch");
+  if (source.weightsDigest !== checkpoint.weightsDigest) fail("source_weights_digest_mismatch", "source manifest weights digest mismatch");
+  if (source.scorerCodeDigest !== expectedScorerCodeDigest) fail("source_scorer_code_digest_mismatch", "source manifest scorerCodeDigest mismatch");
+
   const body = Object.freeze({
     version: binding.version,
-    sourceManifestDigest: binding.sourceManifestDigest,
-    checkpointManifestDigest: binding.checkpointManifestDigest,
-    weightsDigest: binding.weightsDigest,
-    checkpointAuthorityBasis: binding.checkpointAuthorityBasis,
-    checkpointTrainedBiometricWeightsIncluded: binding.checkpointTrainedBiometricWeightsIncluded,
-    checkpointBiometricBackboneReady: binding.checkpointBiometricBackboneReady,
-    codeCommit: binding.codeCommit,
-    protocolDigest: binding.protocolDigest,
-    scorerCodeDigest: binding.scorerCodeDigest,
-    scorerVersion: binding.scorerVersion,
+    sourceManifestDigest: source.sourceManifestDigest,
+    checkpointManifestDigest: checkpoint.manifestDigest,
+    weightsDigest: checkpoint.weightsDigest,
+    checkpointAuthorityBasis: checkpoint.authorityBasis,
+    checkpointTrainedBiometricWeightsIncluded: checkpoint.trainedBiometricWeightsIncluded,
+    checkpointBiometricBackboneReady: checkpoint.biometricBackboneReady,
+    codeCommit: normalizedCommit,
+    protocolDigest: expectedProtocolDigest,
+    scorerCodeDigest: expectedScorerCodeDigest,
+    scorerVersion: expectedScorerVersion,
     evaluationOnly: true,
     trainingAuthorized: false,
     originAttested: false,
@@ -148,12 +213,13 @@ export function assertCheckpointBoundScoreSource({
   return Object.freeze({
     valid: true,
     bindingDigest: expected,
-    sourceManifestDigest: binding.sourceManifestDigest,
+    sourceManifestDigest: source.sourceManifestDigest,
     checkpointManifestDigest: checkpoint.manifestDigest,
     weightsDigest: checkpoint.weightsDigest,
     checkpointAuthorityBasis: checkpoint.authorityBasis,
     trainedBiometricWeightsIncluded: checkpoint.trainedBiometricWeightsIncluded,
     biometricBackboneReady: checkpoint.biometricBackboneReady,
+    scorerCodeDigest: expectedScorerCodeDigest,
     originAttested: false,
     realMetricsReady: false,
     productionReady: false,
