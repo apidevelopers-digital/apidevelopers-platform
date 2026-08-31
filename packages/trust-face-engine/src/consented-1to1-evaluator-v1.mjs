@@ -73,6 +73,7 @@ export function evaluateConsented1to1Scores({
       protocolDigest: protocol.protocolDigest,
       codeCommit: execution?.codeCommit,
       authorizationDigest: realAuthorization.authorizationDigest,
+      scoreSourceManifest: execution?.scoreSourceManifest,
     });
   }
 
@@ -131,9 +132,13 @@ export function evaluateConsented1to1Scores({
     scoreEvidenceDigest: scoreEvidence?.evidenceDigest ?? null,
     scoreSetDigest: scoreEvidence?.scoreSetDigest ?? null,
     consentLedgerDigest: scoreEvidence?.consentLedgerDigest ?? null,
+    scoreSourceManifestDigest: scoreEvidence?.scoreSourceManifestDigest ?? null,
+    scoreSourceId: scoreEvidence?.scoreSourceId ?? null,
+    scoreSourceOriginAttested: scoreEvidence?.scoreSourceOriginAttested ?? false,
     scoreProvenanceClass: scoreEvidence?.provenanceClass ?? (mode === "synthetic" ? "synthetic" : null),
     consentedRealExecutionAuthorized: mode === "consented-real" && realAuthorization?.authorized === true,
     scoreEvidenceBound: mode === "consented-real" && scoreEvidence?.valid === true,
+    scoreSourceBound: mode === "consented-real" && typeof scoreEvidence?.scoreSourceManifestDigest === "string",
     realMetricsReady: false,
     productionReady: false,
     biometricClaimReady: false,

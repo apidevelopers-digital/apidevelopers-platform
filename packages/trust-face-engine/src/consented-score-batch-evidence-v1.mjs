@@ -1,8 +1,10 @@
 import { createHash } from "node:crypto";
+import { assertConsentedScoreSourceManifest } from "./consented-score-source-manifest-v1.mjs";
 
 export const TRUST_FACE_CONSENTED_SCORE_BATCH_EVIDENCE_V1 = Object.freeze({
   version: "trust-face-consented-score-batch-evidence/v1",
   purpose: "consented-1to1-evaluation",
+  scoreSourceManifestRequired: true,
   rawBiometricPayloadAccepted: false,
   rawEmbeddingAccepted: false,
   trainingAuthorized: false,
@@ -72,6 +74,24 @@ export function digestConsentedScoreBatch(scores) {
   return sha256(normalizeScores(scores));
 }
 
+function assertBoundSource({ scoreSourceManifest, protocolDigest, codeCommit, scorerVersion, capturedAt }) {
+  try {
+    return assertConsentedScoreSourceManifest({
+      manifest: scoreSourceManifest,
+      protocolDigest,
+      codeCommit,
+      scorerVersion,
+      now: capturedAt,
+    });
+  } catch (cause) {
+    const error = new Error(`score source manifest rejected: ${cause?.message ?? "unknown error"}`);
+    error.name = "TrustFaceConsentedScoreBatchEvidenceV1Error";
+    error.code = cause?.code === "score_source_manifest_required" ? "score_source_manifest_required" : "score_source_manifest_invalid";
+    error.cause = cause;
+    throw error;
+  }
+}
+
 export function createConsentedScoreBatchEvidence({
   scores,
   protocolDigest,
@@ -79,6 +99,7 @@ export function createConsentedScoreBatchEvidence({
   authorizationDigest,
   consentLedgerDigest,
   scorerVersion,
+  scoreSourceManifest,
   capturedAt,
   rawBiometricsRetained = false,
   trainingUsed = false,
@@ -92,16 +113,32 @@ export function createConsentedScoreBatchEvidence({
 
   const normalizedScores = normalizeScores(scores);
   const captured = parseIso(capturedAt, "capturedAt");
+  const normalizedProtocolDigest = requireSha256(protocolDigest, "protocolDigest");
+  const normalizedCodeCommit = required(codeCommit, "codeCommit");
+  const normalizedScorerVersion = required(scorerVersion, "scorerVersion");
+  const source = assertBoundSource({
+    scoreSourceManifest,
+    protocolDigest: normalizedProtocolDigest,
+    codeCommit: normalizedCodeCommit,
+    scorerVersion: normalizedScorerVersion,
+    capturedAt: captured.iso,
+  });
+
   const body = Object.freeze({
     version: TRUST_FACE_CONSENTED_SCORE_BATCH_EVIDENCE_V1.version,
     purpose: TRUST_FACE_CONSENTED_SCORE_BATCH_EVIDENCE_V1.purpose,
     scoreSetDigest: sha256(normalizedScores),
     pairCount: normalizedScores.length,
-    protocolDigest: requireSha256(protocolDigest, "protocolDigest"),
-    codeCommit: required(codeCommit, "codeCommit"),
+    protocolDigest: normalizedProtocolDigest,
+    codeCommit: normalizedCodeCommit,
     authorizationDigest: requireSha256(authorizationDigest, "authorizationDigest"),
     consentLedgerDigest: requireSha256(consentLedgerDigest, "consentLedgerDigest"),
-    scorerVersion: required(scorerVersion, "scorerVersion"),
+    scorerVersion: normalizedScorerVersion,
+    scoreSourceManifestDigest: source.sourceManifestDigest,
+    scoreSourceId: source.sourceId,
+    scorerCodeDigest: source.scorerCodeDigest,
+    checkpointManifestDigest: source.checkpointManifestDigest,
+    weightsDigest: source.weightsDigest,
     capturedAt: captured.iso,
     rawBiometricsRetained: false,
     trainingUsed: false,
@@ -110,7 +147,8 @@ export function createConsentedScoreBatchEvidence({
   return Object.freeze({
     ...body,
     evidenceDigest: sha256(body),
-    provenanceClass: "declared-consented-score-batch",
+    provenanceClass: "declared-consented-score-batch-with-owned-source",
+    scoreSourceOriginAttested: source.originAttested === true,
     rawBiometricPayloadAccepted: false,
     rawEmbeddingAccepted: false,
     productionReady: false,
@@ -124,6 +162,7 @@ export function assertConsentedScoreBatchEvidence({
   protocolDigest,
   codeCommit,
   authorizationDigest,
+  scoreSourceManifest,
 } = {}) {
   if (!evidence || typeof evidence !== "object" || Array.isArray(evidence)) {
     fail("score_evidence_required", "consented-real execution requires score evidence");
@@ -160,6 +199,22 @@ export function assertConsentedScoreBatchEvidence({
   }
 
   const captured = parseIso(evidence.capturedAt, "evidence.capturedAt");
+  const scorerVersion = required(evidence.scorerVersion, "evidence.scorerVersion");
+  const source = assertBoundSource({
+    scoreSourceManifest,
+    protocolDigest: expectedProtocolDigest,
+    codeCommit: expectedCodeCommit,
+    scorerVersion,
+    capturedAt: captured.iso,
+  });
+  if (evidence.scoreSourceManifestDigest !== source.sourceManifestDigest) {
+    fail("score_source_manifest_digest_mismatch", "score evidence scoreSourceManifestDigest mismatch");
+  }
+  if (evidence.scoreSourceId !== source.sourceId) fail("score_source_id_mismatch", "score evidence scoreSourceId mismatch");
+  if (evidence.scorerCodeDigest !== source.scorerCodeDigest) fail("score_source_code_digest_mismatch", "score evidence scorerCodeDigest mismatch");
+  if (evidence.checkpointManifestDigest !== source.checkpointManifestDigest) fail("score_source_checkpoint_digest_mismatch", "score evidence checkpointManifestDigest mismatch");
+  if (evidence.weightsDigest !== source.weightsDigest) fail("score_source_weights_digest_mismatch", "score evidence weightsDigest mismatch");
+
   const body = Object.freeze({
     version: evidence.version,
     purpose: evidence.purpose,
@@ -169,7 +224,12 @@ export function assertConsentedScoreBatchEvidence({
     codeCommit: evidence.codeCommit,
     authorizationDigest: evidence.authorizationDigest,
     consentLedgerDigest: requireSha256(evidence.consentLedgerDigest, "evidence.consentLedgerDigest"),
-    scorerVersion: required(evidence.scorerVersion, "evidence.scorerVersion"),
+    scorerVersion,
+    scoreSourceManifestDigest: evidence.scoreSourceManifestDigest,
+    scoreSourceId: evidence.scoreSourceId,
+    scorerCodeDigest: evidence.scorerCodeDigest,
+    checkpointManifestDigest: evidence.checkpointManifestDigest,
+    weightsDigest: evidence.weightsDigest,
     capturedAt: captured.iso,
     rawBiometricsRetained: false,
     trainingUsed: false,
@@ -186,7 +246,13 @@ export function assertConsentedScoreBatchEvidence({
     consentLedgerDigest: body.consentLedgerDigest,
     scorerVersion: body.scorerVersion,
     capturedAt: body.capturedAt,
-    provenanceClass: "declared-consented-score-batch",
+    scoreSourceManifestDigest: source.sourceManifestDigest,
+    scoreSourceId: source.sourceId,
+    scorerCodeDigest: source.scorerCodeDigest,
+    checkpointManifestDigest: source.checkpointManifestDigest,
+    weightsDigest: source.weightsDigest,
+    provenanceClass: "declared-consented-score-batch-with-owned-source",
+    scoreSourceOriginAttested: source.originAttested === true,
     rawBiometricsRetained: false,
     trainingUsed: false,
     productionReady: false,
