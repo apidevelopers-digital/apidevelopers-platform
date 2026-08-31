@@ -89,8 +89,16 @@ test("score evidence creation requires an active owned score source manifest", (
     () => evidence({ scoreSourceManifest: undefined }),
     (error) => error?.code === "score_source_manifest_required",
   );
+
+  const invalidAuthority = { ...sourceManifest(), authorityBasis: "external-provider" };
   assert.throws(
-    () => evidence({ scoreSourceManifest: sourceManifest({ authorityBasis: "external-provider" }) }),
+    () => evidence({ scoreSourceManifest: invalidAuthority }),
+    (error) => error?.code === "score_source_manifest_invalid",
+  );
+
+  const expiredSource = sourceManifest({ expiresAt: "2026-08-31T11:00:00Z" });
+  assert.throws(
+    () => evidence({ scoreSourceManifest: expiredSource }),
     (error) => error?.code === "score_source_manifest_invalid",
   );
 });
@@ -135,6 +143,6 @@ test("score evidence cannot authorize training or raw biometric retention", () =
 
   assert.throws(
     () => evidence({ rawBiometricsRetained: true }),
-    (error) => error?.code === "raw_biometrics_retention_forbidden",
+    (error) => error?.code == "raw_biometrics_retention_forbidden",
   );
 });
