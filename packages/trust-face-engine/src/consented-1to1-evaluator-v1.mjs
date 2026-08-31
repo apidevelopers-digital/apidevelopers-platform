@@ -1,5 +1,6 @@
 import { evaluateVerification } from "./metric-lab.mjs";
 import { assertConsentedRealEvaluationAuthorization } from "./consented-real-eval-auth-gate-v1.mjs";
+import { assertConsentedScoreBatchEvidence } from "./consented-score-batch-evidence-v1.mjs";
 
 export const TRUST_FACE_CONSENTED_1TO1_EVALUATOR_V1 = Object.freeze({
   version: "trust-face-consented-1to1-evaluator/v1",
@@ -58,12 +59,20 @@ export function evaluateConsented1to1Scores({
   }
 
   let realAuthorization = null;
+  let scoreEvidence = null;
   if (mode === "consented-real") {
     realAuthorization = assertConsentedRealEvaluationAuthorization({
       authorization: execution?.authorization,
       protocolDigest: protocol.protocolDigest,
       codeCommit: execution?.codeCommit,
       now: execution?.now,
+    });
+    scoreEvidence = assertConsentedScoreBatchEvidence({
+      evidence: execution?.scoreEvidence,
+      scores,
+      protocolDigest: protocol.protocolDigest,
+      codeCommit: execution?.codeCommit,
+      authorizationDigest: realAuthorization.authorizationDigest,
     });
   }
 
@@ -119,7 +128,13 @@ export function evaluateConsented1to1Scores({
     authorizationId: realAuthorization?.authorizationId ?? null,
     authorizationDigest: realAuthorization?.authorizationDigest ?? null,
     codeCommit: realAuthorization?.codeCommit ?? null,
-    realMetricsReady: mode === "consented-real" && realAuthorization?.authorized === true,
+    scoreEvidenceDigest: scoreEvidence?.evidenceDigest ?? null,
+    scoreSetDigest: scoreEvidence?.scoreSetDigest ?? null,
+    consentLedgerDigest: scoreEvidence?.consentLedgerDigest ?? null,
+    scoreProvenanceClass: scoreEvidence?.provenanceClass ?? (mode === "synthetic" ? "synthetic" : null),
+    consentedRealExecutionAuthorized: mode === "consented-real" && realAuthorization?.authorized === true,
+    scoreEvidenceBound: mode === "consented-real" && scoreEvidence?.valid === true,
+    realMetricsReady: false,
     productionReady: false,
     biometricClaimReady: false,
   });
