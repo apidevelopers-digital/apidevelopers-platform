@@ -259,7 +259,7 @@ export function assertScoreGenerationEvidenceBinding({
     scores,
     scoreSourceManifest,
     protocolDigest,
-    codeCommit: normalizedCommit,
+    codeCommit,
     authorizationDigest,
     consentLedgerDigest,
     scorerVersion,
