@@ -45,7 +45,7 @@ test("quality gate accepts one clear face and rejects multiple faces", () => {
 
   const rejected = evaluateCaptureQuality({
     faceDetected: true, faceCount: 2, sharpness: 1,
-    illumination: 1, frontalness : 1, occlusion: 0,
+    illumination: 1, frontalness: 1, occlusion: 0,
   });
   assert.equal(rejected.passed, false);
   assert.throws(
@@ -120,9 +120,7 @@ test("verifyFacePair binds valid PAD lab evidence without creating a real livene
 
 test("failed PAD lab signal blocks only the combined lab verification signal", () => {
   const { reference, probe, thresholdProfile } = verificationFixture();
-  const weakSignals = Object.freeze({ ...PAD_SIGNALS,
-    depthConsistency: 0.2,
-  });
+  const weakSignals = Object.freeze({ ...PAD_SIGNALS, depthConsistency: 0.2 });
   const evidence = createLivenessPadLabEvidence({
     evidenceId: "pad-kernel-002",
     signals: weakSignals,
@@ -168,5 +166,5 @@ test("tampered PAD lab evidence is rejected before the kernel returns a verifica
       },
     }),
     (error) => error?.code === "pad_evidence_policy_mismatch",
-   );
+  );
 });
