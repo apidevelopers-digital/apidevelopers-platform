@@ -274,7 +274,7 @@ export function createEnrollmentRevocationPersistence({
         assertEnrollmentRevocation({
           revocation: existing,
           enrollmentManifest,
-          now: revokedAt,
+          now: null,
         });
         fail("enrollment_already_revoked", "enrollment is already revoked");
       }
@@ -286,7 +286,25 @@ export function createEnrollmentRevocationPersistence({
         reasonCode: revocationReasonCode,
         revokedAt,
       });
-      const persisted = await revocationRepository.create(revocation);
+
+      let persisted;
+      try {
+        persisted = await revocationRepository.create(revocation);
+      } catch (error) {
+        if (error?.code === "record_conflict") {
+          const concurrent = await revocationRepository.getById(normalizedId);
+          if (concurrent !== null) {
+            assertEnrollmentRevocation({
+              revocation: concurrent,
+              enrollmentManifest,
+              now: null,
+            });
+            fail("enrollment_already_revoked", "enrollment is already revoked");
+          }
+        }
+        throw error;
+      }
+
       assertEnrollmentRevocation({
         revocation: persisted,
         enrollmentManifest,
@@ -354,7 +372,7 @@ export function createEnrollmentRevocationPersistence({
         if (enrollmentManifest === null) {
           fail("orphan_enrollment_revocation", "revocation references a missing enrollment");
         }
-        assertEnrollmentRevocation({ revocation, enrollmentManifest, now });
+        assertEnrolmentRevocation({ revocation, enrollmentManifest, now });
         verified.push(revocation);
       }
       return Object.freeze([...verified]);
