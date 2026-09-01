@@ -148,6 +148,27 @@ test("tampering with manifest binding is rejected", () => {
   );
 });
 
+
+test("persistence register rejects forbidden payload fields instead of ignoring them", async () => {
+  const persistence = createTemplateVaultEnvelopeLabPersistence({
+    repository: repo(),
+    enrollmentRepository: repo([manifest]),
+  });
+  await assert.rejects(
+    () => persistence.register({
+      enrollmentId: manifest.enrollmentId,
+      vaultRef: "lab-vault://trust-face/enrollment-001",
+      sealedObjectDigest: d("5"),
+      wrappedDataKeyDigest: d("6"),
+      nonceDigest: d("7"),
+      keyAlias: "lab-key-alias://trust-face/template-v1",
+      createdAt: "2026-09-01T03:30:00Z",
+      ciphertext: "forbidden",
+    }),
+    (error) => error?.code === "template_vault_payload_forbidden",
+  );
+});
+
 test("persistence registers reads and lists verified records without mutation APIs", async () => {
   const enrollmentRepository = repo([manifest]);
   const persistence = createTemplateVaultEnvelopeLabPersistence({
