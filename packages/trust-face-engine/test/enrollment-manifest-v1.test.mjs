@@ -9,7 +9,7 @@ import {
   createEnrollmentPersistence,
 } from "../src/enrollment-manifest-v1.mjs";
 
-const d = (char) => `${char.repeat(64)}`;
+const d = (char) => `sha256:${char.repeat(64)}`;
 
 function input(overrides = {}) {
   return {
@@ -43,11 +43,11 @@ function memoryRepository() {
     },
     async list({ where = {} } = {}) {
       return [...records.values()]
-      .filter((record) =>
+        .filter((record) =>
           Object.entries(where).every(([key, value]) => record[key] === value),
-      )
-      .sort((a, b) => a.enrollmentId.localeCompare(b.enrollmentId))
-      .map((record) => structuredClone(record));
+        )
+        .sort((a, b) => a.enrollmentId.localeCompare(b.enrollmentId))
+        .map((record) => structuredClone(record));
     },
     unsafeMutate(id, mutate) {
       mutate(records.get(id));
@@ -83,11 +83,11 @@ test("raw biometric, embedding and template payloads are rejected", () => {
       (error) =>
         error instanceof TrustFaceEnrollmentManifestV1Error &&
         error.code === "raw_enrollment_payload_forbidden",
-     );
+    );
   }
 });
 
-test("assertion validates canonical manifest and future time", () => {
+test("assertion validates canonical manifest and rejects future time", () => {
   const manifest = createEnrollmentManifest(input());
   const checked = assertEnrollmentManifest({
     manifest,
@@ -97,11 +97,10 @@ test("assertion validates canonical manifest and future time", () => {
   assert.equal(checked.realEnrollmentReady, false);
 
   assert.throws(
-    () =>
-      assertEnrollmentManifest({
-        manifest,
-        now: "2026-08-31T22:59:59Z",
-      }),
+    () => assertEnrollmentManifest({
+      manifest,
+      now: "2026-08-31T22:59:59Z",
+    }),
     (error) => error?.code === "enrollment_manifest_from_future",
   );
 });
@@ -109,19 +108,17 @@ test("assertion validates canonical manifest and future time", () => {
 test("assertion rejects policy and digest tampering", () => {
   const manifest = createEnrollmentManifest(input());
   assert.throws(
-    () =>
-      assertEnrollmentManifest({
-        manifest: { ...manifest, productionReady: true },
-        now: "2026-08-31T23:10:00Z",
-      }),
+    () => assertEnrollmentManifest({
+      manifest: { ...manifest, productionReady: true },
+      now: "2026-08-31T23:10:00Z",
+    }),
     (error) => error?.code === "enrollment_manifest_policy_mismatch",
   );
   assert.throws(
-    () =>
-      assertEnrollmentManifest({
-        manifest: { ...manifest, manifestDigest: d("9") },
-        now: "2026-08-31T23:10:00Z",
-      }),
+    () => assertEnrollmentManifest({
+      manifest: { ...manifest, manifestDigest: d("9") },
+      now: "2026-08-31T23:10:00Z",
+    }),
     (error) => error?.code === "enrollment_manifest_digest_mismatch",
   );
 });
@@ -131,14 +128,12 @@ test("persistence facade creates, reads and filters manifests", async () => {
   const persistence = createEnrollmentPersistence({ repository });
 
   const first = await persistence.enroll(input());
-  const second = await persistence.enroll(
-    input({
-      enrollmentId: "enrollment-002",
-      subjectRef: "subject-ref-002",
-      templateRef: "vault://trust-face/templates/template-002",
-      templateDigest: d("d"),
-    }),
-  );
+  const second = await persistence.enroll(input({
+    enrollmentId: "enrollment-002",
+    subjectRef: "subject-ref-002",
+    templateRef: "vault://trust-face/templates/template-002",
+    templateDigest: d("d"),
+  }));
 
   const loaded = await persistence.getEnrollment("enrollment-001", {
     now: "2026-08-31T23:10:00Z",
@@ -177,16 +172,14 @@ test("tampered persisted record is rejected on read", async () => {
   });
 
   await assert.rejects(
-    () =>
-      persistence.getEnrollment("enrollment-001", {
-        now: "2026-08-31T23:10:00Z",
-      }),
-    (error) =>
-      [
-        "enrollment_manifest_templateDigest_mismatch",
-        "enrollment_manifest_digest_mismatch",
-      ].includes(error?.code),
-   );
+    () => persistence.getEnrollment("enrollment-001", {
+      now: "2026-08-31T23:10:00Z",
+    }),
+    (error) => [
+      "enrollment_manifest_templateDigest_mismatch",
+      "enrollment_manifest_digest_mismatch",
+    ].includes(error?.code),
+  );
 });
 
 test("persistence facade exposes no mutation or deletion lifecycle in v1", () => {
