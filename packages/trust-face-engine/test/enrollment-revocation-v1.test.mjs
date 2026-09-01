@@ -195,6 +195,39 @@ test("duplicate revocation fails closed", async () => {
   );
 });
 
+test("concurrent repository conflict is normalized to already revoked", async () => {
+  const enrollmentRepository = memoryRepository({ initial: [manifest()] });
+  let concurrent = null;
+  const revocationRepository = {
+    async getById() {
+      return concurrent === null ? null : structuredClone(concurrent);
+    },
+    async create(record) {
+      concurrent = structuredClone(record);
+      const error = new Error("record conflict");
+      error.code = "record_conflict";
+      throw error;
+    },
+    async list() {
+      return concurrent === null ? [] : [structuredClone(concurrent)];
+    },
+  };
+  const lifecycle = createEnrollmentRevocationPersistence({
+    enrollmentRepository,
+    revocationRepository,
+  });
+
+  await assert.rejects(
+    () => lifecycle.revokeEnrollment({
+      enrollmentId: "enrollment-001",
+      revocationAuthorizationDigest: d("b"),
+      reasonCode: "subject-request",
+      revokedAt: "2026-08-31T23:10:00Z",
+    }),
+    (error) => error?.code === "enrollment_already_revoked",
+  );
+});
+
 test("tampered persisted revocation is rejected on lifecycle read", async () => {
   const enrollmentRepository = memoryRepository({ initial: [manifest()] });
   const revocationRepository = memoryRepository();
