@@ -64,7 +64,7 @@ function iso(value, field) {
 function stable(value) {
   if (Array.isArray(value)) return `[${value.map(stable).join(",")}]`;
   if (value && typeof value === "object") {
-    return `${${Object.keys(value).sort().map((key) => `${JSON.stringify(key)}:${stable(value[key])}`).join(",")}}`;
+    return `{${Object.keys(value).sort().map((key) => `${JSON.stringify(key)}:${stable(value[key])}`).join(",")}}`;
   }
   return JSON.stringify(value);
 }
@@ -130,13 +130,21 @@ export function createEnrollmentRevocationAuthorization({
 } = {}) {
   const manifest = assertEnrollmentManifest({ manifest: enrollmentManifest, now: issuedAt });
 
-  if (revocationAuthorized !== true) fail("revocation_not_authorized", "revocationAuthorized must be true");
-  if (hardDeleteAuthorized !== false) fail("hard_delete_authorization_forbidden", "this gate cannot authorize hard deletion");
-  if (templateDeletionAuthorized !== false) fail("template_deletion_authorization_forbidden", "this gate cannot authorize template deletion");
+  if (revocationAuthorized !== true) {
+    fail("revocation_not_authorized", "revocationAuthorized must be true");
+  }
+  if (hardDeleteAuthorized !== false) {
+    fail("hard_delete_authorization_forbidden", "this gate cannot authorize hard deletion");
+  }
+  if (templateDeletionAuthorized !== false) {
+    fail("template_deletion_authorization_forbidden", "this gate cannot authorize template deletion");
+  }
 
   const issued = iso(issuedAt, "issuedAt");
   const expires = iso(expiresAt, "expiresAt");
-  if (expires.ms <= issued.ms) fail("invalid_revocation_authorization_window", "expiresAt must be after issuedAt");
+  if (expires.ms <= issued.ms) {
+    fail("invalid_revocation_authorization_window", "expiresAt must be after issuedAt");
+  }
 
   const normalizedConsentDigest = sha256Digest(consentLedgerDigest, "consentLedgerDigest");
   if (normalizedConsentDigest !== manifest.consentLedgerDigest) {
@@ -170,8 +178,7 @@ export function assertEnrollmentRevocationAuthorization({
     fail("revocation_authorization_required", "authorization object is required");
   }
 
-  const manifest = assertEnrollmentManifest({ manifest: enrollmentManifest, now
- });
+  const manifest = assertEnrollmentManifest({ manifest: enrollmentManifest, now });
   if (authorization.version !== TRUST_FACE_ENROLLMENT_REVOCATION_AUTHORIZATION_V1.version) {
     fail("revocation_authorization_version_mismatch", "authorization version mismatch");
   }
@@ -278,8 +285,8 @@ export function createAuthorizedEnrollmentRevocationPersistence({
     productionReady: false,
     biometricClaimReady: false,
 
-    async revokeEnrollment({{
-      enrollmentId,
+    async revokeEnrollment({
+      enrolmentId,
       authorization,
       reasonCode,
       revokedAt,
