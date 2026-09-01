@@ -17,6 +17,7 @@ Implemented:
 - PAD-lab evidence binding inside `verifyFacePair`, with separate lab-only combined verification semantics;
 - governed enrollment manifest persistence using opaque template references + digests, consent/authorization digests and immutable metadata-only records;
 - append-only enrollment revocation lifecycle bound to the immutable enrollment manifest digest, with authorized reason codes and no hard-delete/mutation path;
+- governed revocation authorization gate bound to the exact enrollment manifest, consent ledger digest, original enrollment authorization digest, reason and active time window; the governed facade rejects digest-only revocation requests;
 - explicit `livenessPad: false`, `realMetricsReady: false`, `realEnrollmentReady: false` and `productionReady: false` at production-facing boundaries.
 
 Not implemented yet:
@@ -32,6 +33,6 @@ Not implemented yet:
 
 The liveness/PAD lab contract is not evidence of real presentation-attack detection performance and must not be represented as such.
 
-The enrollment manifest persistence contract stores no image, video, raw embedding or template payload. The revocation lifecycle is a separate append-only audit record; it does not delete or mutate the immutable enrollment manifest and does not prove that any external biometric template was physically erased.
+The enrollment manifest persistence contract stores no image, video, raw embedding or template payload. The revocation lifecycle is a separate append-only audit record. Governed revocation now requires a full, time-bounded authorization object bound to the enrollment manifest and consent digest before the lifecycle receives its derived authorization digest. None of these contracts deletes or mutates the immutable enrollment manifest, authorizes hard deletion, or proves that any external biometric template was physically erased.
 
 This package must not be represented as a production-ready biometric engine until the remaining gaps are closed and independently evaluated.
