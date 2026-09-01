@@ -216,7 +216,7 @@ test("facade exposes no signing private-key deletion decryption or real-vault pa
     "hardDelete",
     "deleteTrustedPublicKey",
     "decrypt",
-    "getFiphertext",
+    "getCiphertext",
     "getKeyMaterial",
     "getKmsMaterial",
   ]) assert.equal(flow[field], undefined);
