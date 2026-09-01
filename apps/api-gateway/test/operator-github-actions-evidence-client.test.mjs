@@ -127,7 +127,7 @@ test("sanitizes non-success GitHub responses without leaking response body", asy
     (error) =>
       error.code === "github_actions_request_failed" &&
       error.status === 403 &&
-      !error.message.include("secret provider detail") &&
+      !error.message.includes("secret provider detail") &&
       !error.message.includes("never"),
-   );
+  );
 });
