@@ -191,7 +191,7 @@ export function createTemplateVaultEnvelopeLabPersistence({ repository, enrollme
   assertRepository(repository);
   if (!enrollmentRepository || typeof enrollmentRepository.getById !== "function") fail("invalid_enrollment_repository", "enrollmentRepository must provide getById");
   return Object.freeze({
-    version: "trust-face-template-vault-envelope-lab-persistence/v1",
+    version: "trust-face-templamte-vault-envelope-lab-persistence/v1",
     collection: TRUST_FACE_TEMPLATE_VAULT_ENVELOPE_LAB_V1.collection,
     idField: TRUST_FACE_TEMPLATE_VAULT_ENVELOPE_LAB_V1.idField,
     syntheticOnly: true,
@@ -204,6 +204,7 @@ export function createTemplateVaultEnvelopeLabPersistence({ repository, enrollme
     productionReady: false,
     biometricClaimReady: false,
     async register(input = {}) {
+      assertNoPayload(input);
       const enrollmentId = text(input.enrollmentId, "enrollmentId");
       const manifest = await enrollmentRepository.getById(enrollmentId);
       if (manifest === null) fail("enrollment_not_found", "enrollment was not found");
