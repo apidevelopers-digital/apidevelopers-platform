@@ -8,23 +8,29 @@ import {
   assertEnrollmentRevocation,
   createEnrollmentRevocationPersistence,
 } from "../src/enrollment-revocation-v1.mjs";
+import { createEnrollmentManifest } from "../src/enrollment-manifest-v1.mjs";
 
 const d = (char) => `sha256:${char.repeat(64)}`;
 
 function manifest(overrides = {}) {
-  return Object.freeze({
+  return createEnrollmentManifest({
     enrollmentId: "enrollment-001",
-    state: "active",
-    manifestDigest: d("a"),
+    subjectRef: "subject-ref-001",
+    templateRef: "vault://trust-face/templates/template-001",
+    templateDigest: d("1"),
+    modelVersion: "trust-face-owned-embedding/v1",
+    consentLedgerDigest: d("2"),
+    authorizationDigest: d("3"),
     enrolledAt: "2026-08-31T23:00:00Z",
     ...overrides,
   });
 }
 
 function revocationInput(overrides = {}) {
+  const enrollmentManifest = manifest();
   return {
-    enrollmentId: "enrollment-001",
-    enrollmentManifestDigest: d("a"),
+    enrollmentId: enrollmentManifest.enrollmentId,
+    enrollmentManifestDigest: enrollmentManifest.manifestDigest,
     revocationAuthorizationDigest: d("b"),
     reasonCode: "subject-request",
     revokedAt: "2026-08-31T23:10:00Z",
@@ -95,27 +101,29 @@ test("raw payload and unsupported reason are rejected", () => {
 });
 
 test("assertion binds revocation to exact manifest and timeline", () => {
+  const enrollmentManifest = manifest();
   const revocation = createEnrollmentRevocation(revocationInput());
   const checked = assertEnrollmentRevocation({
     revocation,
-    enrollmentManifest: manifest(),
+    enrollmentManifest,
     now: "2026-08-31T23:20:00Z",
   });
   assert.equal(checked.valid, true);
   assert.equal(checked.state, "revoked");
-  assert.equal(checked.enrollmentManifestDigest, d("a"));
+  assert.equal(checked.enrollmentManifestDigest, enrollmentManifest.manifestDigest);
 
   assert.throws(
     () => assertEnrollmentRevocation({
       revocation: createEnrollmentRevocation(revocationInput({ revokedAt: "2026-08-31T22:59:59Z" })),
-      enrollmentManifest: manifest(),
+      enrollmentManifest,
       now: "2026-08-31T23:20:00Z",
     }),
     (error) => error?.code === "enrollment_revocation_before_enrollment",
-  );
+   );
 });
 
 test("assertion rejects manifest mismatch and tampering", () => {
+  const enrollmentManifest = manifest();
   const revocation = createEnrollmentRevocation(revocationInput());
   assert.throws(
     () => assertEnrollmentRevocation({
@@ -128,7 +136,7 @@ test("assertion rejects manifest mismatch and tampering", () => {
   assert.throws(
     () => assertEnrollmentRevocation({
       revocation: { ...revocation, productionReady: true },
-      enrollmentManifest: manifest(),
+      enrollmentManifest,
       now: "2026-08-31T23:20:00Z",
     }),
     (error) => error?.code === "enrollment_revocation_policy_mismatch",
@@ -136,11 +144,11 @@ test("assertion rejects manifest mismatch and tampering", () => {
   assert.throws(
     () => assertEnrollmentRevocation({
       revocation: { ...revocation, revocationDigest: d("9") },
-      enrollmentManifest: manifest(),
+      enrollmentManifest,
       now: "2026-08-31T23:20:00Z",
     }),
     (error) => error?.code === "enrollment_revocation_digest_mismatch",
-  );
+   );
 });
 
 test("persistence derives active then revoked lifecycle without deleting enrollment", async () => {
@@ -206,7 +214,7 @@ test("tampered persisted revocation is rejected on lifecycle read", async () => 
       "enrollment_revocation_revocationAuthorizationDigest_mismatch",
       "enrollment_revocation_digest_mismatch",
     ].includes(error?.code),
-  );
+   );
 });
 
 test("missing enrollment cannot be revoked and orphan revocations fail closed", async () => {
@@ -223,9 +231,10 @@ test("missing enrollment cannot be revoked and orphan revocations fail closed", 
     (error) => error?.code === "enrollment_not_found",
   );
 
+  const missingManifest = manifest({ enrollmentId: "missing" });
   await revocationRepository.create(createEnrollmentRevocation({
     enrollmentId: "missing",
-    enrollmentManifestDigest: d("a"),
+    enrollmentManifestDigest: missingManifest.manifestDigest,
     revocationAuthorizationDigest: d("b"),
     reasonCode: "subject-request",
     revokedAt: "2026-08-31T23:10:00Z",
