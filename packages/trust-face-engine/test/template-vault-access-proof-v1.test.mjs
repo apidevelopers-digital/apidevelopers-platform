@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 import { generateKeyPairSync, sign } from "node:crypto";
-import { TRUST_FACE_TEMPLATE_VAULT_ACCESS_PROOF_V1 as PROFILE, TrustFaceTemplateVaultAccessProofV1Error, verifyLabTemplateVaultAccessAuthorizationProof, createCryptographicallyVerifiedTemplateVaultReceiptAccess } from "./template-vault-access-proof-v1.mjs";
+import { TRUST_FACE_TEMPLATE_VAULT_ACCESS_PROOF_V1 as PROFILE, TrustFaceTemplateVaultAccessProofV1Error, verifyLabTemplateVaultAccessAuthorizationProof, createCryptographicallyVerifiedTemplateVaultReceiptAccess } from "../src/template-vault-access-proof-v1.mjs";
 const D="sha256:"+"a".repeat(64);
 const kp=()=>generateKeyPairSync("ed25519");
 const auth=(o={})=>({authorizationDigest:D,...o});
