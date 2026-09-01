@@ -1,3 +1,5 @@
+import { assertLivenessPadLabEvidence } from "./liveness-pad-lab-v1.mjs";
+
 const DEFAULT_MODEL_VERSION = "trust-face-embedding/v0-lab";
 const DEFAULT_THRESHOLD_PROFILE = Object.freeze({
   id: "trust-face-1to1/lab-v0",
@@ -56,10 +58,24 @@ function assertEmbeddingRecord(value, field) {
   if (typeof value.modelVersion !== "string" || !value.modelVersion.trim()) {
     fail("invalid_model_version", `${field}.modelVersion is required`);
   }
+
   const vector = normalizeVector(value.vector, `${field}.vector`);
   return Object.freeze({
     modelVersion: value.modelVersion.trim(),
     vector,
+  });
+}
+
+function assertPadLabContext(value) {
+  if (!value || typeof value !== "object" || Array.isArray(value)) {
+    fail("invalid_liveness_pad_lab_context", "livenessPadLab must be an object");
+  }
+
+  return assertLivenessPadLabEvidence({
+    evidence: value.evidence,
+    signals: value.signals,
+    thresholdProfile: value.thresholdProfile,
+    now: value.now ?? null,
   });
 }
 
@@ -70,6 +86,7 @@ export const TRUST_FACE_ENGINE_PROFILE = Object.freeze({
   openSetIdentification: false,
   verification1to1: true,
   livenessPad: false,
+  livenessPadLab: true,
   rawBiometricLogging: false,
   defaultModelVersion: DEFAULT_MODEL_VERSION,
   defaultThresholdProfile: DEFAULT_THRESHOLD_PROFILE,
@@ -170,6 +187,7 @@ export function verifyFacePair({
   referenceEmbedding,
   probeEmbedding,
   thresholdProfile = DEFAULT_THRESHOLD_PROFILE,
+  livenessPadLab = null,
 } = {}) {
   if (!thresholdProfile || typeof thresholdProfile !== "object") {
     fail("invalid_threshold_profile", "thresholdProfile must be an object");
@@ -184,6 +202,9 @@ export function verifyFacePair({
   }
 
   const similarity = cosineSimilarity(referenceEmbedding, probeEmbedding);
+  const matched = similarity >= threshold;
+  const padLab = livenessPadLab === null ? null : assertPadLabContext(livenessPadLab);
+
   return Object.freeze({
     engineId: TRUST_FACE_ENGINE_PROFILE.engineId,
     mode: TRUST_FACE_ENGINE_PROFILE.mode,
@@ -191,9 +212,18 @@ export function verifyFacePair({
     thresholdProfileId: thresholdProfile.id.trim(),
     similarity,
     threshold,
-    matched: similarity >= threshold,
+    matched,
     decisionCreated: false,
     livenessEvaluated: false,
+    livenessEvaluatedInLab: padLab?.valid === true,
+    livenessLabSignalPassed: padLab?.labSignalPassed ?? null,
+    labVerificationPassed: padLab ? matched && padLab.labSignalPassed === true : null,
+    livenessEvidenceId: padLab?.evidenceId ?? null,
+    livenessEvidenceDigest: padLab?.evidenceDigest ?? null,
+    livenessDecisionCreated: false,
+    realPadReady: false,
+    productionReady: false,
+    biometricClaimReady: false,
   });
 }
 
@@ -201,10 +231,12 @@ export function createThresholdProfile({ id, cosineSimilarity: threshold } = {})
   if (typeof id !== "string" || !id.trim()) {
     fail("invalid_threshold_profile", "id is required");
   }
+
   const value = finite(threshold, "cosineSimilarity");
   if (value < -1 || value > 1) {
     fail("invalid_threshold_profile", "cosineSimilarity must be between -1 and 1");
   }
+
   return Object.freeze({
     id: id.trim(),
     cosineSimilarity: value,
