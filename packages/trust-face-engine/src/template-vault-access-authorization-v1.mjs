@@ -99,7 +99,7 @@ const receiptBindings = (receipt) => {
     vaultReceiptId: required(receipt.vaultReceiptId, "vaultReceipt.vaultReceiptId"),
     vaultReceiptDigest: sha256Digest(receipt.receiptDigest, "vaultReceipt.receiptDigest"),
     enrollmentId: required(receipt.enrollmentId, "vaultReceipt.enrollmentId"),
-    enrolmentManifestDigest: sha256Digest(
+    enrollmentManifestDigest: sha256Digest(
       receipt.enrollmentManifestDigest,
       "vaultReceipt.enrollmentManifestDigest",
     ),
@@ -174,11 +174,11 @@ export function createTemplateVaultAccessAuthorization({
     biometricTemplateAccessAuthorized,
     ciphertextAccessAuthorized,
     keyMaterialAccessAuthorized,
-   kmsMaterialAccessAuthorized,
+    kmsMaterialAccessAuthorized,
     secretMaterialAccessAuthorized,
     decryptionAuthorized,
     templateDeletionAuthorized,
-   hardDeleteAuthorized,
+    hardDeleteAuthorized,
     realVaultAccessAuthorized,
   };
   const expectedPolicy = {
