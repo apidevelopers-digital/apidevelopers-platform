@@ -44,19 +44,7 @@ jobs:
       - name: Link local security and SaaS dependencies
         run: |
           set -euo pipefail
-          root="$GITHUB_WORKSPACE"
-          mkdir -p "$root/apps/api-gateway/node_modules/@apidevelopers"
-          for package in contracts auth-core apikey-core persistence-core saas-runtime; do
-            ln -sfn "$root/packages/$package" "$root/apps/api-gateway/node_modules/@apidevelopers/$package"
-          done
-          mkdir -p "$root/packages/auth-core/node_modules/@apidevelopers"
-          ln -sfn "$root/packages/apikey-core" "$root/packages/auth-core/node_modules/@apidevelopers/apikey-core"
-          mkdir -p "$root/packages/apikey-core/node_modules/@apidevelopers"
-          ln -sfn "$root/packages/persistence-core" "$root/packages/apikey-core/node_modules/@apidevelopers/persistence-core"
-          mkdir -p "$root/packages/saas-runtime/node_modules/@apidevelopers"
-          ln -sfn "$root/packages/contracts" "$root/packages/saas-runtime/node_modules/@apidevelopers/contracts"
-          ln -sfn "$root/packages/auth-core" "$root/packages/saas-runtime/node_modules/@apidevelopers/auth-core"
-          ln -sfn "$root/packages/persistence-core" "$root/packages/saas-runtime/node_modules/@apidevelopers/persistence-core"
+          node scripts/link-local-dependencies.mjs
       - name: Validate synthetic harness tests
         run: node --test test/operator-gateway-controlled-dry-run.test.mjs
       - name: Execute synthetic controlled dry-run
@@ -65,9 +53,9 @@ jobs:
         run: |
           set -euo pipefail
           mkdir -p artifacts
-          node scripts/operator-gateway-controlled-dry-run.mjs             --output=artifacts/operator-gateway-controlled-dry-run-evidence.json
+          node scripts/operator-gateway-controlled-dry-run.mjs --output=artifacts/operator-gateway-controlled-dry-run-evidence.json
       - name: Verify sanitized evidence
         run: |
           set -euo pipefail
-          node scripts/verify-operator-gateway-controlled-dry-run.mjs             artifacts/operator-gateway-controlled-dry-run-evidence.json
+          node scripts/verify-operator-gateway-controlled-dry-run.mjs artifacts/operator-gateway-controlled-dry-run-evidence.json
           cat artifacts/operator-gateway-controlled-dry-run-evidence.json
