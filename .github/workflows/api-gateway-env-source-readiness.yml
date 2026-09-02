@@ -1,0 +1,77 @@
+name: API Gateway Env Source Readiness
+
+on:
+  workflow_dispatch: {}
+
+permissions:
+  contents: read
+
+jobs:
+  readiness:
+    runs-on:
+      - self-hosted
+      - macOS
+      - X64
+    timeout-minutes: 10
+    env:
+      GLOBAL_TRUST_EVALUATION_PORTAL_ENABLED: ${{ secrets.GLOBAL_TRUST_EVALUATION_PORTAL_ENABLED || vars.GLOBAL_TRUST_EVALUATION_PORTAL_ENABLED }}
+      GLOBAL_TRUST_EVALUATION_ENABLED: ${{ secrets.GLOBAL_TRUST_EVALUATION_ENABLED || vars.GLOBAL_TRUST_EVALUATION_ENABLED }}
+      API_GATEWAY_ADMIN_KEY: ${{ secrets.API_GATEWAY_ADMIN_KEY }}
+      API_GATEWAY_STATE_FILE: ${{ secrets.API_GATEWAY_STATE_FILE || vars.API_GATEWAY_STATE_FILE }}
+      API_GATEWAY_DELEGATED_TENANT_ID: ${{ secrets.API_GATEWAY_DELEGATED_TENANT_ID || vars.API_GATEWAY_DELEGATED_TENANT_ID }}
+      API_GATEWAY_DELEGATED_KEY: ${{ secrets.API_GATEWAY_DELEGATED_KEY }}
+      API_GATEWAY_PROVISIONING_KEY: ${{ secrets.API_GATEWAY_PROVISIONING_KEY }}
+      UNI_CO_PREVIEW_IDENTITY_BACKEND_BASE_URL: ${{ secrets.UNI_CO_PREVIEW_IDENTITY_BACKEND_BASE_URL || vars.UNI_CO_PREVIEW_IDENTITY_BACKEND_BASE_URL }}
+      WEB_AGENT_SHADOW_API_KEY: ${{ secrets.WEB_AGENT_SHADOW_API_KEY }}
+      WEB_AGENT_SHADOW_BASE_URL: ${{ secrets.WEB_AGENT_SHADOW_BASE_URL || vars.WEB_AGENT_SHADOW_BASE_URL }}
+      WEB_AGENT_SHADOW_ENABLED: ${{ secrets.WEB_AGENT_SHADOW_ENABLED || vars.WEB_AGENT_SHADOW_ENABLED }}
+      API_GATEWAY_OPERATOR_KEY: ${{ secrets.API_GATEWAY_OPERATOR_KEY }}
+      API_GATEWAY_OPERATOR_TENANT_ID: ${{ secrets.API_GATEWAY_OPERATOR_TENANT_ID || vars.API_GATEWAY_OPERATOR_TENANT_ID }}
+    steps:
+      - name: Check canonical environment source presence
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          required=(
+            GLOBAL_TRUST_EVALUATION_PORTAL_ENABLED
+            GLOBAL_TRUST_EVALUATION_ENABLED
+            API_GATEWAY_ADMIN_KEY
+            API_GATEWAY_STATE_FILE
+            API_GATEWAY_DELEGATED_TENANT_ID
+            API_GATEWAY_DELEGATED_KEY
+            API_GATEWAY_PROVISIONING_KEY
+            UNI_CO_PREVIEW_IDENTITY_BACKEND_BASE_URL
+            WEB_AGENT_SHADOW_API_KEY
+            WEB_AGENT_SHADOW_BASE_URL
+            WEB_AGENT_SHADOW_ENABLED
+            API_GATEWAY_OPERATOR_KEY
+            API_GATEWAY_OPERATOR_TENANT_ID
+          )
+
+          missing=0
+          {
+            echo "## API Gateway environment source readiness"
+            echo
+            echo "| Key | Source ready |"
+            echo "| --- | --- |"
+            for key in "${required[@]}"; do
+              if [ -n "${!key:-}" ]; then
+                echo "| \`$key\` | yes |"
+              else
+                echo "| \`$key\` | no |"
+                missing=$((missing + 1))
+              fi
+            done
+            echo
+            echo "- valuesExposed: \`false\`"
+            echo "- hostingerMutationPerformed: \`false\`"
+            echo "- missingCount: \`$missing\`"
+          } >> "$GITHUB_STEP_SUMMARY"
+
+          if [ "$missing" -ne 0 ]; then
+            echo "Environment source is incomplete: $missing required keys are unavailable." >&2
+            exit 1
+          fi
+
+          echo "Environment source is complete. No values were printed."
