@@ -12,6 +12,7 @@ import {
 } from "./operator-readonly-core.mjs";
 import { createOperatorReadonlyHttpApp } from "./operator-readonly-http.mjs";
 import { createGitHubReadonlyAdapters } from "./operator-github-readonly-adapter.mjs";
+import { createGitHubActionsEvidenceHttpApp } from "./operator-github-actions-evidence-http.mjs";
 import { createSaasOperationalHttpComposition } from "./saas-operational-http-composition.mjs";
 import { createTrustSandboxProvisioningApp } from "./saas-trust-sandbox-provisioning.mjs";
 import { createTrustSandboxVerificationApp } from "./trust-sandbox-verifications.mjs";
@@ -45,7 +46,6 @@ export function createOperationalGatewayWithReadonlyOperator({
     ...operationalOptions,
     protection,
   });
-
   const saasComposition = createSaasOperationalHttpComposition({
     app: base.app,
     authenticator: base.authenticator,
@@ -62,14 +62,12 @@ export function createOperationalGatewayWithReadonlyOperator({
       ? { zuniReadinessFetch: operationalOptions.zuniReadinessFetch }
       : {}),
   });
-
   const trustSandboxProvisioningApp = createTrustSandboxProvisioningApp({
     authenticator: base.authenticator,
     saasRuntime: saasComposition.saasRuntime,
     apiKeyLifecycle: base.apiKeyLifecycle,
     ...(operationalOptions.clock ? { clock: operationalOptions.clock } : {}),
   });
-
   const trustSandboxVerificationApp = createTrustSandboxVerificationApp({
     authenticator: base.authenticator,
     store: base.store,
@@ -78,7 +76,6 @@ export function createOperationalGatewayWithReadonlyOperator({
       ? { idFactory: operationalOptions.trustVerificationIdFactory }
       : {}),
   });
-
   const trustSandboxGovernanceApp = createTrustSandboxGovernanceApp({
     authenticator: base.authenticator,
     verificationRepository: trustSandboxVerificationApp.repository,
@@ -91,7 +88,6 @@ export function createOperationalGatewayWithReadonlyOperator({
       ? { requestIdFactory: operationalOptions.trustGovernanceRequestIdFactory }
       : {}),
   });
-
   const saasAndTrustApp = Object.freeze({
     async handleRequest(request = {}) {
       const governanceResponse =
@@ -101,7 +97,6 @@ export function createOperationalGatewayWithReadonlyOperator({
       const verificationResponse =
         await trustSandboxVerificationApp.handleRequest(request);
       if (verificationResponse !== null) return verificationResponse;
-
       const provisioningResponse =
         await trustSandboxProvisioningApp.handleRequest(request);
       if (provisioningResponse !== null) return provisioningResponse;
@@ -119,13 +114,11 @@ export function createOperationalGatewayWithReadonlyOperator({
           ...(githubReadonlyNow ? { now: githubReadonlyNow } : {}),
         })
       : createUnavailableOperatorReadonlyAdapters());
-
   const operatorReadonlyCore = createOperatorReadonlyCore({
     adapters,
     auditRecorder: base.audit,
     ...(operatorReadonlyNow ? { now: operatorReadonlyNow } : {}),
   });
-
   const readonlyApp = createOperatorReadonlyHttpApp({
     app: saasAndTrustApp,
     authenticator: base.authenticator,
@@ -138,6 +131,20 @@ export function createOperationalGatewayWithReadonlyOperator({
       : {}),
   });
 
+  const githubActionsEvidenceApp =
+    typeof githubReadonlyClient?.getWorkflowRunEvidence === "function" &&
+    githubReadonlyOrganization
+      ? createGitHubActionsEvidenceHttpApp({
+          app: readonlyApp,
+          authenticator: base.authenticator,
+          authorization: base.authorization,
+          audit: base.audit,
+          rateLimiter: sharedRateLimiter,
+          client: githubReadonlyClient,
+          organization: githubReadonlyOrganization,
+        })
+      : readonlyApp;
+
   const readiness = createOperationalReadinessService({
     store: base.store,
     checks: readinessChecks,
@@ -145,10 +152,9 @@ export function createOperationalGatewayWithReadonlyOperator({
   });
 
   const app = createReadinessHttpApp({
-    app: readonlyApp,
+    app: githubActionsEvidenceApp,
     readiness,
   });
-
   return Object.freeze({
     ...base,
     saasRuntime: saasComposition.saasRuntime,
@@ -159,6 +165,7 @@ export function createOperationalGatewayWithReadonlyOperator({
     operatorReadonlyAdapters: adapters,
     operatorReadonlyCore,
     operatorReadonlyRateLimiter: sharedRateLimiter,
+    githubActionsEvidenceApp,
     readiness,
     app,
   });

@@ -2,6 +2,9 @@ import {
   createGitHubReadonlyClient,
 } from "./operator-github-readonly-client.mjs";
 import {
+  createGitHubActionsEvidenceClient,
+} from "./operator-github-actions-evidence-client.mjs";
+import {
   normalizeOperatorSecretRef,
   requireOperatorSecretProvider,
 } from "./operator-secret-provider-contract.mjs";
@@ -44,7 +47,6 @@ export function resolveOperatorGitHubRuntimeConfig({ env = process.env } = {}) {
       { field: "OPERATOR_GITHUB_TOKEN" },
     );
   }
-
   const organization = optionalText(env.OPERATOR_GITHUB_ORGANIZATION);
   const credentialRef = optionalText(env.OPERATOR_GITHUB_CREDENTIAL_REF);
 
@@ -54,7 +56,6 @@ export function resolveOperatorGitHubRuntimeConfig({ env = process.env } = {}) {
       reason: "github_readonly_not_configured",
     });
   }
-
   if (!organization || !credentialRef) {
     throw new OperatorGitHubRuntimeError(
       "incomplete_github_runtime_config",
@@ -65,7 +66,6 @@ export function resolveOperatorGitHubRuntimeConfig({ env = process.env } = {}) {
       },
     );
   }
-
   if (!ORGANIZATION_PATTERN.test(organization)) {
     throw new OperatorGitHubRuntimeError(
       "invalid_github_runtime_config",
@@ -73,7 +73,6 @@ export function resolveOperatorGitHubRuntimeConfig({ env = process.env } = {}) {
       { field: "OPERATOR_GITHUB_ORGANIZATION" },
     );
   }
-
   return Object.freeze({
     configured: true,
     organization,
@@ -94,9 +93,13 @@ export function createOperatorGitHubRuntime({
   secretProvider,
   transport,
   clientFactory = createGitHubReadonlyClient,
+  actionsEvidenceClientFactory = createGitHubActionsEvidenceClient,
 } = {}) {
   if (typeof clientFactory !== "function") {
     throw new TypeError("clientFactory must be a function");
+  }
+  if (typeof actionsEvidenceClientFactory !== "function") {
+    throw new TypeError("actionsEvidenceClientFactory must be a function");
   }
 
   const config = resolveOperatorGitHubRuntimeConfig({ env });
@@ -120,12 +123,27 @@ export function createOperatorGitHubRuntime({
     );
   }
 
-  const client = clientFactory({
+  const sharedClientOptions = Object.freeze({
     secretProvider: resolvedProvider,
     transport,
     credentialRef: config.credentialRef,
     apiBaseUrl: config.apiBaseUrl,
     timeoutMs: config.timeoutMs,
+  });
+
+  const readonlyClient = clientFactory(sharedClientOptions);
+  const actionsEvidenceClient = actionsEvidenceClientFactory(sharedClientOptions);
+  if (typeof actionsEvidenceClient?.getWorkflowRunEvidence !== "function") {
+    throw new OperatorGitHubRuntimeError(
+      "github_actions_evidence_client_unavailable",
+      "GitHub Actions evidence client is unavailable",
+    );
+  }
+
+  const client = Object.freeze({
+    ...readonlyClient,
+    getWorkflowRunEvidence:
+      actionsEvidenceClient.getWorkflowRunEvidence.bind(actionsEvidenceClient),
   });
 
   return Object.freeze({
@@ -139,6 +157,7 @@ export function createOperatorGitHubRuntime({
       credentialReferenceConfigured: true,
       directTokenAccepted: false,
       tokenMaterialLoadedDuringComposition: false,
+      actionsEvidenceReadOnlyConfigured: true,
       productionChanged: false,
     }),
   });
