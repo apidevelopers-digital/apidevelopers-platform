@@ -53,11 +53,9 @@ jobs:
         run: |
           set -euo pipefail
           mkdir -p artifacts
-          node scripts/operator-gateway-controlled-dry-run.mjs \ 
-            --output=artifacts/operator-gateway-controlled-dry-run-evidence.json
+          node scripts/operator-gateway-controlled-dry-run.mjs --output=artifacts/operator-gateway-controlled-dry-run-evidence.json
       - name: Verify sanitized evidence
         run: |
           set -euo pipefail
-          node scripts/verify-operator-gateway-controlled-dry-run.mjs \ 
-            artifacts/operator-gateway-controlled-dry-run-evidence.json
+          node scripts/verify-operator-gateway-controlled-dry-run.mjs artifacts/operator-gateway-controlled-dry-run-evidence.json
           cat artifacts/operator-gateway-controlled-dry-run-evidence.json
