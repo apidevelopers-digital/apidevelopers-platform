@@ -168,7 +168,7 @@ test("E2E audit path records allow, then key-revoked deny, and verifies chain ch
     expectedPreviousCheckpointDigest: c1.checkpointDigest,
   });
   assert.equal(verified.valid, true);
-  assert.equal(erified.entryCount, 2);
+  assert.equal(verified.entryCount, 2);
   assert.equal(verified.previousCheckpointDigest, c1.checkpointDigest);
   assert.equal(verified.productionReady, false);
 });
@@ -185,7 +185,7 @@ test("composed audit path remains lab-only and exposes no production secret/vaul
   assert.equal(flow.privateKeyAccepted, false);
   assert.equal(audit.productionReady, false);
   assert.equal(audit.realVaultAccessAuthorized, false);
-  for (const field of ["signAuthorization", "storePrivateKey", "getPrivateKey", "decrypt", "getCiphertext", "getKMsMaterial", "publish", "deploy", "hardDelete"]) {
+  for (const field of ["signAuthorization", "storePrivateKey", "getPrivateKey", "decrypt", "getCiphertext", "getKmsMaterial", "publish", "deploy", "hardDelete"]) {
     assert.equal(flow[field], undefined);
     assert.equal(audit[field], undefined);
   }
