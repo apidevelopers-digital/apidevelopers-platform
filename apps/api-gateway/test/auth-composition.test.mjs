@@ -101,7 +101,7 @@ test("gateway composition validates its durable repository contract", () => {
   );
 });
 
-test("gateway composition authenticates the dedicated delegated backend key with minimum scope", async () => {
+test,"gateway composition authenticates the dedicated delegated backend key with minimum scope", async () => {
   const repository = createRepository([]);
   const authenticator = createGatewayAuthenticator({
     apiKeyRepository: repository,
@@ -174,5 +174,98 @@ test("gateway composition requires delegated key and tenant id together", () => 
         delegatedTenantId: "tenant_uni_co",
       }),
     /API_GATEWAY_DELEGATED_KEY and API_GATEWAY_DELEGATED_TENANT_ID must be configured together/,
+  );
+});
+
+test("gateway composition authenticates a dedicated tenant-bound operator key with minimum scope", async () => {
+  const repository = createRepository([]);
+  const operatorKey = "operator-secret-1234567890-abcdefghi";
+  const authenticator = createGatewayAuthenticator({
+    apiKeyRepository: repository,
+    operatorKey,
+    operatorTenantId: "tenant_institutional_operator",
+  });
+
+  const identity = await authenticator.authenticate({
+    authorization: `Bearer ${operatorKey}`,
+  });
+
+  assert.equal(identity.role, "service");
+  assert.equal(identity.principal.id, "institutional-operator");
+  assert.equal(identity.principal.tenantId, "tenant_institutional_operator");
+  assert.equal(identity.principal.status, "active");
+  assert.deepEqual(identity.principal.scopes, ["operator:resource:read"]);
+  assert.equal(identity.principal.scopes.includes("admin:*"), false);
+  assert.equal(identity.principal.scopes.includes("saas:provision"), false);
+  assert.equal(identity.principal.scopes.includes("saas:access:delegate"), false);
+  assert.deepEqual(repository.calls, []);
+});
+
+test("gateway composition requires operator key and tenant id together", () => {
+  const repository = createRepository([]);
+
+  assert.throws(
+    () =>
+      createGatewayAuthenticator({
+        apiKeyRepository: repository,
+        operatorKey: "operator-secret-1234567890-abcdefghi",
+      }),
+    /API_GATEWAY_OPERATOR_KEY and API_GATEWAY_OPERATOR_TENANT_ID must be configured together/,
+  );
+
+  assert.throws(
+    () =>
+      createGatewayAuthenticator({
+        apiKeyRepository: repository,
+        operatorTenantId: "tenant_institutional_operator",
+      }),
+    /API_GATEWAY_OPERATOR_KEY and API_GATEWAY_OPERATOR_TENANT_ID must be configured together/,
+  );
+});
+
+test("gateway composition rejects weak operator keys", () => {
+  const repository = createRepository([]);
+
+  assert.throws(
+    () =>
+      createGatewayAuthenticator({
+        apiKeyRepository: repository,
+        operatorKey: "too-short",
+        operatorTenantId: "tenant_institutional_operator",
+      }),
+    /API_GATEWAY_OPERATOR_KEY must contain at least 32 characters/,
+  );
+});
+
+test("gateway composition rejects operator credential reuse across service roles", () => {
+  const repository = createRepository([]);
+  const shared = "shared-operator-secret-1234567890-abcd";
+
+  assert.throws(
+    () =>
+      createGatewayAuthenticator({
+        apiKeyRepository: repository,
+        delegatedKey: shared,
+        delegatedTenantId: "tenant_uni_co",
+        operatorKey: shared,
+        operatorTenantId: "tenant_institutional_operator",
+      }),
+    /delegated and operator keys must be distinct/,
+  );
+});
+
+test("gateway composition rejects operator credential reuse as admin", () => {
+  const repository = createRepository([]);
+  const shared = "shared-admin-operator-secret-1234567890";
+
+  assert.throws(
+    () =>
+      createGatewayAuthenticator({
+        apiKeyRepository: repository,
+        adminKey: shared,
+        operatorKey: shared,
+        operatorTenantId: "tenant_institutional_operator",
+      }),
+    /admin and operator keys must be distinct/,
   );
 });
