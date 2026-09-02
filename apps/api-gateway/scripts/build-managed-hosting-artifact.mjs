@@ -322,6 +322,8 @@ export async function buildManagedHostingArtifact({
       required: Object.freeze(["API_GATEWAY_STATE_FILE"]),
       optional: Object.freeze([
         "API_GATEWAY_ADMIN_KEY",
+        "API_GATEWAY_OPERATOR_KEY",
+        "API_GATEWAY_OPERATOR_TENANT_ID",
         "HOST",
         "PORT",
       ]),
