@@ -101,7 +101,7 @@ test("gateway composition validates its durable repository contract", () => {
   );
 });
 
-test,"gateway composition authenticates the dedicated delegated backend key with minimum scope", async () => {
+test("gateway composition authenticates the dedicated delegated backend key with minimum scope", async () => {
   const repository = createRepository([]);
   const authenticator = createGatewayAuthenticator({
     apiKeyRepository: repository,
