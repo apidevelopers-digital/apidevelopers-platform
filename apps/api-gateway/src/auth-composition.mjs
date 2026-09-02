@@ -19,7 +19,7 @@ function optionalText(value) {
 function freezeIdentity(role, principal) {
   return Object.freeze({
     role,
-    principal: Object.freeze(structuredClone(principal),
+    principal: Object.freeze(structuredClone(principal)),
   });
 }
 
@@ -93,7 +93,9 @@ export function createGatewayAuthenticator({
   for (let left = 0; left < configuredKeys.length; left += 1) {
     for (let right = left + 1; right < configuredKeys.length; right += 1) {
       if (compareSecrets(configuredKeys[left][1], configuredKeys[right][1])) {
-        throw new TypeError(`${configuredKeys[left][0]} and ${configuredKeys[right][0]} keys must be distinct`);
+        throw new TypeError(
+          `${configuredKeys[left][0]} and ${configuredKeys[right][0]} keys must be distinct`,
+        );
       }
     }
   }
@@ -105,20 +107,32 @@ export function createGatewayAuthenticator({
   return Object.freeze({
     async authenticate(headers = {}) {
       const apiKey = extractApiKey(headers);
-      if (apiKey && normalizedProvisioningKey && compareSecrets(apiKey, normalizedProvisioningKey)) {
+      if (
+        apiKey &&
+        normalizedProvisioningKey &&
+        compareSecrets(apiKey, normalizedProvisioningKey)
+      ) {
         return freezeIdentity("service", {
           ...provisioningPrincipal,
           scopes: ["saas:provision"],
         });
       }
-      if (apiKey && normalizedDelegatedKey && compareSecrets(apiKey, normalizedDelegatedKey)) {
+      if (
+        apiKey &&
+        normalizedDelegatedKey &&
+        compareSecrets(apiKey, normalizedDelegatedKey)
+      ) {
         return freezeIdentity("service", {
           ...delegatedPrincipal,
           tenantId: normalizedDelegatedTenantId,
           scopes: ["saas:access:delegate"],
         });
       }
-      if (apiKey && normalizedOperatorKey && compareSecrets(apiKey, normalizedOperatorKey)) {
+      if (
+        apiKey &&
+        normalizedOperatorKey &&
+        compareSecrets(apiKey, normalizedOperatorKey)
+      ) {
         return freezeIdentity("service", {
           ...operatorPrincipal,
           tenantId: normalizedOperatorTenantId,
