@@ -1,0 +1,195 @@
+openapi: 3.1.0
+info:
+  title: API Developers Operator Gateway - GitHub Actions Evidence
+  version: 0.1.0
+  description: Authenticated, tenant-bound, rate-limited and durably audited read-only evidence retrieval for GitHub Actions. No workflow logs, raw bodies, credentials, secrets or production writes.
+servers:
+  - url: https://gateway.apidevelopers.digital
+    description: Target institutional gateway runtime; not deployed by this change.
+paths:
+  /v1/operator/github/actions/evidence:
+    post:
+      operationId: operatorGitHubActionsEvidenceRead
+      security:
+        - ApiKeyAuth: []
+        - BearerAuth: []
+      x-required-scope: operator:resource:read
+      x-risk-level: L0
+      x-production-write: false
+      x-max-body-bytes: 16384
+      summary: Read sanitized GitHub Actions workflow-run evidence
+      description: Returns sanitized workflow run, jobs, steps and bounded ADA_EVIDENCE check annotations only after authorization and durable audit persistence.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/GitHubActionsEvidenceRequest'
+      responses:
+        '200':
+          description: Sanitized evidence returned after durable audit persistence.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/GitHubActionsEvidenceResponse'
+        '400':
+          $ref: '#/components/responses/Error'
+        '401':
+          $ref: '#/components/responses/Error'
+        '403':
+          $ref: '#/components/responses/Error'
+        '404':
+          $ref: '#/components/responses/Error'
+        '405':
+          $ref: '#/components/responses/Error'
+        '413':
+          $ref: '#/components/responses/Error'
+        '429':
+          $ref: '#/components/responses/RateLimited'
+        '502':
+          $ref: '#/components/responses/Error'
+        '503':
+          $ref: '#/components/responses/Error'
+components:
+  securitySchemes:
+    ApiKeyAuth: {type: apiKey, in: header, name: x-api-key}
+    BearerAuth: {type: http, scheme: bearer}
+  responses:
+    Error:
+      description: Sanitized error response; no GitHub response body or evidence is returned.
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorEnvelope'
+    RateLimited:
+      description: Rate limit exceeded.
+      headers:
+        Retry-After:
+          schema: {type: string}
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorEnvelope'
+  schemas:
+    GitHubActionsEvidenceRequest:
+      type: object
+      additionalProperties: false
+      required: [correlationId, repository, runId]
+      properties:
+        correlationId: {type: string, minLength: 1}
+        repository: {type: string, pattern: '^[A-Za-z0-9][A-Za-z0-9._-]{0,99}$'}
+        runId: {type: integer, minimum: 1}
+    WorkflowRun:
+      type: object
+      additionalProperties: false
+      required: [id, name, status, conclusion, event, headSha, branch, runAttempt, updatedAt]
+      properties:
+        id: {type: integer, minimum: 1}
+        name: {type: string}
+        status: {type: string}
+        conclusion: {type: string}
+        event: {type: string}
+        headSha: {type: string, pattern: '^[0-9a-f]{40}$'}
+        branch: {type: string}
+        runAttempt: {type: integer, minimum: 1}
+        updatedAt: {type: string, format: date-time}
+    WorkflowStep:
+      type: object
+      additionalProperties: false
+      required: [number, name, status, conclusion]
+      properties:
+        number: {type: integer, minimum: 1}
+        name: {type: string}
+        status: {type: string}
+        conclusion: {type: string}
+    WorkflowJob:
+      type: object
+      additionalProperties: false
+      required: [id, name, status, conclusion, checkRunId, steps]
+      properties:
+        id: {type: integer, minimum: 1}
+        name: {type: string}
+        status: {type: string}
+        conclusion: {type: string}
+        checkRunId: {type: integer, minimum: 1}
+        steps:
+          type: array
+          maxItems: 100
+          items:
+            $ref: '#/components/schemas/WorkflowStep'
+    AdaEvidence:
+      type: object
+      additionalProperties: false
+      required: [jobId, jobName, checkRunId, level, evidenceJson]
+      properties:
+        jobId: {type: integer, minimum: 1}
+        jobName: {type: string}
+        checkRunId: {type: integer, minimum: 1}
+        level: {type: string, enum: [notice, warning, failure]}
+        evidenceJson:
+          type: string
+          maxLength: 512
+          description: Canonical bounded flat JSON string containing only allowed primitive evidence fields.
+    AuthorizationDecision:
+      type: object
+      additionalProperties: false
+      required: [decisionId, effect, policyVersion]
+      properties:
+        decisionId: {type: string}
+        effect: {type: string, enum: [allow, deny]}
+        policyVersion: {type: string}
+    GitHubActionsEvidenceResponse:
+      type: object
+      additionalProperties: false
+      required:
+        - operationId
+        - provider
+        - resourceType
+        - correlationId
+        - repository
+        - run
+        - jobs
+        - evidence
+        - authorizationDecision
+        - productionChanged
+        - contentReturned
+        - rowsReturned
+        - valuesReturned
+        - evidenceReturned
+      properties:
+        operationId: {type: string, const: operator.github.actions.evidence.read}
+        provider: {type: string, const: github}
+        resourceType: {type: string, const: workflow_run_evidence}
+        correlationId: {type: string}
+        repository: {type: string}
+        run:
+          $ref: '#/components/schemas/WorkflowRun'
+        jobs:
+          type: array
+          maxItems: 100
+          items:
+            $ref: '#/components/schemas/WorkflowJob'
+        evidence:
+          type: array
+          maxItems: 20
+          items:
+            $ref: '#/components/schemas/AdaEvidence'
+        authorizationDecision:
+          $ref: '#/components/schemas/AuthorizationDecision'
+        productionChanged: {type: boolean, const: false}
+        contentReturned: {type: boolean, const: false}
+        rowsReturned: {type: boolean, const: false}
+        valuesReturned: {type: boolean, const: false}
+        evidenceReturned: {type: boolean, const: true}
+    ErrorEnvelope:
+      type: object
+      additionalProperties: true
+      required: [error, productionChanged, contentReturned, rowsReturned, valuesReturned, evidenceReturned]
+      properties:
+        error: {type: string}
+        correlationId: {type: string}
+        productionChanged: {type: boolean, const: false}
+        contentReturned: {type: boolean, const: false}
+        rowsReturned: {type: boolean, const: false}
+        valuesReturned: {type: boolean, const: false}
+        evidenceReturned: {type: boolean, const: false}
