@@ -167,7 +167,7 @@ async function copyVendorPackage({
   directory,
   name,
 }) {
-  const sourceDirectory = join(repositoryRoot, "packages", directory);
+ const sourceDirectory = join(repositoryRoot, "packages", directory);
   const destinationDirectory = join(outputDirectory, "vendor", directory);
   const sourceMetadata = await readJson(join(sourceDirectory, "package.json"));
 
@@ -266,7 +266,7 @@ export async function buildManagedHostingArtifact({
         outputDirectory: resolvedOutputDirectory,
         ...definition,
       }),
-    );
+     );
   }
   packagedDependencies.sort((left, right) => left.name.localeCompare(right.name));
 
@@ -322,6 +322,8 @@ export async function buildManagedHostingArtifact({
       required: Object.freeze(["API_GATEWAY_STATE_FILE"]),
       optional: Object.freeze([
         "API_GATEWAY_ADMIN_KEY",
+        "API_GATEWAY_OPERATOR_KEY",
+        "API_GATEWAY_OPERATOR_TENANT_ID",
         "HOST",
         "PORT",
       ]),
