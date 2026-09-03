@@ -72,3 +72,9 @@ export {
   createDurableApiKeyAuthenticator,
   resolveTenantIdFromHeaders,
 } from "./durable-api-key-authenticator.mjs";
+
+export {
+  BIOMETRIC_BROWSER_SESSION_ISSUER_V1,
+  BiometricBrowserSessionIssuerV1Error,
+  createBiometricBrowserSessionIssuer,
+} from "./biometric-browser-session-issuer-v1.mjs";
