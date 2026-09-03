@@ -4,7 +4,6 @@ import { stat } from "node:fs/promises";
 import { spawnSync } from "node:child_process";
 import { fileURLToPath } from "node:url";
 import { createExternalTrainedBackboneAdmissionV1 } from "./external-trained-backbone-admission-v1.mjs";
-import { createFaceEmbedding } from "./index.mjs";
 
 export const TRUST_FACE_SFACE_LAB_INFERENCE_V1 = Object.freeze({
   version: "trust-face-sface-lab-inference/v1",
@@ -19,8 +18,7 @@ export const TRUST_FACE_SFACE_LAB_INFERENCE_V1 = Object.freeze({
   weightsDigest: "sha256:0ba9fbfa01b5270c96627c4ef784da859931e02f04419c829e83484087c34e79",
   artifactBytes: 38696353,
   licenseSpdx: "Apache-2.0",
-  licenseEvidenceRef:
-    "opencv/opencv_zoo@47534e27c9851bb1128ccc0102f1145e27f23f98/models/face_recognition_sface/LICENSE",
+  licenseEvidenceRef: "opencv/opencv_zoo@47534e27c9851bb1128ccc0102f1145e27f23f98/models/face_recognition_sface/LICENSE",
   embeddingDim: 512,
   alignmentLandmarks: 5,
   autoDownload: false,
@@ -41,31 +39,20 @@ export class TrustFaceSFaceLabInferenceV1Error extends Error {
   }
 }
 
-function fail(code, message) {
+const fail = (code, message) => {
   throw new TrustFaceSFaceLabInferenceV1Error(code, message);
-}
+};
 
-function requiredPath(value, field) {
-  if (typeof value !== "string" || !value.trim()) {
-    fail("invalid_lab_path", `${field} is required`);
-  }
-  if (value.includes("\0")) {
-    fail("invalid_lab_path", `${field} contains a null byte`);
-  }
-  return value.trim();
-}
-
-async function assertRegularFile(path, field) {
-  let info;
+async function regularFile(path, field) {
+  if (typeof path !== "string" || !path.trim() || path.includes("\0")) fail("invalid_lab_path", `${field} is required`);
   try {
-    info = await stat(path);
-  } catch {
+    const info = await stat(path);
+    if (!info.isFile()) fail("invalid_lab_file", `${field} must be a regular file`);
+    return info;
+  } catch (error) {
+    if (error instanceof TrustFaceSFaceLabInferenceV1Error) throw error;
     fail("lab_file_not_found", `${field} does not exist`);
   }
-  if (!info.isFile()) {
-    fail("invalid_lab_file", `${field} must be a regular file`);
-  }
-  return info;
 }
 
 async function sha256File(path) {
@@ -87,28 +74,21 @@ export function normalizeSFaceFaceBoxV1(faceBox) {
   if (values.length !== 14 && values.length !== 15) {
     fail("invalid_face_box", "faceBox must contain bbox + 5 landmarks, with optional detector score");
   }
-  const normalized = values.map((value, index) => {
-    if (typeof value !== "number" || !Number.isFinite(value)) {
-      fail("invalid_face_box", `faceBox[${index}] must be finite`);
-    }
+  const out = values.slice(0, 14).map((value, index) => {
+    if (typeof value !== "number" || !Number.isFinite(value)) fail("invalid_face_box", `faceBox[${index}] must be finite`);
     return value;
   });
-  if (normalized[2] <= 0 || normalized[3] <= 0) {
-    fail("invalid_face_box", "faceBox width and height must be positive");
-  }
-  return Object.freeze(normalized.slice(0, 14));
+  if (out[2] <= 0 || out[3] <= 0) fail("invalid_face_box", "faceBox width and height must be positive");
+  return Object.freeze(out);
 }
 
 export async function inspectOpenCvSFaceArtifactV1({ modelPath } = {}) {
-  const path = requiredPath(modelPath, "modelPath");
-  const info = await assertRegularFile(path, "modelPath");
-  const actualDigest = await sha256File(path);
+  const info = await regularFile(modelPath, "modelPath");
+  const actualDigest = await sha256File(modelPath);
   const digestMatches = actualDigest === TRUST_FACE_SFACE_LAB_INFERENCE_V1.weightsDigest;
   const sizeMatches = info.size === TRUST_FACE_SFACE_LAB_INFERENCE_V1.artifactBytes;
-
   return Object.freeze({
     version: "trust-face-sface-artifact-inspection/v1",
-    modelId: TRUST_FACE_SFACE_LAB_INFERENCE_V1.modelId,
     expectedDigest: TRUST_FACE_SFACE_LAB_INFERENCE_V1.weightsDigest,
     actualDigest,
     expectedBytes: TRUST_FACE_SFACE_LAB_INFERENCE_V1.artifactBytes,
@@ -122,77 +102,38 @@ export async function inspectOpenCvSFaceArtifactV1({ modelPath } = {}) {
   });
 }
 
-function createAdmissionFromInspection(inspection) {
+function admissionFor(verified) {
+  const P = TRUST_FACE_SFACE_LAB_INFERENCE_V1;
   return createExternalTrainedBackboneAdmissionV1({
-    modelId: TRUST_FACE_SFACE_LAB_INFERENCE_V1.modelId,
-    modelFamily: TRUST_FACE_SFACE_LAB_INFERENCE_V1.modelFamily,
-    artifactFormat: TRUST_FACE_SFACE_LAB_INFERENCE_V1.artifactFormat,
-    sourceRepository: TRUST_FACE_SFACE_LAB_INFERENCE_V1.sourceRepository,
-    sourcePath: TRUST_FACE_SFACE_LAB_INFERENCE_V1.sourcePath,
-    sourceRevision: TRUST_FACE_SFACE_LAB_INFERENCE_V1.sourceRevision,
-    weightsDigest: TRUST_FACE_SFACE_LAB_INFERENCE_V1.weightsDigest,
-    licenseSpdx: TRUST_FACE_SFACE_LAB_INFERENCE_V1.licenseSpdx,
-    licenseEvidenceRef: TRUST_FACE_SFACE_LAB_INFERENCE_V1.licenseEvidenceRef,
-    trainingDataProvenanceStatus: TRUST_FACE_SFACE_LAB_INFERENCE_V1.trainingDataProvenanceStatus,
-    commercialUseClarified: TRUST_FACE_SFACE_LAB_INFERENCE_V1.commercialUseClarified,
-    authenticationUseClarified: TRUST_FACE_SFACE_LAB_INFERENCE_V1.authenticationUseClarified,
-    independentValidationStatus: TRUST_FACE_SFACE_LAB_INFERENCE_V1.independentValidationStatus,
+    modelId: P.modelId,
+    modelFamily: P.modelFamily,
+    artifactFormat: P.artifactFormat,
+    sourceRepository: P.sourceRepository,
+    sourcePath: P.sourcePath,
+    sourceRevision: P.sourceRevision,
+    weightsDigest: P.weightsDigest,
+    licenseSpdx: P.licenseSpdx,
+    licenseEvidenceRef: P.licenseEvidenceRef,
+    trainingDataProvenanceStatus: P.trainingDataProvenanceStatus,
+    commercialUseClarified: false,
+    authenticationUseClarified: false,
+    independentValidationStatus: "none",
     evaluationDigest: null,
-    embeddingDim: TRUU5T_FACE_SFACE_LAB_INFERENCE_V1.mbeddingDim,
-    alignmentLandmarks: TRUST_FACE_SFACE_LAB_INFERENCE_V1.alignmentLandmarks,
-    sourceIntegrityVerified: inspection.sourceIntegrityVerified === true,
+    embeddingDim: 512,
+    alignmentLandmarks: 5,
+    sourceIntegrityVerified: verified,
   });
 }
 
-export function parseSFaceRuntimeResultV1({ stdout, admission } = {}) {
-  if (!admission || admission.labInferenceEligible !== true || admission.sourceIntegrityVerified !== true) {
-    fail("sface_admission_not_eligible", "SFace lab inference requires an integrity-verified admission");
-  }
-
-  let payload;
-  try {
-    payload = JSON.parse(String(stdout ?? ""));
-  } catch {
-    fail("invalid_sface_runtime_output", "SFace runtime did not return valid JSON");
-  }
-
-  if (!payload || typeof payload !== "object" || Array.isArray(payload)) {
-    fail("invalid_sface_runtime_output", "SFace runtime output must be an object");
-  }
-  if (!Array.isArray(payload.embedding) || payload.embedding.length !== TRUST_FACE_SFACE_LAB_INFERENCE_V1.embeddingDim) {
-    fail("invalid_sface_embedding", "SFace runtime must return a 512D embedding");
-  }
-  if (typeof payload.cvVersion !== "string" || !payload.cvVersion.trim()) {
-    fail("invalid_sface_runtime_output", "SFace runtime must report cvVersion");
-  }
-
-  const embedding = createFaceEmbedding({
-    values: payload.embedding,
-    modelVersion:
-      `${TRUST_FACE_SFACE_LAB_INFERENCE_V1.modelId}@${TRUST_FACE_SFACE_LAB_INFERENCE_V1.sourceRevision}`,
+function normalizedEmbedding(values) {
+  if (!Array.isArray(values) || values.length !== 512) fail("invalid_sface_embedding", "SFace runtime must return a 512D embedding");
+  const vector = values.map((value, index) => {
+    if (typeof value !== "number" || !Number.isFinite(value)) fail("invalid_sface_embedding", `embedding[${index}] must be finite`);
+    return value;
   });
-
-  return Object.freeze({
-    version: TRUST_FACE_SFACE_LAB_INFERENCE_V1.version,
-    mode: "lab-only",
-    provider: TRUST_FACE_SFACE_LAB_INFERENCE_V1.provider,
-    modelId: TRUST_FACE_SFACE_LAB_INFERENCE_V1.modelId,
-    sourceRevision: TRUST_FACE_SFACE_LAB_INFERENCE_V1.sourceRevision,
-    weightsDigest: TRUST_FACE_SFACE_LAB_INFERENCE_V1.weightsDigest,
-    admissionDigest: admission.admissionDigest,
-    cvVersion: payload.cvVersion.trim(),
-    alignedWithFiveLandmarks: payload.alignedWithFiveLandmarks === true,
-    embedding,
-    embeddingStored: false,
-    rawBiometricPayloadAccepted: false,
-    rawBiometricPayloadStored: false,
-    modelWeightsStoredByReceipt: false,
-    decisionCreated: false,
-    productUseEligible: admission.productUseEligible === true,
-    productionAuthorized: false,
-    productionReady: false,
-    biometricClaimReady: false,
-  });
+  const norm = Math.sqrt(vector.reduce((sum, value) => sum + value * value, 0));
+  if (!Number.isFinite(norm) || norm <= Number.EPSILON) fail("invalid_sface_embedding", "SFace embedding must be non-zero");
+  return Object.freeze(vector.map((value) => value / norm));
 }
 
 export async function runOpenCvSFaceLabInferenceV1({
@@ -202,43 +143,51 @@ export async function runOpenCvSFaceLabInferenceV1({
   pythonBin = "python3",
   runner = spawnSync,
 } = {}) {
-  const model = requiredPath(modelPath, "modelPath");
-  const image = requiredPath(imagePath, "imagePath");
   const normalizedFaceBox = normalizeSFaceFaceBoxV1(faceBox);
-  const inspection = await inspectOpenCvSFaceArtifactV1({ modelPath: model });
+  const inspection = await inspectOpenCvSFaceArtifactV1({ modelPath });
+  if (!inspection.sourceIntegrityVerified) fail("sface_source_integrity_mismatch", "local SFace artifact does not match the pinned digest and size");
+  await regularFile(imagePath, "imagePath");
 
-  if (!inspection.sourceIntegrityVerified) {
-    fail("sface_source_integrity_mismatch", "local SFace artifact does not match the pinned digest and size");
-  }
-  await assertRegularFile(image, "imagePath");
-
-  const admission = createAdmissionFromInspection(inspection);
-  if (admission.labInferenceEligible !== true) {
-    fail("sface_admission_not_eligible", "SFace artifact is not eligible for lab inference");
-  }
+  const admission = admissionFor(true);
+  if (admission.labInferenceEligible !== true) fail("sface_admission_not_eligible", "SFace artifact is not eligible for lab inference");
 
   const runtimePath = fileURLToPath(new URL("./sface-lab-runtime-v1.py", import.meta.url));
-  const result = runner(
-    pythonBin,
-    [
-      runtimePath,
-      "--model",
-      model,
-      "--image",
-      image,
-      "--face-box-json",
-      JSON.stringify(normalizedFaceBox),
-    ],
-    {
-      encoding: "utf8",
-      maxBuffer: 2 * 1024 * 1024,
-      env: process.env,
-    },
-  );
+  const result = runner(pythonBin, [
+    runtimePath,
+    "--model", modelPath,
+    "--image", imagePath,
+    "--face-box-json", JSON.stringify(normalizedFaceBox),
+  ], { encoding: "utf8", maxBuffer: 2 * 1024 * 1024, env: process.env });
 
-  if (!result || result.error || result.status !== 0) {
-    fail("sface_runtime_failed", "OpenCV SFace lab runtime failed");
+  if (!result || result.error || result.status !== 0) fail("sface_runtime_failed", "OpenCV SFace lab runtime failed");
+
+  let payload;
+  try {
+    payload = JSON.parse(String(result.stdout ?? ""));
+  } catch {
+    fail("invalid_sface_runtime_output", "SFace runtime did not return valid JSON");
   }
+  if (typeof payload?.cvVersion !== "string" || !payload.cvVersion.trim()) fail("invalid_sface_runtime_output", "SFace runtime must report cvVersion");
 
-  return parseSFaceRuntimeResultV1({ stdout: result.stdout, admission });
+  const P = TRUST_FACE_SFACE_LAB_INFERENCE_V1;
+  return Object.freeze({
+    version: P.version,
+    mode: "lab-only",
+    provider: P.provider,
+    modelVersion: `${P.modelId}@${P.sourceRevision}`,
+    weightsDigest: P.weightsDigest,
+    admissionDigest: admission.admissionDigest,
+    cvVersion: payload.cvVersion.trim(),
+    alignedWithFiveLandmarks: payload.alignedWithFiveLandmarks === true,
+    embedding: Object.freeze({ modelVersion: `${P.modelId}@${P.sourceRevision}`, vector: normalizedEmbedding(payload.embedding) }),
+    embeddingStored: false,
+    rawBiometricPayloadAccepted: false,
+    rawBiometricPayloadStored: false,
+    modelWeightsStoredByReceipt: false,
+    decisionCreated: false,
+    productUseEligible: false,
+    productionAuthorized: false,
+    productionReady: false,
+    biometricClaimReady: false,
+  });
 }
