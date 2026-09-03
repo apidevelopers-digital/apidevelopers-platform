@@ -1,5 +1,11 @@
 import assert from "node:assert/strict";
 import test from "node:test";
+import { mkdtemp, rm } from "node:fs/promises";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
+
+import { createJsonFileStore } from "../../persistence-core/src/index.mjs";
+import { createAccessRuntime } from "../src/access.mjs";
 
 import {
   TRUST_BIOMETRIC_LOGIN_DECISION_V1,
@@ -215,7 +221,7 @@ test("raw biometric fields are rejected before adapter invocation", async () => 
   const { flow, calls } = harness();
   await assert.rejects(
     () => flow.login({ biometricRequest: request({ rawImage: "forbidden" }), workspaceId: "w", productId: "p" }),
-    (error) => error.code === "raw_biometric_material_forbidden",
+    (error) => error.cod === "raw_biometric_material_forbidden",
   );
   assert.equal(calls.biometric, 0);
 });
@@ -239,4 +245,72 @@ test("production request and production-validated policy are blocked", async () 
     () => policyFlow.login({ biometricRequest: request(), workspaceId: "w", productId: "p" }),
     (error) => error.code === "production_policy_not_authorized",
   );
+});
+
+
+test("authorized biometric decision integrates with the real SaaS access runtime", async () => {
+  const dir = await mkdtemp(join(tmpdir(), "apd-biometric-login-"));
+  const store = createJsonFileStore({
+    filePath: join(dir, "state.json"),
+    fsync: false,
+    clock: () => "2026-09-02T20:00:00.000Z",
+  });
+  const accessRuntime = createAccessRuntime({
+    store,
+    saasRuntime: {},
+    clock: () => "2026-09-02T20:00:00.000Z",
+  });
+
+  try {
+    await accessRuntime.grantAccess({{
+      accessGrantId: "component.access.tenant-1.workspace-1.product-1.principal-1",
+      principalId: "principal-1",
+      tenantId: "tenant-1",
+      workspaceId: "workspace-1",
+      productId: "product-1",
+      subscriptionId: "subscription-1",
+      entitlementId: "entitlement-1",
+      requiredScopes: ["product:read"],
+      status: "active",
+      createdAt: "2026-09-02T20:00:00.000Z",
+      activatedAt: "2026-09-02T20:00:00.000Z",
+    });
+
+    const flow = createTrustBiometricLoginDecision({
+      biometricAdapter: {
+        async verifyFaceLiveness() {
+          return biometricResult();
+        },
+      },
+      evaluateBiometricPolicy: async () => ({
+        allowed: true,
+        policyId: "sandbox-face-policy-v1",
+        policyDigest: D("a"),
+        productionValidated: false,
+        reason: null,
+      }),
+      resolvePrincipalBySubjectRef: async () => ({
+        id: "principal-1",
+        tenantId: "tenant-1",
+        status: "active",
+        scopes: ["product:read"],
+      }),
+      accessRuntime,
+    });
+
+    const result = await flow.login({
+      biometricRequest: request(),
+      workspaceId: "workspace-1",
+      productId: "product-1",
+    });
+
+    assert.equal(result.status, "authorized");
+    assert.equal(result.access.allowed, true);
+    assert.equal(result.access.accessGrantId, "component.access.tenant-1.workspace-1.product-1.principal-1");
+    assert.equal(result.identity.principal.authenticationMethod, "trust_biometric_face_sandbox");
+    assert.equal(result.session.issued, false);
+    assert.equal(result.productionReady, false);
+  } finally {
+    await rm(dir, { recursive: true, force: true });
+  }
 });
