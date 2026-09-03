@@ -161,7 +161,7 @@ function denied(reason, stage, context = {}) {
     version: TRUST_BIOMETRIC_LOGIN_DECISION_V1.version,
     mode: TRUST_BIOMETRIC_LOGIN_DECISION_V1.mode,
     status: "denied",
-    reason: reason,
+    reason,
     stage,
     ...context,
     session: Object.freeze({ issuanceAllowed: false, issued: false }),
@@ -275,7 +275,13 @@ export function createTrustBiometricLoginDecision({
 
       const accessGrantId = text(grantResolution.grant.accessGrantId, "grantResolution.grant.accessGrantId");
       const accessDecision = record(
-        await accessRuntime.evaluateAccess({\n          identity,\n          accessGrantId,\n          tenantId,\n          workspaceId: normalizedWorkspaceId,\n          productId: normalizedProductId,\n        }),
+        await accessRuntime.evaluateAccess({
+          identity,
+          accessGrantId,
+          tenantId,
+          workspaceId: normalizedWorkspaceId,
+          productId: normalizedProductId,
+        }),
         "accessDecision",
       );
       scan(accessDecision);
