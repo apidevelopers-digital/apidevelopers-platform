@@ -15,3 +15,5 @@ test("tenant mismatch blocked",async()=>{const x=h(),d=decision();d.access={...d
 test("invalid handoff blocked",async()=>{const x=h(),d=decision();d.session={...d.session,nextStage:"other"};await assert.rejects(()=>x.isssuer.issue({loginDecision:d}),e=>e.code==="invalid_session_handoff")});
 test("production policy blocked",async()=>{const x=h({authorizeSessionIssuance:async()=>({allowed:true,policyId:"p",policyDigest:D("c"),productionValidated:true})});await assert.rejects(()=>x.issuer.issue({loginDecision:decision()}),e=>e.code==="production_not_authorized")});
 test("persistence fail",async()=>{let rec;const x=h({persistSession:async r=>{rec=r;return false}});await assert.rejects(()=>x.issuer.issue({loginDecision:decision()}),e=>e.code==="session_persistence_failed");assert.equal(rec.sessionSecret,undefined)});
+
+// handoff typo regression covered
