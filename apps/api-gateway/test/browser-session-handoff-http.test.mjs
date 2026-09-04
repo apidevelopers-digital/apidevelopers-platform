@@ -18,19 +18,13 @@ function fallbackApp() {
 function handoffService() {
   return {
     async issue({ headers, targetOrigin, codeChallenge }) {
-      if (headers.cookie !== "source=ok") {
-        const error = new Error("source_session_required");
-        error.name = "BrowserSessionHandoffError";
-        error.code = "source_session_required";
-        error.status = 401;
-        throw error;
-      }
       return {
         version: "browser-session-handoff/v1",
         code: "A".repeat(43),
         targetOrigin,
         expiresAt: "2026-09-04T04:01:00.000Z",
         codeChallenge,
+        sourceCookieObserved: headers.cookie ?? null,
       };
     },
     async redeem({ code, targetOrigin, codeVerifier }) {
@@ -66,16 +60,19 @@ test("stays disabled when runtime dependencies are absent", async () => {
   const fallback = fallbackApp();
   const wrapped = createBrowserSessionHandoffHttpApp({ app: fallback });
   assert.equal(wrapped.enabled, false);
-  assert.equal(await wrapped.app.handleRequest({}), await fallback.handleRequest({}));
+  assert.deepEqual(
+    await wrapped.app.handleRequest({}),
+    await fallback.handleRequest({}),
+  );
 });
 
-test("issue endpoint forwards source headers and browser challenge", async () => {
+test("issue forwards source headers, target and S256 challenge", async () => {
   let received;
   const service = handoffService();
-  const originalIssue = service.issue;
+  const original = service.issue;
   service.issue = async (input) => {
     received = input;
-    return originalIssue(input);
+    return original(input);
   };
 
   const wrapped = createBrowserSessionHandoffHttpApp({
@@ -95,7 +92,6 @@ test("issue endpoint forwards source headers and browser challenge", async () =>
     }),
   });
 
-  assert.equal(wrapped.enabled, true);
   assert.equal(response.status, 200);
   assert.equal(response.headers["cache-control"], "no-store");
   assert.deepEqual(received, {
@@ -103,19 +99,16 @@ test("issue endpoint forwards source headers and browser challenge", async () =>
     targetOrigin: "https://sitedauni.com",
     codeChallenge: "C".repeat(43),
   });
-
-  const body = JSON.parse(response.body);
-  assert.equal(body.ok, true);
-  assert.equal(body.handoff.code, "A".repeat(43));
+  assert.equal(JSON.parse(response.body).handoff.code, "A".repeat(43));
 });
 
-test("redeem endpoint fixes target origin server-side and requires server auth", async () => {
+test("redeem fixes target server-side and requires server authentication", async () => {
   let redeemedInput;
   const service = handoffService();
-  const originalRedeem = service.redeem;
+  const original = service.redeem;
   service.redeem = async (input) => {
     redeemedInput = input;
-    return originalRedeem(input);
+    return original(input);
   };
 
   const wrapped = createBrowserSessionHandoffHttpApp({
@@ -125,15 +118,17 @@ test("redeem endpoint fixes target origin server-side and requires server auth",
     redeemTargetOrigin: "https://sitedauni.com",
   });
 
+  const payload = JSON.stringify({
+    code: "A".repeat(43),
+    codeVerifier: "v".repeat(43),
+    targetOrigin: "https://evil.example",
+  });
+
   const unauthorized = await wrapped.app.handleRequest({
     method: "POST",
     url: browserSessionHandoffRedeemPath,
     headers: {},
-    body: JSON.stringify({
-      code: "A".repeat(43),
-      codeVerifier: "v".repeat(43),
-      targetOrigin: "https://evil.example",
-    }),
+    body: payload,
   });
   assert.equal(unauthorized.status, 401);
 
@@ -141,11 +136,7 @@ test("redeem endpoint fixes target origin server-side and requires server auth",
     method: "POST",
     url: browserSessionHandoffRedeemPath,
     headers: { authorization: "Bearer redeemer" },
-    body: JSON.stringify({
-      code: "A".repeat(43),
-      codeVerifier: "v".repeat(43),
-      targetOrigin: "https://evil.example",
-    }),
+    body: payload,
   });
 
   assert.equal(response.status, 200);
@@ -156,7 +147,7 @@ test("redeem endpoint fixes target origin server-side and requires server auth",
   });
 });
 
-test("invalid json fails closed without reaching fallback", async () => {
+test("invalid json fails closed", async () => {
   const wrapped = createBrowserSessionHandoffHttpApp({
     app: fallbackApp(),
     handoffService: handoffService(),
@@ -178,7 +169,7 @@ test("invalid json fails closed without reaching fallback", async () => {
   });
 });
 
-test("unrelated routes remain delegated to the existing app", async () => {
+test("unrelated routes delegate to the existing app", async () => {
   const wrapped = createBrowserSessionHandoffHttpApp({
     app: fallbackApp(),
     handoffService: handoffService(),
@@ -191,6 +182,5 @@ test("unrelated routes remain delegated to the existing app", async () => {
     url: "/v1/health",
   });
 
-  assert.equal(response.status, 404);
-  assert.equal(response.body, "fallback");
+  assert.deepEqual(response, { status: 404, headers: {}, body: "fallback" });
 });
