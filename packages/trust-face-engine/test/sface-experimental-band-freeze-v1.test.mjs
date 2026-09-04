@@ -89,8 +89,8 @@ test("rejects arbitrary or unapproved evidence kinds", () => {
         identityOverlapWithDerivation: false,
         admissibilityEvidence: "publicly-visible-only",
       }),
-    /not admissible/,
-  );
+     /not admissible/,
+   );
 });
 
 test("admits new consented evidence only as benchmark evidence without calibration mutation", () => {
