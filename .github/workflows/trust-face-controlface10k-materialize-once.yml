@@ -2,163 +2,87 @@ name: Trust Face ControlFace10K Materialize Once
 
 on:
   push:
-    branches:
-      - ada/trust-face-sface-lab-inference-v1
-    paths:
-      - ".github/workflows/trust-face-controlface10k-materialize-once.yml"
+    branches: [ada/trust-face-sface-lab-inference-v1]
+    paths: [".github/workflows/trust-face-controlface10k-materialize-once.yml"]
 
 permissions:
   contents: read
 
 jobs:
-  materialize-controlface10k:
+  materialize:
     if: ${{ contains(github.event.head_commit.message, '[materialize-controlface10k]') }}
-    runs-on:
-      - self-hosted
-      - macOS
-      - X64
+    runs-on: [self-hosted, macOS, X64]
     timeout-minutes: 180
     env:
-      CF_URL: "https://huggingface.co/datasets/HuMInGameLab/ControlFace10K/resolve/main/controlface10k.zip?download=true"
-      CF_EXPECTED_BYTES: "3137641968"
-      CF_EXPECTED_SHA256: "d0ed28b3271a75ac5bb8e6799fdfe78ba3a91fb7eddecf19d960ed18fe00a108"
+      URL: "https://huggingface.co/datasets/HuMInGameLab/ControlFace10K/resolve/main/controlface10k.zip?download=true"
+      BYTES: "3137641968"
+      SHA: "d0ed28b3271a75ac5bb8e6799fdfe78ba3a91fb7eddecf19d960ed18fe00a108"
     steps:
-      - name: Runner and disk preflight
+      - name: Preflight
         shell: bash
         run: |
           set -euo pipefail
-
-          echo "::notice title=ControlFace10K runner::name=${RUNNER_NAME:-unknown} os=${RUNNER_OS:-unknown} arch=${RUNNER_ARCH:-unknown}"
-
-          if [[ "${RUNNER_NAME:-}" != "igor-mac-runner" && "${RUNNER_NAME:-}" != "apidevelopers-mac-ci-03" ]]; then
-            echo "::error title=ControlFace10K preflight::unexpected_runner name=${RUNNER_NAME:-unknown}"
+          [[ "${RUNNER_OS:-}" == "macOS" && "${RUNNER_ARCH:-}" == "X64" ]] || {
+            echo "::error title=ControlFace10K preflight::unexpected_platform ${RUNNER_OS:-unknown}/${RUNNER_ARCH:-unknown}"
             exit 1
-          fi
+          }
           if [[ "${RUNNER_NAME:-}" != "igor-mac-runner" ]]; then
-            echo "::warning title=ControlFace10K runner drift::canonical=igor-mac-runner actual=${RUNNER_NAME:-unknown} labels=self-hosted,macOS,X64"
-          fi
-          if [[ "${RUNNER_OS:-}" != "macOS" || "${RUNNER_ARCH:-}" != "X64" ]]; then
-            echo "::error title=ControlFace10K preflight::unexpected_platform os=${RUNNER_OS:-unknown} arch=${RUNNER_ARCH:-unknown}"
-            exit 1
+            echo "::warning title=ControlFace10K runner drift::canonical=igor-mac-runner actual=${RUNNER_NAME:-unknown}"
           fi
 
-          target_dir="$HOME/.cache/apidevelopers-digital/trust-face/controlface10k"
-          final_path="$target_dir/controlface10k.zip"
-          part_path="$target_dir/controlface10k.zip.part"
-          mkdir -p "$target_dir"
+          d="$HOME/.cache/apidevelopers-digital/trust-face/controlface10k"
+          f="$d/controlface10k.zip"
+          p="$f.part"
+          mkdir -p "$d"
 
-          if [[ -f "$final_path" ]]; then
-            existing_size="$(stat -f%z "$final_path")"
-            existing_sha=""
-            if [[ "$existing_size" == "$CF_EXPECTED_BYTES" ]]; then
-              existing_sha="$(shasum -a 256 "$final_path" | awk '{print $1}')"
-              if [[ "$existing_sha" == "$CF_EXPECTED_SHA256" ]]; then
-                echo "::notice title=ControlFace10K preflight::existing_archive_verified bytes=$existing_size sha256=$existing_sha"
-                exit 0
-              fi
-            fi
-            echo "::error title=ControlFace10K preflight::existing_final_integrity_mismatch bytes=$existing_size sha256=${existing_sha:-not-computed}"
-            exit 1
-          fi
-
-          part_size=0
-          if [[ -e "$part_path" ]]; then
-            if [[ ! -f "$part_path" ]]; then
-              echo "::error title=ControlFace10K preflight::partial_path_not_regular_file"
-              exit 1
-            fi
-            part_size="$(stat -f%z "$part_path")"
-            if (( part_size > CF_EXPECTED_BYTES )); then
-              echo "::error title=ControlFace10K preflight::partial_file_too_large bytes=$part_size expected=$CF_EXPECTED_BYTES"
-              exit 1
-            fi
-          fi
-
-          available_kib="$(df -Pk "$target_dir" | awk 'NR==2 {print $4}')"
-          if [[ -z "$available_kib" || ! "$available_kib" =~ ^[0-9]+$ ]]; then
-            echo "::error title=ControlFace10K preflight::unable_to_measure_available_disk"
-            exit 1
-          fi
-
-          available_bytes=$(( available_kib * 1024 ))
-          remaining_bytes=$(( CF_EXPECTED_BYTES - part_size ))
-          safety_bytes=$(( 1024 * 1024 * 1024 ))
-          required_bytes=$(( remaining_bytes + safety_bytes ))
-
-          echo "::notice title=ControlFace10K disk::partial_bytes=$part_size available_bytes=$available_bytes required_bytes=$required_bytes safety_bytes=$safety_bytes"
-
-          if (( available_bytes < required_bytes )); then
-            echo "::error title=ControlFace10K preflight::insufficient_disk available_bytes=$available_bytes required_bytes=$required_bytes"
-            exit 1
-          fi
-
-          echo "::notice title=ControlFace10K preflight::passed=true"
-
-      - name: Materialize and verify pinned archive only
-        shell: bash
-        run: |
-          set -euo pipefail
-
-          target_dir="$HOME/.cache/apidevelopers-digital/trust-face/controlface10k"
-          final_path="$target_dir/controlface10k.zip"
-          part_path="$target_dir/controlface10k.zip.part"
-          evidence_path="$target_dir/controlface10k.verified.txt"
-          mkdir -p "$target_dir"
-
-          if [[ -f "$final_path" ]]; then
-            size="$(stat -f%z "$final_path")"
-            sha="$(shasum -a 256 "$final_path" | awk '{print $1}')"
-            if [[ "$size" == "$CF_EXPECTED_BYTES" && "$sha" == "$CF_EXPECTED_SHA256" ]]; then
-              printf '%s\n' \
-                "MATERIALIZATION_VERIFIED=true" \
-                "ARCHIVE_BYTES=$size" \
-                "ARCHIVE_SHA256=$sha" \
-                "ARCHIVE_EXTRACTED=false" \
-                "BENCHMARK_EXECUTED=false" \
-                "CALIBRATION_MUTATED=false" \
-                > "$evidence_path"
-              echo "::notice title=ControlFace10K verification::verified_existing=true bytes=$size sha256=$sha benchmark_executed=false"
-              cat "$evidence_path"
+          if [[ -f "$f" ]]; then
+            s="$(stat -f%z "$f")"
+            h="$(shasum -a 256 "$f" | awk '{print $1}')"
+            if [[ "$s" == "$BYTES" && "$h" == "$SHA" ]]; then
+              echo "::notice title=ControlFace10K preflight::existing_verified=true bytes=$s sha256=$h"
               exit 0
             fi
-            echo "::error title=ControlFace10K verification::existing_final_integrity_mismatch"
+            echo "::error title=ControlFace10K preflight::existing_final_integrity_mismatch bytes=$s sha256=$h"
             exit 1
           fi
 
-          curl \
-            --fail \
-            --location \
-            --retry 6 \
-            --retry-all-errors \
-            --retry-delay 5 \
-            --connect-timeout 30 \
-            --continue-at - \
-            --progress-bar \
-            --output "$part_path" \
-            "$CF_URL"
-
-          size="$(stat -f%z "$part_path")"
-          if [[ "$size" != "$CF_EXPECTED_BYTES" ]]; then
-            echo "::error title=ControlFace10K verification::byte_size_mismatch expected=$CF_EXPECTED_BYTES got=$size"
-            exit 1
+          ps=0
+          if [[ -e "$p" ]]; then
+            [[ -f "$p" ]] || { echo "::error title=ControlFace10K preflight::partial_not_regular_file"; exit 1; }
+            ps="$(stat -f%z "$p")"
+            (( ps <= BYTES )) || { echo "::error title=ControlFace10K preflight::partial_too_large bytes=$ps"; exit 1; }
           fi
 
-          sha="$(shasum -a 256 "$part_path" | awk '{print $1}')"
-          if [[ "$sha" != "$CF_EXPECTED_SHA256" ]]; then
-            echo "::error title=ControlFace10K verification::sha256_mismatch expected=$CF_EXPECTED_SHA256 got=$sha"
-            exit 1
+          k="$(df -Pk "$d" | awk 'END {print $4}')"
+          [[ "$k" =~ ^[0-9]+$ ]] || { echo "::error title=ControlFace10K preflight::disk_probe_failed"; exit 1; }
+          a=$(( k * 1024 ))
+          r=$(( BYTES - ps + 1073741824 ))
+          echo "::notice title=ControlFace10K disk::partial_bytes=$ps available_bytes=$a required_bytes=$r"
+          (( a >= r )) || { echo "::error title=ControlFace10K preflight::insufficient_disk available_bytes=$a required_bytes=$r"; exit 1; }
+          echo "::notice title=ControlFace10K preflight::passed=true"
+
+      - name: Materialize and verify only
+        shell: bash
+        run: |
+          set -euo pipefail
+          d="$HOME/.cache/apidevelopers-digital/trust-face/controlface10k"
+          f="$d/controlface10k.zip"
+          p="$f.part"
+          e="$d/controlface10k.verified.txt"
+          mkdir -p "$d"
+
+          if [[ -f "$f" ]]; then
+            s="$(stat -f%z "$f")"
+            h="$(shasum -a 256 "$f" | awk '{print $1}')"
+            [[ "$s" == "$BYTES" && "$h" == "$SHA" ]] || exit 1
+          else
+            curl --fail --location --retry 6 --retry-all-errors --retry-delay 5               --connect-timeout 30 --continue-at - --progress-bar --output "$p" "$URL"
+            s="$(stat -f%z "$p")"
+            [[ "$s" == "$BYTES" ]] || { echo "::error title=ControlFace10K verification::byte_size_mismatch expected=$BYTES got=$s"; exit 1; }
+            h="$(shasum -a 256 "$p" | awk '{print $1}')"
+            [[ "$h" == "$SHA" ]] || { echo "::error title=ControlFace10K verification::sha256_mismatch expected=$SHA got=$h"; exit 1; }
+            mv "$p" "$f"
           fi
 
-          mv "$part_path" "$final_path"
-
-          printf '%s\n' \
-            "MATERIALIZATION_VERIFIED=true" \
-            "ARCHIVE_BYTES=$size" \
-            "ARCHIVE_SHA256=$sha" \
-            "ARCHIVE_EXTRACTED=false" \
-            "BENCHMARK_EXECUTED=false" \
-            "CALIBRATION_MUTATED=false" \
-            > "$evidence_path"
-
-          echo "::notice title=ControlFace10K verification::materialization_verified=true bytes=$size sha256=$sha archive_extracted=false benchmark_executed=false"
-          cat "$evidence_path"
+          printf '%s\n'             "MATERIALIZATION_VERIFIED=true"             "ARCHIVE_BYTES=$s"             "ARCHIVE_SHA256=$h"             "ARCHIVE_EXTRACTED=false"             "BENCHMARK_EXECUTED=false"             "CALIBRATION_MUTATED=false" > "$e"
+          echo "::notice title=ControlFace10K verification::materialization_verified=true bytes=$s sha256=$h benchmark_executed=false"
