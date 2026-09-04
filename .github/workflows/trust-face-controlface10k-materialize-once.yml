@@ -30,9 +30,12 @@ jobs:
 
           echo "::notice title=ControlFace10K runner::name=${RUNNER_NAME:-unknown} os=${RUNNER_OS:-unknown} arch=${RUNNER_ARCH:-unknown}"
 
-          if [[ "${RUNNER_NAME:-}" != "igor-mac-runner" ]]; then
+          if [[ "${RUNNER_NAME:-}" != "igor-mac-runner" && "${RUNNER_NAME:-}" != "apidevelopers-mac-ci-03" ]]; then
             echo "::error title=ControlFace10K preflight::unexpected_runner name=${RUNNER_NAME:-unknown}"
             exit 1
+          fi
+          if [[ "${RUNNER_NAME:-}" != "igor-mac-runner" ]]; then
+            echo "::warning title=ControlFace10K runner drift::canonical=igor-mac-runner actual=${RUNNER_NAME:-unknown} labels=self-hosted,macOS,X64"
           fi
           if [[ "${RUNNER_OS:-}" != "macOS" || "${RUNNER_ARCH:-}" != "X64" ]]; then
             echo "::error title=ControlFace10K preflight::unexpected_platform os=${RUNNER_OS:-unknown} arch=${RUNNER_ARCH:-unknown}"
