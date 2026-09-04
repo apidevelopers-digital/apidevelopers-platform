@@ -1,5 +1,6 @@
 import { runOpenCvYuNetLabDetectionV1 } from "./yunet-lab-detection-v1.mjs";
 import { runOpenCvSFaceLabInferenceV1 } from "./sface-lab-inference-v1.mjs";
+import { assertYuNetPoseQualityForSFaceV1 } from "./pose-quality-gate-v1.mjs";
 
 export async function runOpenCvYuNetSFaceLabPipelineV1({
   yunetModelPath,
@@ -15,6 +16,8 @@ export async function runOpenCvYuNetSFaceLabPipelineV1({
     pythonBin,
     ...(detectorRunner ? { runner: detectorRunner } : {}),
   });
+
+  const poseQuality = assertYuNetPoseQualityForSFaceV1(detection.faceBox);
 
   const inference = await runOpenCvSFaceLabInferenceV1({
     modelPath: sfaceModelPath,
@@ -34,6 +37,13 @@ export async function runOpenCvYuNetSFaceLabPipelineV1({
       detectionCount: detection.detectionCount,
       selectedScore: detection.selectedScore,
       sourceIntegrityVerified: detection.sourceIntegrityVerified,
+    }),
+    poseQuality: Object.freeze({
+      version: poseQuality.version,
+      accepted: poseQuality.accepted,
+      retryCapture: poseQuality.retryCapture,
+      productionReady: false,
+      biometricClaimReady: false,
     }),
     inference,
     rawBiometricPayloadStored: false,
