@@ -1,11 +1,25 @@
 import { cosineSimilarity } from "./index.mjs";
+import { evaluateExperimentalSFaceBandV1 } from "./sface-experimental-threshold-band-v1.mjs";
 import { runOpenCvYuNetSFaceLabPipelineV1 } from "./yunet-sface-lab-pipeline-v1.mjs";
 
-export function summarizeOpenCvYuNetSFacePairV1({ referenceInference, probeInference } = {}) {
+export function summarizeOpenCvYuNetSFacePairV1({
+  referenceInference,
+  probeInference,
+  experimentalBandEnabled = false,
+  experimentalBandProfile,
+} = {}) {
   if (!referenceInference?.embedding || !probeInference?.embedding) {
     throw new TypeError("referenceInference.embedding and probeInference.embedding are required");
   }
+
   const similarity = cosineSimilarity(referenceInference.embedding, probeInference.embedding);
+  const experimentalBand = experimentalBandEnabled
+    ? evaluateExperimentalSFaceBandV1(
+        similarity,
+        experimentalBandProfile ? { profile: experimentalBandProfile } : {},
+      )
+    : null;
+
   return Object.freeze({
     version: "trust-face-yunet-sface-pair-comparison/v1",
     mode: "lab-only",
@@ -13,8 +27,12 @@ export function summarizeOpenCvYuNetSFacePairV1({ referenceInference, probeInfer
     modelVersion: referenceInference.embedding.modelVersion,
     embeddingDim: referenceInference.embedding.vector.length,
     cosineSimilarity: similarity,
+    experimentalBandApplied: experimentalBand !== null,
+    experimentalBand,
+    verificationRetryRequired: experimentalBand?.retryCapture === true,
     thresholdApplied: false,
     matchedClaimed: false,
+    identityClaimed: false,
     embeddingStored: false,
     rawBiometricPayloadStored: false,
     productionAuthorized: false,
@@ -37,8 +55,12 @@ export function summarizeOpenCvYuNetSFaceRetryV1(reference, probe) {
     referenceRetry: reference.retry?.required === true ? reference.retry : null,
     probeRetry: probe.retry?.required === true ? probe.retry : null,
     cosineSimilarity: null,
+    experimentalBandApplied: false,
+    experimentalBand: null,
+    verificationRetryRequired: true,
     thresholdApplied: false,
     matchedClaimed: false,
+    identityClaimed: false,
     embeddingStored: false,
     rawBiometricPayloadStored: false,
     productionAuthorized: false,
@@ -57,6 +79,8 @@ export async function compareOpenCvYuNetSFacePairV1({
   probeDetectorRunner,
   referenceSfaceRunner,
   probeSfaceRunner,
+  experimentalBandEnabled = false,
+  experimentalBandProfile,
 } = {}) {
   const reference = await runOpenCvYuNetSFaceLabPipelineV1({
     yunetModelPath,
@@ -83,6 +107,8 @@ export async function compareOpenCvYuNetSFacePairV1({
   const comparison = summarizeOpenCvYuNetSFacePairV1({
     referenceInference: reference.inference,
     probeInference: probe.inference,
+    experimentalBandEnabled,
+    ...(experimentalBandProfile ? { experimentalBandProfile } : {}),
   });
 
   return Object.freeze({
