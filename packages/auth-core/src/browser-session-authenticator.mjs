@@ -65,6 +65,11 @@ export function createBrowserSessionAuthenticator({
       const principal = session.principal;
       if (!principal || typeof principal.id !== "string" || !principal.id.trim() || typeof principal.tenantId !== "string" || !principal.tenantId.trim() || (principal.status && principal.status !== "active")) return null;
 
+      const sourceAuthenticationMethod =
+        typeof principal.authenticationMethod === "string" && principal.authenticationMethod.trim()
+          ? principal.authenticationMethod.trim().toLowerCase()
+          : null;
+
       return Object.freeze({
         role: "client",
         principal: Object.freeze({
@@ -74,6 +79,7 @@ export function createBrowserSessionAuthenticator({
           status: "active",
           scopes: Object.freeze([...new Set(Array.isArray(principal.scopes) ? principal.scopes : [])].filter((scope) => typeof scope === "string" && scope.trim()).map((scope) => scope.trim()).sort()),
           authenticationMethod: "browser_session",
+          ...(sourceAuthenticationMethod ? { sourceAuthenticationMethod } : {}),
         }),
       });
     },

@@ -1,0 +1,76 @@
+name: Browser Session Handoff Trust Provenance Preview
+
+on:
+  push:
+    branches:
+      - feat/browser-session-handoff-trust-provenance-preview-20260904
+  pull_request:
+    paths:
+      - "packages/auth-core/src/browser-session-authenticator.mjs"
+      - "packages/auth-core/src/browser-session-handoff.mjs"
+      - "packages/auth-core/test/*provenance.test.mjs"
+      - "apps/api-gateway/src/web-agent-preview-session-bootstrap.mjs"
+      - "apps/api-gateway/test/web-agent-preview-session-provenance.test.mjs"
+      - ".github/workflows/browser-session-handoff-trust-provenance-preview.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  provenance:
+    runs-on: [self-hosted, macOS, X64]
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+
+      - name: Link local packages
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p "$GITHUB_WORKSPACE/apps/api-gateway/node_modules/@apidevelopers"
+          ln -sfn "$GITHUB_WORKSPACE/packages/auth-core" "$GITHUB_WORKSPACE/apps/api-gateway/node_modules/@apidevelopers/auth-core"
+          ln -sfn "$GITHUB_WORKSPACE/packages/persistence-core" "$GITHUB_WORKSPACE/apps/api-gateway/node_modules/@apidevelopers/persistence-core"
+
+      - name: Lint provenance surfaces
+        shell: bash
+        run: |
+          set -euo pipefail
+          node --check packages/auth-core/src/browser-session-authenticator.mjs
+          node --check packages/auth-core/src/browser-session-handoff.mjs
+          node --check packages/auth-core/test/browser-session-authenticator-provenance.test.mjs
+          node --check packages/auth-core/test/browser-session-handoff-provenance.test.mjs
+          node --check apps/api-gateway/src/web-agent-preview-session-bootstrap.mjs
+          node --check apps/api-gateway/test/web-agent-preview-session-provenance.test.mjs
+
+      - name: Existing handoff contract
+        run: node --test packages/auth-core/test/browser-session-handoff.test.mjs
+
+      - name: Browser session provenance
+        run: node --test packages/auth-core/test/browser-session-authenticator-provenance.test.mjs
+
+      - name: Handoff provenance
+        run: node --test packages/auth-core/test/browser-session-handoff-provenance.test.mjs
+
+      - name: Existing preview session contract
+        run: node --test apps/api-gateway/test/web-agent-preview-session-bootstrap.test.mjs
+
+      - name: Preview session provenance
+        run: node --test apps/api-gateway/test/web-agent-preview-session-provenance.test.mjs
+
+      - name: Enforce provenance boundary
+        shell: bash
+        run: |
+          set -euo pipefail
+          grep -Fq 'authenticationMethod: "browser_session"' packages/auth-core/src/browser-session-authenticator.mjs
+          grep -Fq 'authenticationMethod: "browser_session_handoff"' packages/auth-core/src/browser-session-handoff.mjs
+          grep -Fq 'sourceAuthenticationMethod' packages/auth-core/src/browser-session-authenticator.mjs
+          grep -Fq 'sourceAuthenticationMethod' packages/auth-core/src/browser-session-handoff.mjs
+          grep -Fq 'const sourceAuthenticationMethod = "password"' apps/api-gateway/src/web-agent-preview-session-bootstrap.mjs
+          echo "BROWSER_SESSION_HANDOFF_TRUST_PROVENANCE_PREVIEW_OK"
