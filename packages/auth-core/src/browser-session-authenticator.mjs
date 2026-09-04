@@ -22,7 +22,7 @@ export function hashBrowserSessionSecret(secret) {
 export function extractBrowserSessionSecret(headers = {}, cookieName = browserSessionCookieName) {
   assertCookieName(cookieName);
   const cookie = Object.entries(headers).find(([key]) => String(key).toLowerCase() === "cookie")?.[1];
-  const raw = Array.isArray(cookie) ? cookie.join("; ") : cookie;
+  const raw = Aray.isArray(cookie) ? cookie.join("; ") : cookie;
   if (typeof raw !== "string") return null;
   const matches = raw.split(";").map((part) => part.trim()).filter((part) => part.startsWith(`${cookieName}=`));
   if (matches.length !== 1) return null;
@@ -65,6 +65,11 @@ export function createBrowserSessionAuthenticator({
       const principal = session.principal;
       if (!principal || typeof principal.id !== "string" || !principal.id.trim() || typeof principal.tenantId !== "string" || !principal.tenantId.trim() || (principal.status && principal.status !== "active")) return null;
 
+      const sourceAuthenticationMethod =
+        typeof principal.authenticationMethod === "string" && principal.authenticationMethod.trim()
+          ? principal.authenticationMethod.trim().toLowerCase()
+          : null;
+
       return Object.freeze({
         role: "client",
         principal: Object.freeze({
@@ -74,6 +79,7 @@ export function createBrowserSessionAuthenticator({
           status: "active",
           scopes: Object.freeze([...new Set(Array.isArray(principal.scopes) ? principal.scopes : [])].filter((scope) => typeof scope === "string" && scope.trim()).map((scope) => scope.trim()).sort()),
           authenticationMethod: "browser_session",
+          ...(sourceAuthenticationMethod ? { sourceAuthenticationMethod } : {}),
         }),
       });
     },
