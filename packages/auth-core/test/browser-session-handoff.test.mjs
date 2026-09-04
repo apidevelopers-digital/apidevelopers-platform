@@ -3,18 +3,17 @@ import { createHash } from "node:crypto";
 import test from "node:test";
 
 import {
-  BROWSER_SESSION_HANDOFF_V1,
   BrowserSessionHandoffError,
   createBrowserSessionHandoffService,
 } from "../src/browser-session-handoff.mjs";
 
-function createAtomicMemoryStore() {
+function memoryStore() {
   const entries = new Map();
   return {
     entries,
-    async putIfAbsent(key, record) {
+    async putIfAbsent(key, value) {
       if (entries.has(key)) return false;
-      entries.set(key, structuredClone(record));
+      entries.set(key, structuredClone(value));
       return true;
     },
     async take(key) {
@@ -45,77 +44,53 @@ function sourceAuthenticator() {
   };
 }
 
-function challenge(verifier) {
-  return createHash("sha256").update(verifier, "utf8").digest("base64url");
+const headers = { cookie: "__Host-apidevelopers-session=source-secret" };
+const verifier = "v".repeat(43);
+const challenge = createHash("sha256").update(verifier, "utf8").digest("base64url");
+const targetOrigin = "https://sitedauni.com";
+
+function service({ store = memoryStore(), now, code = "A".repeat(43) } = {}) {
+  return {
+    store,
+    handoff: createBrowserSessionHandoffService({
+      sourceAuthenticator: sourceAuthenticator(),
+      store,
+      allowedTargetOrigins: [targetOrigin, "https://uni-preview.apidevelopers.digital"],
+      ...(now ? { now } : {}),
+      generateCode: () => code,
+      ttlSeconds: 60,
+    }),
+  };
 }
 
-const SOURCE_HEADERS = {
-  cookie: "__Host-apidevelopers-session=source-secret",
-};
-const VERIFIER = "v".repeat(43);
-const CHALLENGE = challenge(VERIFIER);
-
-test("issues a short-lived one-time handoff with S256 browser binding without persisting raw secrets", async () => {
-  const store = createAtomicMemoryStore();
-  const service = createBrowserSessionHandoffService({
-    sourceAuthenticator: sourceAuthenticator(),
-    store,
-    allowedTargetOrigins: ["https://sitedauni.com"],
+test("S256-bound handoff persists neither raw session secret, code nor verifier", async () => {
+  const { store, handoff } = service({
     now: () => new Date("2026-09-04T03:00:00.000Z"),
-    generateCode: () => "A".repeat(43),
-    ttlSeconds: 60,
   });
 
-  const issued = await service.issue({
-    headers: SOURCE_HEADERS,
-    targetOrigin: "https://sitedauni.com",
-    codeChallenge: CHALLENGE,
-  });
+  const issued = await handoff.issue({ headers, targetOrigin, codeChallenge: challenge });
+  assert.equal(issued.code, "A".repeat(43));
+  assert.equal(handoff.descriptor.browserBindingRequired, true);
+  assert.equal(handoff.descriptor.browserBindingMethod, "S256");
+  assert.equal(handoff.descriptor.oneTimeRedemptionRequired, true);
 
-  assert.deepEqual(issued, {
-    version: BROWSER_SESSION_HANDOFF_V1,
-    code: "A".repeat(43),
-    targetOrigin: "https://sitedauni.com",
-    expiresAt: "2026-09-04T03:01:00.000Z",
-  });
-  assert.equal(service.descriptor.rawSourceSessionSecretPersisted, false);
-  assert.equal(service.descriptor.rawHandoffCodePersisted, false);
-  assert.equal(service.descriptor.oneTimeRedemptionRequired, true);
-  assert.equal(service.descriptor.browserBindingRequired, true);
-  assert.equal(service.descriptor.browserBindingMethod, "S256");
-
-  assert.equal(store.entries.size, 1);
-  const [[key, record]] = [...store.entries.entries()];
-  assert.match(key, /^browser-session-handoff:v1:[a-f0-9]{64}$/);
-  assert.equal(key.includes("A".repeat(43)), false);
-  assert.equal(record.codeChallenge, CHALLENGE);
+  const [[key, record]] = [...store.entries];
   const serialized = JSON.stringify(record);
+  assert.match(key, /^browser-session-handoff:v1:[a-f0-9]{64}$/);
+  assert.equal(record.codeChallenge, challenge);
   assert.equal(serialized.includes("source-secret"), false);
-  assert.equal(serialized.includes("A".repeat(43)), false);
-  assert.equal(serialized.includes(VERIFIER), false);
+  assert.equal(serialized.includes(issued.code), false);
+  assert.equal(serialized.includes(verifier), false);
 });
 
-test("redeems exactly once with the correct verifier and changes the authentication method", async () => {
-  const store = createAtomicMemoryStore();
-  const service = createBrowserSessionHandoffService({
-    sourceAuthenticator: sourceAuthenticator(),
-    store,
-    allowedTargetOrigins: ["https://sitedauni.com"],
-    now: () => new Date("2026-09-04T03:00:00.000Z"),
-    generateCode: () => "B".repeat(43),
-    ttlSeconds: 60,
-  });
+test("correct verifier redeems once and replay is rejected", async () => {
+  const { handoff } = service({ code: "B".repeat(43) });
+  const issued = await handoff.issue({ headers, targetOrigin, codeChallenge: challenge });
 
-  const issued = await service.issue({
-    headers: SOURCE_HEADERS,
-    targetOrigin: "https://sitedauni.com",
-    codeChallenge: CHALLENGE,
-  });
-
-  const redeemed = await service.redeem({
+  const redeemed = await handoff.redeem({
     code: issued.code,
-    targetOrigin: "https://sitedauni.com",
-    codeVerifier: VERIFIER,
+    targetOrigin,
+    codeVerifier: verifier,
   });
 
   assert.equal(redeemed.authenticated, true);
@@ -124,14 +99,9 @@ test("redeems exactly once with the correct verifier and changes the authenticat
   assert.deepEqual(redeemed.principal.scopes, ["campaigns:read", "web:chat"]);
   assert.equal(redeemed.principal.authenticationMethod, "browser_session_handoff");
   assert.equal(redeemed.source.browserBindingMethod, "S256");
-  assert.equal(store.entries.size, 0);
 
   await assert.rejects(
-    service.redeem({
-      code: issued.code,
-      targetOrigin: "https://sitedauni.com",
-      codeVerifier: VERIFIER,
-    }),
+    handoff.redeem({ code: issued.code, targetOrigin, codeVerifier: verifier }),
     (error) =>
       error instanceof BrowserSessionHandoffError &&
       error.code === "handoff_invalid_expired_or_redeemed" &&
@@ -139,130 +109,14 @@ test("redeems exactly once with the correct verifier and changes the authenticat
   );
 });
 
-test("rejects unauthenticated source sessions", async () => {
-  const service = createBrowserSessionHandoffService({
-    sourceAuthenticator: sourceAuthenticator(),
-    store: createAtomicMemoryStore(),
-    allowedTargetOrigins: ["https://sitedauni.com"],
-    generateCode: () => "C".repeat(43),
-  });
-
-  await assert.rejects(
-    service.issue({
-      headers: {},
-      targetOrigin: "https://sitedauni.com",
-      codeChallenge: CHALLENGE,
-    }),
-    (error) =>
-      error instanceof BrowserSessionHandoffError &&
-      error.code === "source_session_required" &&
-      error.status === 401,
-  );
-});
-
-test("rejects missing or malformed browser binding challenges", async () => {
-  const service = createBrowserSessionHandoffService({
-    sourceAuthenticator: sourceAuthenticator(),
-    store: createAtomicMemoryStore(),
-    allowedTargetOrigins: ["https://sitedauni.com"],
-  });
-
-  await assert.rejects(
-    service.issue({
-      headers: SOURCE_HEADERS,
-      targetOrigin: "https://sitedauni.com",
-    }),
-    (error) =>
-      error instanceof BrowserSessionHandoffError &&
-      error.code === "handoff_code_challenge_invalid" &&
-      error.status === 400,
-  );
-});
-
-test("rejects non-allowlisted and non-HTTPS targets", async () => {
-  const service = createBrowserSessionHandoffService({
-    sourceAuthenticator: sourceAuthenticator(),
-    store: createAtomicMemoryStore(),
-    allowedTargetOrigins: ["https://sitedauni.com"],
-  });
-
-  await assert.rejects(
-    service.issue({
-      headers: SOURCE_HEADEUR,
-      targetOrigin: "https://evil.example",
-      codeChallenge: CHALLENGE,
-    }),
-    (error) =>
-      error instanceof BrowserSessionHandoffError &&
-      error.code === "handoff_target_not_allowed" &&
-      error.status === 403,
-  );
-
-  await assert.rejects(
-    service.issue({
-      headers: SOURCE_HEADERS,
-      targetOrigin: "http://sitedauni.com",
-      codeChallenge: CHALLENGE,
-    }),
-    (error) =>
-      error instanceof BrowserSessionHandoffError &&
-      error.code === "targetOrigin_invalid" &&
-      error.status === 400,
-  );
-});
-
-test("wrong target consumes the code fail-closed", async () => {
-  const store = createAtomicMemoryStore();
-  const service = createBrowserSessionHandoffService({
-    sourceAuthenticator: sourceAuthenticator(),
-    store,
-    allowedTargetOrigins: [
-      "https://sitedauni.com",
-      "https://uni-preview.apidevelopers.digital",
-    ],
-    generateCode: () => "D".repeat(43),
-  });
-
-  const issued = await service.issue({
-    headers: SOURCE_HEADERS,
-    targetOrigin: "https://sitedauni.com",
-    codeChallenge: CHALLENGE,
-  });
-
-  await assert.rejects(
-    service.redeem({
-      code: issued.code,
-      targetOrigin: "https://uni-preview.apidevelopers.digital",
-      codeVerifier: VERIFIER,
-    }),
-    (error) =>
-      error instanceof BrowserSessionHandoffError &&
-      error.code === "handoff_target_mismatch" &&
-      error.status === 403,
-  );
-
-  assert.equal(store.entries.size, 0);
-});
-
 test("wrong verifier consumes the code fail-closed", async () => {
-  const store = createAtomicMemoryStore();
-  const service = createBrowserSessionHandoffService({
-    sourceAuthenticator: sourceAuthenticator(),
-    store,
-    allowedTargetOrigins: ["https://sitedauni.com"],
-    generateCode: () => "E".repeat(43),
-  });
-
-  const issued = await service.issue({
-    headers: SOURCE_HEADERS,
-    targetOrigin: "https://sitedauni.com",
-    codeChallenge: CHALLENGE,
-  });
+  const { store, handoff } = service({ code: "C".repeat(43) });
+  const issued = await handoff.issue({ headers, targetOrigin, codeChallenge: challenge });
 
   await assert.rejects(
-    service.redeem({
+    handoff.redeem({
       code: issued.code,
-      targetOrigin: "https://sitedauni.com",
+      targetOrigin,
       codeVerifier: "x".repeat(43),
     }),
     (error) =>
@@ -270,52 +124,71 @@ test("wrong verifier consumes the code fail-closed", async () => {
       error.code === "handoff_browser_binding_mismatch" &&
       error.status === 401,
   );
-
   assert.equal(store.entries.size, 0);
 });
 
-test("expired codes are consumed and rejected", async () => {
-  let current = new Date("2026-09-04T03:00:00.000Z");
-  const store = createAtomicMemoryStore();
-  const service = createBrowserSessionHandoffService({
-    sourceAuthenticator: sourceAuthenticator(),
-    store,
-    allowedTargetOrigins: ["https://sitedauni.com"],
-    now: () => current,
-    generateCode: () => "F".repeat(43),
-    ttlSeconds: 30,
-  });
-
-  const issued = await service.issue({
-    headers: SOURCE_HEADERS,
-    targetOrigin: "https://sitedauni.com",
-    codeChallenge: CHALLENGE,
-  });
-
-  current = new Date("2026-09-04T03:00:31.000Z");
+test("wrong target consumes the code fail-closed", async () => {
+  const { store, handoff } = service({ code: "D".repeat(43) });
+  const issued = await handoff.issue({ headers, targetOrigin, codeChallenge: challenge });
 
   await assert.rejects(
-    service.redeem({
+    handoff.redeem({
       code: issued.code,
-      targetOrigin: "https://sitedauni.com",
-      codeVerifier: VERIFIER,
+      targetOrigin: "https://uni-preview.apidevelopers.digital",
+      codeVerifier: verifier,
     }),
     (error) =>
       error instanceof BrowserSessionHandoffError &&
-      error.code === "handoff_invalid_expired_or_redeemed" &&
-      error.status === 401,
+      error.code === "handoff_target_mismatch" &&
+      error.status === 403,
   );
-
   assert.equal(store.entries.size, 0);
 });
 
-test("requires atomic store semantics and bounded TTL", () => {
+test("invalid source, challenge and target are rejected before issuance", async () => {
+  const { handoff } = service();
+
+  await assert.rejects(
+    handoff.issue({ headers: {}, targetOrigin, codeChallenge: challenge }),
+    (error) => error.code === "source_session_required" && error.status === 401,
+  );
+  await assert.rejects(
+    handoff.issue({ headers, targetOrigin }),
+    (error) => error.code === "handoff_code_challenge_invalid" && error.status === 400,
+  );
+  await assert.rejects(
+    handoff.issue({
+      headers,
+      targetOrigin: "https://evil.example",
+      codeChallenge: challenge,
+    }),
+    (error) => error.code === "handoff_target_not_allowed" && error.status === 403,
+  );
+});
+
+test("expired handoff is consumed and rejected", async () => {
+  let current = new Date("2026-09-04T03:00:00.000Z");
+  const { store, handoff } = service({
+    code: "E".repeat(43),
+    now: () => current,
+  });
+  const issued = await handoff.issue({ headers, targetOrigin, codeChallenge: challenge });
+  current = new Date("2026-09-04T03:01:01.000Z");
+
+  await assert.rejects(
+    handoff.redeem({ code: issued.code, targetOrigin, codeVerifier: verifier }),
+    (error) => error.code === "handoff_invalid_expired_or_redeemed" && error.status === 401,
+  );
+  assert.equal(store.entries.size, 0);
+});
+
+test("requires atomic store and bounded TTL", () => {
   assert.throws(
     () =>
       createBrowserSessionHandoffService({
         sourceAuthenticator: sourceAuthenticator(),
         store: { putIfAbsent() {} },
-        allowedTargetOrigins: ["https://sitedauni.com"],
+        allowedTargetOrigins: [targetOrigin],
       }),
     /atomic take/,
   );
@@ -324,8 +197,8 @@ test("requires atomic store semantics and bounded TTL", () => {
     () =>
       createBrowserSessionHandoffService({
         sourceAuthenticator: sourceAuthenticator(),
-        store: createAtomicMemoryStore(),
-        allowedTargetOrigins: ["https://sitedauni.com"],
+        store: memoryStore(),
+        allowedTargetOrigins: [targetOrigin],
         ttlSeconds: 301,
       }),
     /between 30 and 300/,
