@@ -67,8 +67,15 @@ jobs:
           echo "runtime_prepare_started" > "$stage"
           root="$HOME/.cache/apidevelopers-digital/trust-face/controlface10k-benchmark"
           venv="$root/venv"; models="$root/models"; mkdir -p "$models"
+          os_version="$(sw_vers -productVersion 2>/dev/null || echo unknown)"
+          py_version="$(python3 -c 'import sys; print("%d.%d" % sys.version_info[:2])' 2>/dev/null || echo unknown)"
+          echo "venv_create_started_macos_${os_version}_python_${py_version}" > "$stage"
           [[ -x "$venv/bin/python" ]] || python3 -m venv "$venv"
+          echo "venv_ready_macos_${os_version}_python_${py_version}" > "$stage"
+          echo "pip_install_opencv_4_13_0_92_started_macos_${os_version}_python_${py_version}" > "$stage"
           "$venv/bin/python" -m pip install --disable-pip-version-check --only-binary=:all: "opencv-contrib-python-headless==4.13.0.92" >/dev/null
+          echo "pip_install_opencv_4_13_0_92_ready_macos_${os_version}_python_${py_version}" > "$stage"
+          echo "opencv_import_check_started_macos_${os_version}_python_${py_version}" > "$stage"
           "$venv/bin/python" -c 'import cv2; assert cv2.__version__=="4.13.0",cv2.__version__'
           echo "opencv_runtime_ready" > "$stage"
 
@@ -131,7 +138,7 @@ jobs:
           git diff --cached --quiet && exit 0
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git commit -m "docs(trust): record ControlFace10K benchmark aggregate"
+          git commit -m "docs(trust): record Controlface10K benchmark aggregate"
           git push origin "HEAD:${GITHUB_REF_NAME}"
 
       - name: Publish fail-closed stage
