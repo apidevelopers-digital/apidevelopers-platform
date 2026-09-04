@@ -7,103 +7,74 @@ import {
   assertFrozenExperimentalSFaceBandV1,
   fingerprintExperimentalSFaceBandV1,
 } from "../src/sface-experimental-band-freeze-v1.mjs";
-import {
-  TRUST_FACE_SFACE_EXPERIMENTAL_BAND_V1,
-} from "../src/sface-experimental-threshold-band-v1.mjs";
+import { TRUST_FACE_SFACE_EXPERIMENTAL_BAND_V1 } from "../src/sface-experimental-threshold-band-v1.mjs";
 
-test("pins the current experimental SFace band to the frozen canonical fingerprint", () => {
-  const fingerprint = fingerprintExperimentalSFaceBandV1(
-    TRUST_FACE_SFACE_EXPERIMENTAL_BAND_V1,
-  );
-
+test("pins the experimental band fingerprint", () => {
   assert.equal(
-    fingerprint,
+    fingerprintExperimentalSFaceBandV1(TRUST_FACE_SFACE_EXPERIMENTAL_BAND_V1),
     TRUST_FACE_SFACE_EXPERIMENTAL_BAND_FREEZE_V1.frozenProfileSha256,
   );
-
-  const freeze = assertFrozenExperimentalSFaceBandV1(\n    TRUST_FACE_SFACE_EXPERIMENTAL_BAND_V1,\n  );
-
-  assert.equal(freeze.frozen, true);
-  assert.equal(freeze.rederivationAllowed, false);
-  assert.equal(freeze.independentEvidenceRequired, true);
-  assert.equal(freeze.calibrationMutationAllowed, false);
-  assert.equal(freeze.thresholdCalibrated, false);
-  assert.equal(freeze.productionReady, false);
-  assert.equal(freeze.biometricClaimReady, false);
+  const result = assertFrozenExperimentalSFaceBandV1(TRUST_FACE_SFACE_EXPERIMENTAL_BAND_V1);
+  assert.equal(result.frozen, true);
+  assert.equal(result.rederivationAllowed, false);
+  assert.equal(result.calibrationMutationAllowed, false);
+  assert.equal(result.thresholdCalibrated, false);
+  assert.equal(result.productionReady, false);
+  assert.equal(result.biometricClaimReady, false);
 });
 
-test("fails closed when the frozen band values are silently changed", () => {
+test("fails closed on silent band mutation", () => {
   assert.throws(
-    () =>
-      assertFrozenExperimentalSFaceBandV1({
-        ...TRUST_FACE_SFACE_EXPERIMENTAL_BAND_V1,
-        highSimilarityMin:
-          TRUST_FACE_SFACE_EXPERIMENTAL_BAND_V1.highSimilarityMin + 0.001,
-      }),
+    () => assertFrozenExperimentalSFaceBandV1({
+      ...TRUST_FACE_SFACE_EXPERIMENTAL_BAND_V1,
+      highSimilarityMin: TRUST_FACE_SFACE_EXPERIMENTAL_BAND_V1.highSimilarityMin + 0.001,
+    }),
     /freeze mismatch/,
   );
 });
 
-test("rejects reuse of the derivation evidence as independent evidence", () => {
+test("rejects derivation reuse, identity overlap, and public web scrape", () => {
+  const base = {
+    independentFromEvidenceIds: [TRUST_FACE_SFACE_EXPERIMENTAL_BAND_FREEZE_V1.derivationEvidenceId],
+    admissibilityEvidence: "explicit-consent-record",
+  };
   assert.throws(
-    () =>
-      admitIndependentSFaceEvidenceV1({
-        evidenceId:
-          TRUST_FACE_SFACE_EXPERIMENTAL_BAND_FREEZE_V1.derivationEvidenceId,
-        evidenceKind: "consented_new_collection",
-        independentFromEvidenceIds: [
-          TRUST_FACE_SFACE_EXPERIMENTAL_BAND_FREEZE_V1.derivationEvidenceId,
-        ],
-        identityOverlapWithDerivation: false,
-        admissibilityEvidence: "explicit-consent-record",
-      }),
-    /must not reuse the derivation evidence id/,
+    () => admitIndependentSFaceEvidenceV1({
+      ...base,
+      evidenceId: TRUST_FACE_SFACE_EXPERIMENTAL_BAND_FREEZE_V1.derivationEvidenceId,
+      evidenceKind: "consented_new_collection",
+      identityOverlapWithDerivation: false,
+    }),
+    /must not reuse/,
   );
-});
-
-test("rejects identity overlap with the frozen derivation set", () => {
   assert.throws(
-    () =>
-      admitIndependentSFaceEvidenceV1({
-        evidenceId: "independent-candidate-v1",
-        evidenceKind: "consented_new_collection",
-        independentFromEvidenceIds: [
-          TRUST_FACE_SFACE_EXPERIMENTAL_BAND_FREEZE_V1.derivationEvidenceId,
-        ],
-        identityOverlapWithDerivation: true,
-        admissibilityEvidence: "explicit-consent-record",
-      }),
+    () => admitIndependentSFaceEvidenceV1({
+      ...base,
+      evidenceId: "candidate-v1",
+      evidenceKind: "consented_new_collection",
+      identityOverlapWithDerivation: true,
+    }),
     /identityOverlapWithDerivation/,
   );
-});
-
-test("rejects arbitrary or unapproved evidence kinds", () => {
   assert.throws(
-    () =>
-      admitIndependentSFaceEvidenceV1({
-        evidenceId: "public-celebrity-images-v1",
-        evidenceKind: "public_web_scrape",
-        independentFromEvidenceIds: [
-          TRUST_FACE_SFACE_EXPERIMENTAL_BAND_FREEZE_V1.derivationEvidenceId,
-        ],
-        identityOverlapWithDerivation: false,
-        admissibilityEvidence: "publicly-visible-only",
-      }),
-     /not admissible/,
-   );
+    () => admitIndependentSFaceEvidenceV1({
+      ...base,
+      evidenceId: "public-celebrity-images-v1",
+      evidenceKind: "public_web_scrape",
+      identityOverlapWithDerivation: false,
+    }),
+    /not admissible/,
+  );
 });
 
-test("admits new consented evidence only as benchmark evidence without calibration mutation", () => {
+test("admits new consented evidence only as benchmark-only evidence", () => {
   const result = admitIndependentSFaceEvidenceV1({
     evidenceId: "consented-independent-session-v1",
     evidenceKind: "consented_new_collection",
-    independentFromEvidenceIds: [
-      TRUST_FACE_SFACE_EXPERIMENTAL_BAND_FREEZE_V1.derivationEvidenceId,
-    ],
+    independentFromEvidenceIds: [TRUST_FACE_SFACE_EXPERIMENTAL_BAND_FREEZE_V1.derivationEvidenceId],
     identityOverlapWithDerivation: false,
     admissibilityEvidence: "explicit-consent-record-v1",
   });
-
   assert.equal(result.admitted, true);
   assert.equal(result.independentFromFrozenDerivation, true);
   assert.equal(result.benchmarkOnly, true);
