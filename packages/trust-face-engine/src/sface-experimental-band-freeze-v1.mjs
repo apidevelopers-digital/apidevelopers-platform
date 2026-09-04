@@ -19,9 +19,16 @@ export const TRUST_FACE_SFACE_EXPERIMENTAL_BAND_FREEZE_V1 = Object.freeze({
   ]),
 });
 
+function normalizedFiniteNumber(value, field) {
+  if (typeof value !== "number" || !Number.isFinite(value)) {
+    throw new TypeError(`${field} must be a finite number`);
+  }
+  return Number(value.toFixed(12));
+}
+
 function canonicalBandSnapshot(profile) {
   if (!profile || typeof profile !== "object") {
-    throw new TypeError("profile must be an object");
+    throw new TypeError,"profile must be an object");
   }
 
   return {
@@ -30,12 +37,24 @@ function canonicalBandSnapshot(profile) {
     identityCount: profile.identityCount,
     samePersonPairCount: profile.samePersonPairCount,
     differentPersonPairCount: profile.differentPersonPairCount,
-    samePersonObservedMin: profile.samePersonObservedMin,
-    differentPersonObservedMax: profile.differentPersonObservedMax,
-    observedGap: profile.observedGap,
-    guardFraction: profile.guardFraction,
-    lowSimilarityMax: profile.lowSimilarityMax,
-    highSimilarityMin: profile.highSimilarityMin,
+    samePersonObservedMin: normalizedFiniteNumber(
+      profile.samePersonObservedMin,
+      "profile.samePersonObservedMin",
+    ),
+    differentPersonObservedMax: normalizedFiniteNumber(
+      profile.differentPersonObservedMax,
+      "profile.differentPersonObservedMax",
+    ),
+    observedGap: normalizedFiniteNumber(profile.observedGap, "profile.observedGap"),
+    guardFraction: normalizedFiniteNumber(profile.guardFraction, "profile.guardFraction"),
+    lowSimilarityMax: normalizedFiniteNumber(
+      profile.lowSimilarityMax,
+      "profile.lowSimilarityMax",
+    ),
+    highSimilarityMin: normalizedFiniteNumber(
+      profile.highSimilarityMin,
+      "profile.highSimilarityMin",
+    ),
   };
 }
 
@@ -98,7 +117,9 @@ export function admitIndependentSFaceEvidenceV1({
     normalizedEvidenceId ===
     TRUST_FACE_SFACE_EXPERIMENTAL_BAND_FREEZE_V1.derivationEvidenceId
   ) {
-    throw new Error("independent evidence must not reuse the derivation evidence id");
+    throw new Error(
+      "independent evidence must not reuse the derivation evidence id",
+    );
   }
 
   if (
@@ -118,19 +139,27 @@ export function admitIndependentSFaceEvidenceV1({
       TRUST_FACE_SFACE_EXPERIMENTAL_BAND_FREEZE_V1.derivationEvidenceId,
     )
   ) {
-    throw new Error("independent evidence must explicitly declare independence from the frozen derivation set");
+    throw new Error(
+      "independent evidence must explicitly declare independence from the frozen derivation set",
+    );
   }
 
   if (identityOverlapWithDerivation !== false) {
-    throw new Error("identityOverlapWithDerivation must be explicitly false");
+    throw new Error(
+      "identityOverlapWithDerivation must be explicitly false",
+    );
   }
 
   if (calibrationMutationRequested !== false) {
-    throw new Error("independent evidence admission cannot mutate the frozen calibration band");
+    throw new Error(
+      "independent evidence admission cannot mutate the frozen calibration band",
+    );
   }
 
   if (rawBiometricPayloadStored !== false) {
-    throw new Error("raw biometric payload storage is not allowed by this admission contract");
+    throw new Error(
+      "raw biometric payload storage is not allowed by this admission contract",
+    );
   }
 
   return Object.freeze({
