@@ -1,8 +1,10 @@
-import { createHash, randomBytes } from "node:crypto";
+import { createHash, randomBytes, timingSafeEqual } from "node:crypto";
 
 export const BROWSER_SESSION_HANDOFF_V1 = "browser-session-handoff/v1";
 
 const HANDOFF_CODE = /^[A-Za-z0-9_-]{43,128}$/;
+const HANDOFF_CHALLENGE = /^[A-Za-z0-9_-]{43}$/;
+const CODE_VERIFIER = /^[A-Za-z0-9._~-]{43,128}$/;
 
 export class BrowserSessionHandoffError extends Error {
   constructor(code, { status = 400 } = {}) {
@@ -29,12 +31,14 @@ function normalizeOrigin(value, name = "targetOrigin") {
   if (typeof value !== "string" || !value.trim()) {
     throw new BrowserSessionHandoffError(`${name}_required`, { status: 400 });
   }
+
   let parsed;
   try {
     parsed = new URL(value);
   } catch {
     throw new BrowserSessionHandoffError(`${name}_invalid`, { status: 400 });
   }
+
   if (
     parsed.protocol !== "https:" ||
     parsed.username ||
@@ -45,6 +49,7 @@ function normalizeOrigin(value, name = "targetOrigin") {
   ) {
     throw new BrowserSessionHandoffError(`${name}_invalid`, { status: 400 });
   }
+
   return parsed.origin.toLowerCase();
 }
 
@@ -52,6 +57,7 @@ function normalizeAllowedOrigins(values) {
   if (!Array.isArray(values) || values.length === 0) {
     throw new TypeError("allowedTargetOrigins must be a non-empty array");
   }
+
   return Object.freeze(
     [...new Set(values.map((value) => normalizeOrigin(value, "allowedTargetOrigin")))].sort(),
   );
@@ -113,6 +119,30 @@ function normalizeCode(code) {
   return code;
 }
 
+function normalizeCodeChallenge(codeChallenge) {
+  if (typeof codeChallenge !== "string" || !HANDOFF_CHALLENGE.test(codeChallenge)) {
+    throw new BrowserSessionHandoffError("handoff_code_challenge_invalid", { status: 400 });
+  }
+  return codeChallenge;
+}
+
+function normalizeCodeVerifier(codeVerifier) {
+  if (typeof codeVerifier !== "string" || !CODE_VERIFIER.test(codeVerifier)) {
+    throw new BrowserSessionHandoffError("handoff_code_verifier_invalid", { status: 401 });
+  }
+  return codeVerifier;
+}
+
+function deriveCodeChallenge(codeVerifier) {
+  return createHash("sha256").update(codeVerifier, "utf8").digest("base64url");
+}
+
+function secureEqual(left, right) {
+  const leftBuffer = Buffer.from(left, "utf8");
+  const rightBuffer = Buffer.from(right, "utf8");
+  return leftBuffer.length === rightBuffer.length && timingSafeEqual(leftBuffer, rightBuffer);
+}
+
 function defaultGenerateCode() {
   return randomBytes(32).toString("base64url");
 }
@@ -144,9 +174,11 @@ export function createBrowserSessionHandoffService({
   if (typeof sourceAuthenticator?.authenticate !== "function") {
     throw new TypeError("sourceAuthenticator.authenticate is required");
   }
+
   requireStore(store);
   requireFunction(now, "now");
   requireFunction(generateCode, "generateCode");
+
   if (!Number.isInteger(ttlSeconds) || ttlSeconds < 30 || ttlSeconds > 300) {
     throw new TypeError("ttlSeconds must be an integer between 30 and 300");
   }
@@ -169,10 +201,13 @@ export function createBrowserSessionHandoffService({
       rawSourceSessionSecretPersisted: false,
       rawHandoffCodePersisted: false,
       oneTimeRedemptionRequired: true,
+      browserBindingRequired: true,
+      browserBindingMethod: "S256",
     }),
 
-    async issue({ headers = {}, targetOrigin } = {}) {
+    async issue({ headers = {}, targetOrigin, codeChallenge } = {}) {
       const normalizedTargetOrigin = requireAllowedTargetOrigin(targetOrigin);
+      const normalizedChallenge = normalizeCodeChallenge(codeChallenge);
       const authentication = await sourceAuthenticator.authenticate(headers);
       const principal = normalizePrincipal(authentication);
       const issuedAtDate = normalizeNow(now);
@@ -185,11 +220,14 @@ export function createBrowserSessionHandoffService({
           version: BROWSER_SESSION_HANDOFF_V1,
           status: "active",
           targetOrigin: normalizedTargetOrigin,
+          codeChallenge: normalizedChallenge,
           issuedAt: issuedAtDate.toISOString(),
           expiresAt: expiresAtDate.toISOString(),
           principal,
         });
+
         const stored = await store.putIfAbsent(key, record);
+
         if (stored === true) {
           return Object.freeze({
             version: BROWSER_SESSION_HANDOFF_V1,
@@ -198,6 +236,7 @@ export function createBrowserSessionHandoffService({
             expiresAt: expiresAtDate.toISOString(),
           });
         }
+
         if (stored !== false) {
           throw new TypeError("store.putIfAbsent must resolve to boolean");
         }
@@ -206,14 +245,18 @@ export function createBrowserSessionHandoffService({
       throw new BrowserSessionHandoffError("handoff_code_generation_exhausted", { status: 503 });
     },
 
-    async redeem({ code, targetOrigin } = {}) {
+    async redeem({ code, targetOrigin, codeVerifier } = {}) {
       const normalizedCode = normalizeCode(code);
       const normalizedTargetOrigin = requireAllowedTargetOrigin(targetOrigin);
+      const normalizedCodeVerifier = normalizeCodeVerifier(codeVerifier);
       const record = await store.take(recordKey(normalizedCode));
 
-      if (!record || typeof record !== "object" ||
-          record.version !== BROWSER_SESSION_HANDOFF_V1 ||
-          record.status !== "active") {
+      if (
+        !record ||
+        typeof record !== "object" ||
+        record.version !== BROWSER_SESSION_HANDOFF_V1 ||
+        record.status !== "active"
+      ) {
         throw new BrowserSessionHandoffError("handoff_invalid_expired_or_redeemed", { status: 401 });
       }
 
@@ -224,6 +267,7 @@ export function createBrowserSessionHandoffService({
       const current = normalizeNow(now);
       const expiresAt = Date.parse(record.expiresAt);
       const issuedAt = Date.parse(record.issuedAt);
+
       if (
         Number.isNaN(expiresAt) ||
         Number.isNaN(issuedAt) ||
@@ -231,6 +275,14 @@ export function createBrowserSessionHandoffService({
         expiresAt <= current.getTime()
       ) {
         throw new BrowserSessionHandoffError("handoff_invalid_expired_or_redeemed", { status: 401 });
+      }
+
+      if (
+        typeof record.codeChallenge !== "string" ||
+        !HANDOFF_CHALLENGE.test(record.codeChallenge) ||
+        !secureEqual(deriveCodeChallenge(normalizedCodeVerifier), record.codeChallenge)
+      ) {
+        throw new BrowserSessionHandoffError("handoff_browser_binding_mismatch", { status: 401 });
       }
 
       const principal = normalizePrincipal({ role: "client", principal: record.principal });
@@ -244,6 +296,7 @@ export function createBrowserSessionHandoffService({
           issuedAt: record.issuedAt,
           expiresAt: record.expiresAt,
           targetOrigin: normalizedTargetOrigin,
+          browserBindingMethod: "S256",
         }),
       });
     },
