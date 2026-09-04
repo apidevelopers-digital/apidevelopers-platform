@@ -75,7 +75,7 @@ def main():
 
     selected_index = int(np.argmax(faces[:, 14]))
     selected = faces[selected_index]
-    if float(selected[2]) <= 0 or float(selected[1] ) <= 0:
+    if float(selected[2]) <= 0 or float(selected[3]) <= 0:
         fail("invalid_yunet_bbox")
 
     print(json.dumps({
