@@ -18,7 +18,7 @@ export const TRUST_FACE_YUNET_LAB_DETECTION_V1 = Object.freeze({
   artifactBytes: 232589,
   alignmentLandmarks: 5,
   detectorOutputValues: 15,
-  scoreThreshold: 0.9,
+  scoreThreshold: 0.7,
   nmsThreshold: 0.3,
   topK: 5000,
   autoDownload: false,
