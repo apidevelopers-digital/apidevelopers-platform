@@ -8,11 +8,12 @@
     ".": "./src/index.mjs",
     "./async-authenticator": "./src/async-authenticator.mjs",
     "./durable-api-key-authenticator": "./src/durable-api-key-authenticator.mjs",
-    "./browser-session-authenticator": "./src/browser-session-authenticator.mjs"
+    "./browser-session-authenticator": "./src/browser-session-authenticator.mjs",
+    "./browser-session-handoff": "./src/browser-session-handoff.mjs"
   },
   "scripts": {
     "test": "node --test test/*.test.mjs",
-    "check": "node --check src/index.mjs && node --check src/async-authenticator.mjs && node --check src/durable-api-key-authenticator.mjs && node --check src/browser-session-authenticator.mjs && npm test"
+    "check": "node --check src/index.mjs && node --check src/async-authenticator.mjs && node --check src/durable-api-key-authenticator.mjs && node --check src/browser-session-authenticator.mjs && node --check src/browser-session-handoff.mjs && npm test"
   },
   "dependencies": {
     "@apidevelopers/apikey-core": "0.2.0"

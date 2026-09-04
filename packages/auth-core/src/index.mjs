@@ -78,3 +78,9 @@ export {
   BiometricBrowserSessionIssuerV1Error,
   createBiometricBrowserSessionIssuer,
 } from "./biometric-browser-session-issuer-v1.mjs";
+
+export {
+  BROWSER_SESSION_HANDOFF_V1,
+  BrowserSessionHandoffError,
+  createBrowserSessionHandoffService,
+} from "./browser-session-handoff.mjs";

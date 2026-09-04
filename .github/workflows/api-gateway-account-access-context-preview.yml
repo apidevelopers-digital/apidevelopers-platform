@@ -1,0 +1,73 @@
+name: API Gateway Account Access Context Preview
+
+on:
+  push:
+    branches:
+      - feat/account-handoff-access-context-preview-20260904
+    paths:
+      - "apps/api-gateway/src/account-access-context-*.mjs"
+      - "apps/api-gateway/src/web-agent-preview-authentication-evidence.mjs"
+      - "apps/api-gateway/src/web-agent-preview-session-bootstrap.mjs"
+      - "apps/api-gateway/test/account-access-context-preview.test.mjs"
+      - "apps/api-gateway/test/web-agent-preview-session-bootstrap.test.mjs"
+      - ".github/workflows/api-gateway-account-access-context-preview.yml"
+  pull_request:
+    paths:
+      - "apps/api-gateway/src/account-access-context-*.mjs"
+      - "apps/api-gateway/src/web-agent-preview-authentication-evidence.mjs"
+      - "apps/api-gateway/src/web-agent-preview-session-bootstrap.mjs"
+      - "apps/api-gateway/test/account-access-context-preview.test.mjs"
+      - "apps/api-gateway/test/web-agent-preview-session-bootstrap.test.mjs"
+      - ".github/workflows/api-gateway-account-access-context-preview.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  access-context:
+    runs-on:
+      - self-hosted
+      - macOS
+      - X64
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+      - name: Link institutional local dependencies
+        shell: bash
+        run: |
+          set -euo pipefail
+          root="$GITHUB_WORKSPACE"
+          mkdir -p "$root/apps/api-gateway/node_modules/@apidevelopers"
+          ln -sfn "$root/packages/contracts" "$root/apps/api-gateway/node_modules/@apidevelopers/contracts"
+          ln -sfn "$root/packages/persistence-core" "$root/apps/api-gateway/node_modules/@apidevelopers/persistence-core"
+          ln -sfn "$root/packages/auth-core" "$root/apps/api-gateway/node_modules/@apidevelopers/auth-core"
+          ln -sfn "$root/packages/saas-runtime" "$root/apps/api-gateway/node_modules/@apidevelopers/saas-runtime"
+          mkdir -p "$root/packages/saas-runtime/node_modules/@apidevelopers"
+          ln -sfn "$root/packages/contracts" "$root/packages/saas-runtime/node_modules/@apidevelopers/contracts"
+          ln -sfn "$root/packages/auth-core" "$root/packages/saas-runtime/node_modules/@apidevelopers/auth-core"
+          ln -sfn "$root/packages/persistence-core" "$root/packages/saas-runtime/node_modules/@apidevelopers/persistence-core"
+      - name: Check access-context syntax
+        working-directory: apps/api-gateway
+        run: |
+          node --check src/web-agent-preview-authentication-evidence.mjs
+          node --check src/account-access-context-preview.mjs
+          node --check src/account-access-context-http.mjs
+          node --check src/account-access-context-preview-composition.mjs
+      - name: Exercise preview authentication evidence and access context
+        working-directory: apps/api-gateway
+        run: |
+          node --test test/web-agent-preview-session-bootstrap.test.mjs test/account-access-context-preview.test.mjs
+      - name: Enforce preview-only boundary
+        shell: bash
+        run: |
+          set -euo pipefail
+          grep -Fq 'productionEnabled:false' apps/api-gateway/src/account-access-context-preview-composition.mjs
+          grep -Fq 'runtimeAutoWiring:false' apps/api-gateway/src/account-access-context-preview-composition.mjs
+          grep -Fq 'consumerServerAuthenticationRequired:true' apps/api-gateway/src/account-access-context-preview-composition.mjs
+          grep -Fq 'trustEvidenceRequired:true' apps/api-gateway/src/account-access-context-preview-composition.mjs
