@@ -72,7 +72,8 @@ export function selectControlFace10KIdentitySubsetV1(
     resultAwareSelectionUsed: false,
     benchmarkOnly: true,
     bandFrozen: true,
-    calibrationMutationAlowed: false,
+    // Independent benchmark selection must never mutate calibration.
+    calibrationMutationAllowed: false,
     thresholdCalibrated: false,
     productionAuthorized: false,
     productionReady: false,
