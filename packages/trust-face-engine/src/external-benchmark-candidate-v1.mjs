@@ -56,34 +56,26 @@ export function assessExternalBenchmarkCandidateV1(candidate = {}) {
     candidate.sourceArchiveExpectedSha256,
     "sourceArchiveExpectedSha256",
   );
+  const expectedBytes = candidate.sourceArchiveExpectedBytes;
 
   if (!validSha256(expectedSha256)) {
     throw new Error("sourceArchiveExpectedSha256 must be a lowercase SHA-256 hex digest");
   }
-
-  if (
-    !Number.isInteger(candidate.sourceArchiveExpectedBytes) ||
-    candidate.sourceArchiveExpectedBytes < 1
-  ) {
+  if (!Number.isInteger(expectedBytes) || expectedBytes < 1) {
     throw new Error("sourceArchiveExpectedBytes must be a positive integer");
   }
-
-  if (sourceType !== "synthetic_permissive" && sourceType !== "licensed_benchmark") {
+  if (!["synthetic_permissive", "licensed_benchmark"].includes(sourceType)) {
     throw new Error(`external benchmark source type is not admissible: ${sourceType}`);
   }
-
   if (candidate.publicWebScrape !== false) {
     throw new Error("public web scrape is not admissible benchmark evidence");
   }
-
   if (candidate.identityOverlapWithDerivation !== false) {
     throw new Error("identity overlap with frozen derivation must be explicitly false");
   }
-
   if (candidate.benchmarkOnly !== true || candidate.bandFrozen !== true) {
     throw new Error("external evidence must remain benchmark-only against the frozen band");
   }
-
   if (candidate.calibrationMutationAllowed !== false) {
     throw new Error("external benchmark candidate cannot mutate calibration");
   }
@@ -103,20 +95,19 @@ export function assessExternalBenchmarkCandidateV1(candidate = {}) {
     if (digest !== expectedSha256) {
       throw new Error("materialized archive SHA-256 does not match pinned source digest");
     }
-    if (!Number.isInteger(bytes) || bytes !== candidate.sourceArchiveExpectedBytes) {
+    if (!Number.isInteger(bytes) || bytes !== expectedBytes) {
       throw new Error("materialized archive byte size does not match pinned source size");
     }
   }
 
   const benchmarkExecutionAuthorized = materialized && digestVerified;
-
   return Object.freeze({
     version: "trust-face-external-benchmark-admission-state/v1",
     mode: "lab-only",
     candidateId,
     sourceType,
     declaredLicense,
-    sourceArchiveExpectedBytes: candidate.sourceArchiveExpectedBytes,
+    sourceArchiveExpectedBytes: expectedBytes,
     sourceArchiveExpectedSha256: expectedSha256,
     admissibleCandidate: true,
     artifactMaterialized: materialized,
@@ -126,7 +117,7 @@ export function assessExternalBenchmarkCandidateV1(candidate = {}) {
     benchmarkExecutionAuthorized,
     benchmarkOnly: true,
     bandFrozen: true,
-    calibrationMutationAlowed: false,
+    calibrationMutationAllowed: false,
     thresholdCalibrated: false,
     farFmrValidated: false,
     frrFnmrValidated: false,
