@@ -1,0 +1,151 @@
+name: Trust Face ControlFace10K Materialize Once
+
+on:
+  push:
+    branches:
+      - ada/trust-face-sface-lab-inference-v1
+    paths:
+      - ".github/workflows/trust-face-controlface10k-materialize-once.yml"
+
+permissions:
+  contents: read
+
+jobs:
+  materialize-controlface10k:
+    if: ${{ contains(github.event.head_commit.message, '[materialize-controlface10k]') }}
+    runs-on:
+      - self-hosted
+      - macOS
+      - X64
+    timeout-minutes: 180
+    env:
+      CF_URL: "https://huggingface.co/datasets/HuMInGameLab/ControlFace10K/resolve/main/controlface10k.zip?download=true"
+      CF_EXPECTED_BYTES: "3137641968"
+      CF_EXPECTED_SHA256: "d0ed28b3271a75ac5bb8e6799fdfe78ba3a91fb7eddecf19d960ed18fe00a108"
+    steps:
+      - name: Runner and disk preflight
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          if [[ "${RUNNER_NAME:-}" != "igor-mac-runner" ]]; then
+            echo "Unexpected runner: ${RUNNER_NAME:-unknown}"
+            exit 1
+          fi
+          if [[ "${RUNNER_OS:-}" != "macOS" || "${RUNNER_ARCH:-}" != "X64" ]]; then
+            echo "Unexpected runner platform: ${RUNNER_OS:-unknown}/${RUNNER_ARCH:-unknown}"
+            exit 1
+          fi
+
+          target_dir="$HOME/.cache/apidevelopers-digital/trust-face/controlface10k"
+          final_path="$target_dir/controlface10k.zip"
+          part_path="$target_dir/controlface10k.zip.part"
+          mkdir -p "$target_dir"
+
+          if [[ -f "$final_path" ]]; then
+            existing_size="$(stat -f%z "$final_path")"
+            if [[ "$existing_size" == "$CF_EXPECTED_BYTES" ]]; then
+              existing_sha="$(shasum -a 256 "$final_path" | awk '{print $1}')"
+              if [[ "$existing_sha" == "$CF_EXPECTED_SHA256" ]]; then
+                echo "Existing archive already matches pinned size and SHA-256."
+                exit 0
+              fi
+            fi
+            echo "Existing final archive does not match pinned integrity; refusing to overwrite."
+            exit 1
+          fi
+
+          part_size=0
+          if [[ -e "$part_path" ]]; then
+            if [[ ! -f "$part_path" ]]; then
+              echo "Partial path exists but is not a regular file."
+              exit 1
+            fi
+            part_size="$(stat -f%z "$part_path")"
+            if (( part_size > CF_EXPECTED_BYTES )); then
+              echo "Partial file is larger than pinned archive."
+              exit 1
+            fi
+          fi
+
+          available_kib="$(df -Pk "$target_dir" | awk 'NR==2 {print $4}')"
+          available_bytes=$(( available_kib * 1024 ))
+          remaining_bytes=$( CF_EXPECTED_BYTES - part_size ))
+          safety_bytes=$(( 1024 * 1024 * 1024 ))
+          required_bytes=$(( remaining_bytes + safety_bytes ))
+
+          echo "Runner: ${RUNNER_NAME}"
+          echo "Existing partial bytes: ${part_size}"
+          echo "Available bytes: ${available_bytes}"
+          echo "Required bytes including 1 GiB safety margin: ${required_bytes}"
+
+          if (( available_bytes < required_bytes )); then
+            echo "Insufficient disk space for safe materialization."
+            exit 1
+          fi
+
+      - name: Materialize and verify pinned archive only
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          target_dir="$HOME/.cache/apidevelopers-digital/trust-face/controlface10k"
+          final_path="$target_dir/controlface10k.zip"
+          part_path="$target_dir/controlface10k.zip.part"
+          evidence_path="$target_dir/controlface10k.verified.txt"
+          mkdir -p "$target_dir"
+
+          if [[ -f "$final_path" ]]; then
+            size="$(stat -f%z "$final_path")"
+            sha="$(shasum -a 256 "$final_path" | awk '{print $1}')"
+            if [[ "$size" == "$CF_EXPECTED_BYTES" && "$sha" == "$CF_EXPECTED_SHA256" ]]; then
+              printf '%s\n' \
+                "MATERIALIZATION_VERIFIED=true" \
+                "ARCHIVE_BYTES=$size" \
+                "ARCHIVE_SHA256=$sha" \
+                "ARCHIVE_EXTRACTED=false" \
+                "BENCHMARK_EXECUTED=false" \
+                "CALIBRATION_MUTATED=false" \
+                > "$evidence_path"
+              cat "$evidence_path"
+              exit 0
+            fi
+            echo "Existing final archive failed integrity verification."
+            exit 1
+          fi
+
+          curl \
+            --fail \
+            --location \
+            --retry 6 \
+            --retry-all-errors \
+            --retry-delay 5 \
+            --connect-timeout 30 \
+            --continue-at - \
+            --output "$part_path" \
+            "$CF_URL"
+
+          size="$(stat -f%z "$part_path")"
+          if [[ "$size" != "$CF_EXPECTED_BYTES" ]]; then
+            echo "Archive byte-size mismatch: expected $CF_EXPECTED_BYTES, got $size"
+            exit 1
+          fi
+
+          sha="$(shasum -a 256 "$part_path" | awk '{print $1}')"
+          if [[ "$sha" != "$CF_EXPECTED_SHA256" ]]; then
+            echo "Archive SHA-256 mismatch: expected $CF_EXPECTED_SHA256, got $sha"
+            exit 1
+          fi
+
+          mv "$part_path" "$final_path"
+
+          printf '%s\n' \
+            "MATERIALIZATION_VERIFIED=true" \
+            "ARCHIVE_BYTES=$size" \
+            "ARCHIVE_SHA256=$sha" \
+            "ARCHIVE_EXTRACTED=false" \
+            "BENCHMARK_EXECUTED=false" \
+            "CALIBRATION_MUTATED=false" \
+            > "$evidence_path"
+
+          cat "$evidence_path"
