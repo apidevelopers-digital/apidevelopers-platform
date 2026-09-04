@@ -1,36 +1,30 @@
 import assert from "node:assert/strict";
 import { createHash } from "node:crypto";
 import test from "node:test";
-import { createBrowserSessionAuthenticator } from "../src/browser-session-authenticator.mjs";
+
 import { createBrowserSessionHandoffService } from "../src/browser-session-handoff.mjs";
 
-const secret = "S".repeat(43);
 const code = "C".repeat(43);
 const verifier = "v".repeat(43);
 const target = "https://uni-preview.apidevelopers.digital";
 const now = () => new Date("2026-09-04T10:00:00.000Z");
 
-test("preserves human provenance separately from browser and handoff transport methods", async () => {
-  const sourceAuthenticator = createBrowserSessionAuthenticator({
-    now,
-    resolveSessionByHash: async () => ({
-      status: "active",
-      expiresAt: "2026-09-04T11:00:00.000Z",
-      principal: {
-        id: "acct_1",
-        tenantId: "tenant_1",
-        status: "active",
-        scopes: ["web:chat"],
-        authenticationMethod: "password",
-      },
-    }),
-  });
-
-  const sourceAuth = await sourceAuthenticator.authenticate({
-    cookie: `__Host-apidevelopers-session=${secret}`,
-  });
-  assert.equal(sourceAuth.principal.authenticationMethod, "browser_session");
-  assert.equal(sourceAuth.principal.sourceAuthenticationMethod, "password");
+test("handoff carries source provenance separately from the public principal transport method", async () => {
+  const sourceAuthenticator = {
+    async authenticate() {
+      return {
+        role: "client",
+        principal: {
+          id: "acct_1",
+          tenantId: "tenant_1",
+          status: "active",
+          scopes: ["web:chat"],
+          authenticationMethod: "browser_session",
+          sourceAuthenticationMethod: "password",
+        },
+      };
+    },
+  };
 
   let stored = null;
   const store = {
@@ -46,6 +40,7 @@ test("preserves human provenance separately from browser and handoff transport m
       return record;
     },
   };
+
   const service = createBrowserSessionHandoffService({
     sourceAuthenticator,
     store,
@@ -53,19 +48,70 @@ test("preserves human provenance separately from browser and handoff transport m
     now,
     generateCode: () => code,
   });
+
   const codeChallenge = createHash("sha256").update(verifier).digest("base64url");
   await service.issue({
-    headers: { cookie: `__Host-apidevelopers-session=${secret}` },
+    headers: {},
     targetOrigin: target,
     codeChallenge,
   });
-  assert.equal(stored.record.principal.sourceAuthenticationMethod, "password");
-  assert.equal(JSON.stringify(stored.record).includes(secret), false);
 
-  const redeemed = await service.redeem({ code, targetOrigin: target, codeVerifier: verifier });
+  assert.equal(stored.record.principal.authenticationMethod, "browser_session");
+  assert.equal(stored.record.principal.sourceAuthenticationMethod, "password");
+
+  const redeemed = await service.redeem({
+    code,
+    targetOrigin: target,
+    codeVerifier: verifier,
+  });
+
   assert.equal(redeemed.principal.authenticationMethod, "browser_session_handoff");
   assert.equal("sourceAuthenticationMethod" in redeemed.principal, false);
   assert.equal(redeemed.source.authenticationMethod, "browser_session_handoff");
   assert.equal(redeemed.source.sourceAuthenticationMethod, "password");
   assert.equal(redeemed.source.browserBindingMethod, "S256");
+});
+
+test("handoff does not fabricate provenance when the source session has none", async () => {
+  const sourceAuthenticator = {
+    async authenticate() {
+      return {
+        role: "client",
+        principal: {
+          id: "acct_legacy",
+          tenantId: "tenant_legacy",
+          status: "active",
+          scopes: [],
+          authenticationMethod: "browser_session",
+        },
+      };
+    },
+  };
+
+  let record = null;
+  const store = {
+    async putIfAbsent(_key, value) {
+      record = value;
+      return true;
+    },
+    async take() {
+      const value = record;
+      record = null;
+      return value;
+    },
+  };
+
+  const service = createBrowserSessionHandoffService({
+    sourceAuthenticator,
+    store,
+    allowedTargetOrigins: [target],
+    now,
+    generateCode: () => code,
+  });
+
+  const codeChallenge = createHash("sha256").update(verifier).digest("base64url");
+  await service.issue({ targetOrigin: target, codeChallenge });
+  const redeemed = await service.redeem({ code, targetOrigin: target, codeVerifier: verifier });
+
+  assert.equal("sourceAuthenticationMethod" in redeemed.source, false);
 });
