@@ -36,6 +36,8 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
+          stage="$RUNNER_TEMP/controlface-benchmark-stage"
+          echo "preflight_started" > "$stage"
           auth="packages/trust-face-engine/docs/CONTROLFACE10K_BENCHMARK_AUTHORIZATION_V1.md"
           for line in \
             "benchmarkExecutionApproved: true" \
@@ -55,16 +57,20 @@ jobs:
           sha="$(shasum -a 256 "$archive" | awk '{print $1}')"
           [[ "$bytes" == "$ARCHIVE_BYTES" && "$sha" == "$ARCHIVE_SHA256" ]]
           echo "CONTROLFACE_ARCHIVE=$archive" >> "$GITHUB_ENV"
+          echo "preflight_passed" > "$stage"
 
       - name: Prepare pinned runtime and models
         shell: bash
         run: |
           set -euo pipefail
+          stage="$RUNNER_TEMP/controlface-benchmark-stage"
+          echo "runtime_prepare_started" > "$stage"
           root="$HOME/.cache/apidevelopers-digital/trust-face/controlface10k-benchmark"
           venv="$root/venv"; models="$root/models"; mkdir -p "$models"
           [[ -x "$venv/bin/python" ]] || python3 -m venv "$venv"
           "$venv/bin/python" -m pip install --disable-pip-version-check --only-binary=:all: "opencv-contrib-python-headless==4.13.0.92" >/dev/null
           "$venv/bin/python" -c 'import cv2; assert cv2.__version__=="4.13.0",cv2.__version__'
+          echo "opencv_runtime_ready" > "$stage"
 
           ensure_model() {
             local path="$1" url="$2" bytes="$3" sha="$4"
@@ -83,17 +89,24 @@ jobs:
 
           yunet="$models/face_detection_yunet_2023mar.onnx"
           sface="$models/face_recognition_sface_2021dec.onnx"
-          ensure_model "$yunet" "https://github.com/opencv/opencv_zoo/raw/$ZOO_REV/models/face_detection_yunet/face_detection_yunet_2023mar.onnx" "$YUNET_BYTES" "$YUNET_SHA256"
-          ensure_model "$sface" "https://github.com/opencv/opencv_zoo/raw/$ZOO_REV/models/face_recognition_sface/face_recognition_sface_2021dec.onnx" "$SFACE_BYTES" "$SFACE_SHA256"
+          echo "yunet_prepare_started" > "$stage"
+          ensure_model "$yunet" "https://media.githubusercontent.com/media/opencv/opencv_zoo/$ZOO_REV/models/face_detection_yunet/face_detection_yunet_2023mar.onnx" "$YUNET_BYTES" "$YUNET_SHA256"
+          echo "yunet_ready" > "$stage"
+          echo "sface_prepare_started" > "$stage"
+          ensure_model "$sface" "https://media.githubusercontent.com/media/opencv/opencv_zoo/$ZOO_REV/models/face_recognition_sface/face_recognition_sface_2021dec.onnx" "$SFACE_BYTES" "$SFACE_SHA256"
+          echo "sface_ready" > "$stage"
           "$venv/bin/python" -m py_compile packages/trust-face-engine/src/controlface10k-benchmark-v1.py
           echo "CONTROLFACE_VENV=$venv" >> "$GITHUB_ENV"
           echo "CONTROLFACE_YUNET=$yunet" >> "$GITHUB_ENV"
           echo "CONTROLFACE_SFACE=$sface" >> "$GITHUB_ENV"
+          echo "runtime_prepare_passed" > "$stage"
 
       - name: Execute approved benchmark only
         shell: bash
         run: |
           set -euo pipefail
+          stage="$RUNNER_TEMP/controlface-benchmark-stage"
+          echo "benchmark_started" > "$stage"
           out="$RUNNER_TEMP/controlface10k-benchmark-result-v1.json"
           "$CONTROLFACE_VENV/bin/python" packages/trust-face-engine/src/controlface10k-benchmark-v1.py \
             --archive "$CONTROLFACE_ARCHIVE" \
@@ -105,6 +118,7 @@ jobs:
             --sface-sha256 "$SFACE_SHA256" \
             --source-revision "$ZOO_REV"
           echo "CONTROLFACE_RESULT=$out" >> "$GITHUB_ENV"
+          echo "benchmark_completed" > "$stage"
 
       - name: Validate sanitized result and persist aggregate only
         shell: bash
@@ -119,3 +133,10 @@ jobs:
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git commit -m "docs(trust): record ControlFace10K benchmark aggregate"
           git push origin "HEAD:${GITHUB_REF_NAME}"
+
+      - name: Publish fail-closed stage
+        if: failure()
+        shell: bash
+        run: |
+          stage="$(cat "$RUNNER_TEMP/controlface-benchmark-stage" 2>/dev/null || echo unknown)"
+          echo "::error title=ControlFace10K benchmark fail-closed::stage=$stage benchmarkExecuted=$([[ "$stage" == "benchmark_completed" ]] && echo true || echo false)"
