@@ -8,7 +8,8 @@
     ".": "./src/index.mjs",
     "./async-authenticator": "./src/async-authenticator.mjs",
     "./durable-api-key-authenticator": "./src/durable-api-key-authenticator.mjs",
-    "./browser-session-authenticator": "./src/browser-session-authenticator.mjs"
+    "./browser-session-authenticator": "./src/browser-session-authenticator.mjs",
+    "./browser-session-handoff": "./src/browser-session-handoff.mjs"
   },
   "engines": {
     "node": ">=22"

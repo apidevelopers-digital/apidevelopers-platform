@@ -3,7 +3,7 @@
   "format": "managed-node-zip",
   "service": "api-gateway",
   "version": "0.8.0",
-  "sourceRevision": "1b75482b3db00a6e5c359fccec54a20f3b58b18e",
+  "sourceRevision": "5973b3d84d4e9374d9320aa6e1db16bea1b3f18a",
   "runtime": {
     "node": ">=22",
     "entrypoint": "src/hostinger-entry.mjs",
@@ -96,6 +96,21 @@
       "sha256": "d8383ec3734373caecf8dd84e2ec64706f47113dc7b18e9b6976e25c3f9d88d3"
     },
     {
+      "path": "src/account-access-context-http.mjs",
+      "bytes": 2643,
+      "sha256": "9869f7b9de29e2d758df6f37e9cac2b573a0e90af5a1ba3b8b239e09dfdf4f11"
+    },
+    {
+      "path": "src/account-access-context-preview-composition.mjs",
+      "bytes": 1790,
+      "sha256": "adf0f4a31df78facf606b1bc7fd42be6d8ecd6ac5e959a902e9c9e484e92a182"
+    },
+    {
+      "path": "src/account-access-context-preview.mjs",
+      "bytes": 4844,
+      "sha256": "05e36e103e07d581da2d5c78f9972569aabf2c0d0fcdbfd10550973d87f386fd"
+    },
+    {
       "path": "src/audit-query-http.mjs",
       "bytes": 8280,
       "sha256": "5d4a2d88fa2172489b11ae04f9e96195d8735d64f190574376a27bc6c6b634f2"
@@ -109,6 +124,21 @@
       "path": "src/auth-composition.mjs",
       "bytes": 4705,
       "sha256": "0459b772b4866b96a3b1111c7dc3656bd37af7e0cb4c1a4ef24dfe100e9fbee5"
+    },
+    {
+      "path": "src/browser-session-handoff-http.mjs",
+      "bytes": 4723,
+      "sha256": "9d1ece707da25d31a8437527f5fc04b061cf52db564a29840bf460c210ede6eb"
+    },
+    {
+      "path": "src/browser-session-handoff-persistence.mjs",
+      "bytes": 2053,
+      "sha256": "d87214687bb8e268032535fbc0d8b4a8747303e1bd8f2352e0d645e21273cf87"
+    },
+    {
+      "path": "src/browser-session-handoff-preview-composition.mjs",
+      "bytes": 2709,
+      "sha256": "9e1d40a25ee5c49a666f3ded8953c4378bd3330c642851af1e4339c9762d83e7"
     },
     {
       "path": "src/canonical-hash.mjs",
@@ -1046,6 +1076,11 @@
       "sha256": "d771802de46a40a202e9caa636f82d9be2d1bacaae9c33e830f2e351bf00ca2e"
     },
     {
+      "path": "src/web-agent-preview-authentication-evidence.mjs",
+      "bytes": 5242,
+      "sha256": "366e33179d57f2681d6a553eef00a09640192086016de02f09db01ede4f9790d"
+    },
+    {
       "path": "src/web-agent-preview-backend-identity.mjs",
       "bytes": 4380,
       "sha256": "fa2f37847bfa194764e9c13b6d67adfe134a33393cedd9eaae87f1c22aee465b"
@@ -1067,8 +1102,8 @@
     },
     {
       "path": "src/web-agent-preview-session-bootstrap.mjs",
-      "bytes": 3161,
-      "sha256": "0aecd1ade32c3205de90a7a7310c4349311849ddecfb6619d3bb9f6e44d84ede"
+      "bytes": 3715,
+      "sha256": "9488a8407efb78753e0d2ec46ef54b165f8ca6765a90fad83d2e415af288de4b"
     },
     {
       "path": "src/web-agent-product-binding.mjs",
@@ -1127,8 +1162,8 @@
     },
     {
       "path": "vendor/auth-core/package.json",
-      "bytes": 620,
-      "sha256": "733051f2eac2b2861344d87188699e412dda137d954d12210f56abaa70e37386"
+      "bytes": 690,
+      "sha256": "f1ed6d308ee639eb8318c81cd32944db68f73a09c6536c5ea24cba2adcd6122b"
     },
     {
       "path": "vendor/auth-core/src/async-authenticator.mjs",
@@ -1141,9 +1176,19 @@
       "sha256": "1c9670bde054e8b93860def19994f17602799a08b838b9dd32d5a700b81b8507"
     },
     {
+      "path": "vendor/auth-core/src/biometric-browser-session-issuer-v1.mjs",
+      "bytes": 6990,
+      "sha256": "ec5f7a38ab327e6cf8fa7281fc37b1341b1b427344fd661e38a24d8f0e7a33fd"
+    },
+    {
       "path": "vendor/auth-core/src/browser-session-authenticator.mjs",
       "bytes": 3706,
       "sha256": "07df3f1b00dcd7e482808a8a7db82b82feaf296f2a657daaf8df73949719aa3e"
+    },
+    {
+      "path": "vendor/auth-core/src/browser-session-handoff.mjs",
+      "bytes": 9785,
+      "sha256": "4d888647b0735af6b6ef91285d0b3f889d2a659fcad7e2832942b55f5984f830"
     },
     {
       "path": "vendor/auth-core/src/durable-api-key-authenticator.mjs",
@@ -1152,8 +1197,8 @@
     },
     {
       "path": "vendor/auth-core/src/index.mjs",
-      "bytes": 2179,
-      "sha256": "02314fde2473a0d8c12391972bbe430bbe43df001680cb4882b2b9dbcda7a9b8"
+      "bytes": 2507,
+      "sha256": "76fcb3112914942274fa802f3c15813e9d64d6ecfb5db10550e076df2255d902"
     },
     {
       "path": "vendor/contracts/package.json",
@@ -1517,8 +1562,8 @@
     },
     {
       "path": "vendor/saas-runtime/src/index.mjs",
-      "bytes": 246,
-      "sha256": "3dcf2a45fb34b7bf5f8039724c7d2541b506f9525e50969a2cafe647fe4dbf12"
+      "bytes": 303,
+      "sha256": "4ba6b28d5fd590c539fb0ba27b2e86d05baa31001fa4732f0b22db0f730630c4"
     },
     {
       "path": "vendor/saas-runtime/src/membership.mjs",
@@ -1529,6 +1574,11 @@
       "path": "vendor/saas-runtime/src/runtime.mjs",
       "bytes": 7445,
       "sha256": "321c8b296dca702e227dfaa749ee95d8edddf24e12d096c1aaade034ba4eab56"
+    },
+    {
+      "path": "vendor/saas-runtime/src/trust-biometric-login-decision-v1.mjs",
+      "bytes": 12811,
+      "sha256": "d4df38fd735bde7dd71310aa43d6de57d6f6f9648f6b7cc956edb949805a46d4"
     },
     {
       "path": "vendor/saas-runtime/src/zuni-commercial-activation-runtime.mjs",
