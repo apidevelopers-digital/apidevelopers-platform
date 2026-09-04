@@ -5,6 +5,8 @@ import sys
 import cv2 as cv
 import numpy as np
 
+EXPECTED_EMBEDDING_DIM = 128
+
 
 def fail(message, code=2):
     print(json.dumps({"error": message}), file=sys.stderr)
@@ -59,8 +61,8 @@ def main():
         fail("opencv_sface_inference_failed")
 
     vector = np.asarray(features, dtype=np.float32).reshape(-1)
-    if vector.size != 512 or not np.isfinite(vector).all():
-        fail("invalid_sface_embedding")
+    if vector.size != EXPECTED_EMBEDDING_DIM or not np.isfinite(vector).all():
+        fail(f"invalid_sface_embedding_dim:{int(vector.size)}")
 
     norm = float(np.linalg.norm(vector))
     if not np.isfinite(norm) or norm <= np.finfo(np.float32).eps:
