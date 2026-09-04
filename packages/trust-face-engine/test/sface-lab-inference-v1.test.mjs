@@ -11,12 +11,14 @@ import {
   runOpenCvSFaceLabInferenceV1,
 } from "../src/sface-lab-inference-v1.mjs";
 
-test("pins the OpenCV Zoo SFace artifact and remains lab-only", () => {
+test("pins SFace as a 128D lab model while retaining 512D product requirement", () => {
   assert.equal(PROFILE.sourceRevision, "47534e27c9851bb1128ccc0102f1145e27f23f98");
   assert.equal(PROFILE.weightsDigest, "sha256:0ba9fbfa01b5270c96627c4ef784da859931e02f04419c829e83484087c34e79");
   assert.equal(PROFILE.artifactBytes, 38696353);
-  assert.equal(PROFILE.embeddingDim, 512);
-  assert.equal(PROFILE.alignmentLandmarks, 5);
+  assert.equal(PROFILE.embeddingDim, 128);
+  assert.equal(PROFILE.requiredProductEmbeddingDim, 512);
+  assert.equal(PROFILE.productEmbeddingDimCompatible, false);
+  assert.equal(PROFILE.embeddingDimArtifactVerified, false);
   assert.equal(PROFILE.autoDownload, false);
   assert.equal(PROFILE.productionReady, false);
   assert.equal(PROFILE.biometricClaimReady, false);
@@ -67,19 +69,18 @@ test("runtime refuses to spawn when the model digest is wrong", async () => {
   let spawned = false;
   try {
     await writeFile(modelPath, "wrong-model");
-    await writeFile(imagePath, "not-even-decoded-because-integrity-fails-first");
+    await writeFile(imagePath, "not-decoded-because-integrity-fails-first");
 
     await assert.rejects(
-      () =>
-        runOpenCvSFaceLabInferenceV1({
-          modelPath,
-          imagePath,
-          faceBox: [0, 0, 10, 10, 2, 2, 8, 2, 5, 5, 3, 8, 7, 8],
-          runner: () => {
-            spawned = true;
-            return { status: 0, stdout: "{}" };
-          },
-        }),
+      () => runOpenCvSFaceLabInferenceV1({
+        modelPath,
+        imagePath,
+        faceBox: [0, 0, 10, 10, 2, 2, 8, 2, 5, 5, 3, 8, 7, 8],
+        runner: () => {
+          spawned = true;
+          return { status: 0, stdout: "{}" };
+        },
+      }),
       (error) => error.code === "sface_source_integrity_mismatch",
     );
     assert.equal(spawned, false);
