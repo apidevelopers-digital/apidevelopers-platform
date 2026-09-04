@@ -37,6 +37,17 @@ jobs:
         with:
           persist-credentials: false
 
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+
+      - name: Link local auth-core package
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p "$GITHUB_WORKSPACE/apps/api-gateway/node_modules/@apidevelopers"
+          ln -sfn "$GITHUB_WORKSPACE/packages/auth-core" "$GITHUB_WORKSPACE/apps/api-gateway/node_modules/@apidevelopers/auth-core"
+
       - name: Lint provenance surfaces
         shell: bash
         run: |
@@ -47,15 +58,28 @@ jobs:
           node --check packages/auth-core/test/browser-session-handoff-provenance.test.mjs
           node --check apps/api-gateway/test/web-agent-preview-session-provenance.test.mjs
 
-      - name: Exercise source provenance through handoff
+      - name: Exercise auth-core existing handoff contract
         shell: bash
         run: |
           set -euo pipefail
-          node --test \
-            packages/auth-core/test/browser-session-handoff.test.mjs \
-            packages/auth-core/test/browser-session-handoff-provenance.test.mjs \
-            apps/api-gateway/test/web-agent-preview-session-bootstrap.test.mjs \
-            apps/api-gateway/test/web-agent-preview-session-provenance.test.mjs
+          node --test packages/auth-core/test/browser-session-handoff.test.mjs
+      - name: Exercise auth-core provenance contract
+        shell: bash
+        run: |
+          set -euo pipefail
+          node --test packages/auth-core/test/browser-session-handoff-provenance.test.mjs
+
+      - name: Exercise preview session existing contract
+        shell: bash
+        run: |
+          set -euo pipefail
+          node --test apps/api-gateway/test/web-agent-preview-session-bootstrap.test.mjs
+
+      - name: Exercise preview session provenance contract
+        shell: bash
+        run: |
+          set -euo pipefail
+          node --test apps/api-gateway/test/web-agent-preview-session-provenance.test.mjs
 
       - name: Enforce provenance boundary
         shell: bash
