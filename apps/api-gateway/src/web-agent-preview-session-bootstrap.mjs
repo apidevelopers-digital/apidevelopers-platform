@@ -16,6 +16,9 @@ export function createUniCoPreviewBrowserSessionBootstrap({store,verifyCredentia
   const normalizedEmail=req(email,"email").toLowerCase();
   const identity=await verifyCredentials({email:normalizedEmail,password:req(password,"password")});
   if(!identity||typeof identity!=="object")throw new Error("preview_identity_verification_failed");
+  // Preview-only login accepts a password and delegates credential verification to the governed backend.
+  // Persist only the method label as provenance; the password itself is never stored.
+  const sourceAuthenticationMethod = "password";
   const a=await resolveAccess({email:normalizedEmail,identity,productId:uniCoPreviewProductId,requiredScopes:["web:chat"]});
   const principalId=req(a?.principalId,"principalId"),tenantId=req(a?.tenantId,"tenantId"),workspaceId=req(a?.workspaceId,"workspaceId"),accessGrantId=req(a?.accessGrantId,"accessGrantId");
   const now=clock();if(!(now instanceof Date)||Number.isNaN(now.getTime()))throw new TypeError("invalid clock");
@@ -23,7 +26,7 @@ export function createUniCoPreviewBrowserSessionBootstrap({store,verifyCredentia
   const sessionSecret=generateSecret(),sessionHash=hashBrowserSessionSecret(sessionSecret);
   const commercialContextId=createWebAgentShadowCommercialContextId({tenantId,workspaceId,productId:uniCoPreviewProductId});
   await store.transaction(tx=>{
-   tx.put(C.browserSessions,sessionHash,{sessionHash,status:"active",expiresAt,principal:{id:principalId,tenantId,name:req(identity.name??normalizedEmail,"identity.name"),status:"active",scopes:["web:chat"]}},{ifAbsent:true});
+   tx.put(C.browserSessions,sessionHash,{sessionHash,status:"active",expiresAt,principal:{id:principalId,tenantId,name:req(identity.name??normalizedEmail,"identity.name"),status:"active",scopes:["web:chat"],...(sourceAuthenticationMethod?{authenticationMethod:sourceAuthenticationMethod}:{})}},{ifAbsent:true});
    tx.put(C.tenantInternationalProfiles,tenantId,{tenantId,defaultLocale:"pt-BR",fallbackLocale:"en",timeZone:"America/Sao_Paulo",legalRegion:"BR"});
    tx.put(C.commercialContexts,commercialContextId,{commercialContextId,tenantId,workspaceId,productId:uniCoPreviewProductId,currency:"BRL"});
   });
