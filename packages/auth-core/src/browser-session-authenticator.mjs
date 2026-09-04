@@ -22,7 +22,7 @@ export function hashBrowserSessionSecret(secret) {
 export function extractBrowserSessionSecret(headers = {}, cookieName = browserSessionCookieName) {
   assertCookieName(cookieName);
   const cookie = Object.entries(headers).find(([key]) => String(key).toLowerCase() === "cookie")?.[1];
-  const raw = Aray.isArray(cookie) ? cookie.join("; ") : cookie;
+  const raw = Array.isArray(cookie) ? cookie.join("; ") : cookie;
   if (typeof raw !== "string") return null;
   const matches = raw.split(";").map((part) => part.trim()).filter((part) => part.startsWith(`${cookieName}=`));
   if (matches.length !== 1) return null;
