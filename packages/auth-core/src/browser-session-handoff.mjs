@@ -89,6 +89,12 @@ function normalizePrincipal(authentication) {
     )].sort(),
   );
 
+  const sourceAuthenticationMethod =
+    typeof principal.sourceAuthenticationMethod === "string" &&
+    principal.sourceAuthenticationMethod.trim()
+      ? principal.sourceAuthenticationMethod.trim().toLowerCase()
+      : null;
+
   return Object.freeze({
     id,
     tenantId,
@@ -101,6 +107,7 @@ function normalizePrincipal(authentication) {
       typeof principal.authenticationMethod === "string" && principal.authenticationMethod.trim()
         ? principal.authenticationMethod.trim()
         : "browser_session",
+    ...(sourceAuthenticationMethod ? { sourceAuthenticationMethod } : {}),
   });
 }
 
@@ -293,6 +300,9 @@ export function createBrowserSessionHandoffService({
         principal: publicPrincipal(principal),
         source: Object.freeze({
           authenticationMethod: "browser_session_handoff",
+          ...(principal.sourceAuthenticationMethod
+            ? { sourceAuthenticationMethod: principal.sourceAuthenticationMethod }
+            : {}),
           issuedAt: record.issuedAt,
           expiresAt: record.expiresAt,
           targetOrigin: normalizedTargetOrigin,
