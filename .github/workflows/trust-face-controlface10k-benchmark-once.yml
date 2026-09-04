@@ -110,18 +110,7 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          "$CONTROLFACE_VENV/bin/python" - "$CONTROLFACE_RESULT" <<'PY'
-import json,sys
-d=json.load(open(sys.argv[1],encoding="utf-8"))
-assert d["benchmarkOnly"] and d["benchmarkExecuted"] and d["executionCompleted"]
-assert d["subset"]["selectedIdentityCount"]==64 and d["subset"]["selectedImageCount"]==192
-assert d["subset"]["selectedIdentityPathsStored"] is False
-assert all(v is False for v in d["privacy"].values())
-assert d["safety"]=={"bandFrozen":True,"biometricClaimReady":False,"calibrationMutationAllowed":False,"productionAuthorized":False,"productionReady":False}
-f=d["scores"]["frozenBand"]
-for k in ("thresholdApplied","matchedClaimed","identityClaimed","thresholdCalibrated","farFmrValidated","frrFnmrValidated"):
-    assert f[k] is False,(k,f[k])
-PY
+          "$CONTROLFACE_VENV/bin/python" -c 'import json,sys; d=json.load(open(sys.argv[1],encoding="utf-8")); assert d["benchmarkOnly"] and d["benchmarkExecuted"] and d["executionCompleted"]; assert d["subset"]["selectedIdentityCount"]==64 and d["subset"]["selectedImageCount"]==192; assert d["subset"]["selectedIdentityPathsStored"] is False; assert all(v is False for v in d["privacy"].values()); assert d["safety"]=={"bandFrozen":True,"biometricClaimReady":False,"calibrationMutationAllowed":False,"productionAuthorized":False,"productionReady":False}; f=d["scores"]["frozenBand"]; assert all(f[k] is False for k in ("thresholdApplied","matchedClaimed","identityClaimed","thresholdCalibrated","farFmrValidated","frrFnmrValidated"))' "$CONTROLFACE_RESULT"
           target="packages/trust-face-engine/docs/CONTROLFACE10K_BENCHMARK_RESULT_V1.json"
           cp "$CONTROLFACE_RESULT" "$target"
           git add "$target"
