@@ -9,10 +9,11 @@ export const TRUST_FACE_CONTROLFACE10K_CANDIDATE_V1 = Object.freeze({
   sourceReadmeRevision: "a03589de1a9e028b2d16fa1eb0e019a6930e817c",
   sourceArchiveName: "controlface10k.zip",
   sourceArchiveExpectedBytes: 3137641968,
-  sourceArchiveExpectedSha256: "d0ed28b3271a75ac5bb8e6799fdfe78ba3a91fb7eddecf19d960ed18fe00a108",
+  sourceArchiveExpectedSha256:
+    "d0ed28b3271a75ac5bb8e6799fdfe78ba3a91fb7eddecf19d960ed18fe00a108",
   sourceArchivePointerEvidence: "huggingface-xet-pointer-main",
   declaredLicense: "CC-BY-4.0",
-  intenedUse: "face-recognition-evaluation",
+  intendedUse: "face-recognition-evaluation",
   declaredIdentityCount: 3336,
   declaredImageCount: 10008,
   declaredImagesPerIdentity: 3,
@@ -68,7 +69,7 @@ export function assessExternalBenchmarkCandidateV1(candidate = {}) {
   }
 
   if (sourceType !== "synthetic_permissive" && sourceType !== "licensed_benchmark") {
-    throw new Error($`external benchmark source type is not admissible: ${sourceType}`);
+    throw new Error(`external benchmark source type is not admissible: ${sourceType}`);
   }
 
   if (candidate.publicWebScrape !== false) {
@@ -125,7 +126,7 @@ export function assessExternalBenchmarkCandidateV1(candidate = {}) {
     benchmarkExecutionAuthorized,
     benchmarkOnly: true,
     bandFrozen: true,
-    calibrationMutationAllowed: false,
+    calibrationMutationAlowed: false,
     thresholdCalibrated: false,
     farFmrValidated: false,
     frrFnmrValidated: false,
