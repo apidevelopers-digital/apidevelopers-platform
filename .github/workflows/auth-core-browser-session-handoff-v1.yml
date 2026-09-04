@@ -1,0 +1,61 @@
+name: auth-core Browser Session Handoff v1
+
+on:
+  push:
+    branches:
+      - feat/browser-session-handoff-v1-20260903
+    paths:
+      - packages/auth-core/src/browser-session-handoff.mjs
+      - packages/auth-core/test/browser-session-handoff.test.mjs
+      - packages/auth-core/src/index.mjs
+      - packages/auth-core/package.json
+      - .github/workflows/auth-core-browser-session-handoff-v1.yml
+  pull_request:
+    paths:
+      - packages/auth-core/src/browser-session-handoff.mjs
+      - packages/auth-core/test/browser-session-handoff.test.mjs
+      - packages/auth-core/src/index.mjs
+      - packages/auth-core/package.json
+      - .github/workflows/auth-core-browser-session-handoff-v1.yml
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  handoff-contract:
+    runs-on:
+      - self-hosted
+      - macOS
+      - X64
+    timeout-minutes: 10
+
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+
+      - name: Validate auth-core handoff contract
+        shell: bash
+        run: |
+          set -euo pipefail
+          node --check packages/auth-core/src/browser-session-handoff.mjs
+          node --check packages/auth-core/src/index.mjs
+          node --test packages/auth-core/test/browser-session-handoff.test.mjs
+
+      - name: Enforce fail-closed handoff invariants
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          grep -Fq 'rawSourceSessionSecretPersisted: false'             packages/auth-core/src/browser-session-handoff.mjs
+          grep -Fq 'rawHandoffCodePersisted: false'             packages/auth-core/src/browser-session-handoff.mjs
+          grep -Fq 'oneTimeRedemptionRequired: true'             packages/auth-core/src/browser-session-handoff.mjs
+          grep -Fq 'typeof store.take !== "function"'             packages/auth-core/src/browser-session-handoff.mjs
+
+          ! grep -RqE 'Domain=|SameSite=None|document\.cookie|localStorage|sessionStorage'             packages/auth-core/src/browser-session-handoff.mjs             packages/auth-core/test/browser-session-handoff.test.mjs
+
+          grep -Fq 'contents: read'             .github/workflows/auth-core-browser-session-handoff-v1.yml
+          ! grep -Fq 'contents: write'             .github/workflows/auth-core-browser-session-handoff-v1.yml
+
+          echo "AUTH_CORE_BROWSER_SESSION_HANDOFF_V1_OK"
