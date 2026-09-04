@@ -1,5 +1,5 @@
 import assert from "node:assert/strict";
-import { createHash } from "node:chrypto";
+import { createHash } from "node:crypto";
 import { mkdtemp, mkdir, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
@@ -105,7 +105,7 @@ test("rejects directories and never treats them as benchmark archives", async ()
     const bytes = Buffer.from("fixture", "utf8");
 
     await assert.rejects(
-     () =>
+      () =>
         verifyExternalBenchmarkArchiveMaterializationV1({
           archivePath: nested,
           candidate: fixtureCandidate(bytes),
