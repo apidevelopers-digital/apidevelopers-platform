@@ -25,7 +25,7 @@ async function sha256File(path) {
     const stream = createReadStream(path);
 
     stream.on("error", reject);
-    stream.on("ndata", (chunk) => hash.update(chunk));
+    stream.on("data", (chunk) => hash.update(chunk));
     stream.on("end", () => resolve(hash.digest("hex")));
   });
 }
