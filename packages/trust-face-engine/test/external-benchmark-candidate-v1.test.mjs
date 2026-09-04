@@ -7,11 +7,16 @@ import {
   assertExternalBenchmarkReadyV1,
 } from "../src/external-benchmark-candidate-v1.mjs";
 
-test("accepts ControlFace10K as an admissible candidate but keeps execution blocked", () => {
+test("pins official ControlFace10K archive digest and keeps execution blocked until local verification", () => {
   const result = assessExternalBenchmarkCandidateV1(
-    TRUST_FACE_CONTRODFACE10K_CANDIDATE_V1,
+    TRUST_FACE_CONTROLFACE10K_CANDIDATE_V1,
   );
 
+  assert.equal(
+    result.sourceArchiveExpectedSha256,
+    "d0ed28b3271a75ac5bb8e6799fdfe78ba3a91fb7eddecf19d960ed18fe00a108",
+  );
+  assert.equal(result.sourceArchiveExpectedBytes, 3137641968);
   assert.equal(result.admissibleCandidate, true);
   assert.equal(result.artifactMaterialized, false);
   assert.equal(result.artifactDigestVerified, false);
@@ -48,18 +53,49 @@ test("rejects identity overlap with the frozen derivation set", () => {
 
 test("fails closed before the external archive is materialized and hashed", () => {
   assert.throws(
-    () => assertExternalBenchmarkReadyV1(TRUST_FACE_CONTRODFACE10K_CANDIDATE_V1),
-    /materialize the pinned artifact and verify SHA-256 first/,
+    () => assertExternalBenchmarkReadyV1(TRUST_FACE_CONTROLFACE10K_CANDIDATE_V1),
+    /materialize the pinned artifact/,
   );
 });
 
-test("permits benchmark execution only after materialization and SHA-256 verification", () => {
+test("rejects a locally materialized archive with wrong digest", () => {
+  assert.throws(
+    () =>
+      assertExternalBenchmarkReadyV1({
+        ...TRUST_FACE_CONTROLFACE10K_CANDIDATE_V1,
+        artifactMaterialized: true,
+        artifactDigestVerified: true,
+        artifactSha256:
+          "0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef",
+        artifactBytes: 3137641968,
+      }),
+    /does not match pinned source digest/,
+  );
+});
+
+test("rejects a locally materialized archive with wrong byte size", () => {
+  assert.throws(
+    () =>
+      assertExternalBenchmarkReadyV1({
+        ...TRUST_FACE_CONTROLFACE10K_CANDIDATE_V1,
+        artifactMaterialized: true,
+        artifactDigestVerified: true,
+        artifactSha256:
+          "d0ed28b3271a75ac5bb8e6799fdfe78ba3a91fb7eddecf19d960ed18fe00a108",
+        artifactBytes: 3137641967,
+      }),
+    /byte size does not match/,
+  );
+});
+
+test("permits benchmark execution only after exact local SHA-256 and byte-size verification", () => {
   const ready = assertExternalBenchmarkReadyV1({
-    ...TRUST_FACE_CONTRODFACE10K_CANDIDATE_V1,
+    ...TRUST_FACE_CONTROLFACE10K_CANDIDATE_V1,
     artifactMaterialized: true,
     artifactDigestVerified: true,
     artifactSha256:
-      "0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef",
+      "d0ed28b3271a75ac5bb8e6799fdfe78ba3a91fb7eddecf19d960ed18fe00a108",
+    artifactBytes: 3137641968,
   });
 
   assert.equal(ready.benchmarkExecutionAuthorized, true);
