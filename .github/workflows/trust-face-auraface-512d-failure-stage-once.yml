@@ -1,4 +1,4 @@
-name: Trust Face AuraFace 512D Failure Stage Diagnostic
+name: Trust Face AuraFace 512D Failure Diagnostic
 
 on:
   push:
@@ -8,6 +8,7 @@ on:
       - ".github/workflows/trust-face-auraface-512d-failure-stage-once.yml"
 
 permissions:
+  actions: read
   contents: write
 
 jobs:
@@ -21,15 +22,17 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Read failure breadcrumb only
+      - name: Read source run through GitHub Actions API
         shell: bash
-        run: bash packages/trust-face-engine/scripts/diagnose-auraface-first-inference-stage.sh
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+        run: python3 packages/trust-face-engine/scripts/diagnose-auraface-first-inference-run-via-api.py
 
-      - name: Persist sanitized breadcrumb
+      - name: Persist sanitized failure diagnostic
         shell: bash
         run: |
           set -euo pipefail
-          target="packages/trust-face-engine/docs/AURAFACE_512D_FIRST_INFERENCE_FAILURE_STAGE_V1.json"
+          target="packages/trust-face-engine/docs/AURAFACE_512D_FIRST_INFERENCE_FAILURE_DIAGNOSTIC_V1.json"
           test -s "$target"
           git add "$target"
           if git diff --cached --quiet; then
@@ -38,5 +41,5 @@ jobs:
           fi
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git commit -m "docs(trust): record AuraFace first-inference failure stage"
+          git commit -m "docs(trust): record AuraFace first-inference failure diagnostic"
           git push origin "HEAD:${GITHUB_REF_NAME}"
