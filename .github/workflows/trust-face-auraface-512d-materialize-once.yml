@@ -1,0 +1,27 @@
+name: Trust Face AuraFace 512D Materialize Once
+
+on:
+  push:
+    branches:
+      - ada/trust-face-sface-lab-inference-v1
+    paths:
+      - ".github/workflows/trust-face-auraface-512d-materialize-once.yml"
+
+permissions:
+  contents: read
+
+jobs:
+  materialize:
+    if: ${{ contains(github.event.head_commit.message, '[materialize-auraface-512d]') }}
+    runs-on:
+      - self-hosted
+      - macOS
+      - X64
+    timeout-minutes: 60
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Materialize and verify approved AuraFace 512D artifact
+        shell: bash
+        run: bash packages/trust-face-engine/scripts/materialize-auraface-512d-once.sh
