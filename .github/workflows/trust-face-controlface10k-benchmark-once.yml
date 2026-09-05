@@ -21,6 +21,6 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Diagnose exact benchmark runtime without mutation retry 2
+      - name: Diagnose Homebrew OpenCV without mutation
         shell: bash
-        run: bash packages/trust-face-engine/scripts/diagnose-controlface10k-runtime.sh
+        run: bash packages/trust-face-engine/scripts/diagnose-controlface10k-homebrew.sh
