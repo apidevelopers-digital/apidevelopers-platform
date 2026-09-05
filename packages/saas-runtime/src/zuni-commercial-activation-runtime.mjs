@@ -15,7 +15,6 @@ function requireFunction(value, name) {
   }
   return value;
 }
-
 function requireText(value, name) {
   if (typeof value !== "string" || value.trim() === "") {
     throw new TypeError(`${name} must be a non-empty string`);
@@ -28,12 +27,34 @@ function comparableRecord(record) {
   const copy = { ...record };
   return copy;
 }
-
 function assertSameRecord(existing, expected, label) {
   const left = JSON.stringify(comparableRecord(existing));
   const right = JSON.stringify(comparableRecord(expected));
   if (left !== right) {
     throw new Error(`${label} already exists with a conflicting record`);
+  }
+}
+
+function comparableProvisioningIdentity(record) {
+  if (!record) return null;
+  return {
+    provisioningJobId: record.provisioningJobId,
+    subscriptionId: record.subscriptionId,
+    tenantId: record.tenantId,
+    workspaceId: record.workspaceId,
+    productId: record.productId,
+    entitlementIds: Array.isArray(record.entitlementIds)
+      ? [...record.entitlementIds].sort()
+      : record.entitlementIds,
+    idempotencyKey: record.idempotencyKey,
+  };
+}
+
+function assertSameProvisioningIdentity(existing, expected) {
+  const left = JSON.stringify(comparableProvisioningIdentity(existing));
+  const right = JSON.stringify(comparableProvisioningIdentity(expected));
+  if (left !== right) {
+    throw new Error("provisioning job already exists with a conflicting identity");
   }
 }
 
@@ -133,7 +154,10 @@ export async function executeZuniActivationPlan({
       activationPlan,
       stage: "dry-run",
       outcome: "planned",
-      details: { steps: executionPlan.steps, provisioningJobId: executionPlan.provisioningJob.provisioningJobId },
+      details: {
+        steps: executionPlan.steps,
+        provisioningJobId: executionPlan.provisioningJob.provisioningJobId,
+      },
       at: requestedAt,
     }));
     return Object.freeze({
@@ -168,7 +192,9 @@ export async function executeZuniActivationPlan({
     activationPlan,
     stage: "write",
     outcome: "started",
-    details: { provisioningJobId: executionPlan.provisioningJob.provisioningJobId },
+    details: {
+      provisioningJobId: executionPlan.provisioningJob.provisioningJobId,
+    },
     at: requestedAt,
   }));
 
@@ -206,7 +232,7 @@ export async function executeZuniActivationPlan({
   const existingJob = await runtime.getProvisioningJob(executionPlan.provisioningJob.provisioningJobId);
   let provisioning;
   if (existingJob) {
-    assertSameRecord(existingJob, executionPlan.provisioningJob, "provisioning job");
+    assertSameProvisioningIdentity(existingJob, executionPlan.provisioningJob);
     provisioning = Object.freeze({ executed: false, job: existingJob });
   } else {
     provisioning = await runtime.enqueueProvisioning(executionPlan.provisioningJob);
