@@ -1,4 +1,4 @@
-name: Trust Face AuraFace 512D Failure Diagnostic
+name: Trust Face AuraFace 512D Job Diagnostic
 
 on:
   push:
@@ -22,24 +22,24 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Read source run through GitHub Actions API
+      - name: Read source run job metadata only
         shell: bash
         env:
           GITHUB_TOKEN: ${{ github.token }}
-        run: python3 packages/trust-face-engine/scripts/diagnose-auraface-first-inference-run-via-api.py
+        run: python3 packages/trust-face-engine/scripts/diagnose-auraface-first-inference-jobs.py
 
-      - name: Persist sanitized failure diagnostic
+      - name: Persist sanitized job diagnostic
         shell: bash
         run: |
           set -euo pipefail
-          target="packages/trust-face-engine/docs/AURAFACE_512D_FIRST_INFERENCE_FAILURE_DIAGNOSTIC_V1.json"
+          target="packages/trust-face-engine/docs/AURAFACE_512D_FIRST_INFERENCE_JOB_DIAGNOSTIC_V1.json"
           test -s "$target"
           git add "$target"
           if git diff --cached --quiet; then
-            echo "sanitized diagnostic unchanged"
+            echo "sanitized job diagnostic unchanged"
             exit 0
           fi
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git commit -m "docs(trust): record AuraFace first-inference failure diagnostic"
+          git commit -m "docs(trust): record AuraFace first-inference job diagnostic"
           git push origin "HEAD:${GITHUB_REF_NAME}"
