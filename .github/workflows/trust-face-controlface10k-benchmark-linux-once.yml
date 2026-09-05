@@ -1,0 +1,23 @@
+name: Trust Face ControlFace10K Benchmark Linux Disabled
+
+on:
+  push:
+    branches:
+      - ada/trust-face-sface-lab-inference-v1
+    paths:
+      - ".github/workflows/trust-face-controlface10k-benchmark-linux-once.yml"
+
+permissions:
+  contents: read
+
+jobs:
+  noop:
+    runs-on:
+      - self-hosted
+      - macOS
+      - X64
+    timeout-minutes: 5
+    steps:
+      - name: Confirm disabled workflow
+        run: |
+          echo "Disabled: superseded by temporary OpenCV 4.13 source-build benchmark path."

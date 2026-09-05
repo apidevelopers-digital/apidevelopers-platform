@@ -1,0 +1,49 @@
+name: Trust Face AuraFace 512D ONNX Inspect Once
+
+on:
+  push:
+    branches:
+      - ada/trust-face-sface-lab-inference-v1
+    paths:
+      - ".github/workflows/trust-face-auraface-512d-inspect-once.yml"
+
+permissions:
+  contents: write
+
+jobs:
+  inspect:
+    if: ${{ contains(github.event.head_commit.message, '[inspect-auraface-onnx]') }}
+    runs-on:
+      - self-hosted
+      - macOS
+      - X64
+    timeout-minutes: 30
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Validate inspector syntax
+        shell: bash
+        run: bash -n packages/trust-face-engine/scripts/inspect-auraface-512d-onnx-contract-once.sh
+
+      - name: Inspect verified AuraFace ONNX contract without inference
+        shell: bash
+        run: bash packages/trust-face-engine/scripts/inspect-auraface-512d-onnx-contract-once.sh
+
+      - name: Persist sanitized ONNX contract evidence
+        shell: bash
+        run: |
+          set -euo pipefail
+          target="packages/trust-face-engine/docs/AURAFACE_512D_ONNX_CONTRACT_V1.json"
+          test -s "$target"
+          git add "$target"
+
+          if git diff --cached --quiet; then
+            echo "::notice title=AuraFace ONNX contract::aggregate unchanged"
+            exit 0
+          fi
+
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git commit -m "docs(trust): record AuraFace 512D ONNX contract"
+          git push origin "HEAD:${GITHUB_REF_NAME}"

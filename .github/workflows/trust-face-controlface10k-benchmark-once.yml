@@ -1,0 +1,27 @@
+name: Trust Face ControlFace10K Benchmark Once
+
+on:
+  push:
+    branches:
+      - ada/trust-face-sface-lab-inference-v1
+    paths:
+      - ".github/workflows/trust-face-controlface10k-benchmark-once.yml"
+
+permissions:
+  contents: write
+
+jobs:
+  benchmark:
+    if: ${{ contains(github.event.head_commit.message, '[benchmark-controlface10k]') }}
+    runs-on:
+      - self-hosted
+      - macOS
+      - X64
+    timeout-minutes: 180
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Execute approved ControlFace10K benchmark with temporary OpenCV 4.13 build retry 2
+        shell: bash
+        run: bash packages/trust-face-engine/scripts/run-controlface10k-benchmark-source-build-once.sh
