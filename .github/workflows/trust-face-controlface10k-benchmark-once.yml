@@ -21,6 +21,6 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Diagnose Homebrew OpenCV without mutation
+      - name: Preflight OpenCV 4.13 source build without mutation
         shell: bash
-        run: bash packages/trust-face-engine/scripts/diagnose-controlface10k-homebrew.sh
+        run: bash packages/trust-face-engine/scripts/diagnose-controlface10k-source-build.sh
