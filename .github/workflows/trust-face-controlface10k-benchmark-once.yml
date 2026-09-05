@@ -16,11 +16,11 @@ jobs:
       - self-hosted
       - macOS
       - X64
-    timeout-minutes: 120
+    timeout-minutes: 20
     steps:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Execute approved benchmark in pinned Linux runtime
+      - name: Diagnose exact benchmark runtime without mutation
         shell: bash
-        run: bash packages/trust-face-engine/scripts/run-controlface10k-benchmark-linux-once.sh
+        run: bash packages/trust-face-engine/scripts/diagnose-controlface10k-runtime.sh
