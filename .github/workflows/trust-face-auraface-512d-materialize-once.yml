@@ -25,3 +25,5 @@ jobs:
       - name: Materialize and verify approved AuraFace 512D artifact
         shell: bash
         run: bash packages/trust-face-engine/scripts/materialize-auraface-512d-once.sh
+
+# One-shot execution authorized by Igor: materialization + integrity only.
