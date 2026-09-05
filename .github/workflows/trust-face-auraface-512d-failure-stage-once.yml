@@ -1,4 +1,4 @@
-name: Trust Face AuraFace 512D Job Diagnostic
+name: Trust Face AuraFace 512D Public Job Diagnostic
 
 on:
   push:
@@ -8,7 +8,6 @@ on:
       - ".github/workflows/trust-face-auraface-512d-failure-stage-once.yml"
 
 permissions:
-  actions: read
   contents: write
 
 jobs:
@@ -22,13 +21,11 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Read source run job metadata only
+      - name: Read public source-run job metadata only
         shell: bash
-        env:
-          GITHUB_TOKEN: ${{ github.token }}
         run: python3 packages/trust-face-engine/scripts/diagnose-auraface-first-inference-jobs.py
 
-      - name: Persist sanitized job diagnostic
+      - name: Persist sanitized public job diagnostic
         shell: bash
         run: |
           set -euo pipefail
@@ -41,5 +38,5 @@ jobs:
           fi
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git commit -m "docs(trust): record AuraFace first-inference job diagnostic"
+          git commit -m "docs(trust): record AuraFace first-inference public job diagnostic"
           git push origin "HEAD:${GITHUB_REF_NAME}"
