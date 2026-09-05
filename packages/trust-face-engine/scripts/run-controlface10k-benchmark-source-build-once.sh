@@ -88,7 +88,8 @@ git clone --quiet --recursive --branch "$OPENCV_PYTHON_TAG" \
   https://github.com/opencv/opencv-python.git "$src"
 actual_commit="$(git -C "$src" rev-parse HEAD)"
 [[ "$actual_commit" == "$OPENCV_PYTHON_COMMIT" ]]
-git -C "$src" submodule status --recursive | grep -Eq '^[ +][0-9a-f]{40} '
+git -C "$src" submodule status --recursive > "$tmp/submodules.txt"
+grep -Eq '^[ +][0-9a-f]{40} ' "$tmp/submodules.txt"
 
 stage="opencv_source_build_started"; printf '%s\n' "$stage" > "$stage_file"
 export ENABLE_CONTRIB=1
@@ -202,7 +203,7 @@ for key in (
 # Add reproducibility metadata only; no biometric payload is introduced.
 d.setdefault("runtimeBuild", {})
 d["runtimeBuild"].update({
-    "opencvPythonTag": "92",
+    "opencvPythonDag": "92",
     "opencvPythonCommit": source_commit,
     "opencvBuiltFromSource": True,
     "opencvBuildTemporary": True,
