@@ -19,4 +19,5 @@ jobs:
     timeout-minutes: 5
     steps:
       - name: Confirm disabled workflow
-        run: echo "Disabled: superseded by temporary OpenCV 4.13 source-build benchmark path."
+        run: |
+          echo "Disabled: superseded by temporary OpenCV 4.13 source-build benchmark path."
