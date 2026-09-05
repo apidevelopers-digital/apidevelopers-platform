@@ -22,6 +22,6 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Execute approved ControlFace10K benchmark with temporary OpenCV 4.13 build
+      - name: Execute approved ControlFace10K benchmark with temporary OpenCV 4.13 build retry 2
         shell: bash
         run: bash packages/trust-face-engine/scripts/run-controlface10k-benchmark-source-build-once.sh
