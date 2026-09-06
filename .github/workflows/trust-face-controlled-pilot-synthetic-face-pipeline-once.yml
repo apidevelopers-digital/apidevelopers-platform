@@ -34,3 +34,5 @@ jobs:
         run: |
           set -euo pipefail
           bash packages/trust-face-engine/scripts/run-controlled-pilot-synthetic-face-pipeline-once.sh
+
+# retrigger: 2026-09-06 approved synthetic_face_pipeline
