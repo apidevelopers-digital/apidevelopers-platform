@@ -91,3 +91,38 @@ Do not upload the sample to GitHub.
 A future execution that actually reaches AuraFace inference remains a sensitive operation. It must not be automatically retried from this checkpoint.
 
 The Trust Face laboratory development baseline remains **85% ±5 p.p.**.
+
+## Attempt 2 — approved retry on 2026-09-06
+
+A second explicitly approved attempt was triggered from commit `d177ad0e98f7b49026dd0be9a260058086f946f0`.
+
+Source run:
+
+- `34011753244`
+- conclusion: `FAILURE`
+- failed step: `Execute explicitly approved AuraFace 512D first inference`
+- process exit code: `41`
+- `authorizedSampleFound=false`
+- message: no approved local sample was found in privacy-scoped roots
+- observed runner: `apidevelopers-mac-ci-06`
+- runner labels remained `macOS / X64`
+- canonical institutional runner name remains `igor-mac-runner`
+
+This second attempt reached the same sample-discovery gate and stopped before model integrity, runtime preparation and `first_inference_started`.
+
+Therefore for attempt 2:
+
+- `inferenceExecuted=false`
+- AuraFace forward was not executed
+- no 512D embedding was produced
+- no cosine was computed
+- no threshold was applied
+- no match or identity claim was produced
+- no benchmark was executed
+- no production authorization was created
+
+The privacy guarantees remain unchanged: no sample path, filename, content digest, image, crop or embedding is stored in GitHub.
+
+The laboratory baseline remains **85% ±5 p.p.**
+
+A further real attempt requires a fresh explicit approval after an allowlisted local sample is actually available on the runner that receives the job.
