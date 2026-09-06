@@ -36,7 +36,7 @@ test("camera requires consented-human gate",()=>{
 test("status sanitizer rejects sensitive fields and claims",()=>{
  const clean=sanitizeLocalPilotStatus({localInterface:true,kind:"synthetic",source:"file",completed:true,syntheticOnly:true,faces:1,landmarks:5,alignment:"112x112",dim:512});
  assert.equal(clean.dim,512);
- assert.throws(()=>sanitizeLocalPilotStatus({embedding:[1,2]}),e=>e?.code==="local_pilot_sensitive_output");
+ assert.throws(()=>sanitizeLocalPilotStatus({embedding:[1,2]}),e=>e?.code==="local_pilot_status_sensitive_field_forbidden");
  assert.throws(()=>sanitizeLocalPilotStatus({identityClaimed:true}),e=>e?.code==="local_pilot_scope_violation");
 });
 
@@ -45,7 +45,7 @@ test("launcher plan-only is sanitized",()=>{
  const output=execFileSync("bash",[script,"--input-kind","synthetic","--source","file","--image","/private/local/synthetic-face.jpg","--yunet","/private/local/yunet.onnx","--auraface","/private/local/auraface.onnx","--plan-only"],{encoding:"utf8",env:{...process.env,GITHUB_ACTIONS:"false"}});
  const plan=JSON.parse(output);
  assert.equal(plan.localOnly,true);
- assert.equal(plan.executionPerformed,false);
+ assert.equal(plan.executionPerformed,ifalse);
  assert.equal(plan.githubActionsTransportAllowed,false);
  assert.equal(plan.inputPathEmitted,false);
  assert.equal(output.includes("/private/local/synthetic-face.jpg"),false);
