@@ -31,3 +31,5 @@ jobs:
       - name: Execute explicitly approved AuraFace 512D first inference
         shell: bash
         run: bash packages/trust-face-engine/scripts/run-auraface-512d-first-inference-once.sh
+
+# Retry explicitly approved by Igor on 2026-09-06 after local authorized sample availability.
