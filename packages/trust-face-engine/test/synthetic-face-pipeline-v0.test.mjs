@@ -62,7 +62,7 @@ test('scaffold preserves ordered stages and returns sanitized receipt only', asy
   assert.equal(receipt.embeddingReturned, false);
   assert.equal(receipt.embeddingPersisted, false);
   assert.equal(receipt.embeddingLogged, false);
-  assert.equal(receipt.thresholdApplied: false);
+  assert.equal(receipt.thresholdApplied, false);
   assert.equal(receipt.matchedClaimed, false);
   assert.equal(receipt.identityClaimed, false);
   assert.equal(receipt.controlledPilotAuthorized, false);
