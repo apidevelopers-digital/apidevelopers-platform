@@ -45,7 +45,7 @@ test("launcher plan-only is sanitized",()=>{
  const output=execFileSync("bash",[script,"--input-kind","synthetic","--source","file","--image","/private/local/synthetic-face.jpg","--yunet","/private/local/yunet.onnx","--auraface","/private/local/auraface.onnx","--plan-only"],{encoding:"utf8",env:{...process.env,GITHUB_ACTIONS:"false"}});
  const plan=JSON.parse(output);
  assert.equal(plan.localOnly,true);
- assert.equal(plan.executionPerformed,ifalse);
+ assert.equal(plan.executionPerformed,false);
  assert.equal(plan.githubActionsTransportAllowed,false);
  assert.equal(plan.inputPathEmitted,false);
  assert.equal(output.includes("/private/local/synthetic-face.jpg"),false);
