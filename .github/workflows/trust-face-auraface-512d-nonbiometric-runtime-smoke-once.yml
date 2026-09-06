@@ -1,13 +1,18 @@
 name: Trust Face AuraFace 512D Non-Biometric Runtime Smoke Once
 
 on:
-  workflow_dispatch:
+  push:
+    branches:
+      - ada/trust-face-sface-lab-inference-v1
+    paths:
+      - ".github/workflows/trust-face-auraface-512d-nonbiometric-runtime-smoke-once.yml"
 
 permissions:
   contents: write
 
 jobs:
   smoke:
+    if: contains(github.event.head_commit.message, '[auraface-nonbiometric-smoke]')
     runs-on:
       - self-hosted
       - macOS
@@ -64,7 +69,8 @@ jobs:
         run: |
           set -euo pipefail
           out="packages/trust-face-engine/docs/AURAFACE_512D_NONBIOMETRIC_RUNTIME_SMOKE_EVIDENCE_V1.json"
-          "$AURAFACE_SMOKE_PY" packages/trust-face-engine/scripts/run-auraface-512d-nonbiometric-runtime-smoke-v1.py             --model "$AURAFACE_SMOKE_MODEL"             --output "$out"
+          "$AURAFACE_SMOKE_PY"             packages/trust-face-engine/scripts/run-auraface-512d-nonbiometric-runtime-smoke-v1.py             --model "$AURAFACE_SMOKE_MODEL"             --output "$out"
+
           "$AURAFACE_SMOKE_PY" - "$out" <<'PY'
           import json, sys
           with open(sys.argv[1], encoding="utf-8") as fh:
@@ -84,6 +90,8 @@ jobs:
           assert d["productionAuthorized"] is False
           print("sanitized_receipt_valid=true")
           PY
+
+          echo "::notice title=AuraFace 512D non-biometric smoke::runtimeSmokeExecuted=true biometricInputUsed=false humanFaceInputUsed=false outputDimension=512 outputFinite=true outputNonZero=true l2Normalized=true fixturePersisted=false embeddingPersisted=false benchmarkExecuted=false thresholdApplied=false identityClaimed=false productionAuthorized=false"
 
       - name: Persist sanitized evidence only
         shell: bash
