@@ -162,31 +162,39 @@ export function localPilotPlan({
 }
 
 export function sanitizeLocalPilotStatus(status = {}) {
-  const normalized = assertTrustFaceLocalPilotSanitizedStatusV1({
-    localInterface: status.localInterface,
-    inputKind: status.kind,
-    sourceKind: status.source,
-    executionCompleted: status.completed,
-    syntheticInputOnly: status.syntheticOnly,
-    detectedFaceCount: status.faces,
-    landmarkCount: status.landmarks,
-    alignment: status.alignment,
-    aurafaceOutputDim: status.dim,
-    benchmarkExecuted: status.benchmark,
-    thresholdApplied: status.threshold,
-    identityClaimed: status.identityClaimed,
-    productionAuthorized: status.production,
-    ...(Object.hasOwn(status, "path") ? { path: status.path } : {}),
-    ...(Object.hasOwn(status, "inputPath") ? { inputPath: status.inputPath } : {}),
-    ...(Object.hasOwn(status, "fileName") ? { fileName: status.fileName } : {}),
-    ...(Object.hasOwn(status, "rawImage") ? { rawImage: status.rawImage } : {}),
-    ...(Object.hasOwn(status, "crop") ? { crop: status.crop } : {}),
-    ...(Object.hasOwn(status, "embedding") ? { embedding: status.embedding } : {}),
-    ...(Object.hasOwn(status, "vector") ? { vector: status.vector } : {}),
-    ...(Object.hasOwn(status, "cosine") ? { cosine: status.cosine } : {}),
-    ...(Object.hasOwn(status, "identity") ? { identity: status.identity } : {}),
-    ...(Object.hasOwn(status, "person") ? { person: status.person } : {}),
-  });
+  let normalized;
+  try {
+    normalized = assertTrustFaceLocalPilotSanitizedStatusV1({
+      localInterface: status.localInterface,
+      inputKind: status.kind,
+      sourceKind: status.source,
+      executionCompleted: status.completed,
+      syntheticInputOnly: status.syntheticOnly,
+      detectedFaceCount: status.faces,
+      landmarkCount: status.landmarks,
+      alignment: status.alignment,
+      aurafaceOutputDim: status.dim,
+      benchmarkExecuted: status.benchmark,
+      thresholdApplied: status.threshold,
+      identityClaimed: status.identityClaimed,
+      productionAuthorized: status.production,
+      ...(Object.hasOwn(status, "path") ? { path: status.path } : {}),
+      ...(Object.hasOwn(status, "inputPath") ? { inputPath: status.inputPath } : {}),
+      ...(Object.hasOwn(status, "fileName") ? { fileName: status.fileName } : {}),
+      ...(Object.hasOwn(status, "rawImage") ? { rawImage: status.rawImage } : {}),
+      ...(Object.hasOwn(status, "crop") ? { crop: status.crop } : {}),
+      ...(Object.hasOwn(status, "embedding") ? { embedding: status.embedding } : {}),
+      ...(Object.hasOwn(status, "vector") ? { vector: status.vector } : {}),
+      ...(Object.hasOwn(status, "cosine") ? { cosine: status.cosine } : {}),
+      ...(Object.hasOwn(status, "identity") ? { identity: status.identity } : {}),
+      ...(Object.hasOwn(status, "person") ? { person: status.person } : {}),
+    });
+  } catch (error) {
+    if (error?.code === "local_pilot_status_scope_violation") {
+      throw contractError(error.message, "local_pilot_scope_violation");
+    }
+    throw error;
+  }
 
   return Object.freeze({
     version: normalized.version,
