@@ -34,3 +34,4 @@ jobs:
           fi
           echo "::notice title=Trust Face authorized sample presence::authorizedSampleFound=${found} runner=${runner:-unknown} samplePathStored=false fileNameStored=false contentDigestStored=false imageAccessed=false inferenceExecuted=false"
 # probe-retry: 2026-09-06-safe-presence-only
+# probe-retry: 2026-09-06-safe-presence-only-2
