@@ -8,11 +8,11 @@ on:
       - ".github/workflows/trust-face-auraface-512d-nonbiometric-runtime-smoke-once.yml"
 
 permissions:
-  contents: write
+  contents: read
 
 jobs:
-  smoke:
-    if: contains(github.event.head_commit.message, '[auraface-nonbiometric-smoke-source-runtime]')
+  synthetic_face_pipeline:
+    if: contains(github.event.head_commit.message, '[controlled-pilot-synthetic-face-pipeline]')
     runs-on:
       - self-hosted
       - macOS
@@ -22,147 +22,15 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Prepare pinned AuraFace model ephemerally
+      - name: Validate one-shot scripts
         shell: bash
         run: |
           set -euo pipefail
-          expected_bytes=260694151
-          expected_sha=a7933ea5330113b01c9b60351d8f4c33003f145d8470ac5f0e52ee2effe25c60
-          source_rev=af6d057c9b0ec4071d4c49c80e3539258798b609
-          cache="$HOME/.cache/apidevelopers-digital/trust-face/auraface-v1/glintr100.onnx"
-          work="$RUNNER_TEMP/trust-face-auraface-nonbiometric-smoke"
-          mkdir -p "$work"
-          model="$work/glintr100.onnx"
+          bash -n packages/trust-face-engine/scripts/run-controlled-pilot-synthetic-face-pipeline-once.sh
+          python3 -m py_compile packages/trust-face-engine/scripts/run-controlled-pilot-synthetic-face-pipeline-v1.py
 
-          verify() {
-            local path="$1"
-            [[ -f "$path" ]]
-            [[ "$(stat -f%z "$path")" == "$expected_bytes" ]]
-            [[ "$(shasum -a 256 "$path" | awk '{print $1}')" == "$expected_sha" ]]
-          }
-
-          if verify "$cache"; then
-            cp "$cache" "$model"
-            echo "::notice title=AuraFace model source::verifiedRunnerCache=true ephemeralDownload=false"
-          else
-            url="https://huggingface.co/fal/AuraFace-v1/resolve/${source_rev}/glintr100.onnx?download=true"
-            curl --fail --location --retry 5 --retry-all-errors --retry-delay 3 --connect-timeout 30 --output "$model.part" "$url"
-            verify "$model.part"
-            mv "$model.part" "$model"
-            echo "::notice title=AuraFace model source::verifiedRunnerCache=false ephemeralDownload=true"
-          fi
-
-          verify "$model"
-          echo "AURAFACE_SMOKE_MODEL=$model" >> "$GITHUB_ENV"
-
-      - name: Prepare isolated pinned OpenCV 4.13 runtime from proven source-build path
+      - name: Execute approved controlled-pilot synthetic face pipeline
         shell: bash
         run: |
           set -euo pipefail
-          opencv_python_tag=92
-          opencv_python_commit=4ddfc013fd1f13d9b9e379dbebf2cdbeb052e7f8
-          numpy_version=2.2.6
-          py_prefix="$(brew --prefix python@3.11)"
-          py311="$py_prefix/bin/python3.11"
-          test -x "$py311"
-
-          for command_name in git cmake ninja clang; do
-            command -v "$command_name" >/dev/null
-          done
-
-          free_kb="$(df -Pk "$RUNNER_TEMP" | awk 'NR==2{print $4}')"
-          [[ "$free_kb" -ge 31457280 ]]
-
-          tmp="$RUNNER_TEMP/trust-face-auraface-opencv413"
-          rm -rf "$tmp"
-          mkdir -p "$tmp/pip-cache" "$tmp/xdg-cache" "$tmp/wheelhouse"
-          export PIP_CACHE_DIR="$tmp/pip-cache"
-          export XDG_CACHE_HOME="$tmp/xdg-cache"
-
-          venv="$tmp/venv"
-          src="$tmp/opencv-python"
-          wheelhouse="$tmp/wheelhouse"
-
-          "$py311" -m venv "$venv"
-          py="$venv/bin/python"
-          "$py" -m pip install --disable-pip-version-check --upgrade             "pip==25.2" "setuptools==80.9.0" "wheel==0.45.1" >/dev/null
-          "$py" -m pip install --disable-pip-version-check "numpy==$numpy_version" >/dev/null
-
-          git clone --quiet --recursive --branch "$opencv_python_tag"             https://github.com/opencv/opencv-python.git "$src"
-          actual_commit="$(git -C "$src" rev-parse HEAD)"
-          [[ "$actual_commit" == "$opencv_python_commit" ]]
-          git -C "$src" submodule status --recursive > "$tmp/submodules.txt"
-          grep -Eq '^[ +][0-9a-f]{40} ' "$tmp/submodules.txt"
-
-          export ENABLE_CONTRIB=1
-          export ENABLE_HEADLESS=1
-          export CMAKE_GENERATOR=Ninja
-          export CMAKE_ARGS="-DBUILD_TESTS=OFF -DBUILD_PERF_TESTS=OFF -DBUILD_EXAMPLES=OFF -DBUILD_opencv_apps=OFF"
-
-          "$py" -m pip wheel             --disable-pip-version-check             --no-deps             --wheel-dir "$wheelhouse"             "$src"
-
-          wheel="$(find "$wheelhouse" -maxdepth 1 -type f -name 'opencv_contrib_python_headless-4.13.0.92-*.whl' -print -quit)"
-          test -n "$wheel"
-          "$py" -m pip install --disable-pip-version-check --no-deps "$wheel" >/dev/null
-
-          "$py" - <<'PY'
-          import cv2, numpy as np
-          assert cv2.__version__ == "4.13.0", cv2.__version__
-          assert np.__version__ == "2.2.6", np.__version__
-          assert hasattr(cv2.dnn, "readNetFromONNX")
-          print("opencv_runtime_verified=4.13.0")
-          PY
-
-          echo "::notice title=Trust Face runtime::python=3.11 opencv=4.13.0 numpy=2.2.6 sourceBuildTemporary=true globalInstall=false"
-          echo "AURAFACE_SMOKE_PY=$py" >> "$GITHUB_ENV"
-
-      - name: Execute non-biometric 512D runtime smoke
-        shell: bash
-        run: |
-          set -euo pipefail
-          out="packages/trust-face-engine/docs/AURAFACE_512D_NONBIOMETRIC_RUNTIME_SMOKE_EVIDENCE_V1.json"
-          "$AURAFACE_SMOKE_PY"             packages/trust-face-engine/scripts/run-auraface-512d-nonbiometric-runtime-smoke-v1.py             --model "$AURAFACE_SMOKE_MODEL"             --output "$out"
-
-          "$AURAFACE_SMOKE_PY" - "$out" <<'PY'
-          import json, sys
-          with open(sys.argv[1], encoding="utf-8") as fh:
-              d = json.load(fh)
-          assert d["outputShape"] == [1, 512]
-          assert d["outputFinite"] is True
-          assert d["outputNonZero"] is True
-          assert d["downstreamL2NormalizationApplied"] is True
-          assert d["biometricInputUsed"] is False
-          assert d["humanFaceInputUsed"] is False
-          assert d["fixturePersisted"] is False
-          assert d["embeddingPersisted"] is False
-          assert d["embeddingLogged"] is False
-          assert d["benchmarkExecuted"] is False
-          assert d["thresholdApplied"] is False
-          assert d["identityClaimed"] is False
-          assert d["productionAuthorized"] is False
-          print("sanitized_receipt_valid=true")
-          PY
-
-          echo "::notice title=AuraFace 512D non-biometric smoke::runtimeSmokeExecuted=true biometricInputUsed=false humanFaceInputUsed=false outputDimension=512 outputFinite=true outputNonZero=true l2Normalized=true fixturePersisted=false embeddingPersisted=false benchmarkExecuted=false thresholdApplied=false identityClaimed=false productionAuthorized=false"
-
-      - name: Persist sanitized evidence only
-        shell: bash
-        run: |
-          set -euo pipefail
-          target="packages/trust-face-engine/docs/AURAFACE_512D_NONBIOMETRIC_RUNTIME_SMOKE_EVIDENCE_V1.json"
-          git add "$target"
-          if git diff --cached --quiet; then
-            echo "sanitized evidence unchanged"
-            exit 0
-          fi
-          git config user.name "github-actions[bot]"
-          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git commit -m "docs(trust): record AuraFace 512D non-biometric runtime smoke"
-          git push origin "HEAD:${GITHUB_REF_NAME}"
-
-      - name: Cleanup ephemeral model and runtime
-        if: always()
-        shell: bash
-        run: |
-          rm -rf             "$RUNNER_TEMP/trust-face-auraface-nonbiometric-smoke"             "$RUNNER_TEMP/trust-face-auraface-opencv413"
-          echo "::notice title=Trust Face smoke cleanup::ephemeralModelRemoved=true temporaryRuntimeRemoved=true biometricInputUsed=false embeddingPersisted=false"
+          bash packages/trust-face-engine/scripts/run-controlled-pilot-synthetic-face-pipeline-once.sh
