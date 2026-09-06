@@ -12,12 +12,12 @@ permissions:
 
 jobs:
   smoke:
-    if: contains(github.event.head_commit.message, '[auraface-nonbiometric-smoke]')
+    if: contains(github.event.head_commit.message, '[auraface-nonbiometric-smoke-source-runtime]')
     runs-on:
       - self-hosted
       - macOS
       - X64
-    timeout-minutes: 45
+    timeout-minutes: 180
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -55,13 +55,65 @@ jobs:
           verify "$model"
           echo "AURAFACE_SMOKE_MODEL=$model" >> "$GITHUB_ENV"
 
-      - name: Prepare isolated runtime
+      - name: Prepare isolated pinned OpenCV 4.13 runtime from proven source-build path
         shell: bash
         run: |
           set -euo pipefail
-          python3 -m venv "$RUNNER_TEMP/trust-face-auraface-smoke-venv"
-          py="$RUNNER_TEMP/trust-face-auraface-smoke-venv/bin/python"
-          "$py" -m pip install --disable-pip-version-check --only-binary=:all: "numpy==2.2.6" "opencv-python-headless==4.13.0.92" >/dev/null
+          opencv_python_tag=92
+          opencv_python_commit=4ddfc013fd1f13d9b9e379dbebf2cdbeb052e7f8
+          numpy_version=2.2.6
+          py_prefix="$(brew --prefix python@3.11)"
+          py311="$py_prefix/bin/python3.11"
+          test -x "$py311"
+
+          for command_name in git cmake ninja clang; do
+            command -v "$command_name" >/dev/null
+          done
+
+          free_kb="$(df -Pk "$RUNNER_TEMP" | awk 'NR==2{print $4}')"
+          [[ "$free_kb" -ge 31457280 ]]
+
+          tmp="$RUNNER_TEMP/trust-face-auraface-opencv413"
+          rm -rf "$tmp"
+          mkdir -p "$tmp/pip-cache" "$tmp/xdg-cache" "$tmp/wheelhouse"
+          export PIP_CACHE_DIR="$tmp/pip-cache"
+          export XDG_CACHE_HOME="$tmp/xdg-cache"
+
+          venv="$tmp/venv"
+          src="$tmp/opencv-python"
+          wheelhouse="$tmp/wheelhouse"
+
+          "$py311" -m venv "$venv"
+          py="$venv/bin/python"
+          "$py" -m pip install --disable-pip-version-check --upgrade             "pip==25.2" "setuptools==80.9.0" "wheel==0.45.1" >/dev/null
+          "$py" -m pip install --disable-pip-version-check "numpy==$numpy_version" >/dev/null
+
+          git clone --quiet --recursive --branch "$opencv_python_tag"             https://github.com/opencv/opencv-python.git "$src"
+          actual_commit="$(git -C "$src" rev-parse HEAD)"
+          [[ "$actual_commit" == "$opencv_python_commit" ]]
+          git -C "$src" submodule status --recursive > "$tmp/submodules.txt"
+          grep -Eq '^[ +][0-9a-f]{40} ' "$tmp/submodules.txt"
+
+          export ENABLE_CONTRIB=1
+          export ENABLE_HEADLESS=1
+          export CMAKE_GENERATOR=Ninja
+          export CMAKE_ARGS="-DBUILD_TESTS=OFF -DBUILD_PERF_TESTS=OFF -DBUILD_EXAMPLES=OFF -DBUILD_opencv_apps=OFF"
+
+          "$py" -m pip wheel             --disable-pip-version-check             --no-deps             --wheel-dir "$wheelhouse"             "$src"
+
+          wheel="$(find "$wheelhouse" -maxdepth 1 -type f -name 'opencv_contrib_python_headless-4.13.0.92-*.whl' -print -quit)"
+          test -n "$wheel"
+          "$py" -m pip install --disable-pip-version-check --no-deps "$wheel" >/dev/null
+
+          "$py" - <<'PY'
+          import cv2, numpy as np
+          assert cv2.__version__ == "4.13.0", cv2.__version__
+          assert np.__version__ == "2.2.6", np.__version__
+          assert hasattr(cv2.dnn, "readNetFromONNX")
+          print("opencv_runtime_verified=4.13.0")
+          PY
+
+          echo "::notice title=Trust Face runtime::python=3.11 opencv=4.13.0 numpy=2.2.6 sourceBuildTemporary=true globalInstall=false"
           echo "AURAFACE_SMOKE_PY=$py" >> "$GITHUB_ENV"
 
       - name: Execute non-biometric 512D runtime smoke
@@ -112,5 +164,5 @@ jobs:
         if: always()
         shell: bash
         run: |
-          rm -rf "$RUNNER_TEMP/trust-face-auraface-nonbiometric-smoke" "$RUNNER_TEMP/trust-face-auraface-smoke-venv"
-          echo "::notice title=Trust Face smoke cleanup::ephemeralModelRemoved=true biometricInputUsed=false embeddingPersisted=false"
+          rm -rf             "$RUNNER_TEMP/trust-face-auraface-nonbiometric-smoke"             "$RUNNER_TEMP/trust-face-auraface-opencv413"
+          echo "::notice title=Trust Face smoke cleanup::ephemeralModelRemoved=true temporaryRuntimeRemoved=true biometricInputUsed=false embeddingPersisted=false"
