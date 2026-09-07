@@ -6,7 +6,7 @@
 
 ## Score
 
-**35 / 100** confirmed.
+**55 / 100** confirmed.
 
 This score is the controlled-pilot readiness metric and does not replace or represent production readiness.
 
@@ -42,10 +42,31 @@ This score is the controlled-pilot readiness metric and does not replace or repr
   - evidence: `packages/trust-face-engine/docs/CONTROLLED_PILOT_SYNTHETIC_FACE_PIPELINE_EVIDENCE_V1.md`
 
 - [ ] `Local pilot interface` — **20 points**
+
 - [ ] `Consented 1:1 pilot` — **20 points**
-- [ ] `Privacy + fail-closed` — **10 points**
+
+- [x] `Privacy + fail-closed` — **10/10**
+  - local-only contract: `packages/trust-face-engine/src/controlled-pilot-privacy-fail-closed-v1.mjs`
+  - covered by `packages/trust-face-engine/test/controlled-pilot-privacy-fail-closed-v1.test.mjs`
+  - raw biometric network transport forbidden
+  - GitHub Actions biometric transport forbidden
+  - raw image/aligned crop/embedding persistence forbidden
+  - embedding logging and output-vector exposure forbidden
+  - threshold, identity claim and production authorization forbidden
+  - sensitive operational fields fail closed
+  - verified by `Trust Face Engine CI #299` on HEAD `fda50e8695c9b34dd27e7342afc78c622ed744d4`
+
 - [ ] `Pilot liveness/PAD boundary` — **5 points**
-- [ ] `Operator runbook + kill switch` — **10 points**
+
+- [x] `Operator runbook + kill switch` — **10/10**
+  - runbook: `packages/trust-face-engine/docs/CONTROLLED_PILOT_OPERATOR_RUNBOOK_V1.md`
+  - kill switch: `packages/trust-face-engine/scripts/trust-face-pilot-control-v1.sh`
+  - covered by `packages/trust-face-engine/test/trust-face-pilot-control-v1.test.mjs`
+  - default state is `disabled`
+  - `kill` is immediate and idempotent
+  - `enable` fails closed without explicit local confirmation
+  - local enable never authorizes production
+  - verified by `Trust Face Engine CI #299` on HEAD `fda50e8695c9b34dd27e7342afc78c622ed744d4`
 
 ## Safety boundary
 
