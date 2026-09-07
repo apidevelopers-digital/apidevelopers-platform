@@ -1,0 +1,37 @@
+name: Trust Face Authorized Sample Presence Once
+
+on:
+  push:
+    branches:
+      - ada/trust-face-sface-lab-inference-v1
+    paths:
+      - ".github/workflows/trust-face-authorized-sample-presence-once.yml"
+
+permissions:
+  contents: read
+
+jobs:
+  probe:
+    runs-on:
+      - self-hosted
+      - macOS
+      - X64
+    timeout-minutes: 10
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Check authorized sample presence only
+        shell: bash
+        run: |
+          set -euo pipefail
+          result="$(bash packages/trust-face-engine/scripts/check-authorized-sample-presence-v1.sh)"
+          found="$(printf '%s\n' "$result" | awk -F= '/^authorizedSampleFound=/{print $2; exit}')"
+          runner="$(printf '%s\n' "$result" | awk -F= '/^runnerName=/{print $2; exit}')"
+          if [[ "$found" != "true" && "$found" != "false" ]]; then
+            echo "::error title=Trust Face sample presence::invalid probe result"
+            exit 1
+          fi
+          echo "::notice title=Trust Face authorized sample presence::authorizedSampleFound=${found} runner=${runner:-unknown} samplePathStored=false fileNameStored=false contentDigestStored=false imageAccessed=false inferenceExecuted=false"
+# probe-retry: 2026-09-06-safe-presence-only
+# probe-retry: 2026-09-06-safe-presence-only-2

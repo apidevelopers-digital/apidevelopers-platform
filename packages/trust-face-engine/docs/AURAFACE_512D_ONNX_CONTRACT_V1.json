@@ -1,0 +1,76 @@
+{
+  "artifact": {
+    "bytes": 260694151,
+    "integrityVerifiedBeforeInspection": true,
+    "sha256": "a7933ea5330113b01c9b60351d8f4c33003f145d8470ac5f0e52ee2effe25c60",
+    "weightStoredInGitHub": false
+  },
+  "mode": "read-only-graph-inspection",
+  "model": {
+    "domain": null,
+    "entryPathOperatorTypesUntilFirstConv": [
+      "Conv"
+    ],
+    "graphEntryArithmeticOps": [],
+    "graphEntryNormalizationDetected": false,
+    "initializerCount": 462,
+    "inputs": [
+      {
+        "dtype": "float",
+        "name": "data",
+        "shape": [
+          "None",
+          3,
+          112,
+          112
+        ]
+      }
+    ],
+    "irVersion": 6,
+    "modelVersion": 0,
+    "nodeCount": 255,
+    "operatorTypeCounts": {
+      "Add": 49,
+      "BatchNormalization": 51,
+      "Conv": 103,
+      "Flatten": 1,
+      "Gemm": 1,
+      "PRelu": 50
+    },
+    "opsetImports": [
+      {
+        "domain": "ai.onnx",
+        "version": 11
+      }
+    ],
+    "outputs": [
+      {
+        "dtype": "float",
+        "name": "1333",
+        "shape": [
+          1,
+          512
+        ]
+      }
+    ],
+    "producerName": "pytorch",
+    "producerVersion": "2.3.0"
+  },
+  "parser": {
+    "onnxVersion": "1.17.0"
+  },
+  "safety": {
+    "benchmarkExecuted": false,
+    "biometricClaimReady": false,
+    "biometricPayloadStored": false,
+    "identityClaimed": false,
+    "inferenceExecuted": false,
+    "initializerValuesStored": false,
+    "matchedClaimed": false,
+    "productionAuthorized": false,
+    "productionReady": false,
+    "tensorValuesStored": false,
+    "thresholdApplied": false
+  },
+  "version": "trust-face-auraface-512d-onnx-contract/v1"
+}

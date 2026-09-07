@@ -1,0 +1,135 @@
+{
+  "benchmarkExecuted": true,
+  "benchmarkOnly": true,
+  "executionCompleted": true,
+  "github": {
+    "runId": "33935831994",
+    "runnerArch": "X64",
+    "runnerName": "apidevelopers-mac-ci-04",
+    "runnerOs": "macOS",
+    "triggerSha": "a6eefc7cb5e48af0bc35cf409ddca6893aee6b91"
+  },
+  "mode": "lab-only",
+  "models": {
+    "opencvZooRevision": "47534e27c9851bb1128ccc0102f1145e27f23f98",
+    "sFaceEmbeddingDim": 128,
+    "sFaceSha256": "0ba9fbfa01b5270c96627c4ef784da859931e02f04419c829e83484087c34e79",
+    "yuNetSha256": "8f2383e4dd3cfbb4553ea8718107fc0423210dc964f9f4280604804ed2552fa4"
+  },
+  "pipeline": {
+    "admittedImagesPerIdentityHistogram": {
+      "0": 0,
+      "1": 47,
+      "2": 17,
+      "3": 0
+    },
+    "detectionCountHistogram": {
+      "1": 192
+    },
+    "poseGate": {
+      "maxRollProxy": 0.25,
+      "maxYawProxy": 0.3,
+      "minEyeSpanBoxRatio": 0.35
+    },
+    "poseRejectReasonCounts": {
+      "pose_eye_span_too_small": 31,
+      "pose_roll_out_of_lab_range": 1,
+      "pose_yaw_out_of_lab_range": 111
+    },
+    "sFaceInferenceCount": 81,
+    "statusCounts": {
+      "inference_completed": 81,
+      "pose_rejected": 111
+    },
+    "yuNetScoreThreshold": 0.7
+  },
+  "privacy": {
+    "cropsStored": false,
+    "detectorScoresStored": false,
+    "embeddingsStored": false,
+    "individualCosinesStored": false,
+    "personAssociatedScoresStored": false,
+    "rawImagesStored": false
+  },
+  "runtime": {
+    "numpyVersion": "2.2.6",
+    "opencvVersion": "4.13.0"
+  },
+  "runtimeBuild": {
+    "globalInstallPerformed": false,
+    "numpyVersion": "2.2.6",
+    "opencvBuildTemporary": true,
+    "opencvBuiltFromSource": true,
+    "opencvPythonCommit": "4ddfc013fd1f13d9b9e379dbebf2cdbeb052e7f8",
+    "opencvPythonDag": "92"
+  },
+  "safety": {
+    "bandFrozen": true,
+    "biometricClaimReady": false,
+    "calibrationMutationAllowed": false,
+    "productionAuthorized": false,
+    "productionReady": false
+  },
+  "scores": {
+    "differentPerson": {
+      "count": 3223,
+      "max": 0.8212292790412903,
+      "mean": 0.27032184280516375,
+      "min": -0.15546490252017975,
+      "p05": 0.05990861505270006,
+      "p50": 0.24933692812919617,
+      "p95": 0.5733844399452203
+    },
+    "frozenBand": {
+      "differentPersonClassifications": {
+        "high_similarity": 269,
+        "indeterminate_retry": 784,
+        "low_similarity": 2170
+      },
+      "farFmrValidated": false,
+      "frrFnmrValidated": false,
+      "highSimilarityMin": 0.50375,
+      "identityClaimed": false,
+      "lowSimilarityMax": 0.31725,
+      "matchedClaimed": false,
+      "profileSha256": "69870e817be79f29a4cbbdd0a69b63d13eac8d5475026cd7c8e6b211306c7a64",
+      "samePersonClassifications": {
+        "high_similarity": 17,
+        "indeterminate_retry": 0,
+        "low_similarity": 0
+      },
+      "thresholdApplied": false,
+      "thresholdCalibrated": false
+    },
+    "observedSampleGap": -0.25130873918533325,
+    "samePerson": {
+      "count": 17,
+      "max": 0.7328163385391235,
+      "mean": 0.6708919791614308,
+      "min": 0.569920539855957,
+      "p05": 0.5795121192932129,
+      "p50": 0.6806925535202026,
+      "p95": 0.7319124460220336
+    }
+  },
+  "source": {
+    "archiveBytes": 3137641968,
+    "archiveExtracted": false,
+    "archiveSha256": "d0ed28b3271a75ac5bb8e6799fdfe78ba3a91fb7eddecf19d960ed18fe00a108",
+    "dataset": "ControlFace10K",
+    "declaredLicense": "CC-BY-4.0",
+    "sourceType": "synthetic_permissive"
+  },
+  "subset": {
+    "demographicAttributeSelectionUsed": false,
+    "eligibleIdentityDirectoryCount": 3336,
+    "resultAwareSelectionUsed": false,
+    "selectedIdentityCount": 64,
+    "selectedIdentityPathsStored": false,
+    "selectedImageCount": 192,
+    "selectionFingerprintSha256": "395736f00372d0412c0dc921fc51511851d67ee244e31b22647ca3afd1dcbe0b",
+    "selectionMethod": "sha256-normalized-identity-path-ascending",
+    "totalImageMemberCount": 10008
+  },
+  "version": "trust-face-controlface10k-benchmark-result/v1"
+}

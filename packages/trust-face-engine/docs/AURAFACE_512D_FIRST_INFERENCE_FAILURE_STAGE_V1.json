@@ -1,0 +1,21 @@
+{
+  "diagnostic": {
+    "benchmarkExecutedByDiagnostic": false,
+    "biometricPayloadStored": false,
+    "embeddingStored": false,
+    "inferenceExecutedByDiagnostic": false,
+    "modelAccessedByDiagnostic": false,
+    "productionAuthorized": false,
+    "sampleAccessedByDiagnostic": false
+  },
+  "lastRecordedStage": "not_available_on_this_runner",
+  "runner": {
+    "arch": "X64",
+    "name": "pidevelopers-mac-ci-06",
+    "os": "macOS"
+  },
+  "sourceRunConclusion": "failure",
+  "sourceRunId": 33950069289,
+  "stageEvidenceAvailable": false,
+  "version": "trust-face-auraface-512d-first-inference-failure-stage/v1"
+}

@@ -1,0 +1,22 @@
+name: Trust Face Authorized Sample Fleet Presence Disabled
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  disabled:
+    runs-on:
+      - self-hosted
+      - macOS
+      - X64
+    timeout-minutes: 5
+    steps:
+      - name: Fleet probe intentionally disabled
+        shell: bash
+        run: |
+          echo "::notice title=Trust Face fleet probe disabled::The experimental fleet presence probe is intentionally disabled. Use the validated single-runner probe only when provisioning evidence exists."
+          echo "imageAccessed=false"
+          echo "inferenceExecuted=false"

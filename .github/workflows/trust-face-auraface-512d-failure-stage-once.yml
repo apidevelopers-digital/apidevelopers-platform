@@ -1,0 +1,42 @@
+name: Trust Face AuraFace 512D Public Job Diagnostic
+
+on:
+  push:
+    branches:
+      - ada/trust-face-sface-lab-inference-v1
+    paths:
+      - ".github/workflows/trust-face-auraface-512d-failure-stage-once.yml"
+
+permissions:
+  contents: write
+
+jobs:
+  diagnose:
+    runs-on:
+      - self-hosted
+      - macOS
+      - X64
+    timeout-minutes: 10
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Read public source-run job metadata only
+        shell: bash
+        run: python3 packages/trust-face-engine/scripts/diagnose-auraface-first-inference-jobs.py
+
+      - name: Persist sanitized public job diagnostic
+        shell: bash
+        run: |
+          set -euo pipefail
+          target="packages/trust-face-engine/docs/AURAFACE_512D_FIRST_INFERENCE_JOB_DIAGNOSTIC_V1.json"
+          test -s "$target"
+          git add "$target"
+          if git diff --cached --quiet; then
+            echo "sanitized job diagnostic unchanged"
+            exit 0
+          fi
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git commit -m "docs(trust): record AuraFace first-inference public job diagnostic"
+          git push origin "HEAD:${GITHUB_REF_NAME}"
