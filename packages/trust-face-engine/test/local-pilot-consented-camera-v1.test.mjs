@@ -1,4 +1,5 @@
 import assert from "node:assert/strict";
+import { execFileSync } from "node:child_process";
 import fs from "node:fs";
 import path from "node:path";
 import test from "node:test";
@@ -6,8 +7,15 @@ import { fileURLToPath } from "node:url";
 
 const here = path.dirname(fileURLToPath(import.meta.url));
 const scripts = path.resolve(here, "../scripts");
-const executor = fs.readFileSync(path.join(scripts, "run-local-pilot-consented-camera-v1.py"), "utf8");
-const launcher = fs.readFileSync(path.join(scripts, "run-local-pilot-consented-camera-v1.sh"), "utf8");
+const executorPath = path.join(scripts, "run-local-pilot-consented-camera-v1.py");
+const launcherPath = path.join(scripts, "run-local-pilot-consented-camera-v1.sh");
+const executor = fs.readFileSync(executorPath, "utf8");
+const launcher = fs.readFileSync(launcherPath, "utf8");
+
+test("consented camera executor compiles and launcher parses", () => {
+  execFileSync("python3", ["-m", "py_compile", executorPath], { stdio: "pipe" });
+  execFileSync("bash", ["-n", launcherPath], { stdio: "pipe" });
+});
 
 test("consented camera gate is explicit and local-only", () => {
   assert.match(executor, /IGOR_APROVA_CAMERA_LOCAL/);
