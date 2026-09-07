@@ -27,7 +27,7 @@ function App() {
         <div className="hero-copy">
           <span className="eyebrow">● Preview de produto · modo público</span>
           <h1>Inteligência jurídica <em>para trabalhar, não só pesquisar.</em></h1>
-          <p>A Mitra riúne pesquisa jurídica pública, navegação, jurimetria e assistência operacional em uma experiência preparada para evoluir até o escritório completo.</p>
+          <p>A Mitra reúne pesquisa jurídica pública, navegação, jurimetria e assistência operacional em uma experiência preparada para evoluir até o escritório completo.</p>
           <div className="actions"><a className="primary" href="#demo">Explorar a Mitra →</a><a className="secondary" href="#capacidades">Ver como funciona</a></div>
           <small>Pesquisa pública sem acesso a banco privado. Login, cobrança e persistência continuam desativados nesta etapa.</small>
         </div>
