@@ -96,6 +96,7 @@ console.log(JSON.stringify({
 NODE
 
 stage="materialization_verified"
-printf '%s\n' "$stage_file" trap - ERR
+printf '%s\n' "$stage" > "$stage_file"
+trap - ERR
 
 echo "::notice title=AuraFace 512D materialization::artifactMaterialized=true integrityVerified=true bytes=${EXPECTED_BYTES} sha256=${EXPECTED_SHA256} benchmarkExecuted=false productionAuthorized=false"
