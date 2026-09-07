@@ -8,16 +8,14 @@ import { fileURLToPath } from "node:url";
 
 const here = path.dirname(fileURLToPath(import.meta.url));
 const script = path.resolve(here, "../scripts/trust-face-pilot-control-v1.sh");
-
 function run(dir, args, extra = {}) {
   return spawnSync("bash", [script, ...args], {
     encoding: "utf8",
     env: { ...process.env, TRUST_FACE_PILOT_STATE_DIR: dir, ...extra },
   });
 }
-
 test("kill switch defaults disabled and kill is idempotent", () => {
-  const dir = mktempSync(path.join(tmpdir(), "trust-face-pilot-"));
+  const dir = mkdtempSync(path.join(tmpdir(), "trust-face-pilot-"));
   try {
     let r = run(dir, ["status"]);
     assert.equal(r.status, 0);
@@ -28,9 +26,8 @@ test("kill switch defaults disabled and kill is idempotent", () => {
     assert.equal(readFileSync(path.join(dir, "state"), "utf8").trim(), "disabled");
   } finally { rmSync(dir, { recursive: true, force: true }); }
 });
-
 test("enable fails closed without explicit confirmation", () => {
-  const dir = mktempSync(path.join(tmpdir(), "trust-face-pilot-"));
+  const dir = mkdtempSync(path.join(tmpdir(), "trust-face-pilot-"));
   try {
     const r = run(dir, ["enable"]);
     assert.equal(r.status, 42);
@@ -38,9 +35,8 @@ test("enable fails closed without explicit confirmation", () => {
     assert.equal(readFileSync(path.join(dir, "state"), "utf8").trim(), "disabled");
   } finally { rmSync(dir, { recursive: true, force: true }); }
 });
-
 test("explicit local pilot confirmation enables pilot but never production", () => {
-  const dir = mktempSync(path.join(tmpdir(), "trust-face-pilot-"));
+  const dir = mkdtempSync(path.join(tmpdir(), "trust-face-pilot-"));
   try {
     const r = run(dir, ["enable"], { TRUST_FACE_PILOT_ENABLE_CONFIRMATION: "IGOR_APROVA_PILOTO_LOCAL" });
     assert.equal(r.status, 0);
