@@ -1,5 +1,6 @@
 import React from "react";
 import { createRoot } from "react-dom/client";
+import PublicResearchPanel from "./PublicResearchPanel.jsx";
 import "./styles.css";
 
 const capabilities = [
@@ -26,24 +27,12 @@ function App() {
         <div className="hero-copy">
           <span className="eyebrow">● Preview de produto · modo público</span>
           <h1>Inteligência jurídica <em>para trabalhar, não só pesquisar.</em></h1>
-          <p>A Mitra reúne pesquisa jurídica pública, navegação, jurimetria e assistência operacional em uma experiência preparada para evoluir até o escritório completo.</p>
+          <p>A Mitra riúne pesquisa jurídica pública, navegação, jurimetria e assistência operacional em uma experiência preparada para evoluir até o escritório completo.</p>
           <div className="actions"><a className="primary" href="#demo">Explorar a Mitra →</a><a className="secondary" href="#capacidades">Ver como funciona</a></div>
-          <small>Interface demonstrativa. Sem consulta privada, autenticação real, cobrança ou gravação de dados.</small>
+          <small>Pesquisa pública sem acesso a banco privado. Login, cobrança e persistência continuam desativados nesta etapa.</small>
         </div>
 
-        <div className="console" id="demo">
-          <div className="console-head"><span><Mark/> Pesquisa pública</span><b>Mitra · preview</b></div>
-          <div className="search">⌕ <span>Entendimento recente sobre responsabilidade civil médica</span><kbd>↵</kbd></div>
-          <div className="chips"><span>CNJ / DataJud</span><span>Legislação</span><span>Diário Oficial</span><span>Proposições</span></div>
-          <article className="result">
-            <div className="meta"><strong>STJ</strong><span>Jurisprudência · fonte pública</span></div>
-            <h3>Responsabilidade civil exige análise do nexo causal e da prova produzida.</h3>
-            <p>A Mitra organiza o resultado por fonte, data e contexto antes de sugerir próximos passos de pesquisa.</p>
-            <footer><span>Referência normalizada</span><b>Fonte identificada</b></footer>
-          </article>
-          <div className="mini"><span>02</span> Legislação relacionada e dispositivos citados</div>
-          <div className="mini"><span>03</span> Termos correlatos para aprofundar a pesquisa</div>
-        </div>
+        <PublicResearchPanel Mark={Mark} />
       </section>
 
       <section className="sources"><span>Pesquisa pública preparada para</span><b>CNJ / DataJud</b><b>Legislação</b><b>DOU</b><b>Proposições</b></section>
@@ -87,7 +76,7 @@ function App() {
         <div className="login"><span className="brand"><Mark/>Entrar na Mitra</span><label>E-mail profissional<input type="email" placeholder="voce@escritorio.com.br" readOnly /></label><button type="button" className="primary">Continuar →</button><small>Autenticação real não está habilitada nesta versão.</small></div>
       </section>
 
-      <footer className="site-footer"><span className="brand"><Mark/>Mitra</span><span>Inteligência jurídica operacional · API Developers.digital</span><span>Preview visual · sem produção</span></footer>
+      <footer className="site-footer"><span className="brand"><Mark/>Mitra</span><span>Inteligência jurídica operacional · API Developers.digital</span><span>Preview público · sem dados privados</span></footer>
     </main>
   );
 }
