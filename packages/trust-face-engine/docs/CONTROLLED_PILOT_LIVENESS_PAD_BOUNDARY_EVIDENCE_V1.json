@@ -1,0 +1,32 @@
+{
+  "version": "trust-face-controlled-pilot-liveness-pad-boundary-evidence/v1",
+  "observedAt": "2026-09-07T05:28:43Z",
+  "sourceHead": "d5976d65368a144605ef4e3cd3eab61b99a77f7d",
+  "boundaryModule": "packages/trust-face-engine/src/controlled-pilot-liveness-pad-boundary-v1.mjs",
+  "boundaryTest": "packages/trust-face-engine/test/controlled-pilot-liveness-pad-boundary-v1.test.mjs",
+  "boundaryDocument": "packages/trust-face-engine/docs/CONTROLLED_PILOT_LIVENESS_PAD_BOUNDARY_V1.md",
+  "trustFaceEngineCi": {
+    "runId": 34086888333,
+    "runNumber": 316,
+    "conclusion": "success"
+  },
+  "platformBaselineCi": {
+    "runId": 34086888306,
+    "runNumber": 1611,
+    "conclusion": "success"
+  },
+  "boundaryOnly": true,
+  "livenessEvaluated": false,
+  "padEvaluated": false,
+  "activeChallengeExecuted": false,
+  "originAttested": false,
+  "thresholdApplied": false,
+  "liveSpoofDecisionEmitted": false,
+  "highAssurancePadClaimed": false,
+  "identityDecisionEmitted": false,
+  "rawBiometricPayloadAccepted": false,
+  "rawBiometricPayloadPersisted": false,
+  "rawBiometricPayloadLogged": false,
+  "productionAuthorized": false,
+  "productionReady": false
+}
