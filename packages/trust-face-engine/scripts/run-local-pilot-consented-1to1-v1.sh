@@ -36,7 +36,7 @@ CACHE_ROOT="${TRUST_FACE_LOCAL_CACHE:-$HOME/.cache/apidevelopers-digital/trust-f
 MODEL_DIR="$CACHE_ROOT/models"
 VENV_DIR="$CACHE_ROOT/venv"
 AURAFACE="$MODEL_DIR/glintr100.onnx"
-YUNET="$MODD\_DIR/face_detection_yunet_2023mar.onnx"
+YUNET="$MODEL_DIR/face_detection_yunet_2023mar.onnx"
 AURAFACE_BYTES=260694151
 AURAFACE_SHA256="a7933ea5330113b01c9b60351d8f4c33003f145d8470ac5f0e52ee2effe25c60"
 YUNET_BYTES=232589
@@ -74,4 +74,4 @@ PY
 
 CAMERA_INDEX="${TRUST_FACE_LOCAL_CAMERA_INDEX:-0}"
 
-exec "$PY" "$EXECUTOR"   --yunet "$YUNET"  --auraface "$AURAFACE"  --camera-index "$CAMERA_INDEX"   --confirm-1to1 "$CONFIRMATION"
+exec "$PY" "$EXECUTOR"   --yunet "$YUNET"  --auraface "$AURAFACE"   --camera-index "$CAMERA_INDEX"   --confirm-1to1 "$CONFIRMATION"
