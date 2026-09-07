@@ -14,9 +14,11 @@ import numpy as np
 CONFIRMATION = "IGOR_APROVA_1TO1_LOCAL"
 PILOT_STATE_DEFAULT = Path.home() / ".cache" / "apidevelopers-digital" / "trust-face" / "pilot-control" / "state"
 
+
 def fail(code, message, exit_code=2):
     print(json.dumps({"ok": False, "code": code, "message": message}, separators=(",", ":")), file=sys.stderr)
     raise SystemExit(exit_code)
+
 
 def load_camera_runtime():
     path = Path(__file__).with_name("run-local-pilot-consented-camera-v1.py")
@@ -29,6 +31,7 @@ def load_camera_runtime():
     spec.loader.exec_module(module)
     return module
 
+
 def pilot_enabled():
     state_path = Path(os.environ.get("TRUST_FACE_PILOT_STATE_FILE", str(PILOT_STATE_DEFAULT))).expanduser()
     try:
@@ -36,6 +39,7 @@ def pilot_enabled():
     except FileNotFoundError:
         state = "disabled"
     return state == "enabled"
+
 
 def extract_embedding(runtime, frame, yunet_path, auraface_path):
     detector = runtime.create_yunet(yunet_path)
@@ -52,6 +56,7 @@ def extract_embedding(runtime, frame, yunet_path, auraface_path):
         fail("yunet_output_invalid", "invalid YuNet output")
     if faces.shape[0] != 1:
         fail("consented_face_count_not_one", "exactly one consented face is required")
+
     landmarks = np.asarray(faces[0][4:14], dtype=np.float32).reshape(5, 2)
     transform = runtime.similarity_transform(landmarks, runtime.ARCFACE_TEMPLATE_112)
     aligned = cv2.warpAffine(
@@ -64,6 +69,7 @@ def extract_embedding(runtime, frame, yunet_path, auraface_path):
     )
     if aligned is None or aligned.shape != (112, 112, 3):
         fail("alignment_output_invalid", "aligned face must be 112x112x3")
+
     blob = cv2.dnn.blobFromImage(
         aligned,
         scalefactor=1.0 / 127.5,
@@ -75,6 +81,7 @@ def extract_embedding(runtime, frame, yunet_path, auraface_path):
     )
     if blob.shape != (1, 3, 112, 112) or blob.dtype != np.float32 or not np.isfinite(blob).all():
         fail("preprocessing_output_invalid", "preprocessed tensor must be finite float32 [1,3,112,112]")
+
     net = cv2.dnn.readNetFromONNX(auraface_path)
     net.setInput(blob, "data")
     raw = np.asarray(net.forward("1333"), dtype=np.float32)
@@ -82,6 +89,7 @@ def extract_embedding(runtime, frame, yunet_path, auraface_path):
         fail("auraface_output_shape_invalid", "AuraFace output must be [1,512]")
     if not np.isfinite(raw).all():
         fail("auraface_output_non_finite", "AuraFace output contains non-finite values")
+
     vector = raw.reshape(-1)
     norm = float(np.linalg.norm(vector))
     if not math.isfinite(norm) or norm <= np.finfo(np.float32).eps:
@@ -93,6 +101,7 @@ def extract_embedding(runtime, frame, yunet_path, auraface_path):
     del raw, vector, blob, aligned, frame
     return normalized
 
+
 def main():
     parser = argparse.ArgumentParser()
     parser.add_argument("--yunet", required=True)
@@ -100,6 +109,7 @@ def main():
     parser.add_argument("--camera-index", type=int, default=0)
     parser.add_argument("--confirm-1to1", required=True)
     args = parser.parse_args()
+
     if platform.system() != "Darwin":
         fail("local_1to1_macos_required", "controlled consented 1:1 pilot requires macOS")
     if os.environ.get("GITHUB_ACTIONS", "").lower() == "true":
@@ -108,6 +118,7 @@ def main():
         fail("consented_1to1_confirmation_required", "explicit local consented 1:1 confirmation is required", 43)
     if not pilot_enabled():
         fail("pilot_control_disabled", "controlled pilot kill-switch state must be enabled before 1:1 execution", 42)
+
     runtime = load_camera_runtime()
     runtime.verify_model(args.yunet, runtime.YUNET_BYTES, runtime.YUNET_SHA256, "yunet")
     runtime.verify_model(args.auraface, runtime.AURAFACE_BYTES, runtime.AURAFACE_SHA256, "auraface")
@@ -115,6 +126,7 @@ def main():
     print("Enrollment capture: look at the camera.", file=sys.stderr)
     enrollment_frame = runtime.capture_frame(args.camera_index)
     enrollment = extract_embedding(runtime, enrollment_frame, args.yunet, args.auraface)
+
     print("Enrollment captured. Reposition slightly, then press Enter for the probe capture.", file=sys.stderr)
     try:
         input()
@@ -125,6 +137,7 @@ def main():
     print("Probe capture: look at the camera.", file=sys.stderr)
     probe_frame = runtime.capture_frame(args.camera_index)
     probe = extract_embedding(runtime, probe_frame, args.yunet, args.auraface)
+
     score = float(np.dot(enrollment, probe))
     score = max(-1.0, min(1.0, score))
     score_finite = math.isfinite(score)
@@ -135,6 +148,7 @@ def main():
 
     if not score_finite:
         fail("consented_1to1_score_non_finite", "observed cosine score is non-finite")
+
     receipt = {
         "version": "trust-face-consented-1to1-pilot-status/v1",
         "localOnly": True,
@@ -167,6 +181,7 @@ def main():
         "productionReady": False,
     }
     print(json.dumps(receipt, separators=(",", ":"), sort_keys=True))
+
 
 if __name__ == "__main__":
     main()
