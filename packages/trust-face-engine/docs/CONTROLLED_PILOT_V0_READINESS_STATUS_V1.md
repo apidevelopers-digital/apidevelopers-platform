@@ -1,102 +1,83 @@
 # Trust Face — Controlled Pilot v0 Readiness Status V1
 
-**Date:** 2026-09-07
-**Mode:** supervised / consented / non-authoritative pilot
+**Date:** 2026-09-07  
+**Mode:** supervised / consented / non-authoritative pilot  
 **Production equivalent:** no
 
 ## Score
 
-**95 / 100** confirmed.
+**100 / 100 confirmed.**
 
-This score is the controlled-pilot readiness metric and does not replace or represent production readiness.
+This score measures only readiness for the explicitly bounded Controlled Pilot v0. It does **not** represent production readiness, biometric certification, authoritative identity verification, high-assurance PAD, release approval, merge approval or deployment approval.
+
 ## Gates
-- [x] `AuraFace 512D runtime` — **15/15**
-  - run `34043058902`: `SUCCESS`
-  - pinned AuraFace model SHA-256 verified
-  - non-biometric procedural fixture only
-  - input `[1,3,112,112]` float32
-  - output `[1,512]` float32
-  - output finite and non-zero
-  - downstream L2 normalization applied, norm `1.0`
-  - OpenCV `4.13.0`, NumPy `2.2.6`
-  - no human face input
-  - no biometric input
-  - no embedding persisted or logged
-  - no benchmark, threshold, match, identity claim, calibration or production
-  - evidence: `packages/trust-face-engine/docs/AUREFACE_512D_NONBIOMETRIC_RUNTIME_SMOKE_EVIDENCE_V1.json`
-- [x] `Synthetic face pipeline` — **20/20**
-  - run `34052712786`: `SUCCESS`
-  - AI-generated public-domain fixture from Wikimedia Commons
-  - fixture integrity pinned by bytes `464641` and SHA-1 `c958568ff4ade1e3144be3cc1d6bcfcba0f73200`
-  - YuNet detected exactly one face
-  - five landmarks produced
-  - 112×112 alignment executed
-  - AuraFace output dimension `512`
-  - Python `3.11`, OpenCV `4.13.0`, NumPy `2.2.6`
-  - synthetic fixture, aligned crop and embedding not retained
-  - temporary models/runtime removed
-  - no benchmark, threshold, identity claim or production
-  - evidence: `packages/trust-face-engine/docs/CONTROLLED_PILOT_SYNTHETIC_FACE_PIPELINE_EVIDENCE_V1.md`
-- [x] `Local pilot interface` — **20/20**
-  - successful operator-local consented camera execution on macOS
-  - source code HEAD `a9d7bcce7a30ce623c7468d2b092e3ffb7f95c5f`
-  - GitHub Actions not used for biometric execution
-  - exactly one consented face detected
-  - five landmarks produced
-  - 112×112 alignment executed
-  - AuraFace output dimension `512`
-  - output finite and non-zero
-  - downstream L2 normalization applied
-  - raw image, aligned crop and embedding not persisted or logged
-  - output vector not exposed
-  - no benchmark, threshold, cosine, match, identity claim, calibration or production
-  - evidence: `packages/trust-face-engine/docs/CONTROLLED_PILOT_LOCAL_INTERFACE_EVIDENCE_V1.json`
 
-- [x] `Consented 1:1 pilot` — **20/20**
-  - successful operator-local consented 1:1 camera execution on macOS
-  - source code HEAD `49b974406a001a8c6cc12648ad11a6da51d4508a`
+- [x] `auraface_512d_runtime` — **15/15**
+  - non-biometric runtime smoke confirmed
+  - evidence: `AURAFACE_512D_NONBIOMETRIC_RUNTIME_SMOKE_EVIDENCE_V1.json`
+
+- [x] `synthetic_face_pipeline` — **20/20**
+  - synthetic/licensed fixture -> YuNet -> 5 landmarks -> 112x112 alignment -> AuraFace 512D
+  - evidence: `CONTROLLED_PILOT_SYNTHETIC_FACE_PIPELINE_EVIDENCE_V1.md`
+
+- [x] `local_pilot_interface` — **20/20**
+  - successful operator-local consented camera execution on macOS
   - GitHub Actions not used for biometric execution
-  - enrollment capture: exactly one face
-  - probe capture: exactly one face
-  - five landmarks per capture
-  - 112×112 alignment
-  - AuraFace output dimension `512`
+  - no raw image/crop/embedding persisted or logged
+  - no threshold, match, identity or production claim
+  - evidence: `CONTROLLED_PILOT_LOCAL_INTERFACE_EVIDENCE_V1.json`
+
+- [x] `consented_1to1_pilot` — **20/20**
+  - two separate operator-local consented captures
   - observed comparison type: `cosine_similarity`
   - observed score: `0.93897`
-  - score finite
-  - no threshold applied
-  - no match decision emitted
-  - no identity claim
-  - liveness/PAD not evaluated
-  - raw image, aligned crop and embedding not persisted or logged
-  - output vector not exposed
-  - no benchmark, calibration mutation or production authorization
-  - evidence: `packages/trust-face-engine/docs/CONTROLLED_PILOT_CONSENTED_1TO1_EVIDENCE_V1.json`
-- [x] `Privacy + fail-closed` — **10/10**
-  - local-only contract: `packages/trust-face-engine/src/controlled-pilot-privacy-fail-closed-v1.mjs`
-  - covered by `packages/trust-face-engine/test/controlled-pilot-privacy-fail-closed-v1.test.mjs`
-  - raw biometric network transport forbidden
-  - GitHub Actions biometric transport forbidden
-  - raw image/aligned crop/embedding persistence forbidden
-  - embedding logging and output-vector exposure forbidden
-  - threshold, identity claim and production authorization forbidden
-  - sensitive operational fields fail closed
-  - verified by `Trust Face Engine CI #299` on HEAD `fda50e8695c9b34dd27e7342afc78c622ed744d4`
-- [ ] `Pilot liveness/PAD boundary` — **5 points**
-- [x] `Operator runbook + kill switch` — **10/10**
-  - runbook: `packages/trust-face-engine/docs/CONTROLLED_PILOT_OPERATOR_RUNBOOK_V1.md`
-  - kill switch: `packages/trust-face-engine/scripts/trust-face-pilot-control-v1.sh`
-  - covered by `packages/trust-face-engine/test/trust-face-pilot-control-v1.test.mjs`
-  - default state is `disabled`
-  - `kill` is immediate and idempotent
-  - `enable` fails closed without explicit local confirmation
+  - no threshold, match decision or identity claim
+  - evidence: `CONTROLLED_PILOT_CONSENTED_1TO1_EVIDENCE_V1.json`
+
+- [x] `privacy_fail_closed` — **10/10**
+  - raw biometric network/GitHub Actions transport forbidden
+  - raw image/crop/embedding persistence forbidden
+  - embedding logging/output-vector exposure forbidden
+  - threshold/identity/production claims fail closed
+
+- [x] `pilot_liveness_pad_boundary` — **5/5**
+  - boundary-only contract; no real PAD evaluation executed
+  - raw image/video/embedding payloads rejected
+  - PAD/liveness scores, thresholds and live/spoof decisions rejected
+  - `livenessEvaluated=false`
+  - `padEvaluated=false`
+  - `highAssurancePadClaimed=false`
+  - `productionAuthorized=false`
+  - verified by Trust Face Engine CI #316 and Platform Baseline CI #1611
+  - evidence: `CONTROLLED_PILOT_LIVENESS_PAD_BOUNDARY_EVIDENCE_V1.json`
+
+- [x] `operator_runbook_kill_switch` — **10/10**
+  - default state `disabled`
+  - `kill` immediate and idempotent
+  - local enable requires explicit confirmation
   - local enable never authorizes production
-  - verified by `Trust Face Engine CI #299` on HEAD `fda50e8695c9b34dd27e7342afc78c622ed744d4`
+
 ## Safety boundary
 
-Even at `100 / 100` in this metric, the system remains a controlled, supervised pilot only. It does not authorize production, authoritative identity decisions, high-assurance PAD, financial actions, merge, deploy or release.
-## Next gate
+`100/100` here means only that the Controlled Pilot v0 readiness gates are complete under the current, narrow pilot definition.
 
-The next gate is `pilot_liveness_pad_boundary` (**5 points**): define and validate a controlled pilot boundary for liveness/PAD without turning the pilot into a high-assurance anti-spoofing or production authorization claim.
+It does **not** authorize or claim:
 
-The completed 1:1 pilot does not authorize any threshold, identity decision, production authorization or persistent biometric storage. Liveness/PAD remains unevaluated and unclaimed until separately implemented and verified.
+- production use;
+- authoritative biometric identity decisions;
+- financial or legal decisions;
+- calibrated FAR/FMR/FRR/FNMR claims;
+- high-assurance PAD or anti-spoofing;
+- bona fide / presentation-attack classification;
+- origin attestation;
+- active-challenge verification;
+- independent biometric certification;
+- benchmark-qualified liveness;
+- persistent biometric storage;
+- merge, deploy, release or publication.
+
+The PR must remain subject to normal review and explicit approval for any merge or production-facing action.
+
+## Current next step
+
+Controlled Pilot v0 has no remaining readiness gate. The next action is **review/governance of PR #408**, not expansion of scope. Any move toward production, real PAD, thresholding, identity decisions or broader biometric operation is a separate front and requires a new explicit authorization and acceptance criteria.
