@@ -6,7 +6,7 @@
 
 ## Score
 
-**75 / 100** confirmed.
+**95 / 100** confirmed.
 
 This score is the controlled-pilot readiness metric and does not replace or represent production readiness.
 ## Gates
@@ -52,7 +52,26 @@ This score is the controlled-pilot readiness metric and does not replace or repr
   - no benchmark, threshold, cosine, match, identity claim, calibration or production
   - evidence: `packages/trust-face-engine/docs/CONTROLLED_PILOT_LOCAL_INTERFACE_EVIDENCE_V1.json`
 
-- [ ] `Consented 1:1 pilot` — **20 points**
+- [x] `Consented 1:1 pilot` — **20/20**
+  - successful operator-local consented 1:1 camera execution on macOS
+  - source code HEAD `49b974406a001a8c6cc12648ad11a6da51d4508a`
+  - GitHub Actions not used for biometric execution
+  - enrollment capture: exactly one face
+  - probe capture: exactly one face
+  - five landmarks per capture
+  - 112×112 alignment
+  - AuraFace output dimension `512`
+  - observed comparison type: `cosine_similarity`
+  - observed score: `0.93897`
+  - score finite
+  - no threshold applied
+  - no match decision emitted
+  - no identity claim
+  - liveness/PAD not evaluated
+  - raw image, aligned crop and embedding not persisted or logged
+  - output vector not exposed
+  - no benchmark, calibration mutation or production authorization
+  - evidence: `packages/trust-face-engine/docs/CONTROLLED_PILOT_CONSENTED_1TO1_EVIDENCE_V1.json`
 - [x] `Privacy + fail-closed` — **10/10**
   - local-only contract: `packages/trust-face-engine/src/controlled-pilot-privacy-fail-closed-v1.mjs`
   - covered by `packages/trust-face-engine/test/controlled-pilot-privacy-fail-closed-v1.test.mjs`
@@ -78,6 +97,6 @@ This score is the controlled-pilot readiness metric and does not replace or repr
 Even at `100 / 100` in this metric, the system remains a controlled, supervised pilot only. It does not authorize production, authoritative identity decisions, high-assurance PAD, financial actions, merge, deploy or release.
 ## Next gate
 
-The next gate is `consented_1:1_pilot` (**20 points**): perform a separately approved, operator-local, consented 1:1 comparison using the pinned pipeline without routing raw biometric material through GitHub Actions, while keeping comparison evidence sanitized and non-authoritative.
+The next gate is `pilot_liveness_pad_boundary` (**5 points**): define and validate a controlled pilot boundary for liveness/PAD without turning the pilot into a high-assurance anti-spoofing or production authorization claim.
 
-No threshold, identity decision, production authorization or persistent biometric storage is authorized by this readiness update. Any real 1:1 comparison remains a separate sensitive action and requires explicit approval.
+The completed 1:1 pilot does not authorize any threshold, identity decision, production authorization or persistent biometric storage. Liveness/PAD remains unevaluated and unclaimed until separately implemented and verified.
