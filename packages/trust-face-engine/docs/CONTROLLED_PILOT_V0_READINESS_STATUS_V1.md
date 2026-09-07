@@ -1,17 +1,15 @@
 # Trust Face — Controlled Pilot v0 Readiness Status V1
 
-**Date:** 2026-09-06
+**Date:** 2026-09-07
 **Mode:** supervised / consented / non-authoritative pilot
 **Production equivalent:** no
 
 ## Score
 
-**55 / 100** confirmed.
+**75 / 100** confirmed.
 
 This score is the controlled-pilot readiness metric and does not replace or represent production readiness.
-
 ## Gates
-
 - [x] `AuraFace 512D runtime` — **15/15**
   - run `34043058902`: `SUCCESS`
   - pinned AuraFace model SHA-256 verified
@@ -25,8 +23,7 @@ This score is the controlled-pilot readiness metric and does not replace or repr
   - no biometric input
   - no embedding persisted or logged
   - no benchmark, threshold, match, identity claim, calibration or production
-  - evidence: `packages/trust-face-engine/docs/AURAFACE_512D_NONBIOMETRIC_RUNTIME_SMOKE_EVIDENCE_V1.json`
-
+  - evidence: `packages/trust-face-engine/docs/AUREFACE_512D_NONBIOMETRIC_RUNTIME_SMOKE_EVIDENCE_V1.json`
 - [x] `Synthetic face pipeline` — **20/20**
   - run `34052712786`: `SUCCESS`
   - AI-generated public-domain fixture from Wikimedia Commons
@@ -40,11 +37,22 @@ This score is the controlled-pilot readiness metric and does not replace or repr
   - temporary models/runtime removed
   - no benchmark, threshold, identity claim or production
   - evidence: `packages/trust-face-engine/docs/CONTROLLED_PILOT_SYNTHETIC_FACE_PIPELINE_EVIDENCE_V1.md`
-
-- [ ] `Local pilot interface` — **20 points**
+- [x] `Local pilot interface` — **20/20**
+  - successful operator-local consented camera execution on macOS
+  - source code HEAD `a9d7bcce7a30ce623c7468d2b092e3ffb7f95c5f`
+  - GitHub Actions not used for biometric execution
+  - exactly one consented face detected
+  - five landmarks produced
+  - 112×112 alignment executed
+  - AuraFace output dimension `512`
+  - output finite and non-zero
+  - downstream L2 normalization applied
+  - raw image, aligned crop and embedding not persisted or logged
+  - output vector not exposed
+  - no benchmark, threshold, cosine, match, identity claim, calibration or production
+  - evidence: `packages/trust-face-engine/docs/CONTROLLED_PILOT_LOCAL_INTERFACE_EVIDENCE_V1.json`
 
 - [ ] `Consented 1:1 pilot` — **20 points**
-
 - [x] `Privacy + fail-closed` — **10/10**
   - local-only contract: `packages/trust-face-engine/src/controlled-pilot-privacy-fail-closed-v1.mjs`
   - covered by `packages/trust-face-engine/test/controlled-pilot-privacy-fail-closed-v1.test.mjs`
@@ -55,9 +63,7 @@ This score is the controlled-pilot readiness metric and does not replace or repr
   - threshold, identity claim and production authorization forbidden
   - sensitive operational fields fail closed
   - verified by `Trust Face Engine CI #299` on HEAD `fda50e8695c9b34dd27e7342afc78c622ed744d4`
-
 - [ ] `Pilot liveness/PAD boundary` — **5 points**
-
 - [x] `Operator runbook + kill switch` — **10/10**
   - runbook: `packages/trust-face-engine/docs/CONTROLLED_PILOT_OPERATOR_RUNBOOK_V1.md`
   - kill switch: `packages/trust-face-engine/scripts/trust-face-pilot-control-v1.sh`
@@ -67,13 +73,11 @@ This score is the controlled-pilot readiness metric and does not replace or repr
   - `enable` fails closed without explicit local confirmation
   - local enable never authorizes production
   - verified by `Trust Face Engine CI #299` on HEAD `fda50e8695c9b34dd27e7342afc78c622ed744d4`
-
 ## Safety boundary
 
 Even at `100 / 100` in this metric, the system remains a controlled, supervised pilot only. It does not authorize production, authoritative identity decisions, high-assurance PAD, financial actions, merge, deploy or release.
-
 ## Next gate
 
-The next product-facing gate is `local_pilot_interface` (**20 points**): provide an operator-local interface that accepts a consented local image/camera input without routing raw biometric material through GitHub Actions, runs the pinned detection/alignment/AuraFace path locally, and emits only sanitized operational status by default.
+The next gate is `consented_1:1_pilot` (**20 points**): perform a separately approved, operator-local, consented 1:1 comparison using the pinned pipeline without routing raw biometric material through GitHub Actions, while keeping comparison evidence sanitized and non-authoritative.
 
-Real human-image execution remains a separate sensitive action and requires explicit approval.
+No threshold, identity decision, production authorization or persistent biometric storage is authorized by this readiness update. Any real 1:1 comparison remains a separate sensitive action and requires explicit approval.
