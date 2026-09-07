@@ -32,7 +32,7 @@ export const TRUST_FACE_CONTROLLED_PILOT_V0_READINESS_V1 = Object.freeze({
       evidence: "no raw image/crop/embedding logging plus retry/fail-closed evidence",
     }),
     Object.freeze({
-      id: "pilot_liveness_boundary",
+      id: "pilot_liveness_pad_boundary",
       weight: 5,
       evidence: "liveness/PAD boundary is explicit and non-production; pilot cannot claim high-assurance PAD",
     }),
