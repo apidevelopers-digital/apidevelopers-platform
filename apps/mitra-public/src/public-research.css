@@ -1,0 +1,73 @@
+.research-search {
+  padding: 0 10px 0 14px;
+}
+
+.research-search input {
+  flex: 1;
+  min-width: 0;
+  border: 0;
+  outline: 0;
+  background: transparent;
+  color: #dbe5f1;
+  font: inherit;
+}
+
+.research-search input::placeholder {
+  color: #687b91;
+}
+
+.research-search button {
+  width: 38px;
+  height: 36px;
+  border: 0;
+  border-radius: 9px;
+  background: var(--accent);
+  color: #10170a;
+  font-weight: 800;
+  cursor: pointer;
+}
+
+.research-search button:disabled {
+  cursor: progress;
+  opacity: .72;
+}
+
+.research-status,
+.research-boundary,
+.research-empty {
+  margin: 0 2px 10px;
+  padding: 10px 12px;
+  border: 1px solid rgba(213, 232, 180, .12);
+  border-radius: 10px;
+  background: rgba(213, 232, 180, .035);
+  color: #9fb18e;
+  font-size: .69rem;
+  line-height: 1.45;
+}
+
+.research-status.is-error {
+  border-color: rgba(255, 166, 166, .14);
+  background: rgba(255, 120, 120, .04);
+  color: #d5a3a3;
+}
+
+.research-results {
+  display: grid;
+  gap: 8px;
+}
+
+.research-results .research-result + .research-result {
+  margin-top: 0;
+}
+
+.research-result footer a {
+  color: var(--accent);
+  font-weight: 600;
+}
+
+.research-boundary {
+  margin-top: 10px;
+  color: #7d90a6;
+  border-color: rgba(255,255,255,.07);
+  background: rgba(255,255,255,.02);
+}
