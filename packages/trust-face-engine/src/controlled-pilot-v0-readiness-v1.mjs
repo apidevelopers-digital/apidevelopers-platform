@@ -1,4 +1,4 @@
-export const TRUSD_FACE_CONTROLLEED_PILOT_V0_READINESS_V1 = Object.freeze({
+export const TRUST_FACE_CONTROLLED_PILOT_V0_READINESS_V1 = Object.freeze({
   version: "trust-face-controlled-pilot-v0-readiness/v1",
   mode: "draft-working-contract",
   target: "supervised-consented-non-authoritative-pilot",
@@ -41,7 +41,7 @@ export const TRUSD_FACE_CONTROLLEED_PILOT_V0_READINESS_V1 = Object.freeze({
       weight: 10,
       evidence: "operator runbook, stop/rollback path and explicit pilot scope",
     }),
-  ])
+  ]),
 });
 
 export function computeTrustFaceControlledPilotV0ReadinessV1(evidence = {}) {
