@@ -1,4 +1,7 @@
 import { createMitraPublicResearchFacade } from "./mitra-public-research.mjs";
+import {
+  createMitraPublicLexmlFetchAdapter,
+} from "./mitra-public-lexml-upstream.mjs";
 
 function numericEnv(env, name, fallback) {
   const raw = String(env?.[name] ?? "").trim();
@@ -11,6 +14,8 @@ export function createMitraPublicOperationalWrapper({
   app,
   env = process.env,
   facadeFactory = createMitraPublicResearchFacade,
+  lexmlAdapterFactory = createMitraPublicLexmlFetchAdapter,
+  fetchImpl = globalThis.fetch,
 } = {}) {
   if (typeof app?.handleRequest !== "function") {
     throw new TypeError("app.handleRequest must be a function");
@@ -18,11 +23,39 @@ export function createMitraPublicOperationalWrapper({
   if (typeof facadeFactory !== "function") {
     throw new TypeError("facadeFactory must be a function");
   }
+  if (typeof lexmlAdapterFactory !== "function") {
+    throw new TypeError("lexmlAdapterFactory must be a function");
+  }
+
+  const explicitUpstreamBaseUrl = String(
+    env.MITRA_PUBLIC_RESEARCH_UPSTREAM_BASE_URL ?? "",
+  ).trim();
+
+  let provider = "external_https";
+  let upstreamBaseUrl = explicitUpstreamBaseUrl;
+  let upstreamBearer = env.MITRA_PUBLIC_RESEARCH_UPSTREAM_BEARER;
+  let researchFetch = fetchImpl;
+
+  if (!explicitUpstreamBaseUrl) {
+    const lexml = lexmlAdapterFactory({
+      fetchImpl,
+      sruUrl: env.MITRA_PUBLIC_RESEARCH_LEXML_SRU_URL,
+    });
+    if (!lexml || typeof lexml.fetch !== "function" || !lexml.baseUrl) {
+      throw new TypeError("LexML adapter must expose baseUrl and fetch");
+    }
+
+    provider = lexml.provider ?? "lexml_sru";
+    upstreamBaseUrl = lexml.baseUrl;
+    upstreamBearer = "";
+    researchFetch = lexml.fetch;
+  }
 
   const publicResearch = facadeFactory({
-    upstreamBaseUrl: env.MITRA_PUBLIC_RESEARCH_UPSTREAM_BASE_URL,
-    upstreamBearer: env.MITRA_PUBLIC_RESEARCH_UPSTREAM_BEARER,
+    upstreamBaseUrl,
+    upstreamBearer,
     allowedOrigins: env.MITRA_PUBLIC_RESEARCH_ALLOWED_ORIGINS,
+    fetchImpl: researchFetch,
     timeoutMs: numericEnv(env, "MITRA_PUBLIC_RESEARCH_TIMEOUT_MS", 12_000),
     rateLimitMax: numericEnv(env, "MITRA_PUBLIC_RESEARCH_RATE_LIMIT_MAX", 30),
     rateLimitWindowMs: numericEnv(env, "MITRA_PUBLIC_RESEARCH_RATE_LIMIT_WINDOW_MS", 60_000),
@@ -45,6 +78,7 @@ export function createMitraPublicOperationalWrapper({
     descriptor: Object.freeze({
       enabled: true,
       configured: publicResearch.configured === true,
+      provider,
       routes: Object.freeze([
         "GET /v1/mitra/public/health",
         "OPTIONS /v1/mitra/public/search",
@@ -59,6 +93,8 @@ export function attachMitraPublicResearchToGateway({
   gateway,
   env = process.env,
   facadeFactory = createMitraPublicResearchFacade,
+  lexmlAdapterFactory = createMitraPublicLexmlFetchAdapter,
+  fetchImpl = globalThis.fetch,
 } = {}) {
   if (!gateway || typeof gateway !== "object") {
     throw new TypeError("gateway is required");
@@ -68,6 +104,8 @@ export function attachMitraPublicResearchToGateway({
     app: gateway.app,
     env,
     facadeFactory,
+    lexmlAdapterFactory,
+    fetchImpl,
   });
 
   return Object.freeze({
