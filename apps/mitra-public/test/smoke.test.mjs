@@ -2,14 +2,25 @@ import test from "node:test";
 import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 
-test("Mitra public preview preserves public/private boundary", () => {
+test("Mitra Professional preserves the Professional/Office trust boundary", () => {
   const source = readFileSync(new URL("../src/main.jsx", import.meta.url), "utf8");
-  assert.match(source, /Sem banco privado no modo público/);
-  assert.match(source, /Autenticação real não está habilitada/);
+  assert.match(source, /Mitra Profissional/);
+  assert.match(source, /Sem banco privado no modo Profissional/);
+  assert.match(source, /client_id/);
+  assert.match(source, /Credenciais de serviço ficam server-side/);
+  assert.match(source, /Escritório · Bloco B/);
   assert.doesNotMatch(source, /peterle-ops\.apidevelopers\.digital\/v1\//);
 });
 
-test("publishing manifest requires preview and explicit approval", () => {
+test("Professional workspace exposes the five Block A capabilities", () => {
+  const workspace = readFileSync(new URL("../src/ProfessionalWorkspace.jsx", import.meta.url), "utf8");
+  for (const label of ["Pesquisa", "Assistente", "Jurimetria", "Documentos", "Veritas"]) {
+    assert.match(workspace, new RegExp(label));
+  }
+  assert.match(workspace, /credentials only server-side|credenciais somente server-side/i);
+});
+
+test("publishing manifest still requires preview and explicit approval", () => {
   const manifest = JSON.parse(
     readFileSync(new URL("../publishing-manifest.json", import.meta.url), "utf8"),
   );
