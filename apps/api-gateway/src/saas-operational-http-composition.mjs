@@ -25,6 +25,7 @@ function resolveZuniReadinessProbe({ probeZuniProductReadiness, zuniReadinessFet
 export function createSaasOperationalHttpComposition({
   app, authenticator, audit, store, clock, delegatedBindingSigner,
   zuniProductProvisioner, probeZuniProductReadiness, zuniReadinessFetch,
+  zuniCommercialActivationWriteEnabled = false,
 } = {}) {
   if (typeof app?.handleRequest !== "function") throw new TypeError("app.handleRequest must be a function");
   if (typeof authenticator?.authenticate !== "function") throw new TypeError("authenticator.authenticate must be a function");
@@ -45,7 +46,7 @@ export function createSaasOperationalHttpComposition({
       authenticator,
       runtime: saasComposition.saasRuntime,
       audit: typeof audit === "function" ? audit : async () => {},
-      writeEnabled: false,
+      writeEnabled: zuniCommercialActivationWriteEnabled === true,
     });
   const uniCoProvisioningApp = createUniCoProvisioningApp({
     authenticator,
@@ -55,7 +56,7 @@ export function createSaasOperationalHttpComposition({
     ...(clock ? { clock } : {}),
   });
 
-  const concreteProbe = resolveZuniReadinessProbe({ probeZuniProductReadiness, zuniReadinessFetch });
+  const concreteProbe = resolveZuniReadinesProbe({ probeZuniProductReadiness, zuniReadinessFetch });
   const readinessProvisioner =
     zuniProductProvisioner ??
     (typeof concreteProbe === "function"
