@@ -1,7 +1,7 @@
 import { createMitraPublicResearchFacade } from "./mitra-public-research.mjs";
 import {
-  createMitraPublicLexmlFetchAdapter,
-} from "./mitra-public-lexml-upstream.mjs";
+  createMitraPublicCamaraFetchAdapter,
+} from "./mitra-public-camara-upstream.mjs";
 
 function numericEnv(env, name, fallback) {
   const raw = String(env?.[name] ?? "").trim();
@@ -14,7 +14,7 @@ export function createMitraPublicOperationalWrapper({
   app,
   env = process.env,
   facadeFactory = createMitraPublicResearchFacade,
-  lexmlAdapterFactory = createMitraPublicLexmlFetchAdapter,
+  camaraAdapterFactory = createMitraPublicCamaraFetchAdapter,
   fetchImpl = globalThis.fetch,
 } = {}) {
   if (typeof app?.handleRequest !== "function") {
@@ -23,8 +23,8 @@ export function createMitraPublicOperationalWrapper({
   if (typeof facadeFactory !== "function") {
     throw new TypeError("facadeFactory must be a function");
   }
-  if (typeof lexmlAdapterFactory !== "function") {
-    throw new TypeError("lexmlAdapterFactory must be a function");
+  if (typeof camaraAdapterFactory !== "function") {
+    throw new TypeError("camaraAdapterFactory must be a function");
   }
 
   const explicitUpstreamBaseUrl = String(
@@ -37,18 +37,18 @@ export function createMitraPublicOperationalWrapper({
   let researchFetch = fetchImpl;
 
   if (!explicitUpstreamBaseUrl) {
-    const lexml = lexmlAdapterFactory({
+    const camara = camaraAdapterFactory({
       fetchImpl,
-      sruUrl: env.MITRA_PUBLIC_RESEARCH_LEXML_SRU_URL,
+      baseUrl: env.MITRA_PUBLIC_RESEARCH_CAMARA_BASE_URL,
     });
-    if (!lexml || typeof lexml.fetch !== "function" || !lexml.baseUrl) {
-      throw new TypeError("LexML adapter must expose baseUrl and fetch");
+    if (!camara || typeof camara.fetch !== "function" || !camara.baseUrl) {
+      throw new TypeError("Câmara adapter must expose baseUrl and fetch");
     }
 
-    provider = lexml.provider ?? "lexml_sru";
-    upstreamBaseUrl = lexml.baseUrl;
+    provider = camara.provider ?? "camara_dados_abertos";
+    upstreamBaseUrl = camara.baseUrl;
     upstreamBearer = "";
-    researchFetch = lexml.fetch;
+    researchFetch = camara.fetch;
   }
 
   const publicResearch = facadeFactory({
@@ -93,7 +93,7 @@ export function attachMitraPublicResearchToGateway({
   gateway,
   env = process.env,
   facadeFactory = createMitraPublicResearchFacade,
-  lexmlAdapterFactory = createMitraPublicLexmlFetchAdapter,
+  camaraAdapterFactory = createMitraPublicCamaraFetchAdapter,
   fetchImpl = globalThis.fetch,
 } = {}) {
   if (!gateway || typeof gateway !== "object") {
@@ -104,7 +104,7 @@ export function attachMitraPublicResearchToGateway({
     app: gateway.app,
     env,
     facadeFactory,
-    lexmlAdapterFactory,
+    camaraAdapterFactory,
     fetchImpl,
   });
 
