@@ -4,6 +4,7 @@ import { createSaasProvisioningApp } from "./saas-provisioning.mjs";
 import { createZuniPreviewProvisioningApp } from "./saas-zuni-preview-provisioning.mjs";
 import { createZuniCommercialActivationPlanApp } from "./saas-zuni-commercial-activation-plan.mjs";
 import { createZuniCommercialActivationDryRunApp } from "./saas-zuni-commercial-activation-dry-run.mjs";
+import { createZuniCommercialActivationWriteApp } from "./saas-zuni-commercial-activation-write.mjs";
 import { createUniCoProvisioningApp } from "./saas-uni-co-provisioning.mjs";
 import { createZuniProvisioningRuntimeGuard } from "./saas-zuni-provisioning-runtime-guard.mjs";
 import { createZuniOperationalReadinessComposition } from "./saas-zuni-operational-readiness-composition.mjs";
@@ -61,6 +62,11 @@ export function createSaasOperationalHttpComposition({
     saasRuntime: saasComposition.saasRuntime,
     ...(readinessProvisioner ? { zuniProductProvisioner: readinessProvisioner } : {}),
   });
+  const zuniCommercialActivationWriteApp = createZuniCommercialActivationWriteApp({
+    authenticator,
+    saasRuntime: guardedProvisioningRuntime,
+    ...(audit ? { audit } : {}),
+  });
   const provisioningApp = createSaasProvisioningApp({
     authenticator: authenticator,
     saasRuntime: guardedProvisioningRuntime,
@@ -92,6 +98,9 @@ export function createSaasOperationalHttpComposition({
       }
       if (pathname === "/v1/saas/zuni/activation/dry-run") {
         return zuniCommercialActivationDryRunApp.handleRequest(request);
+      }
+      if (pathname === "/v1/saas/zuni/activation/write") {
+        return zuniCommercialActivationWriteApp.handleRequest(request);
       }
       if (pathname === "/v1/saas/zuni-preview/provision") {
         return getZuniPreviewProvisioningApp().handleRequest(request);
