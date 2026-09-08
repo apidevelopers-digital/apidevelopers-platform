@@ -1,0 +1,93 @@
+name: Mitra Public E2E Probe
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  probe:
+    name: Mitra Public Gateway E2E
+    runs-on:
+      - self-hosted
+      - macOS
+      - X64
+    timeout-minutes: 5
+    steps:
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+
+      - name: Probe public Mitra health and real legal search
+        env:
+          MITRA_GATEWAY_BASE_URL: "https://gateway.apidevelopers.digital"
+          MITRA_PREVIEW_ORIGIN: "https://preview-apidevelopers.apidevelopers.digital"
+        run: |
+          node --input-type=module <<'NODE'
+          const base = process.env.MITRA_GATEWAY_BASE_URL;
+          const origin = process.env.MITRA_PREVIEW_ORIGIN;
+
+          const healthResponse = await fetch(`${base}/v1/mitra/public/health`, {
+            headers: { origin },
+            cache: "no-store",
+          });
+          const health = await healthResponse.json().catch(() => ({}));
+
+          if (healthResponse.status !== 200 || health?.ok !== true) {
+            console.log(JSON.stringify({
+              stage: "health",
+              status: healthResponse.status,
+              ok: health?.ok === true,
+              error: health?.error ?? null,
+            }));
+            throw new Error("Mitra public health probe failed");
+          }
+
+          const searchResponse = await fetch(`${base}/v1/mitra/public/search`, {
+            method: "POST",
+            headers: {
+              origin,
+              "content-type": "application/json",
+              accept: "application/json",
+            },
+            body: JSON.stringify({
+              query: "responsabilidade civil médica",
+              limit: 3,
+            }),
+            cache: "no-store",
+          });
+          const search = await searchResponse.json().catch(() => ({}));
+
+          const first = Array.isArray(search?.results) ? search.results[0] : null;
+          console.log(JSON.stringify({
+            stage: "search",
+            healthStatus: healthResponse.status,
+            searchStatus: searchResponse.status,
+            ok: search?.ok === true,
+            source: search?.source ?? null,
+            resultCount: Array.isArray(search?.results) ? search.results.length : 0,
+            first: first
+              ? {
+                  title: first.title ?? null,
+                  source: first.source ?? null,
+                  source_url: first.source_url ?? null,
+                  citation: first.citation ?? null,
+                }
+              : null,
+            error: search?.error ?? null,
+          }));
+
+          if (searchResponse.status !== 200 || search?.ok !== true) {
+            throw new Error(`Mitra public search failed: ${search?.error ?? searchResponse.status}`);
+          }
+          if (search?.source !== "LexML") {
+            throw new Error("Mitra public search returned an unexpected source");
+          }
+          if (!Array.isArray(search?.results) || search.results.length < 1) {
+            throw new Error("Mitra public search returned no results");
+          }
+          if (first?.raw !== undefined || search?.raw !== undefined) {
+            throw new Error("Mitra public search leaked raw upstream payload");
+          }
+          NODE
