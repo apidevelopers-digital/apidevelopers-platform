@@ -3,7 +3,7 @@
   "format": "managed-node-zip",
   "service": "api-gateway",
   "version": "0.8.0",
-  "sourceRevision": "5973b3d84d4e9374d9320aa6e1db16bea1b3f18a",
+  "sourceRevision": "5999848cff9d21fff2fa3508e1e463c1e19f7bbf",
   "runtime": {
     "node": ">=22",
     "entrypoint": "src/hostinger-entry.mjs",
@@ -557,13 +557,28 @@
     },
     {
       "path": "src/hostinger-entry.mjs",
-      "bytes": 1237,
-      "sha256": "32a3d9abe29a3637a72a3739f384d6b6b177b1eb9f39ee31533b5f1b9f9c00c6"
+      "bytes": 1549,
+      "sha256": "2f40f83b4a33676c4161355b068bb908b2cccf249772aa4506c35866ae7bac2c"
     },
     {
       "path": "src/hostinger-runtime-env.mjs",
       "bytes": 385,
       "sha256": "4fe357539d41458b7419ac4ba62fe7b9deb3213ab6f0c5a16d5dafa06248fbbb"
+    },
+    {
+      "path": "src/mitra-public-operational-wrapper.mjs",
+      "bytes": 2363,
+      "sha256": "bdcf153980e0423051a2f8983bed28cc28e466f776847d044ccc994c7af741d8"
+    },
+    {
+      "path": "src/mitra-public-research.mjs",
+      "bytes": 14013,
+      "sha256": "24cd26831a45dc68346486613dc804918a19801660d6d3e42d65e9461ba490c7"
+    },
+    {
+      "path": "src/mitra-public-server.mjs",
+      "bytes": 2344,
+      "sha256": "25dec9a96fcadb0abedb029c4bf51a72c47e07c60e7361bc11eb7618b2b29bbd"
     },
     {
       "path": "src/node-public-landing.mjs",
