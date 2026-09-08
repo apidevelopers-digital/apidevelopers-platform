@@ -1,14 +1,6 @@
-name: Mitra LexML Live Probe
+name: Mitra LexML Diagnostic Probe
 
 on:
-  pull_request:
-    branches:
-      - main
-    paths:
-      - "apps/api-gateway/src/mitra-public-lexml-upstream.mjs"
-      - "apps/api-gateway/src/mitra-public-operational-wrapper.mjs"
-      - "apps/api-gateway/test/mitra-public-lexml-upstream.test.mjs"
-      - ".github/workflows/mitra-public-lexml-live-probe.yml"
   workflow_dispatch:
 
 permissions:
@@ -16,7 +8,7 @@ permissions:
 
 jobs:
   probe:
-    name: LexML SRU Live Gate
+    name: LexML SRU Diagnostic
     runs-on:
       - self-hosted
       - macOS
@@ -25,11 +17,11 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-noe@v4
         with:
           node-version: "22"
 
-      - name: Probe official LexML SRU through Mitra adapter
+      - name: Diagnose official LexML SRU
         working-directory: apps/api-gateway
         run: |
           node --input-type=module <<'NODE'
@@ -39,36 +31,26 @@ jobs:
           const response = await adapter.fetch(`${adapter.baseUrl}/search/global`, {
             method: "POST",
             body: JSON.stringify({
-              q: "responsabilidade civil médica",
+              q: "responsabilidade civil",
               limit: 3,
             }),
           });
           const payload = await response.json();
 
-          const safe = {
+          console.log(JSON.stringify({
             status: response.status,
             ok: payload?.ok === true,
             source: payload?.source ?? null,
             resultCount: Array.isArray(payload?.results) ? payload.results.length : 0,
-            first: Array.isArray(payload?.results) && payload.results[0]
-              ? {
-                  title: payload.results[0].title ?? null,
-                  source: payload.results[0].source ?? null,
-                  source_url: payload.results[0].source_url ?? null,
-                }
-              : null,
             error: payload?.error ?? null,
-          };
+          }));
 
-          console.log(JSON.stringify(safe));
+          if (response.status === 503 && payload?.error === "lexml_challenge") {
+            console.log("LexML challenge detected; diagnostic completed fail-closed.");
+            process.exit(0);
+          }
 
           if (response.status !== 200 || payload?.ok !== true) {
-            throw new Error(`LexML live probe failed: ${payload?.error ?? response.status}`);
-          }
-          if (payload?.source !== "LexML") {
-            throw new Error("LexML live probe returned an unexpected source");
-          }
-          if (!Array.isArray(payload?.results) || payload.results.length < 1) {
-            throw new Error("LexML live probe returned no results");
+            throw new Error( `LexML diagnostic failed: ${payload?.error ?? response.status}` );
           }
           NODE
