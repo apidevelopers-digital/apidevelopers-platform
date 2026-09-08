@@ -13,7 +13,7 @@ function text(value, name) {
   return value.trim();
 }
 
-export function createMitraPlanV1({
+export function createMitraPlanDefinitionV1({
   planId,
   label,
   currency = "BRL",
@@ -41,11 +41,11 @@ export function createMitraPlanV1({
   });
 }
 
-export function createMitraPlanCatalogV1(plans = []) {
+export function createMitraPlanCatalogV1({ plans = [] } = {}) {
   if (!Array.isArray(plans)) throw Object.assign(new TypeError("plans must be array"), { code: "MITRA_PLAN_CATALOG_INVALID" });
   const seen = new Set();
   const normalized = plans.map((plan) => {
-    const entry = createMitraPlanV1(plan);
+    const entry = createMitraPlanDefinitionV1(plan);
     if (seen.has(entry.planId)) throw Object.assign(new Error("duplicate planId"), { code: "MITRA_PLAN_DUPLICATE" });
     seen.add(entry.planId);
     return entry;
