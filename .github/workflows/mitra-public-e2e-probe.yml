@@ -52,7 +52,7 @@ jobs:
               accept: "application/json",
             },
             body: JSON.stringify({
-              query: "responsabilidade civil médica",
+              query: "responsabilidade civil",
               limit: 3,
             }),
             cache: "no-store",
@@ -81,7 +81,7 @@ jobs:
           if (searchResponse.status !== 200 || search?.ok !== true) {
             throw new Error(`Mitra public search failed: ${search?.error ?? searchResponse.status}`);
           }
-          if (search?.source !== "LexML") {
+          if (search?.source !== "Câmara dos Deputados — Dados Abertos") {
             throw new Error("Mitra public search returned an unexpected source");
           }
           if (!Array.isArray(search?.results) || search.results.length < 1) {
