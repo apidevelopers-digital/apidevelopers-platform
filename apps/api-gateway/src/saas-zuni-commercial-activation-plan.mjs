@@ -1,10 +1,8 @@
 import { authorize } from "@apidevelopers/auth-core";
 import {
   createZuniActivationPlan,
-} from "../../../packages/saas-runtime/src/zuni-commercial-activation.mjs";
-import {
   buildZuniActivationExecutionPlan,
-} from "../../../packages/saas-runtime/src/zuni-commercial-activation-runtime.mjs";
+} from "@apidevelopers/saas-runtime";
 
 export const ZUNI_COMMERCIAL_ACTIVATION_PLAN_SCOPE = "saas:zuni:activation:plan";
 const DELEGATED_ACCESS_SCOPE = "saas:access:delegate";
