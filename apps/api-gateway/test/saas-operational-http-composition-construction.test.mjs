@@ -36,3 +36,22 @@ test("operational gateway SaaS composition constructs with clean auth env", asyn
     await rm(dir, {recursive: true, force: true });
   }
 });
+
+test("Zuni commercial activation write capability remains opt-in", async () => {
+  const dir = await mkdtemp(join(tmpdir(), "apd-operational-zuni-write-capability-"));
+  const stateFilePath = join(dir, "state.json");
+  const restoreAuthEnv = withCleanAuthEnv();
+  try {
+    const defaultGateway = createOperationalGatewayWithReadonlyOperator({ stateFilePath });
+    assert.equal(typeof defaultGateway.app.handleRequest, "function");
+
+    const enabledGateway = createOperationalGatewayWithReadonlyOperator({
+      stateFilePath,
+      zuniCommercialActivationWriteEnabled: true,
+    });
+    assert.equal(typeof enabledGateway.app.handleRequest, "function");
+  } finally {
+    restoreAuthEnv();
+    await rm(dir, { recursive: true, force: true });
+  }
+});
