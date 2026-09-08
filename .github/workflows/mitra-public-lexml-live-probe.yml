@@ -1,0 +1,74 @@
+name: Mitra LexML Live Probe
+
+on:
+  pull_request:
+    branches:
+      - main
+    paths:
+      - "apps/api-gateway/src/mitra-public-lexml-upstream.mjs"
+      - "apps/api-gateway/src/mitra-public-operational-wrapper.mjs"
+      - "apps/api-gateway/test/mitra-public-lexml-upstream.test.mjs"
+      - ".github/workflows/mitra-public-lexml-live-probe.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  probe:
+    name: LexML SRU Live Gate
+    runs-on:
+      - self-hosted
+      - macOS
+      - X64
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+
+      - name: Probe official LexML SRU through Mitra adapter
+        working-directory: apps/api-gateway
+        run: |
+          node --input-type=module <<'NODE'
+          import { createMitraPublicLexmlFetchAdapter } from "./src/mitra-public-lexml-upstream.mjs";
+
+          const adapter = createMitraPublicLexmlFetchAdapter();
+          const response = await adapter.fetch(`${adapter.baseUrl}/search/global`, {
+            method: "POST",
+            body: JSON.stringify({
+              q: "responsabilidade civil médica",
+              limit: 3,
+            }),
+          });
+          const payload = await response.json();
+
+          const safe = {
+            status: response.status,
+            ok: payload?.ok === true,
+            source: payload?.source ?? null,
+            resultCount: Array.isArray(payload?.results) ? payload.results.length : 0,
+            first: Array.isArray(payload?.results) && payload.results[0]
+              ? {
+                  title: payload.results[0].title ?? null,
+                  source: payload.results[0].source ?? null,
+                  source_url: payload.results[0].source_url ?? null,
+                }
+              : null,
+            error: payload?.error ?? null,
+          };
+
+          console.log(JSON.stringify(safe));
+
+          if (response.status !== 200 || payload?.ok !== true) {
+            throw new Error(`LexML live probe failed: ${payload?.error ?? response.status}`);
+          }
+          if (payload?.source !== "LexML") {
+            throw new Error("LexML live probe returned an unexpected source");
+          }
+          if (!Array.isArray(payload?.results) || payload.results.length < 1) {
+            throw new Error("LexML live probe returned no results");
+          }
+          NODE
