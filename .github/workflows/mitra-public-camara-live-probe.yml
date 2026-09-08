@@ -1,0 +1,71 @@
+name: Mitra Câmara Live Probe
+
+on:
+  pull_request:
+    branches:
+      - main
+    paths:
+      - "apps/api-gateway/src/mitra-public-camara-upstream.mjs"
+      - "apps/api-gateway/src/mitra-public-operational-wrapper.mjs"
+      - "apps/api-gateway/test/mitra-public-camara-upstream.test.mjs"
+      - ".github/workflows/mitra-public-camara-live-probe.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  probe:
+    name: Câmara Dados Abertos Live Gate
+    runs-on:
+      - self-hosted
+      - macOS
+      - X64
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+
+      - name: Probe official Câmara propositions API through Mitra adapter
+        working-directory: apps/api-gateway
+        run: |
+          node --input-type=module <<'NODE'
+          import { createMitraPublicCamaraFetchAdapter } from "./src/mitra-public-camara-upstream.mjs";
+
+          const adapter = createMitraPublicCamaraFetchAdapter();
+          const response = await adapter.fetch(`${adapter.baseUrl}/search/global`, {
+            method: "POST",
+            body: JSON.stringify({
+              q: "responsabilidade civil",
+              limit: 3,
+            }),
+          });
+          const payload = await response.json();
+          const first = Array.isArray(payload?.results) ? payload.results[0] : null;
+
+          console.log(JSON.stringify({
+            status: response.status,
+            ok: payload?.ok === true,
+            source: payload?.source ?? null,
+            resultCount: Array.isArray(payload?.results) ? payload.results.length : 0,
+            first: first ? {
+              title: first.title ?? null,
+              source: first.source ?? null,
+              source_url: first.source_url ?? null,
+            } : null,
+            error: payload?.error ?? null,
+          }));
+
+          if (response.status !== 200 || payload?.ok !== true) {
+            throw new Error(`Câmara live probe failed: ${payload?.error ?? response.status}`);
+          }
+          if (payload?.source !== "Câmara dos Deputados — Dados Abertos") {
+            throw new Error("Câmara live probe returned an unexpected source");
+          }
+          if (!Array.isArray(payload?.results) || payload.results.length < 1) {
+            throw new Error("Câmara live probe returned no results");
+          }
+          NODE
