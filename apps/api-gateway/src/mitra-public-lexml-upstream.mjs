@@ -46,9 +46,9 @@ export function buildLexmlCql(query) {
 
 function decodeXml(value) {
   return String(value ?? "")
-    .replace(/<!\[CDATA\[([\s\S]*?)\]]>/g, "$1")
+    .replace(/<!\[CDATA\[([\s\S]*?)\]\]>/g, "$1")
     .replace(/&#x([0-9a-f]+);/gi, (_, hex) => String.fromCodePoint(Number.parseInt(hex, 16)))
-    .replace(/&#(\t+);/g, (_, dec) => String.fromCodePoint(Number.parseInt(dec, 10)))
+    .replace(/&#(\d+);/g, (_, dec) => String.fromCodePoint(Number.parseInt(dec, 10)))
     .replace(/&quot;/g, '"')
     .replace(/&apos;/g, "'")
     .replace(/&lt;/g, "<")
@@ -61,9 +61,9 @@ function decodeXml(value) {
 
 function tagValue(xml, names) {
   for (const name of names) {
-    const escaped = name.replace(/[.+?^${}()|[\]\\]/g, "\\$&");
+    const escaped = name.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
     const match = xml.match(
-      new RegExp(`<(?:[]*)","i")
+      new RegExp(`<(?:[\\w.-]+:)?${escaped}\\b[^>]*>([\\s\\S]*?)<\\/(?:[\\w.-]+:)?${escaped}>`, "i"),
     );
     if (match) return decodeXml(match[1]);
   }
@@ -94,12 +94,12 @@ function extractUrn(xml) {
   if (explicit.toLowerCase().startsWith("urn:lex:")) return explicit;
 
   const identifiers = [
-    ...xml.matchAll(/<?>([\w.-]+:)?identifier\b[^>]*>([\s\S]*?)<\/(?:[\w.-]+:)?identifier>/gi),
+    ...xml.matchAll(/<(?:[\w.-]+:)?identifier\b[^>]*>([\s\S]*?)<\/(?:[\w.-]+:)?identifier>/gi),
   ].map((match) => decodeXml(match[1]));
   const fromIdentifier = identifiers.find((value) => value.toLowerCase().startsWith("urn:lex:"));
   if (fromIdentifier) return fromIdentifier;
 
-  const direct = decodeXml(xml).match(/\burn:lex:br:[D]s<>"']+/i);
+  const direct = decodeXml(xml).match(/\burn:lex:br:[^\s<>"']+/i);
   return direct?.[0] ?? "";
 }
 
@@ -136,7 +136,7 @@ function parseRecord(recordXml, index) {
 }
 
 function parseSruXml(body, limit) {
-  if (!/<(?:[]*)?searchRetrieveResponse\b/i.test(body)) {
+  if (!/<(?:[\w.-]+:)?searchRetrieveResponse\b/i.test(body)) {
     throw new MitraLexmlUpstreamError(
       502,
       "lexml_invalid_xml",
@@ -146,7 +146,7 @@ function parseSruXml(body, limit) {
 
   const records = [
     ...body.matchAll(
-      /<?>([\w.-]+:)?record\b[^>]*>([\s\S]*?)<\/(?:[\w.-]+:)?record>/gi,
+      /<(?:[\w.-]+:)?record\b[^>]*>([\s\S]*?)<\/(?:[\w.-]+:)?record>/gi,
     ),
   ]
     .slice(0, limit)
@@ -199,7 +199,7 @@ function normalizeSruUrl(value) {
 
 export const MITRA_LEXML_INTERNAL_UPSTREAM_BASE_URL = INTERNAL_BASE_URL;
 
-export function createMitraPublicLExmlFetchAdapter({
+export function createMitraPublicLexmlFetchAdapter({
   fetchImpl = globalThis.fetch,
   sruUrl = DEFAULT_SRU_URL,
   now = () => new Date(),
