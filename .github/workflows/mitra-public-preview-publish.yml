@@ -1,10 +1,10 @@
-name: Mitra Public Preview Publish
+name: Mitra Public Dedicated Preview Publish
 
 on:
   workflow_dispatch:
     inputs:
       mode:
-        description: "preflight validates only; apply writes only under /mitra on the preview host"
+        description: "preflight validates only; apply publishes only to mitra-preview.apidevelopers.digital"
         required: true
         default: preflight
         type: choice
@@ -30,21 +30,19 @@ permissions:
   contents: read
 
 concurrency:
-  group: mitra-public-preview-publish
+  group: mitra-public-dedicated-preview-publish
   cancel-in-progress: false
 
 jobs:
   build-and-publish-preview:
-    name: Build Mitra and publish only /mitra preview
+    name: Build Mitra and publish dedicated preview
     runs-on:
       - self-hosted
       - macOS
       - X64
     timeout-minutes: 30
     env:
-      TARGET_DOMAIN: preview-apidevelopers.apidevelopers.digital
-      TARGET_PREFIX: mitra
-      TARGET_HOSTINGER_USERNAME: u242521810
+      TARGET_DOMAIN: mitra-preview.apidevelopers.digital
       EXPECTED_TEXT: Mitra
 
     steps:
@@ -69,17 +67,28 @@ jobs:
         with:
           node-version: "24"
 
-      - name: Install, test and build Mitra for /mitra preview
+      - name: Install, test and build Mitra for dedicated root
         working-directory: apps/mitra-public
         shell: bash
         run: |
           set -euo pipefail
           npm install --no-audit --no-fund
           npm test
-          npm run build -- --base=/mitra/
+          npm run build
           test -f dist/index.html
           grep -qi "Mitra" dist/index.html
-          grep -q "/mitra/" dist/index.html
+
+      - name: Create deterministic static archive
+        working-directory: apps/mitra-public/dist
+        shell: bash
+        run: |
+          set -euo pipefail
+          rm -f "$RUNNER_TEMP/mitra-preview.zip"
+          COPYFILE_DISABLE=1 zip -X -r "$RUNNER_TEMP/mitra-preview.zip" . >/dev/null
+          test -s "$RUNNER_TEMP/mitra-preview.zip"
+          unzip -Z1 "$RUNNER_TEMP/mitra-preview.zip" | grep -qx "index.html"
+          echo "ARCHIVE_PATH=$RUNNER_TEMP/mitra-preview.zip" >> "$GITHUB_ENV"
+          echo "EVIDENCE_PATH=$RUNNER_TEMP/mitra-preview-deploy-${GITHUB_RUN_ID}.json" >> "$GITHUB_ENV"
 
       - name: Install pinned official Hostinger MCP client dependencies
         shell: bash
@@ -92,16 +101,13 @@ jobs:
           (
             cd "$MCP_WORKDIR"
             npm init -y >/dev/null
-            npm install \
-              --no-audit \
-              --no-fund \
+            npm install --no-audit --no-fund \
               hostinger-api-mcp@1.26.0 \
               @modelcontextprotocol/sdk@1.10.0
             test -x node_modules/.bin/hostinger-hosting-mcp
             node --check client.mjs
           )
           echo "MCP_CLIENT=$MCP_WORKDIR/client.mjs" >> "$GITHUB_ENV"
-          echo "EVIDENCE_PATH=$RUNNER_TEMP/mitra-preview-publish-${GITHUB_RUN_ID}.json" >> "$GITHUB_ENV"
 
       - name: Run safe preflight
         if: github.event_name != 'workflow_dispatch' || github.event.inputs.mode == 'preflight'
@@ -113,35 +119,31 @@ jobs:
           node "$MCP_CLIENT" \
             --mode preflight \
             --domain "$TARGET_DOMAIN" \
-            --prefix "$TARGET_PREFIX" \
-            --dist "$GITHUB_WORKSPACE/apps/mitra-public/dist" \
+            --archive "$ARCHIVE_PATH" \
             --expected-text "$EXPECTED_TEXT" \
             --evidence "$EVIDENCE_PATH"
 
-      - name: Run authorized targeted preview apply
+      - name: Run authorized dedicated preview apply
         if: github.event_name == 'workflow_dispatch' && github.event.inputs.mode == 'apply'
         shell: bash
         env:
           HOSTINGER_API_TOKEN: ${{ secrets.HOSTINGER_API_TOKEN }}
-          APPROVED_SHA: ${{ github.event.inputs.approved_sha }}
-          APPROVAL: ${{ github.event.inputs.approval }}
         run: |
           set -euo pipefail
           node "$MCP_CLIENT" \
             --mode apply \
             --domain "$TARGET_DOMAIN" \
-            --prefix "$TARGET_PREFIX" \
-            --dist "$GITHUB_WORKSPACE/apps/mitra-public/dist" \
+            --archive "$ARCHIVE_PATH" \
             --expected-text "$EXPECTED_TEXT" \
-            --approved-sha "$APPROVED_SHA" \
-            --approval "$APPROVAL" \
+            --approved-sha "${{ github.event.inputs.approved_sha }}" \
+            --approval "${{ github.event.inputs.approval }}" \
             --evidence "$EVIDENCE_PATH"
 
-      - name: Upload sanitized preview deployment evidence
-        if: ${{ always() }}
+      - name: Upload sanitized deployment evidence
+        if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: mitra-preview-publish-${{ github.sha }}-${{ github.run_id }}
+          name: mitra-dedicated-preview-${{ github.sha }}-${{ github.run_id }}
           path: ${{ env.EVIDENCE_PATH }}
           if-no-files-found: error
           retention-days: 30
