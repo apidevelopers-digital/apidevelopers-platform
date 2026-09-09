@@ -201,6 +201,21 @@ async function main() {
     const command = mcpExecutable();
     if (!fsSync.existsSync(command)) throw new Error(`hostinger_mcp_binary_not_found:${command}`);
 
+    if (mode === "preflight") {
+      evidence.mcp = {
+        package: "hostinger-api-mcp",
+        pinnedVersion: "1.26.0",
+        scopedServer: "hostinger-hosting-mcp",
+        binaryPresent: true,
+        requiredTool: TOOL_NAME,
+        liveToolCheckDeferredToApply: true,
+      };
+      evidence.status = "ready_for_explicit_preview_apply";
+      await writeEvidence(evidencePath, evidence, token);
+      console.log(JSON.stringify({ status: evidence.status, tool: TOOL_NAME, archiveSha256: archive.sha256, evidencePath }));
+      return;
+    }
+
     const transport = new StdioClientTransport({
       command,
       args: [],
@@ -221,13 +236,6 @@ async function main() {
       requiredTool: tool ? { name: tool.name, description: tool.description ?? null, inputSchema: sanitize(tool.inputSchema ?? null, "") } : null,
     };
     if (!tool) throw new Error(`required_tool_missing:${TOOL_NAME}`);
-
-    if (mode === "preflight") {
-      evidence.status = "ready_for_explicit_preview_apply";
-      await writeEvidence(evidencePath, evidence, token);
-      console.log(JSON.stringify({ status: evidence.status, tool: TOOL_NAME, archiveSha256: archive.sha256, evidencePath }));
-      return;
-    }
 
     const result = await client.callTool({
       name: TOOL_NAME,
