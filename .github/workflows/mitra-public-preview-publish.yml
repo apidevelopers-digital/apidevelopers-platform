@@ -4,7 +4,6 @@ on:
   workflow_dispatch:
     inputs:
       mode:
-        description: "diagnostic only on this branch"
         required: true
         default: diagnostic
         type: choice
@@ -20,40 +19,45 @@ permissions:
   contents: read
 
 jobs:
-  preview:
-    name: Diagnose Hostinger upload URL contract
+  diagnose:
     runs-on: [self-hosted, macOS, X64]
-    timeout-minutes: 15
-    env:
-      TARGET_HOSTINGER_USERNAME: u242521810
+    timeout-minutes: 10
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
-        with:
-          node-version: "24"
-      - name: Prepare pinned Hostinger MCP diagnostic
-        shell: bash
-        run: |
-          set -euo pipefail
-          D="$RUNNER_TEMP/mitra-preview-hostinger-diagnostic-$GITHUB_RUN_ID"
-          rm -rf "$D"; mkdir -p "$D"
-          cp apps/mitra-public/scripts/diagnose-preview-hostinger-upload.mjs "$D/client.mjs"
-          cd "$D"
-          npm init -y >/dev/null 2>&1
-          npm install --no-audit --no-fund hostinger-api-mcp@1.26.0 @modelcontextprotocol/sdk@1.10.0 >/dev/null 2>&1
-          test -x node_modules/.bin/hostinger-hosting-mcp
-          node --check client.mjs >/dev/null
-          echo "DIAG_CLIENT=$D/client.mjs" >> "$GITHUB_ENV"
-          echo "HOSTINGER_MCP_BIN=$D/node_modules/.bin/hostinger-hosting-mcp" >> "$GITHUB_ENV"
-      - name: Diagnose upload URL generation only
+      - name: Diagnose Hostinger generateUploadURL only
         shell: bash
         env:
           HOSTINGER_API_TOKEN: ${{ secrets.HOSTINGER_API_TOKEN }}
         run: |
-          set +u
-          test -n "$HOSTINGER_API_TOKEN" || { echo "::error::nostinger_token_missing"; exit 1; }
-          OUT=""$RUNNER_TEMP/mitra-hostinger-diagnostic-$GITHUB_RUN_ID.log""
-          node "$DIAG_CLIENT" >"$OUT" 2>&1
+          set -euo pipefail
+          test -n "$HOSTINGER_API_TOKEN"
+          D="$RUNNER_TEMP/mitra-mcp-diag-$GITHUB_RUN_ID"
+          rm -rf "$D"; mkdir -p "$D"; cd "$D"
+          npm init -y >/dev/null 2>&1
+          npm install --no-audit --no-fund hostinger-api-mcp@1.26.0 @modelcontextprotocol/sdk@1.10.0 >/dev/null 2>&1
+          cat > diag.mjs <<'JS'
+          import { Client } from '@modelcontextprotocol/sdk/client/index.js';
+          import { StdioClientTransport } from '@modelcontextprotocol/sdk/client/stdio.js';
+          const bin='./node_modules/.bin/hostinger-hosting-mcp';
+          let c;
+          try {
+            c=new Client({name:'mitra-diag',version:'1.0.0'},{capabilities:{}});
+            await c.connect(new StdioClientTransport({command:bin,args:[],env:{...process.env,APITOKEN:process.env.HOSTINGER_API_TOKEN,DEBUG:'false'},stderr:'pipe'}));
+            const l=await c.listTools();
+            const m=l.tools.filter(t=>/generateUploadURL/i.test(t.name)).map(t=>({name:t.name,required:t.inputSchema?.required||[],props:Object.keys(t.inputSchema?.properties||{})}));
+            console.log('DIAG_TOOLS_A'+JSON.stringify(m));
+            const t=l.tools.find(x=>x.name==='hosting_generateUploadURLV1')||l.tools.find(x=>/generateUploadURL/i.test(x.name));
+            if(!t) throw new Error('no_generateUploadURL_tool');
+            const a={username:'u242521810',domain:'apidevelopers.digital'};
+            const r=await c.callTool({name:t.name,arguments:a});
+            console.log('DIAG_RESULT_A'+JSON.stringify({tool:t.name,isError:Boolean(r?.isError),contentTypes:(r?.content||[]).map(x=>x.type),hasStructured:Boolean(r?.structuredContent)}));
+            if(r?.isError) process.exitCode=2;
+          } catch(e){
+            console.error('DIAG_ERROR_A'+String(e?.message||e).replace(/[\r\n]+/g,' ').slice(0,800));
+            process.exitCode=1;
+          } finally { if(c) try{await c.close()}catch{} }
+          JS
+          set +e
+          node diag.mjs >diag.out 2>&1
           RC=$?
-          tail -n 80 "$OUT" || true
+          grep -E '^DIAG_' diag.out || true
           exit $RC
