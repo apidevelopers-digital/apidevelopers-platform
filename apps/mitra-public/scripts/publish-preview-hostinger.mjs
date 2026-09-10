@@ -29,15 +29,36 @@ async function walk(root, rel="") {
   }
   return out;
 }
-function parseJson(result){
-  for(const i of result?.content||[]) if(i?.type==="text") { try { return JSON.parse(i.text); } catch {} }
-  return result;
+function maybeJson(value) {
+  if (typeof value !== "string") return value;
+  try { return JSON.parse(value); } catch { return value; }
 }
-function creds(p){
-  for(const x of [p,p?.data,p?.result,p?.response,p?.data?.data]) {
-    if(x?.url && x?.auth_key && x?.rest_auth_key) return {url:x.url,a:x.auth_key,r:x.rest_auth_key};
+function findCreds(value, depth=0, seen=new Set()) {
+  if (value == null || depth > 10) return null;
+  if (typeof value === "string") {
+    const parsed=maybeJson(value);
+    if (parsed !== value) return findCreds(parsed, depth+1, seen);
+    return null;
   }
-  throw new Error("upload_credentials_missing");
+  if (typeof value !== "object") return null;
+  if (seen.has(value)) return null;
+  seen.add(value);
+  if (value.url && value.auth_key && value.rest_auth_key) {
+    return {url:String(value.url), a:String(value.auth_key), r:String(value.rest_auth_key)};
+  }
+  if (Array.isArray(value)) {
+    for (const item of value) {
+      const hit=findCreds(item, depth+1, seen);
+      if (hit) return hit;
+    }
+    return null;
+  }
+  for (const [key,item] of Object.entries(value)) {
+    if (key === "auth_key" || key === "rest_auth_key") continue;
+    const hit=findCreds(item, depth+1, seen);
+    if (hit) return hit;
+  }
+  return null;
 }
 async function upload(c,local,remote){
   const b=await fs.readFile(local);
@@ -73,15 +94,17 @@ async function main(){
     await fs.writeFile(evidence,JSON.stringify(ev,null,2));
     console.log(JSON.stringify(ev)); return;
   }
+
   const token=process.env.HOSTINGER_API_TOKEN||"";
   if(!token) throw new Error("hostinger_token_missing");
   if(arg("approved-sha")!==process.env.GITHUB_SHA) throw new Error("approved_sha_mismatch");
   if(arg("approval")!==PHRASE) throw new Error("approval_phrase_mismatch");
   const bin=mcpBin();
   if(!fsSync.existsSync(bin)) throw new Error("mcp_binary_missing");
+
   let client;
   try{
-    client=new Client({name:"mitra-preview-uploader",version:"1.0.0"},{capabilities:{}});
+    client=new Client({name:"mitra-preview-uploader",version:"1.0.1"},{capabilities:{}});
     await client.connect(new StdioClientTransport({command:bin,args:[],env:{...process.env,APITOKEN:token,DEBUG:"false"},stderr:"pipe"}));
     const listed=await client.listTools();
     const tool=listed.tools.find(t=>/generateUploadURL/i.test(t.name)&&(t.name.startsWith("hosting_")||t.name.startsWith("hostinger_")));
@@ -91,7 +114,11 @@ async function main(){
     if("username" in props) args.username=process.env.TARGET_HOSTINGER_USERNAME||"";
     const result=await client.callTool({name:tool.name,arguments:args});
     if(result?.isError) throw new Error("generate_upload_url_failed");
-    const c=creds(parseJson(result));
+    const c=findCreds(result);
+    if(!c) {
+      const topKeys=result && typeof result==="object" ? Object.keys(result).sort().join(",") : typeof result;
+      throw new Error(`upload_credentials_missing:shape=${topKeys}`);
+    }
     const ordered=[...files].sort((a,b)=>a.rel==="index.html"?1:b.rel==="index.html"?-1:a.rel.localeCompare(b.rel));
     for(const f of ordered) await upload(c,f.abs,`${PREFIX}/${f.rel}`);
     ev.writeExecuted=true;
@@ -101,9 +128,11 @@ async function main(){
     await fs.writeFile(evidence,JSON.stringify(ev,null,2));
     console.log(JSON.stringify(ev));
   }catch(e){
-    ev.status="error"; ev.error=e?.message||String(e);
+    ev.status="error";
+    ev.error=e?.message||String(e);
     await fs.writeFile(evidence,JSON.stringify(ev,null,2));
-    console.error(JSON.stringify(ev)); process.exitCode=1;
+    console.error(JSON.stringify(ev));
+    process.exitCode=1;
   }finally{ if(client) try{await client.close()}catch{} }
 }
 await main();
