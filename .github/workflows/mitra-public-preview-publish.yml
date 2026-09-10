@@ -4,121 +4,60 @@ on:
   workflow_dispatch:
     inputs:
       mode:
-        description: "preflight, diagnostic or apply"
+        description: "diagnostic only on this branch"
         required: true
-        default: preflight
+        default: diagnostic
         type: choice
-        options: [preflight, diagnostic, apply]
+        options: [diagnostic]
       approved_sha:
-        description: "Required for apply; must equal workflow SHA"
         required: false
         type: string
       approval:
-        description: "Required for apply: IGOR_APROVA_MITRA_PREVIEW_DEPLOY"
         required: false
         type: string
-  pull_request:
-    branches: [main]
-    paths:
-      - ".github/workflows/mitra-public-preview-publish.yml"
-      - "apps/mitra-public/**"
 
 permissions:
   contents: read
 
-concurrency:
-  group: mitra-public-dedicated-preview-publish
-  cancel-in-progress: false
-
 jobs:
   preview:
-    name: Build and validate Mitra dedicated preview
-    runs-on: [self-hosted, macOS, X64]
-    timeout-minutes: 30
+    name: Diagnose Hostinger upload URL contract
+    runs-on:
+      - self-hosted
+      - macOS
+      - X64
+    timeout-minutes: 15
     env:
       TARGET_HOSTINGER_USERNAME: u242521810
 
     steps:
       - uses: actions/checkout@v4
 
-      - name: Validate apply authorization
-        if: github.event_name == 'workflow_dispatch' && github.event.inputs.mode == 'apply'
-        shell: bash
-        env:
-          HOSTINGER_API_TOKEN: ${{ secrets.HOSTINGER_API_TOKEN }}
-          APPROVED_SHA: ${{ github.event.inputs.approved_sha }}
-          APPROVAL: ${{ github.event.inputs.approval }}
-        run: |
-          set -euo pipefail
-          test "$APPROVED_SHA" = "$GITHUB_SHA"
-          test "$APPROVAL" = "IGOR_APROVA_MITRA_PREVIEW_DEPLOY"
-          test -n "$HOSTINGER_API_TOKEN"
-
       - uses: actions/setup-node@v4
         with:
           node-version: "24"
 
-      - name: Build Mitra
-        working-directory: apps/mitra-public
-        run: |
-          npm install --no-audit --no-fund
-          npm test
-          npm run build
-          test -f dist/index.html
-          grep -qi "Mitra" dist/index.html
-
-      - name: Prepare pinned Hostinger MCP client
-        shell: bash
-        run: |
-          set -euo pipefail
-          D="$RUNNER_TEMP/mitra-preview-mcp-$GITHUB_RUN_ID"
-          rm -rf "$D"; mkdir -p "$D"
-          cp apps/mitra-public/scripts/publish-preview-hostinger.mjs "$D/client.mjs"
-          cd "$D"
-          npm init -y >/dev/null
-          npm install --no-audit --no-fund hostinger-api-mcp@1.26.0 @modelcontextprotocol/sdk@1.10.0
-          test -x node_modules/.bin/hostinger-hosting-mcp
-          node --check client.mjs
-          echo "MCP_CLIENT=$D/client.mjs" >> "$GITHUB_ENV"
-          echo "EVIDENCE_PATH=$RUNNER_TEMP/mitra-preview-$GITHUB_RUN_ID.json" >> "$GITHUB_ENV"
-
-      - name: Prepare Hostinger upload diagnostic
-        if: github.event_name == 'workflow_dispatch' && github.event.inputs.mode == 'diagnostic'
+      - name: Prepare pinned Hostinger MCP diagnostic
         shell: bash
         run: |
           set -euo pipefail
           D="$RUNNER_TEMP/mitra-preview-hostinger-diagnostic-$GITHUB_RUN_ID"
           rm -rf "$D"
           mkdir -p "$D"
-          cp apps/mitra-public/scripts/diagnose-preview-hostinger-upload.mjs "$D/diagnostic.mjs"
-          cp -R "$(dirname "$MCP_CLIENT")/node_modules" "$D/node_modules"
-          echo "DIAG_CLIENT=$D/diagnostic.mjs" >> "$GITHUB_ENV"
+          cp apps/mitra-public/scripts/diagnose-preview-hostinger-upload.mjs "$D/client.mjs"
+          cd "$D"
+          npm init -y >/dev/null
+          npm install --no-audit --no-fund hostinger-api-mcp@1.26.0 @modelcontextprotocol/sdk@1.10.0
+          test -x node_modules/.bin/hostinger-hosting-mcp
+          node --check client.mjs
+          echo "DIAG_CLIENT=$D/client.mjs" >> "$GITHUB_ENV"
+          echo "HOSTINGER_MCP_BIN=$D/node_modules/.bin/hostinger-hosting-mcp" >> "$GITHUB_ENV"
 
       - name: Diagnose upload URL generation only
-        if: github.event_name == 'workflow_dispatch' && github.event.inputs.mode == 'diagnostic'
         shell: bash
         env:
           HOSTINGER_API_TOKEN: ${{ secrets.HOSTINGER_API_TOKEN }}
         run: |
           set -euo pipefail
           test -n "$HOSTINGER_API_TOKEN"
-          HOSTINGER_MCP_BIN="$(dirname "$MCP_CLIENT")/node_modules/.bin/hostinger-hosting-mcp" node "$DIAG_CLIENT"
-
-      - name: Safe preflight
-        if: github.event_name != 'workflow_dispatch' || github.event.inputs.mode == 'preflight'
-        run: node "$MCP_CLIENT" --mode preflight --dist "$GITHUB_WORKSPACE/apps/mitra-public/dist" --evidence "$EVIDENCE_PATH"
-
-      - name: Authorized targeted apply
-        if: github.event_name == 'workflow_dispatch' && github.event.inputs.mode == 'apply'
-        env:
-          HOSTINGER_API_TOKEN: ${{ secrets.HOSTINGER_API_TOKEN }}
-        run: node "$MCP_CLIENT" --mode apply --dist "$GITHUB_WORKSPACE/apps/mitra-public/dist" --approved-sha "${{ github.event.inputs.approved_sha }}" --approval "${{ github.event.inputs.approval }}" --evidence "$EVIDENCE_PATH"
-
-      - name: Upload sanitized evidence
-        if: always()
-        uses: actions/upload-artifact@v4
-        with:
-          name: mitra-preview-${{ github.sha }}-${{ github.run_id }}
-          path: ${{ env.EVIDENCE_PATH }}
-          if-no-files-found: error
-          retention-days: 30
+          node "$DIAG_CLIENT"
