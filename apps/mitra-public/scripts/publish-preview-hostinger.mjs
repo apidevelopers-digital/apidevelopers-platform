@@ -84,7 +84,7 @@ async function main(){
     client=new Client({name:"mitra-preview-uploader",version:"1.0.0"},{capabilities:{}});
     await client.connect(new StdioClientTransport({command:bin,args:[],env:{...process.env,APITOKEN:token,DEBUG:"false"},stderr:"pipe"}));
     const listed=await client.listTools();
-    const tool=listed.tools.find(t=>/generateUploadURL/i.test(t.name)&&t.name.startsWith("hostinger_"));
+    const tool=listed.tools.find(t=>/generateUploadURL/i.test(t.name)&&(t.name.startsWith("hosting_")||t.name.startsWith("hostinger_")));
     if(!tool) throw new Error("generate_upload_url_tool_missing");
     const props=tool.inputSchema?.properties||{}, args={};
     if("domain" in props) args.domain=PARENT;
