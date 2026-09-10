@@ -13,6 +13,14 @@ const bin = process.env.HOSTINGER_MCP_BIN || path.join(
   process.platform === "win32" ? "hostinger-hosting-mcp.cmd" : "hostinger-hosting-mcp"
 );
 
+function safe(mss) {
+  return String(msg ?? "unknown").replace(/[\r\n]+/g, " ").slice(0, 500);
+}
+
+function annotate(title, message, level = "notice") {
+  console.log(`::${level} title=${title}::${safe(message)}`);
+}
+
 if (!process.env.HOSTINGER_API_TOKEN) throw new Error("hostinger_token_missing");
 if (!fs.existsSync(bin)) throw new Error(`mcp_binary_missing:${bin}`);
 
@@ -30,40 +38,31 @@ try {
   const matches = listed.tools
     .filter((t) => /generateUploadURL/i.test(t.name))
     .map((t) => ({ name: t.name, required: t.inputSchema?.required || [], properties: Object.keys(t.inputSchema?.properties || {}) }));
-
-  console.log(JSON.stringify({ stage: "list_tools", ok: true, matches }, null, 2));
+  annotate("Mitra Hostinger tools", JSON.stringify(matches));
 
   const tool = listed.tools.find((t) => t.name === "hosting_generateUploadURLV1")
     || listed.tools.find((t) => /generateUploadURL/i.test(t.name) && t.name.startsWith("hosting_"));
-
   if (!tool) throw new Error("hosting_generateUploadURLV1_not_found");
 
   const args = {};
   const props = tool.inputSchema?.properties || {};
   if ("username" in props) args.username = USERNAME;
   if ("domain" in props) args.domain = DOMAIN;
-
   const missing = (tool.inputSchema?.required || []).filter((name) => !(name in args));
   if (missing.length) throw new Error(`required_args_unmapped:${missing.join(",")}`);
+  annotate("Mitra Hostinger call", `tool=${tool.name};args=${Object.keys(args).join(",")}`);
 
   const result = await client.callTool({ name: tool.name, arguments: args });
   const textParts = (result?.content || []).filter((x) => x?.type === "text").map((x) => x.text);
   const structuredKeys = result?.structuredContent && typeof result.structuredContent === "object"
     ? Object.keys(result.structuredContent)
     : [];
-
-  const successSignals = {
-    isError: Boolean(result?.isError),
-    contentCount: Array.isArray(result?.content) ? result.content.length : 0,
-    hasTextContent: textParts.length > 0,
-    hasStructuredContent: Boolean(result?.structuredContent),
-    structuredKeys,
-  };
-
-  console.log(JSON.stringify({ stage: "generate_upload_url", ok: !result?.isError, tool: tool.name, args: Object.keys(args), resultShape: successSignals }, null, 2));
+  const summary = {isError: Boolean(result?.isError), contentCount: Array.isArray(result?.content) ? result.content.length : 0, hasText: textParts.length > 0, hasStructured: Boolean(result?.structuredContent), structuredKeys };
+  annotate("Mitra Hostinger result", JSON.stringify(summary), result?.isError ? "error" : "notice");
+  console.log(JSON.stringify({ ok: !result?.isError, tool: tool.name, summary }));
   if (result?.isError) process.exitCode = 2;
 } catch (error) {
-  console.error(JSON.stringify({ stage: "diagnostic", ok: false, error: error instanceof Error ? error.message : String(error) }));
+  annotate("Mitra Hostinger diagnostic", error instanceof Error ? error.message : String(error), "error");
   process.exitCode = 1;
 } finally {
   if (client) {
