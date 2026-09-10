@@ -60,12 +60,15 @@ jobs:
 
       - name: Build Mitra
         working-directory: apps/mitra-public
+        env:
+          MITRA_PREVIEW_FLAT_ASSETS: "1"
         run: |
           npm install --no-audit --no-fund
           npm test
           npm run build
           test -f dist/index.html
           grep -qi "Mitra" dist/index.html
+          test "$(find dist -mindepth 1 -type d | wc -l | tr -d ' ')" = "0"
 
       - name: Prepare pinned Hostinger MCP client
         shell: bash
