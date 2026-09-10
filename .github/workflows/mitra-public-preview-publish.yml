@@ -70,30 +70,24 @@ jobs:
           grep -qi "Mitra" dist/index.html
           test "$(find dist -mindepth 1 -type d | wc -l | tr -d ' ')" = "0"
 
-      - name: Prepare pinned Hostinger MCP client
+      - name: Prepare direct Hostinger publisher
         shell: bash
         run: |
           set -euo pipefail
-          D="$RUNNER_TEMP/mitra-preview-mcp-$GITHUB_RUN_ID"
-          rm -rf "$D"; mkdir -p "$D"
-          cp apps/mitra-public/scripts/publish-preview-hostinger.mjs "$D/client.mjs"
-          cd "$D"
-          npm init -y >/dev/null
-          npm install --no-audit --no-fund hostinger-api-mcp@1.26.0 @modelcontextprotocol/sdk@1.10.0
-          test -x node_modules/.bin/hostinger-hosting-mcp
-          node --check client.mjs
-          echo "MCP_CLIENT=$D/client.mjs" >> "$GITHUB_ENV"
+          P="$GITHUB_WORKSPACE/apps/mitra-public/scripts/publish-preview-hostinger.mjs"
+          node --check "$P"
+          echo "PUBLISHER=$P" >> "$GITHUB_ENV"
           echo "EVIDENCE_PATH=$RUNNER_TEMP/mitra-preview-$GITHUB_RUN_ID.json" >> "$GITHUB_ENV"
 
       - name: Safe preflight
         if: github.event_name != 'workflow_dispatch' || github.event.inputs.mode == 'preflight'
-        run: node "$MCP_CLIENT" --mode preflight --dist "$GITHUB_WORKSPACE/apps/mitra-public/dist" --evidence "$EVIDENCE_PATH"
+        run: node "$PUBLISHER" --mode preflight --dist "$GITHUB_WORKSPACE/apps/mitra-public/dist" --evidence "$EVIDENCE_PATH"
 
       - name: Authorized targeted apply
         if: github.event_name == 'workflow_dispatch' && github.event.inputs.mode == 'apply'
         env:
           HOSTINGER_API_TOKEN: ${{ secrets.HOSTINGER_API_TOKEN }}
-        run: node "$MCP_CLIENT" --mode apply --dist "$GITHUB_WORKSPACE/apps/mitra-public/dist" --approved-sha "${{ github.event.inputs.approved_sha }}" --approval "${{ github.event.inputs.approval }}" --evidence "$EVIDENCE_PATH"
+        run: node "$PUBLISHER" --mode apply --dist "$GITHUB_WORKSPACE/apps/mitra-public/dist" --approved-sha "${{ github.event.inputs.approved_sha }}" --approval "${{ github.event.inputs.approval }}" --evidence "$EVIDENCE_PATH"
 
       - name: Upload sanitized evidence
         if: always()
