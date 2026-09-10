@@ -22,42 +22,38 @@ permissions:
 jobs:
   preview:
     name: Diagnose Hostinger upload URL contract
-    runs-on:
-      - self-hosted
-      - macOS
-      - X64
+    runs-on: [self-hosted, macOS, X64]
     timeout-minutes: 15
     env:
       TARGET_HOSTINGER_USERNAME: u242521810
-
     steps:
       - uses: actions/checkout@v4
-
       - uses: actions/setup-node@v4
         with:
           node-version: "24"
-
       - name: Prepare pinned Hostinger MCP diagnostic
         shell: bash
         run: |
           set -euo pipefail
           D="$RUNNER_TEMP/mitra-preview-hostinger-diagnostic-$GITHUB_RUN_ID"
-          rm -rf "$D"
-          mkdir -p "$D"
+          rm -rf "$D"; mkdir -p "$D"
           cp apps/mitra-public/scripts/diagnose-preview-hostinger-upload.mjs "$D/client.mjs"
           cd "$D"
-          npm init -y >/dev/null
-          npm install --no-audit --no-fund hostinger-api-mcp@1.26.0 @modelcontextprotocol/sdk@1.10.0
+          npm init -y >/dev/null 2>&1
+          npm install --no-audit --no-fund hostinger-api-mcp@1.26.0 @modelcontextprotocol/sdk@1.10.0 >/dev/null 2>&1
           test -x node_modules/.bin/hostinger-hosting-mcp
-          node --check client.mjs
+          node --check client.mjs >/dev/null
           echo "DIAG_CLIENT=$D/client.mjs" >> "$GITHUB_ENV"
           echo "HOSTINGER_MCP_BIN=$D/node_modules/.bin/hostinger-hosting-mcp" >> "$GITHUB_ENV"
-
       - name: Diagnose upload URL generation only
         shell: bash
         env:
           HOSTINGER_API_TOKEN: ${{ secrets.HOSTINGER_API_TOKEN }}
         run: |
-          set -euo pipefail
-          test -n "$HOSTINGER_API_TOKEN"
-          node "$DIAG_CLIENT"
+          set +u
+          test -n "$HOSTINGER_API_TOKEN" || { echo "::error::nostinger_token_missing"; exit 1; }
+          OUT=""$RUNNER_TEMP/mitra-hostinger-diagnostic-$GITHUB_RUN_ID.log""
+          node "$DIAG_CLIENT" >"$OUT" 2>&1
+          RC=$?
+          tail -n 80 "$OUT" || true
+          exit $RC
