@@ -39,7 +39,7 @@ function veritas(body){
  if(Object.keys(body).some(k=>!allowed.has(k)))throw new MitraProfessionalError(400,"veritas_unexpected_input","A verificação recebeu campos não permitidos.");
  const mode=text(body.mode,80).toLowerCase();if(!VERITAS_MODES.has(mode))throw new MitraProfessionalError(400,"veritas_mode_invalid","Modo Veritas inválido.");
  const claim=requiredText(body.claim,"claim",12_000),evidence=body.evidence;
- if(!evidence||typeof evidence!=="object")throw new MitraProfessionalError(400,"evidence_required","Informe estruturada para o Veritas.");
+ if(!evidence||typeof evidence!=="object")throw new MitraProfessionalError(400,"evidence_required","Informe evidência estruturada para o Veritas.");
  if(JSON.stringify(evidence).length>20_000)throw new MitraProfessionalError(400,"evidence_too_large","A evidência excede o limite seguro.");
  const out={mode,claim,evidence},asOf=text(body.as_of_date??body.asOfDate,40);if(asOf)out.as_of_date=asOf;return out;
 }
