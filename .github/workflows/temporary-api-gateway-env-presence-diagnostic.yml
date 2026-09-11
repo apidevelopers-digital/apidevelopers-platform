@@ -1,0 +1,43 @@
+name: Temporary API Gateway Env Presence Diagnostic
+
+on:
+  push:
+    branches:
+      - ops/gateway-env-presence-diagnostic-20260911
+    paths:
+      - ".github/workflows/temporary-api-gateway-env-presence-diagnostic.yml"
+
+permissions:
+  contents: read
+
+jobs:
+  diagnose:
+    runs-on:
+      - self-hosted
+      - macOS
+      - X64
+    env:
+      API_GATEWAY_ADMIN_KEY: ${{ secrets.API_GATEWAY_ADMIN_KEY }}
+      APIDEVELOPERS_AUDIT_SINK_API_KEY: ${{ secrets.APIDEVELOPERS_AUDIT_SINK_API_KEY }}
+      API_GATEWAY_DELEGATED_KEY: ${{ secrets.API_GATEWAY_DELEGATED_KEY }}
+      API_GATEWAY_UNIJURI_BINDING_PRIVATE_KEY_PEM: ${{ secrets.API_GATEWAY_UNIJURI_BINDING_PRIVATE_KEY_PEM }}
+      APIDEVELOPERS_AUDIT_SINK_URL: ${{ vars.APIDEVELOPERS_AUDIT_SINK_URL }}
+      PLATFORM_AUTH_PROVIDER: ${{ vars.PLATFORM_AUTH_PROVIDER }}
+      PLATFORM_AUTH_ISSUER: ${{ vars.PLATFORM_AUTH_ISSUER }}
+    steps:
+      - name: Presence-only diagnostic
+        shell: bash
+        run: |
+          set -euo pipefail
+          failed=0
+          for name in             API_GATEWAY_ADMIN_KEY             APIDEVELOPERS_AUDIT_SINK_API_KEY             API_GATEWAY_DELEGATED_KEY             API_GATEWAY_UNIJURI_BINDING_PRIVATE_KEY_PEM             APIDEVELOPERS_AUDIT_SINK_URL             PLATFORM_AUTH_PROVIDER             PLATFORM_AUTH_ISSUER
+          do
+            value="${!name-}"
+            if [ -n "$value" ]; then
+              echo "::notice title=$name::present"
+            else
+              echo "::error title=$name::missing"
+              failed=1
+            fi
+          done
+          exit "$failed"
