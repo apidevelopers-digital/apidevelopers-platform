@@ -11,7 +11,7 @@ on:
       - "apps/site-factory/**"
       - "packages/hostinger-adapter/**"
       - "packages/uni-operator-hostinger-adapter/**"
-      - "packages/wordpress-adapter/**"
+       - "packages/wordpress-adapter/**"
       - ".github/workflows/site-factory-live-dry-run.yml"
   workflow_dispatch:
 
@@ -50,8 +50,8 @@ jobs:
         id: probe
         continue-on-error: true
         env:
-          TARGET_URL: https://apidevelopers.digital/
-          EXPECTED_TEXT: API Developers.digital
+          TARGET_URL: https://mitra-preview.apidevelopers.digital/
+          EXPECTED_TEXT: Mitra
           REPORT_PATH: ${{ runner.temp }}/site-factory-public.json
         run: |
           node --input-type=module <<'NODE'
