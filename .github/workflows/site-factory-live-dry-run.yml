@@ -11,7 +11,7 @@ on:
       - "apps/site-factory/**"
       - "packages/hostinger-adapter/**"
       - "packages/uni-operator-hostinger-adapter/**"
-       - "packages/wordpress-adapter/**"
+      - "packages/wordpress-adapter/**"
       - ".github/workflows/site-factory-live-dry-run.yml"
   workflow_dispatch:
 
