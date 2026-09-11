@@ -30,7 +30,7 @@ function requireAuthenticator(value, name) {
 /**
  * Production contract for UniJuri browser-session handoff.
  *
- * Deliberately dormant: this module never reads process.env and is not wired
+ * Deliberately dormant: this module never reads runtime environment directly and is not wired
  * into operational-runtime. A later, separately reviewed activation must inject
  * the source/redeemer authenticators and persistence store explicitly.
  */
