@@ -109,6 +109,10 @@ jobs:
           }
           NODE
 
+      - name: Print sanitized public probe evidence
+        if: ${{ always() }}
+        run: cat "${{ runner.temp }}/site-factory-public.json"
+
       - name: Upload public probe evidence
         if: ${{ always() }}
         uses: actions/upload-artifact@v4
