@@ -1,4 +1,5 @@
 import {
+  assertCanonicalId,
   assertMembershipAccessGrantBinding,
   assertMembershipRoleBinding,
   createMembership,
@@ -33,6 +34,15 @@ function requireFunction(value, name) {
   return value;
 }
 
+function canonicalPrincipalKey(principalId) {
+  const parsed = assertCanonicalId(principalId, { expectedFamily: "component" });
+  const [kind, key] = parsed.semanticSegments;
+  if (kind !== "principal" || !key || parsed.semanticSegments.length !== 2) {
+    throw new TypeError("principalId must be a canonical component.principal id");
+  }
+  return key;
+}
+
 function assertSamePermissions(actual, expected) {
   const left = [...new Set(Array.isArray(actual) ? actual : [])].sort();
   const right = [...new Set(expected)].sort();
@@ -45,7 +55,9 @@ function assertGrant({ accessGrant, tenantId, workspaceId, principalId }) {
   if (!accessGrant || typeof accessGrant !== "object") {
     throw new TypeError("accessGrant is required");
   }
-  if (accessGrant.status !== "active") throw new Error("uni_co_customer_access_grant_not_active");
+  if (accessGrant.status !== "active") {
+    throw new Error("uni_co_customer_access_grant_not_active");
+  }
   if (accessGrant.productId !== UNI_CO_CUSTOMER_PRODUCT_ID) {
     throw new Error("uni_co_customer_access_product_mismatch");
   }
@@ -76,11 +88,12 @@ export async function ensureUniCoCustomerMembership({
   requireFunction(membershipRuntime?.registerRole, "membershipRuntime.registerRole");
   requireFunction(membershipRuntime?.addMembership, "membershipRuntime.addMembership");
 
+  const principalKey = canonicalPrincipalKey(principalId);
   assertGrant({ accessGrant, tenantId, workspaceId, principalId });
 
-  const userId = createSaaSUserId(principalId);
+  const userId = createSaaSUserId(principalKey);
   const roleId = createRoleId(tenantSlug, workspaceSlug, UNI_CO_CUSTOMER_ROLE_KEY);
-  const membershipId = createMembershipId(tenantSlug, workspaceSlug, principalId);
+  const membershipId = createMembershipId(tenantSlug, workspaceSlug, principalKey);
 
   const expectedUser = createSaaSUser({
     userId,
