@@ -62,13 +62,14 @@ jobs:
         working-directory: apps/mitra-public
         env:
           MITRA_PREVIEW_FLAT_ASSETS: "1"
+          VITE_MITRA_PUBLIC_API_BASE_URL: "https://gateway.apidevelopers.digital"
         run: |
           npm install --no-audit --no-fund
           npm test
           npm run build
           test -f dist/index.html
           grep -qi "Mitra" dist/index.html
-          test "$(find dist -mindepth 1 -type d | wc -l | tr -d ' ')" = "0"
+          test "$(find dist -mindepth 1 -type d | wc -l | tr -d '  ')" = "0"
 
       - name: Prepare direct Hostinger publisher
         shell: bash
