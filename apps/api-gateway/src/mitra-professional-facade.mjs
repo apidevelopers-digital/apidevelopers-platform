@@ -3,8 +3,7 @@ import{
  normalizeAllowedOrigins,normalizeHttpsBase,parseJsonBody,requiredText,safeFacts,safeLimit,sanitize,text
 }from"./mitra-professional-common.mjs";
 import{buildProfessionalDocumentPreview}from"./mitra-professional-document.mjs";
-
-const DEFAULT_BASE="https://peterle-ops.apidevelopers.digital";
+const UNCONFIGURED_BASE="https://not-configured.invalid";
 const ROUTES=Object.freeze({
  health:"/v1/mitra/professional/health",
  analyze:"/v1/mitra/professional/analyze",
@@ -45,9 +44,8 @@ function veritas(body){
  const out={mode,claim,evidence},asOf=text(body.as_of_date??body.asOfDate,40);if(asOf)out.as_of_date=asOf;return out;
 }
 function isRoute(path){return Object.values(ROUTES).includes(path)}
-
 export function createMitraProfessionalFacade({
- upstreamBaseUrl=process.env.MITRA_PROFESSIONAL_ORCHESTRATOR_BASE_URL??DEFAULT_BASE,
+ upstreamBaseUrl=process.env.MITRA_PROFESSIONAL_ORCHESTRATOR_BASE_URL,
  upstreamBearer=process.env.MITRA_PROFESSIONAL_ORCHESTRATOR_BEARER,
  allowedOrigins=process.env.MITRA_PROFESSIONAL_ALLOWED_ORIGINS,
  fetchImpl=globalThis.fetch,
@@ -56,10 +54,11 @@ export function createMitraProfessionalFacade({
  rateLimitWindowMs=Number(process.env.MITRA_PROFESSIONAL_RATE_LIMIT_WINDOW_MS??60_000),
  now=()=>Date.now(),
 }={}){
- const base=normalizeHttpsBase(upstreamBaseUrl,DEFAULT_BASE,"MITRA_PROFESSIONAL_ORCHESTRATOR_BASE_URL");
+ const explicitBase=text(upstreamBaseUrl,2_000);
+ const base=normalizeHttpsBase(explicitBase||UNCONFIGURED_BASE,UNCONFIGURED_BASE,"MITRA_PROFESSIONAL_ORCHESTRATOR_BASE_URL");
  const bearer=text(upstreamBearer,8_000),origins=normalizeAllowedOrigins(allowedOrigins),timeout=Math.max(1_000,Number(timeoutMs)||18_000);
  const limiter=createRateLimiter({now,max:Math.max(0,Math.floor(Number(rateLimitMax)||20)),windowMs:Math.max(1_000,Number(rateLimitWindowMs)||60_000)});
- const configured=Boolean(base&&bearer&&typeof fetchImpl==="function");
+ const configured=Boolean(explicitBase&&bearer&&typeof fetchImpl==="function");
  async function dispatch(path,payload){
   if(!configured)throw new MitraProfessionalError(503,"professional_upstream_not_configured","A camada profissional da Mitra ainda não está configurada neste runtime.");
   const controller=new AbortController(),timer=setTimeout(()=>controller.abort(),timeout);

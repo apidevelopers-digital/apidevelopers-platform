@@ -62,6 +62,7 @@ jobs:
         working-directory: apps/mitra-public
         env:
           MITRA_PREVIEW_FLAT_ASSETS: "1"
+          VITE_MITRA_PUBLIC_API_BASE_URL: "https://gateway.apidevelopers.digital"
         run: |
           npm install --no-audit --no-fund
           npm test
