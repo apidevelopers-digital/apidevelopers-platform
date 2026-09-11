@@ -6,8 +6,8 @@ import {
   createMembershipId,
   createRole,
   createRoleId,
-  createSaaSUser,
-  createSaaSUserId,
+  createSaasUser,
+  createSaasUserId,
 } from "@apidevelopers/contracts";
 
 export const UNI_CO_CUSTOMER_PRODUCT_ID = "product:uni-co";
@@ -91,11 +91,11 @@ export async function ensureUniCoCustomerMembership({
   const principalKey = canonicalPrincipalKey(principalId);
   assertGrant({ accessGrant, tenantId, workspaceId, principalId });
 
-  const userId = createSaaSUserId(principalKey);
+  const userId = createSaasUserId(principalKey);
   const roleId = createRoleId(tenantSlug, workspaceSlug, UNI_CO_CUSTOMER_ROLE_KEY);
   const membershipId = createMembershipId(tenantSlug, workspaceSlug, principalKey);
 
-  const expectedUser = createSaaSUser({
+  const expectedUser = createSaasUser({
     userId,
     principalId,
     status: "active",
@@ -113,11 +113,7 @@ export async function ensureUniCoCustomerMembership({
   });
 
   const user = await membershipRuntime.registerUser(expectedUser);
-  if (
-    user.userId !== userId ||
-    user.principalId !== principalId ||
-    user.status !== "active"
-  ) {
+  if (user.userId !== userId || user.principalId !== principalId || user.status !== "active") {
     throw new Error("uni_co_customer_user_binding_mismatch");
   }
 
