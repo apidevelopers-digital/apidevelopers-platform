@@ -71,7 +71,10 @@ jobs:
             echo "- missingCount: \`$missing\`"
           } >> "$GITHUB_STEP_SUMMARY"
 
-          missing_names_csv="$(IFS=,; echo "${missing_names[*]}")"
+          missing_names_csv=""
+          if [ "$missing" -ne 0 ]; then
+            missing_names_csv="$(IFS=,; echo "${missing_names[*]}")"
+          fi
           evidence_json="$(printf '{"missingCount":%s,"missingNames":"%s","valuesExposed":false,"hostingerMutationPerformed":false}' \
             "$missing" \
             "$missing_names_csv")"
