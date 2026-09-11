@@ -1,0 +1,45 @@
+name: Mitra Preview HTTP Probe Diagnostic
+
+on:
+  push:
+    branches:
+      - "fix/site-factory-*"
+    paths:
+      - ".github/workflows/mitra-preview-http-probe-diagnostic.yml"
+
+permissions:
+  contents: read
+
+jobs:
+  probe:
+    runs-on:
+      - self-hosted
+      - macOS
+      - X64
+    timeout-minutes: 5
+    steps:
+      - name: Probe Mitra preview over HTTPS
+        shell: bash
+        run: |
+          node --input-type=module <<'NODE'
+          const target = "https://mitra-preview.apidevelopers.digital/";
+          const response = await fetch(target, {
+            redirect: "follow",
+            headers: {
+              accept: "text/html,application/xhtml+xml",
+              "cache-control": "no-cache",
+              "user-agent": "apidevelopers-platform/mitra-preview-http-probe"
+            }
+          });
+          const body = await response.text();
+          const report = {
+            httpStatus: response.status,
+            finalUrl: response.url,
+            contentType: response.headers.get("content-type"),
+            bodyBytes: Buffer.byteLength(body),
+            expectedTextMatched: body.toLowerCase().includes("mitra"),
+            htmlLike: (response.headers.get("content-type") ?? "").toLowerCase().includes("text/html")
+          };
+          console.log(JSON.stringify(report));
+          if (!(response.ok && report.expectedTextMatched && report.htmlLike)) process.exit(1);
+          NODE
