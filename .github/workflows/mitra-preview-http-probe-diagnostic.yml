@@ -18,28 +18,83 @@ jobs:
       - X64
     timeout-minutes: 5
     steps:
-      - name: Probe Mitra preview over HTTPS
+      - name: Compare Mitra preview TLS with control
         shell: bash
         run: |
           node --input-type=module <<'NODE'
-          const target = "https://mitra-preview.apidevelopers.digital/";
-          const response = await fetch(target, {
-            redirect: "follow",
-            headers: {
-              accept: "text/html,application/xhtml+xml",
-              "cache-control": "no-cache",
-              "user-agent": "apidevelopers-platform/mitra-preview-http-probe"
+          import dns from "node:dns/promises";
+          import tls from "node:tls";
+
+          const hosts = [
+            "mitra-preview.apidevelopers.digital",
+            "trust-preview.apidevelopers.digital"
+          ];
+
+          async function tlsProbe(host) {
+            return await new Promise((resolve) => {
+              const socket = tls.connect({
+                host,
+                port: 443,
+                servername: host,
+                rejectUnauthorized: false,
+                timeout: 8000
+              });
+              socket.once("secureConnect", () => {
+                const cert = socket.getPeerCertificate();
+                const result = {
+                  ok: true,
+                  authorized: socket.authorized,
+                  authorizationError: socket.authorizationError ?? null,
+                  protocol: socket.getProtocol(),
+                  alpnProtocol: socket.alpnProtocol || null,
+                  subject: cert?.subject?.CN ?? null,
+                  issuer: cert?.issuer?.CN ?? null,
+                  validTo: cert?.valid_to ?? null,
+                  subjectAltName: cert?.subjectaltname ?? null
+                };
+                socket.end();
+                resolve(result);
+              });
+              socket.once("timeout", () => {
+                socket.destroy();
+                resolve({ ok: false, code: "TIMEOUT" });
+              });
+              socket.once("error", (error) => {
+                resolve({
+                  ok: false,
+                  code: error?.code ?? null,
+                  message: error?.message ?? String(error)
+                });
+              });
+            });
+          }
+
+          async function httpProbe(host) {
+            try {
+              const response = await fetch(`http://${host}/`, { redirect: "manual" });
+              return {
+                status: response.status,
+                location: response.headers.get("location"),
+                server: response.headers.get("server")
+              };
+            } catch (error) {
+              return { error: error?.message ?? String(error) };
             }
-          });
-          const body = await response.text();
-          const report = {
-            httpStatus: response.status,
-            finalUrl: response.url,
-            contentType: response.headers.get("content-type"),
-            bodyBytes: Buffer.byteLength(body),
-            expectedTextMatched: body.toLowerCase().includes("mitra"),
-            htmlLike: (response.headers.get("content-type") ?? "").toLowerCase().includes("text/html")
-          };
-          console.log(JSON.stringify(report));
-          if (!(response.ok && report.expectedTextMatched && report.htmlLike)) process.exit(1);
+          }
+
+          for (const host of hosts) {
+            let addresses = [];
+            try {
+              addresses = await dns.resolveAny(host);
+            } catch (error) {
+              addresses = [{ error: error?.code ?? error?.message ?? String(error) }];
+            }
+            const report = {
+              host,
+              dns: addresses,
+              http: await httpProbe(host),
+              tls: await tlsProbe(host)
+            };
+            console.log(JSON.stringify(report));
+          }
           NODE
