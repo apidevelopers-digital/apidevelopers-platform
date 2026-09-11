@@ -1,0 +1,31 @@
+name: Temporary API Gateway Operator Tenant Presence
+
+on:
+  push:
+    branches:
+      - ops/gateway-env-presence-diagnostic-20260911
+    paths:
+      - ".github/workflows/temporary-api-gateway-operator-tenant-diagnostic.yml"
+
+permissions:
+  contents: read
+
+jobs:
+  diagnose:
+    runs-on:
+      - self-hosted
+      - macOS
+      - X64
+    env:
+      API_GATEWAY_OPERATOR_TENANT_ID: ${{ secrets.API_GATEWAY_OPERATOR_TENANT_ID || vars.API_GATEWAY_OPERATOR_TENANT_ID }}
+    steps:
+      - name: Check operator tenant id presence
+        shell: bash
+        run: |
+          set -euo pipefail
+          if [ -n "${API_GATEWAY_OPERATOR_TENANT_ID:-}" ]; then
+            echo "::notice title=API_GATEWAY_OPERATOR_TENANT_ID::present"
+            exit 0
+          fi
+          echo "::error title=API_GATEWAY_OPERATOR_TENANT_ID::missing"
+          exit 1
