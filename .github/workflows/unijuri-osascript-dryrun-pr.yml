@@ -1,0 +1,53 @@
+name: UniJuri osascript dry-run diagnostic
+
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - ".github/workflows/unijuri-osascript-dryrun-pr.yml"
+
+permissions:
+  contents: read
+
+jobs:
+  diagnostic:
+    runs-on: [self-hosted, macOS, X64, unijuri-keychain]
+    timeout-minutes: 5
+    steps:
+      - name: Validate dedicated Keychain runner
+        shell: bash
+        run: |
+          set -euo pipefail
+          [[ "${RUNNER_NAME:-}" == "apidevelopers-mac-ci-05" ]] || {
+            echo "::error::Wrong UniJuri Keychain runner"
+            exit 5
+          }
+
+      - name: Validate osascript argv and quoting without privilege
+        shell: bash
+        run: |
+          set -euo pipefail
+          helper_bin="/tmp/operator-keychain-helper"
+          target_dir="/usr/local/libexec/apidevelopers"
+          target="$target_dir/operator-keychain-helper"
+
+          result="$(/usr/bin/osascript - "$helper_bin" "$target_dir" "$target" <<'APPLESCRIPT'
+          on run argv
+            set helperBin to item 1 of argv
+            set targetDir to item 2 of argv
+            set targetPath to item 3 of argv
+            set commandText to "/usr/bin/install -d -o root -g wheel -m 0755 " & quoted form of targetDir & " && /usr/bin/install -o root -g wheel -m 0755 " & quoted form of helperBin & " " & quoted form of targetPath
+            return commandText
+          end run
+          APPLESCRIPT
+          )"
+
+          [[ "$result" == *"/usr/bin/install -d -o root -g wheel -m 0755"* ]] || {
+            echo "::error::AppleScript command construction missing install-dir command"
+            exit 2
+          }
+          [[ "$result" == *"/usr/local/libexec/apidevelopers/operator-keychain-helper"* ]] || {
+            echo "::error::AppleScript command construction missing target path"
+            exit 3
+          }
+          echo "::notice title=UniJuri osascript dry-run::parserAndArgv=true; privilegeInvoked=false; writesPerformed=false"
