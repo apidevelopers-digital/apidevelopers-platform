@@ -174,7 +174,7 @@ export function createUniAccountPreviewRuntimeComposition({
       redeemerServerAuthenticationRequired:
         handoff.descriptor.redeemerServerAuthenticationRequired,
       redeemerConfigured: true,
-      runtimeAutoWiring: false,
+      runtimeAutoWiring: true,
     }),
   });
 }
