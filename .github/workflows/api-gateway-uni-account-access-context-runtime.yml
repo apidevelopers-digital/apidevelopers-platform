@@ -1,0 +1,81 @@
+name: API Gateway Uni Account Access Context Runtime
+
+on:
+  push:
+    paths:
+      - "apps/api-gateway/src/uni-account-preview-access-context-runtime-composition.mjs"
+      - "apps/api-gateway/src/operational-runtime.mjs"
+      - "apps/api-gateway/test/uni-account-preview-access-context-runtime-composition.test.mjs"
+      - "apps/api-gateway/test/uni-account-preview-access-context-operational-wiring.test.mjs"
+      - ".github/workflows/api-gateway-uni-account-access-context-runtime.yml"
+  pull_request:
+    paths:
+      - "apps/api-gateway/src/uni-account-preview-access-context-runtime-composition.mjs"
+      - "apps/api-gateway/src/operational-runtime.mjs"
+      - "apps/api-gateway/test/uni-account-preview-access-context-runtime-composition.test.mjs"
+      - "apps/api-gateway/test/uni-account-preview-access-context-operational-wiring.test.mjs"
+      - ".github/workflows/api-gateway-uni-account-access-context-runtime.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  access-context-runtime:
+    runs-on:
+      - self-hosted
+      - macOS
+      - X64
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+
+      - name: Link institutional local dependencies
+        shell: bash
+        run: |
+          set -euo pipefail
+          root="$GITHUB_WORKSPACE"
+          mkdir -p "$root/apps/api-gateway/node_modules/@apidevelopers"
+          ln -sfn "$root/packages/contracts" "$root/apps/api-gateway/node_modules/@apidevelopers/contracts"
+          ln -sfn "$root/packages/persistence-core" "$root/apps/api-gateway/node_modules/@apidevelopers/persistence-core"
+          ln -sfn "$root/packages/auth-core" "$root/apps/api-gateway/node_modules/@apidevelopers/auth-core"
+          ln -sfn "$root/packages/saas-runtime" "$root/apps/api-gateway/node_modules/@apidevelopers/saas-runtime"
+          mkdir -p "$root/packages/saas-runtime/node_modules/@apidevelopers"
+          ln -sfn "$root/packages/contracts" "$root/packages/saas-runtime/node_modules/@apidevelopers/contracts"
+          ln -sfn "$root/packages/auth-core" "$root/packages/saas-runtime/node_modules/@apidevelopers/auth-core"
+          ln -sfn "$root/packages/persistence-core" "$root/packages/saas-runtime/node_modules/@apidevelopers/persistence-core"
+
+      - name: Check Uni account access-context runtime syntax
+        working-directory: apps/api-gateway
+        run: |
+          node --check src/uni-account-preview-access-context-runtime-composition.mjs
+          if [ -f test/uni-account-preview-access-context-operational-wiring.test.mjs ]; then
+            node --check test/uni-account-preview-access-context-operational-wiring.test.mjs
+          fi
+
+      - name: Exercise Uni account access-context runtime
+        working-directory: apps/api-gateway
+        run: |
+          tests=(test/uni-account-preview-access-context-runtime-composition.test.mjs)
+          if [ -f test/uni-account-preview-access-context-operational-wiring.test.mjs ]; then
+            tests+=(test/uni-account-preview-access-context-operational-wiring.test.mjs)
+          fi
+          node --test "${tests[@]}"
+
+      - name: Enforce preview-only boundary
+        shell: bash
+        run: |
+          set -euo pipefail
+          grep -Fq 'productionEnabled: false' apps/api-gateway/src/account-access-context-preview-composition.mjs
+          grep -Fq 'runtimeAutoWiring: true' apps/api-gateway/src/uni-account-preview-access-context-runtime-composition.mjs
+          if grep -Fq 'UNI_CO_PREVIEW_ACCESS_CONTEXT_AUTHORIZATION' apps/api-gateway/src/uni-account-preview-access-context-runtime-composition.mjs; then
+            echo "Runtime composition must not embed environment variable names or secret values."
+            exit 1
+          fi
+          echo "UNI_ACCOUNT_ACCESS_CONTEXT_RUNTIME_GATE_OK"
