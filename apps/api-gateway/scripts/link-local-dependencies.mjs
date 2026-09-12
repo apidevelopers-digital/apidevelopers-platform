@@ -8,6 +8,7 @@ const REPOSITORY_ROOT = resolve(
 );
 
 const links = Object.freeze([
+  ["apps/api-gateway", "lex-legal-runtime"],
   ["apps/api-gateway", "contracts"],
   ["apps/api-gateway", "auth-core"],
   ["apps/api-gateway", "apikey-core"],
