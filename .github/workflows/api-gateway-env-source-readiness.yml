@@ -8,12 +8,10 @@ permissions:
 
 jobs:
   readiness:
-    runs-on:
-      - self-hosted
-      - macOS
-      - X64
-    timeout-minutes: 10
+    runs-on: [self-hosted, macOS, X64]
+    timeout-minutes: 15
     env:
+      HOSTINGER_API_TOKEN: ${{ secrets.HOSTINGER_API_TOKEN }}
       GLOBAL_TRUST_EVALUATION_PORTAL_ENABLED: ${{ secrets.GLOBAL_TRUST_EVALUATION_PORTAL_ENABLED || vars.GLOBAL_TRUST_EVALUATION_PORTAL_ENABLED }}
       GLOBAL_TRUST_EVALUATION_ENABLED: ${{ secrets.GLOBAL_TRUST_EVALUATION_ENABLED || vars.GLOBAL_TRUST_EVALUATION_ENABLED }}
       API_GATEWAY_ADMIN_KEY: ${{ secrets.API_GATEWAY_ADMIN_KEY }}
@@ -27,67 +25,88 @@ jobs:
       WEB_AGENT_SHADOW_ENABLED: ${{ secrets.WEB_AGENT_SHADOW_ENABLED || vars.WEB_AGENT_SHADOW_ENABLED }}
       API_GATEWAY_OPERATOR_KEY: ${{ secrets.API_GATEWAY_OPERATOR_KEY }}
       API_GATEWAY_OPERATOR_TENANT_ID: ${{ secrets.API_GATEWAY_OPERATOR_TENANT_ID || vars.API_GATEWAY_OPERATOR_TENANT_ID }}
+      HOSTINGER_URL: https://developers.hostinger.com/api/hosting/v1/accounts/u242521810/websites/gateway.apidevelopers.digital/nodejs/builds/settings/env
+      GATEWAY_BASE_URL: https://gateway.apidevelopers.digital
+      SUBJECT_REF: e65b5439faf65ea9905025751e6a33010df6551d99b225bf032e163492969ec8
     steps:
-      - name: Check canonical environment source presence
+      - name: Validate approved canonical source
         shell: bash
         run: |
           set -euo pipefail
+          required=(HOSTINGER_API_TOKEN GLOBAL_TRUST_EVALUATION_PORTAL_ENABLED GLOBAL_TRUST_EVALUATION_ENABLED API_GATEWAY_ADMIN_KEY API_GATEWAY_STATE_FILE API_GATEWAY_DELEGATED_TENANT_ID API_GATEWAY_DELEGATED_KEY API_GATEWAY_PROVISIONING_KEY UNI_CO_PREVIEW_IDENTITY_BACKEND_BASE_URL WEB_AGENT_SHADOW_API_KEY WEB_AGENT_SHADOW_BASE_URL WEB_AGENT_SHADOW_ENABLED API_GATEWAY_OPERATOR_KEY API_GATEWAY_OPERATOR_TENANT_ID)
+          for key in "${required[@]}"; do
+            test -n "${!key:-}" || { echo "::error title=missing_source::$key is unavailable"; exit 1; }
+          done
+          echo "canonical_source_ready=true"
+          echo "secret_values_exposed=false"
 
-          required=(
-            GLOBAL_TRUST_EVALUATION_PORTAL_ENABLED
-            GLOBAL_TRUST_EVALUATION_ENABLED
-            API_GATEWAY_ADMIN_KEY
-            API_GATEWAY_STATE_FILE
-            API_GATEWAY_DELEGATED_TENANT_ID
-            API_GATEWAY_DELEGATED_KEY
-            API_GATEWAY_PROVISIONING_KEY
-            UNI_CO_PREVIEW_IDENTITY_BACKEND_BASE_URL
-            WEB_AGENT_SHADOW_API_KEY
-            WEB_AGENT_SHADOW_BASE_URL
-            WEB_AGENT_SHADOW_ENABLED
-            API_GATEWAY_OPERATOR_KEY
-            API_GATEWAY_OPERATOR_TENANT_ID
-          )
+      - name: Replace complete Hostinger gateway environment
+        shell: bash
+        run: |
+          set -euo pipefail
+          payload="$RUNNER_TEMP/gateway-env.json"
+          response="$RUNNER_TEMP/gateway-env-response.json"
+          trap 'rm -f "$payload" "$response"' EXIT
+          node <<'NODE' > "$payload"
+          const keys=["GLOBAL_TRUST_EVALUATION_PORTAL_ENABLED","GLOBAL_TRUST_EVALUATION_ENABLED","API_GATEWAY_ADMIN_KEY","API_GATEWAY_STATE_FILE","API_GATEWAY_DELEGATED_TENANT_ID","API_GATEWAY_DELEGATED_KEY","API_GATEWAY_PROVISIONING_KEY","UNI_CO_PREVIEW_IDENTITY_BACKEND_BASE_URL","WEB_AGENT_SHADOW_API_KEY","WEB_AGENT_SHADOW_BASE_URL","WEB_AGENT_SHADOW_ENABLED","API_GATEWAY_OPERATOR_KEY","API_GATEWAY_OPERATOR_TENANT_ID"];
+          const env_vars=keys.map(key=>({key,value:String(process.env[key]||"")}));
+          if(env_vars.some(x=>!x.value)) process.exit(2);
+          process.stdout.write(JSON.stringify({env_vars}));
+          NODE
+          code="$(curl -sS --connect-timeout 10 --max-time 40 -X PUT -H 'Accept: application/json' -H 'Content-Type: application/json' -H "Authorization: Bearer ${HOSTINGER_API_TOKEN}" --data-binary "@$payload" -o "$response" -w '%{http_code}' "$HOSTINGER_URL")"
+          echo "hostinger_env_replace_status=$code"
+          test "$code" = "200" || { echo "::error title=hostinger_env_replace::status=$code"; exit 1; }
+          echo "hostinger_env_replace_applied=true"
+          echo "env_count=13"
 
-          missing=0
-          missing_names=()
-          {
-            echo "## API Gateway environment source readiness"
-            echo
-            echo "| Key | Source ready |"
-            echo "| --- | --- |"
-            for key in "${required[@]}"; do
-              if [ -n "${!key:-}" ]; then
-                echo "| \`$key\` | yes |"
-              else
-                echo "| \`$key\` | no |"
-                missing=$((missing + 1))
-                missing_names+=("$key")
+      - name: Verify Hostinger environment keyset
+        shell: bash
+        run: |
+          set -euo pipefail
+          response="$RUNNER_TEMP/gateway-env-list.json"
+          trap 'rm -f "$response"' EXIT
+          code="$(curl -sS --connect-timeout 10 --max-time 30 -H 'Accept: application/json' -H "Authorization: Bearer ${HOSTINGER_API_TOKEN}" -o "$response" -w '%{http_code}' "$HOSTINGER_URL")"
+          test "$code" = "200" || { echo "::error title=hostinger_env_verify::status=$code"; exit 1; }
+          ENV_FILE="$response" node <<'NODE'
+          const fs=require("node:fs");
+          const rows=JSON.parse(fs.readFileSync(process.env.ENV_FILE,"utf8"));
+          const expected=["GLOBAL_TRUST_EVALUATION_PORTAL_ENABLED","GLOBAL_TRUST_EVALUATION_ENABLED","API_GATEWAY_ADMIN_KEY","API_GATEWAY_STATE_FILE","API_GATEWAY_DELEGATED_TENANT_ID","API_GATEWAY_DELEGATED_KEY","API_GATEWAY_PROVISIONING_KEY","UNI_CO_PREVIEW_IDENTITY_BACKEND_BASE_URL","WEB_AGENT_SHADOW_API_KEY","WEB_AGENT_SHADOW_BASE_URL","WEB_AGENT_SHADOW_ENABLED","API_GATEWAY_OPERATOR_KEY","API_GATEWAY_OPERATOR_TENANT_ID"].sort();
+          const actual=rows.map(x=>x.key).sort();
+          if(JSON.stringify(actual)!==JSON.stringify(expected)){console.error(`::error title=hostinger_env_keyset::expected=${expected.length} actual=${actual.length}`);process.exit(1);}
+          if(rows.some(x=>x.value!=="********")){console.error("::error title=hostinger_env_masking::unexpected unmasked value");process.exit(1);}
+          console.log("hostinger_env_keyset_verified=true");
+          console.log(`hostinger_env_key_count=${actual.length}`);
+          console.log("secret_values_exposed=false");
+          NODE
+
+      - name: Wait for gateway readiness after automatic restart
+        shell: bash
+        run: |
+          set -euo pipefail
+          for attempt in $(seq 1 20); do
+            code="$(curl -sS --connect-timeout 5 --max-time 10 -o "$RUNNER_TEMP/ready.json" -w '%{http_code}' "$GATEWAY_BASE_URL/ready" || true)"
+            if [ "$code" = "200" ]; then
+              if READY_FILE="$RUNNER_TEMP/ready.json" node -e 'const fs=require("node:fs");const b=JSON.parse(fs.readFileSync(process.env.READY_FILE,"utf8"));if(b.status!=="ready")process.exit(1);'; then
+                echo "gateway_ready=true"
+                exit 0
               fi
-            done
-            echo
-            echo "- valuesExposed: \`false\`"
-            echo "- hostingerMutationPerformed: \`false\`"
-            echo "- missingCount: \`$missing\`"
-          } >> "$GITHUB_STEP_SUMMARY"
+            fi
+            sleep 3
+          done
+          echo "::error title=gateway_readiness::gateway did not become ready"
+          exit 1
 
-          missing_names_csv=""
-          if [ "$missing" -ne 0 ]; then
-            missing_names_csv="$(IFS=,; echo "${missing_names[*]}")"
-          fi
-          evidence_json="$(printf '{"missingCount":%s,"missingNames":"%s","valuesExposed":false,"hostingerMutationPerformed":false}' \
-            "$missing" \
-            "$missing_names_csv")"
-          evidence_bytes="$(printf '%s' "$evidence_json" | wc -c | tr -d '[:space:]')"
-          if [ "$evidence_bytes" -gt 512 ]; then
-            echo "ADA_EVIDENCE exceeds 512 bytes" >&2
-            exit 1
-          fi
-          printf '::notice title=ADA_EVIDENCE::%s\n' "$evidence_json"
-
-          if [ "$missing" -ne 0 ]; then
-            echo "Environment source is incomplete: $missing required keys are unavailable." >&2
-            exit 1
-          fi
-
-          echo "Environment source is complete. No values were printed."
+      - name: Verify canonical delegated key against production
+        shell: bash
+        run: |
+          set -euo pipefail
+          body="$RUNNER_TEMP/delegated.json"
+          code="$(curl -sS --connect-timeout 10 --max-time 25 -H "Authorization: Bearer ${API_GATEWAY_DELEGATED_KEY}" -H "X-Delegated-Subject-Ref: ${SUBJECT_REF}" -o "$body" -w '%{http_code}' "$GATEWAY_BASE_URL/v1/saas/access/delegated?productId=uni-juri")"
+          BODY_FILE="$body" HTTP_CODE="$code" node <<'NODE'
+          const fs=require("node:fs"); const code=Number(process.env.HTTP_CODE||0); let body={}; try{body=JSON.parse(fs.readFileSync(process.env.BODY_FILE,"utf8"));}catch{}
+          const reason=typeof body.reason==="string"?body.reason:"none"; const allowed=body.allowed===true;
+          console.log(`delegated_status=${code}`); console.log(`delegated_allowed=${allowed}`); console.log(`delegated_reason=${reason}`);
+          console.log(`binding_present=${!!(body.binding&&body.binding.tenantId&&body.binding.workspaceId)}`);
+          console.log(`proof_present=${!!(body.bindingProof&&body.bindingProof.proof)}`);
+          if(code!==200||!allowed){console.error(`::error title=delegated_probe::status=${code} reason=${reason} allowed=${allowed}`);process.exit(1);}
+          NODE
