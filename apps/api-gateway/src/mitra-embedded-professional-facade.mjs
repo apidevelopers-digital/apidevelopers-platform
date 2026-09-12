@@ -1,14 +1,24 @@
 import { createMitraProfessionalFacade as createUpstreamMitraProfessionalFacade } from "./mitra-professional-facade.mjs";
 import { createMitraEmbeddedLexTransport } from "./mitra-embedded-lex-transport.mjs";
-import { LEX_SOURCE_SHA, mitraProfessionalOrchestrator } from "@apidevelopers/lex-legal-runtime";
 
 const EMBEDDED_AUTH_MARKER = "embedded-local-no-network";
+const LEX_SOURCE_SHA = "a32f20f8fe7d4197eab8168a990846e2b89a8048";
+
+function createLazyLexDispatch() {
+  return async (payload) => {
+    const runtime = await import("@apidevelopers/lex-legal-runtime");
+    if (runtime.LEX_SOURCE_SHA !== LEX_SOURCE_SHA) {
+      throw new Error("embedded_lex_source_sha_mismatch");
+    }
+    return runtime.mitraProfessionalOrchestrator.dispatch(payload);
+  };
+}
 
 function createMitraProfessionalFacade(options = {}) {
   const { embeddedLexDispatch, ...upstreamOptions } = options;
   const dispatch = typeof embeddedLexDispatch === "function"
     ? embeddedLexDispatch
-    : mitraProfessionalOrchestrator.dispatch.bind(mitraProfessionalOrchestrator);
+    : createLazyLexDispatch();
   const transport = createMitraEmbeddedLexTransport({ dispatch });
   const baseEnv = upstreamOptions.env || process.env;
   const env = {
