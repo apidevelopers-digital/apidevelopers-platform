@@ -3,6 +3,19 @@ import { createOperationalRuntime } from "./operational-runtime.mjs";
 import { startOperationalHttpServer } from "./operational-http-transport.mjs";
 import { createWebAgentOperationalComposition } from "./web-agent-operational-composition.mjs";
 
+function composeGatewayTransforms(starterTransform, externalTransform) {
+  if (!starterTransform) return externalTransform;
+  if (!externalTransform) return starterTransform;
+
+  return (context = {}) => {
+    const starterGateway = starterTransform(context);
+    return externalTransform({
+      ...context,
+      gateway: starterGateway,
+    });
+  };
+}
+
 export async function startWebAgentOperationalGateway({
   env = process.env,
   cwd = process.cwd(),
@@ -11,6 +24,7 @@ export async function startWebAgentOperationalGateway({
   runtimeFactory = createOperationalRuntime,
   serverFactory = startOperationalHttpServer,
   webAgentFactory = createWebAgentOperationalComposition,
+  gatewayTransform,
   ...gatewayOptions
 } = {}) {
   if (typeof gatewayStarter !== "function") {
@@ -25,12 +39,27 @@ export async function startWebAgentOperationalGateway({
   if (typeof webAgentFactory !== "function") {
     throw new TypeError("webAgentFactory must be a function");
   }
+  if (
+    gatewayTransform !== undefined &&
+    typeof gatewayTransform !== "function"
+  ) {
+    throw new TypeError("gatewayTransform must be a function");
+  }
 
   let capturedRuntime;
   let webAgentDescriptor = Object.freeze({ enabled: false, mode: "shadow" });
 
   const capturingRuntimeFactory = (options = {}) => {
-    capturedRuntime = runtimeFactory(options);
+    const composedGatewayTransform = composeGatewayTransforms(
+      options.gatewayTransform,
+      gatewayTransform,
+    );
+    capturedRuntime = runtimeFactory({
+      ...options,
+      ...(composedGatewayTransform
+        ? { gatewayTransform: composedGatewayTransform }
+        : {}),
+    });
     return capturedRuntime;
   };
 
