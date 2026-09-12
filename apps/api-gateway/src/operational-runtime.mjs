@@ -15,6 +15,7 @@ import {
 import {
   createOperationalGatewayWithReadonlyOperator,
 } from "./operator-readonly-composition.mjs";
+import { createUniAccountPreviewRuntimeComposition } from "./uni-account-preview-runtime-composition.mjs";
 import { createUniCoPreviewLoginComposition } from "./web-agent-preview-login-composition.mjs";
 
 function requireText(value, name) {
@@ -68,6 +69,7 @@ export function createOperationalRuntime({
   gatewayFactory = createOperationalGatewayWithReadonlyOperator,
   gatewayTransform = ({ gateway }) => gateway,
   previewLoginCompositionFactory = createUniCoPreviewLoginComposition,
+  previewAccountRuntimeCompositionFactory = createUniAccountPreviewRuntimeComposition,
   githubRuntimeFactory = createOperatorGitHubRuntime,
   githubTransportFactory = createOperatorGitHubReadonlyTransport,
   githubSecretProviderFactory = createOperatorSecretResolverProvider,
@@ -87,6 +89,9 @@ export function createOperationalRuntime({
   if (typeof previewLoginCompositionFactory !== "function") {
     throw new TypeError("previewLoginCompositionFactory must be a function");
   }
+  if (typeof previewAccountRuntimeCompositionFactory !== "function") {
+    throw new TypeError("previewAccountRuntimeCompositionFactory must be a function");
+  }
   if (typeof githubRuntimeFactory !== "function") {
     throw new TypeError("githubRuntimeFactory must be a function");
   }
@@ -105,14 +110,12 @@ export function createOperationalRuntime({
 
   let resolvedGitHubTransport = githubTransport;
   let resolvedGitHubSecretProvider = githubSecretProvider;
-
   if (!resolvedGitHubTransport && githubConfigured) {
     if (typeof githubTransportFactory !== "function") {
       throw new TypeError("githubTransportFactory must be a function");
     }
     resolvedGitHubTransport = githubTransportFactory();
   }
-
   if (!resolvedGitHubSecretProvider && githubConfigured && githubVaultClient) {
     if (typeof githubVaultSecretProviderFactory !== "function") {
       throw new TypeError("githubVaultSecretProviderFactory must be a function");
@@ -122,7 +125,6 @@ export function createOperationalRuntime({
       allowedSecretRefs: [credentialRef],
     });
   }
-
   if (
     !resolvedGitHubSecretProvider &&
     githubConfigured &&
@@ -157,8 +159,12 @@ export function createOperationalRuntime({
   const identityBackendBaseUrl = optionalText(
     env.UNI_CO_PREVIEW_IDENTITY_BACKEND_BASE_URL,
   );
+  const handoffRedeemerAuthorization = optionalText(
+    env.UNI_CO_PREVIEW_HANDOFF_REDEEMER_AUTHORIZATION,
+  );
   let gatewayBeforeTransforms = baseGateway;
   let previewLoginDescriptor;
+  let previewAccountHandoffDescriptor;
 
   if (identityBackendBaseUrl) {
     const previewLogin = previewLoginCompositionFactory({
@@ -166,7 +172,6 @@ export function createOperationalRuntime({
       store: baseGateway.store,
       identityBackendBaseUrl,
     });
-
     if (
       previewLogin?.enabled !== true ||
       typeof previewLogin?.app?.handleRequest !== "function"
@@ -174,11 +179,27 @@ export function createOperationalRuntime({
       throw new TypeError("configured uni.co preview login is unavailable");
     }
 
+    const previewAccountHandoff = previewAccountRuntimeCompositionFactory({
+      app: previewLogin.app,
+      store: baseGateway.store,
+      loginBootstrap: previewLogin.bootstrap,
+      redeemerAuthorization: handoffRedeemerAuthorization,
+      enabled: Boolean(handoffRedeemerAuthorization),
+    });
+    if (
+      handoffRedeemerAuthorization &&
+      (previewAccountHandoff?.enabled !== true ||
+        typeof previewAccountHandoff?.app?.handleRequest !== "function")
+    ) {
+      throw new TypeError("configured uni.co preview account handoff is unavailable");
+    }
+
     gatewayBeforeTransforms = Object.freeze({
       ...baseGateway,
-      app: previewLogin.app,
+      app: previewAccountHandoff?.app ?? previewLogin.app,
     });
     previewLoginDescriptor = previewLogin.descriptor;
+    previewAccountHandoffDescriptor = previewAccountHandoff?.descriptor;
   }
 
   const gateway = gatewayTransform({
@@ -187,7 +208,6 @@ export function createOperationalRuntime({
     cwd,
     config,
   });
-
   if (typeof gateway?.app?.handleRequest !== "function") {
     throw new TypeError("operational gateway app is unavailable");
   }
@@ -209,6 +229,9 @@ export function createOperationalRuntime({
         : {}),
       ...(previewLoginDescriptor
         ? { uniCoPreviewLogin: previewLoginDescriptor }
+        : {}),
+      ...(previewAccountHandoffDescriptor
+        ? { uniAccountPreviewHandoff: previewAccountHandoffDescriptor }
         : {}),
     }),
   });
