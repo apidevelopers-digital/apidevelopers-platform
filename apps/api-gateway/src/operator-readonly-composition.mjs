@@ -61,6 +61,9 @@ export function createOperationalGatewayWithReadonlyOperator({
     ...(operationalOptions.zuniReadinessFetch
       ? { zuniReadinessFetch: operationalOptions.zuniReadinessFetch }
       : {}),
+    ...(operationalOptions.zuniCommercialActivationWriteEnabled === true
+      ? { zuniCommercialActivationWriteEnabled: true }
+      : {}),
   });
   const trustSandboxProvisioningApp = createTrustSandboxProvisioningApp({
     authenticator: base.authenticator,
