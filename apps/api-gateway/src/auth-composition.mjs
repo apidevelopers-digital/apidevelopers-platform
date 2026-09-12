@@ -15,14 +15,12 @@ function optionalText(value) {
   const normalized = String(value ?? "").trim();
   return normalized || undefined;
 }
-
 function freezeIdentity(role, principal) {
   return Object.freeze({
     role,
     principal: Object.freeze(structuredClone(principal)),
   });
 }
-
 export function createGatewayAuthenticator({
   apiKeyRepository,
   adminKey,
@@ -41,7 +39,7 @@ export function createGatewayAuthenticator({
     id: "backend-provisioner",
     name: "Backend SaaS Provisioner",
     status: "active",
-    scopes: ["saas:provision"],
+    scopes: ["saas:provision", "saas:uni-juri:access:write"],
   },
   operatorKey = optionalText(process.env.API_GATEWAY_OPERATOR_KEY),
   operatorTenantId = optionalText(process.env.API_GATEWAY_OPERATOR_TENANT_ID),
@@ -59,13 +57,11 @@ export function createGatewayAuthenticator({
     adminPrincipal,
     resolveTenantId,
   });
-
   const normalizedDelegatedKey = optionalText(delegatedKey);
   const normalizedDelegatedTenantId = optionalText(delegatedTenantId);
   const normalizedProvisioningKey = optionalText(provisioningKey);
   const normalizedOperatorKey = optionalText(operatorKey);
   const normalizedOperatorTenantId = optionalText(operatorTenantId);
-
   if (Boolean(normalizedDelegatedKey) !== Boolean(normalizedDelegatedTenantId)) {
     throw new TypeError(
       "API_GATEWAY_DELEGATED_KEY and API_GATEWAY_DELEGATED_TENANT_ID must be configured together",
@@ -82,14 +78,12 @@ export function createGatewayAuthenticator({
   if (normalizedOperatorKey && normalizedOperatorKey.length < 32) {
     throw new TypeError("API_GATEWAY_OPERATOR_KEY must contain at least 32 characters");
   }
-
   const configuredKeys = [
     ["admin", optionalText(adminKey)],
     ["delegated", normalizedDelegatedKey],
     ["provisioning", normalizedProvisioningKey],
     ["operator", normalizedOperatorKey],
   ].filter(([, key]) => Boolean(key));
-
   for (let left = 0; left < configuredKeys.length; left += 1) {
     for (let right = left + 1; right < configuredKeys.length; right += 1) {
       if (compareSecrets(configuredKeys[left][1], configuredKeys[right][1])) {
@@ -103,7 +97,6 @@ export function createGatewayAuthenticator({
   if (!normalizedDelegatedKey && !normalizedProvisioningKey && !normalizedOperatorKey) {
     return durableAuthenticator;
   }
-
   return Object.freeze({
     async authenticate(headers = {}) {
       const apiKey = extractApiKey(headers);
@@ -114,7 +107,7 @@ export function createGatewayAuthenticator({
       ) {
         return freezeIdentity("service", {
           ...provisioningPrincipal,
-          scopes: ["saas:provision"],
+          scopes: ["saas:provision", "saas:uni-juri:access:write"],
         });
       }
       if (
