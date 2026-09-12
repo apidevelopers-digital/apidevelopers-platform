@@ -1,6 +1,6 @@
 import{createMitraPublicResearchFacade}from"./mitra-public-research.mjs";
 import{createMitraPublicCamaraFetchAdapter}from"./mitra-public-camara-upstream.mjs";
-import{createMitraProfessionalFacade}from"./mitra-embedded-professional-facade.mjs";
+import{createMitraProfessionalFacade}from"./mitra-professional-facade.mjs";
 
 function numericEnv(env,name,fallback){
  const raw=String(env?.[name]??"").trim();if(!raw)return fallback;
