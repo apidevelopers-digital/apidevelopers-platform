@@ -37,7 +37,7 @@ export function createUniJuriAccessGrantWriter({ authenticator, runtime, audit, 
       if (!valid) return Object.freeze({ ok: false, status: 409, reason: "commercial_context_not_ready", writesExecuted: false });
 
       const at = new Date().toISOString();
-      const scopes = Object.freze(["use_product"]);
+      const scopes = Object.freeze(["use_product"]);
       const grant = await runtime.grantAccess({ ...binding, requiredScopes: scopes, grantedScopes: scopes, status: "pending", createdAt: at });
       const active = grant.status === "active" ? grant : await runtime.activateAccess({
         accessGrantId: grant.accessGrantId,
