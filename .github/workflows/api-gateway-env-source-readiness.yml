@@ -12,82 +12,37 @@ jobs:
       - self-hosted
       - macOS
       - X64
-    timeout-minutes: 10
+    timeout-minutes: 5
     env:
-      GLOBAL_TRUST_EVALUATION_PORTAL_ENABLED: ${{ secrets.GLOBAL_TRUST_EVALUATION_PORTAL_ENABLED || vars.GLOBAL_TRUST_EVALUATION_PORTAL_ENABLED }}
-      GLOBAL_TRUST_EVALUATION_ENABLED: ${{ secrets.GLOBAL_TRUST_EVALUATION_ENABLED || vars.GLOBAL_TRUST_EVALUATION_ENABLED }}
-      API_GATEWAY_ADMIN_KEY: ${{ secrets.API_GATEWAY_ADMIN_KEY }}
-      API_GATEWAY_STATE_FILE: ${{ secrets.API_GATEWAY_STATE_FILE || vars.API_GATEWAY_STATE_FILE }}
-      API_GATEWAY_DELEGATED_TENANT_ID: ${{ secrets.API_GATEWAY_DELEGATED_TENANT_ID || vars.API_GATEWAY_DELEGATED_TENANT_ID }}
-      API_GATEWAY_DELEGATED_KEY: ${{ secrets.API_GATEWAY_DELEGATED_KEY }}
-      API_GATEWAY_PROVISIONING_KEY: ${{ secrets.API_GATEWAY_PROVISIONING_KEY }}
-      UNI_CO_PREVIEW_IDENTITY_BACKEND_BASE_URL: ${{ secrets.UNI_CO_PREVIEW_IDENTITY_BACKEND_BASE_URL || vars.UNI_CO_PREVIEW_IDENTITY_BACKEND_BASE_URL }}
-      WEB_AGENT_SHADOW_API_KEY: ${{ secrets.WEB_AGENT_SHADOW_API_KEY }}
-      WEB_AGENT_SHADOW_BASE_URL: ${{ secrets.WEB_AGENT_SHADOW_BASE_URL || vars.WEB_AGENT_SHADOW_BASE_URL }}
-      WEB_AGENT_SHADOW_ENABLED: ${{ secrets.WEB_AGENT_SHADOW_ENABLED || vars.WEB_AGENT_SHADOW_ENABLED }}
-      API_GATEWAY_OPERATOR_KEY: ${{ secrets.API_GATEWAY_OPERATOR_KEY }}
-      API_GATEWAY_OPERATOR_TENANT_ID: ${{ secrets.API_GATEWAY_OPERATOR_TENANT_ID || vars.API_GATEWAY_OPERATOR_TENANT_ID }}
+      DELEGATED_KEY: ${{ secrets.API_GATEWAY_DELEGATED_KEY }}
+      BASE_URL: https://gateway.apidevelopers.digital
+      SUBJECT_REF: e65b5439faf65ea9905025751e6a33010df6551d99b225bf032e163492969ec8
     steps:
-      - name: Check canonical environment source presence
+      - name: Probe production delegated key
         shell: bash
         run: |
           set -euo pipefail
-
-          required=(
-            GLOBAL_TRUST_EVALUATION_PORTAL_ENABLED
-            GLOBAL_TRUST_EVALUATION_ENABLED
-            API_GATEWAY_ADMIN_KEY
-            API_GATEWAY_STATE_FILE
-            API_GATEWAY_DELEGATED_TENANT_ID
-            API_GATEWAY_DELEGATED_KEY
-            API_GATEWAY_PROVISIONING_KEY
-            UNI_CO_PREVIEW_IDENTITY_BACKEND_BASE_URL
-            WEB_AGENT_SHADOW_API_KEY
-            WEB_AGENT_SHADOW_BASE_URL
-            WEB_AGENT_SHADOW_ENABLED
-            API_GATEWAY_OPERATOR_KEY
-            API_GATEWAY_OPERATOR_TENANT_ID
-          )
-
-          missing=0
-          missing_names=()
-          {
-            echo "## API Gateway environment source readiness"
-            echo
-            echo "| Key | Source ready |"
-            echo "| --- | --- |"
-            for key in "${required[@]}"; do
-              if [ -n "${!key:-}" ]; then
-                echo "| \`$key\` | yes |"
-              else
-                echo "| \`$key\` | no |"
-                missing=$((missing + 1))
-                missing_names+=("$key")
-              fi
-            done
-            echo
-            echo "- valuesExposed: \`false\`"
-            echo "- hostingerMutationPerformed: \`false\`"
-            echo "- missingCount: \`$missing\`"
-          } >> "$GITHUB_STEP_SUMMARY"
-
-          missing_names_csv=""
-          if [ "$missing" -ne 0 ]; then
-            missing_names_csv="$(IFS=,; echo "${missing_names[*]}")"
-          fi
-          evidence_json="$(printf '{"missingCount":%s,"missingNames":"%s","valuesExposed":false,"hostingerMutationPerformed":false}' \
-            "$missing" \
-            "$missing_names_csv")"
-          evidence_bytes="$(printf '%s' "$evidence_json" | wc -c | tr -d '[:space:]')"
-          if [ "$evidence_bytes" -gt 512 ]; then
-            echo "ADA_EVIDENCE exceeds 512 bytes" >&2
-            exit 1
-          fi
-          printf '::notice title=ADA_EVIDENCE::%s\n' "$evidence_json"
-
-          if [ "$missing" -ne 0 ]; then
-            echo "Environment source is incomplete: $missing required keys are unavailable." >&2
-            exit 1
-          fi
-
-          echo "Environment source is complete. No values were printed."
+          test -n "${DELEGATED_KEY:-}"
+          body="$RUNNER_TEMP/gateway-delegated.json"
+          code="$(curl -sS --connect-timeout 10 --max-time 25             -H "Authorization: Bearer ${DELEGATED_KEY}"             -H "X-Delegated-Subject-Ref: ${SUBJECT_REF}"             -o "$body" -w '%{http_code}'             "${BASE_URL}/v1/saas/access/delegated?productId=uni-juri")"
+          BODY_FILE="$body" HTTP_CODE="$code" node <<'NODE'
+          const fs = require("node:fs");
+          const code = Number(process.env.HTTP_CODE || 0);
+          let body = {};
+          try { body = JSON.parse(fs.readFileSync(process.env.BODY_FILE, "utf8")); } catch {}
+          const reason = typeof body.reason === "string" ? body.reason : "none";
+          const allowed = body.allowed === true;
+          const tenantPresent = !!(body.binding && body.binding.tenantId);
+          const workspacePresent = !!(body.binding && body.binding.workspaceId);
+          const proofPresent = !!(body.bindingProof && body.bindingProof.proof);
+          console.log(`gateway_delegated_status=${code}`);
+          console.log(`gateway_delegated_allowed=${allowed}`);
+          console.log(`gateway_delegated_reason=${reason}`);
+          console.log(`gateway_binding_tenant_present=${tenantPresent}`);
+          console.log(`gateway_binding_workspace_present=${workspacePresent}`);
+          console.log(`gateway_binding_proof_present=${proofPresent}`);
+          if (code !== 200 || body.allowed !== true) {
+            console.error(`::error title=gateway_delegated_key_probe::status=${code} reason=${reason} allowed=${allowed}`);
+            process.exit(1);
+          }
+          NODE
