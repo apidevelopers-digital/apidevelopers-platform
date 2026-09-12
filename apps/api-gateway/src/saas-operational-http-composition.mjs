@@ -10,8 +10,8 @@ import { createUniCoCustomerProvisioningApp } from "./saas-uni-co-customer-provi
 import { createZuniProvisioningRuntimeGuard } from "./saas-zuni-provisioning-runtime-guard.mjs";
 import { createZuniOperationalReadinessComposition } from "./saas-zuni-operational-readiness-composition.mjs";
 import { createZuniPublicReadinessProbe } from "./saas-zuni-public-readiness-probe.mjs";
+import { createUniJuriAccessInventoryApp } from "./saas-unijuri-access-inventory.mjs";
 import { createApp } from "./server.mjs";
-
 function pathnameOf(url) {
   return new URL(String(url ?? "/"), "http://api-gateway.local").pathname;
 }
@@ -22,7 +22,6 @@ function resolveZuniReadinessProbe({ probeZuniProductReadiness, zuniReadinessFet
   if (typeof fetchFn !== "function") return undefined;
   return createZuniPublicReadinessProbe({ fetchFn });
 }
-
 export function createSaasOperationalHttpComposition({
   app, authenticator, audit, store, clock, delegatedBindingSigner,
   zuniProductProvisioner, probeZuniProductReadiness, zuniReadinessFetch,
@@ -30,7 +29,6 @@ export function createSaasOperationalHttpComposition({
   if (typeof app?.handleRequest !== "function") throw new TypeError("app.handleRequest must be a function");
   if (typeof authenticator?.authenticate !== "function") throw new TypeError("authenticator.authenticate must be a function");
   if (!store || typeof store.read !== "function") throw new TypeError("store is required");
-
   const saasComposition = createSaasAccessComposition({ store, ...(clock ? { clock } : {}) });
   const saasApp = createApp({ authenticator, audit, saasAccess: saasComposition.saasAccess });
   const delegatedApp = createDelegatedSaasAccessApp({
@@ -39,6 +37,7 @@ export function createSaasOperationalHttpComposition({
     federatedPrincipal: saasComposition.federatedPrincipal,
     ...(delegatedBindingSigner ? { bindingSigner: delegatedBindingSigner } : {}),
   });
+  const unijuriAccessInventoryApp = createUniJuriAccessInventoryApp({ authenticator, store });
   const zuniCommercialActivationPlanApp = createZuniCommercialActivationPlanApp({ authenticator });
   const zuniCommercialActivationDryRunApp = createZuniCommercialActivationDryRunApp({ authenticator });
   const zuniCommercialActivationControlledWriteApp =
@@ -94,10 +93,12 @@ export function createSaasOperationalHttpComposition({
     });
     return zuniPreviewProvisioningApp;
   };
-
   const wrappedApp = Object.freeze({
     async handleRequest(request = {}) {
       const pathname = pathnameOf(request.url);
+      if (pathname === "/v1/saas/uni-juri/access/inventory") {
+        return unijuriAccessInventoryApp.handleRequest(request);
+      }
       if (pathname === "/v1/saas/uni-co/provision") {
         return uniCoCustomerProvisioningApp.handleRequest(request);
       }
@@ -119,7 +120,6 @@ export function createSaasOperationalHttpComposition({
       return app.handleRequest(request);
     },
   });
-
   return Object.freeze({
     app: wrappedApp,
     saasRuntime: saasComposition.saasRuntime,
