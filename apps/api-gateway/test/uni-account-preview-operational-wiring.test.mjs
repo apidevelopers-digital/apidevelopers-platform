@@ -36,7 +36,27 @@ function githubRuntimeDisabled() {
   });
 }
 
-test("operational runtime keeps account handoff disabled when dedicated redeemer auth is absent", () => {
+function baseGateway(baseApp, store) {
+  return Object.freeze({
+    app: baseApp,
+    readiness: Object.freeze({}),
+    store,
+  });
+}
+
+function loginComposition(loginApp) {
+  return Object.freeze({
+    enabled: true,
+    app: loginApp,
+    bootstrap: Object.freeze({ async login() {} }),
+    descriptor: Object.freeze({
+      enabled: true,
+      mode: "preview-assisted",
+    }),
+  });
+}
+
+test("operational runtime keeps account handoff disabled without dedicated redeemer auth", () => {
   const baseApp = app("base");
   const loginApp = app("login");
   const store = Object.freeze({ marker: "store" });
@@ -49,24 +69,12 @@ test("operational runtime keeps account handoff disabled when dedicated redeemer
       UNI_CO_PREVIEW_IDENTITY_BACKEND_BASE_URL: "https://identity.example.test",
     },
     gatewayFactory() {
-      return Object.freeze({
-        app: baseApp,
-        readiness: Object.freeze({}),
-        store,
-      });
+      return baseGateway(baseApp, store);
     },
     previewLoginCompositionFactory(input) {
       assert.equal(input.app, baseApp);
       assert.equal(input.store, store);
-      return Object.freeze({
-        enabled: true,
-        app: loginApp,
-        bootstrap: Object.freeze({ async login() {} }),
-        descriptor: Object.freeze({
-          enabled: true,
-          mode: "preview-assisted",
-        }),
-      });
+      return loginComposition(loginApp);
     },
     previewAccountRuntimeCompositionFactory(input) {
       accountInput = input;
@@ -89,14 +97,8 @@ test("operational runtime keeps account handoff disabled when dedicated redeemer
   assert.equal(accountInput.store, store);
   assert.equal(typeof accountInput.loginBootstrap.login, "function");
   assert.equal(runtime.app, loginApp);
-  assert.equal(
-    runtime.descriptor.uniAccountPreviewHandoff.redeemerConfigured,
-    false,
-  );
-  assert.equal(
-    runtime.descriptor.uniAccountPreviewHandoff.runtimeAutoWiring,
-    false,
-  );
+  assert.equal(runtime.descriptor.uniAccountPreviewHandoff.redeemerConfigured, false);
+  assert.equal(runtime.descriptor.uniAccountPreviewHandoff.runtimeAutoWiring, false);
 });
 
 test("operational runtime mounts account handoff only with dedicated redeemer auth and does not expose the secret", () => {
@@ -115,22 +117,10 @@ test("operational runtime mounts account handoff only with dedicated redeemer au
       UNI_CO_PREVIEW_HANDOFF_REDEEMER_AUTHORIZATION: authorization,
     },
     gatewayFactory() {
-      return Object.freeze({
-        app: baseApp,
-        readiness: Object.freeze({}),
-        store,
-      });
+      return baseGateway(baseApp, store);
     },
     previewLoginCompositionFactory() {
-      return Object.freeze({
-        enabled: true,
-        app: loginApp,
-        bootstrap: Object.freeze({ async login() {} }),
-        descriptor: Object.freeze({
-          enabled: true,
-          mode: "preview-assisted",
-        }),
-      });
+      return loginComposition(loginApp);
     },
     previewAccountRuntimeCompositionFactory(input) {
       assert.equal(input.app, loginApp);
@@ -158,18 +148,12 @@ test("operational runtime mounts account handoff only with dedicated redeemer au
 
   assert.equal(transformedApp, handoffApp);
   assert.equal(runtime.app, handoffApp);
-  assert.equal(
-    runtime.descriptor.uniAccountPreviewHandoff.runtimeAutoWiring,
-    true,
-  );
-  assert.equal(
-    runtime.descriptor.uniAccountPreviewHandoff.redeemerConfigured,
-    true,
-  );
+  assert.equal(runtime.descriptor.uniAccountPreviewHandoff.runtimeAutoWiring, true);
+  assert.equal(runtime.descriptor.uniAccountPreviewHandoff.redeemerConfigured, true);
   assert.equal(JSON.stringify(runtime.descriptor).includes(authorization), false);
 });
 
-test("enabled account runtime exposes the canonical handoff service and marks runtime auto-wiring", async () => {
+test("enabled account runtime exposes the authorize-facing handoff service and marks runtime auto-wiring", async () => {
   const directory = await mkdtemp(join(tmpdir(), "uni-account-runtime-wiring-"));
   try {
     const store = createJsonFileStore({
@@ -186,7 +170,6 @@ test("enabled account runtime exposes the canonical handoff service and marks ru
 
     assert.equal(composition.enabled, true);
     assert.equal(typeof composition.handoffService?.issue, "function");
-    assert.equal(typeof composition.handoffService?.redeem, "function");
     assert.equal(composition.descriptor.runtimeAutoWiring, true);
     assert.equal(composition.descriptor.redeemerConfigured, true);
     assert.equal(composition.descriptor.productionEnabled, false);
