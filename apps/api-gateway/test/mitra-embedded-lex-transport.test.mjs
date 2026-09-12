@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 import {
-  EMBEDDDED_BASE_URL,
+  EMBEDDED_BASE_URL,
   createMitraEmbeddedLexTransport,
 } from "../src/mitra-embedded-lex-transport.mjs";
 
@@ -24,7 +24,7 @@ test("embedded transport dispatches to local Lex provider", async () => {
   });
 
   const response = await transport.fetchImpl(
-    `${EMBEDDDED_BASE_URL}/mitra/orchestrator/dispatch`,
+    `${EMBEDDED_BASE_URL}/mitra/orchestrator/dispatch`,
     {
       method: "POST",
       body: JSON.stringify({
@@ -62,7 +62,7 @@ test("embedded transport fails closed for unknown routes and invalid json", asyn
   assert.equal((await response.json()).write_executed, false);
 
   response = await transport.fetchImpl(
-    `${EMBEDDDED_BASE_URL}/mitra/orchestrator/dispatch`,
+    `${EMBEDDED_BASE_URL}/mitra/orchestrator/dispatch`,
     { method: "POST", body: "{" },
    );
   assert.equal(response.status, 400);
