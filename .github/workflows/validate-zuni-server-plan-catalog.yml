@@ -1,0 +1,58 @@
+name: Validate Zuni Server Plan Catalog
+
+on:
+  pull_request:
+    paths:
+      - "packages/saas-runtime/src/zuni-plan-catalog.mjs"
+      - "packages/saas-runtime/src/zuni-commercial-activation.mjs"
+      - "packages/saas-runtime/src/index.mjs"
+      - "packages/saas-runtime/test/zuni-plan-catalog.test.mjs"
+      - "apps/api-gateway/src/zuni-commercial.mjs"
+      - "apps/api-gateway/test/zuni-commercial.test.mjs"
+      - ".github/workflows/validate-zuni-server-plan-catalog.yml"
+  push:
+    branches:
+      - "feat/zuni-server-plan-catalog-v1"
+    paths:
+      - "packages/saas-runtime/src/zuni-plan-catalog.mjs"
+      - "packages/saas-runtime/src/zuni-commercial-activation.mjs"
+      - "packages/saas-runtime/src/index.mjs"
+      - "packages/saas-runtime/test/zuni-plan-catalog.test.mjs"
+      - "apps/api-gateway/src/zuni-commercial.mjs"
+      - "apps/api-gateway/test/zuni-commercial.test.mjs"
+      - ".github/workflows/validate-zuni-server-plan-catalog.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  validate:
+    runs-on:
+      - self-hosted
+      - macOS
+      - X64
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-node@v5
+        with:
+          node-version: "22"
+
+      - name: Link repository-local packages
+        run: |
+          set -euo pipefail
+          node apps/api-gateway/scripts/link-local-dependencies.mjs
+
+      - name: Validate Zuni commercial syntax
+        run: |
+          set -euo pipefail
+          node --check packages/saas-runtime/src/zuni-plan-catalog.mjs
+          node --check packages/saas-runtime/test/zuni-plan-catalog.test.mjs
+          node --check apps/api-gateway/src/zuni-commercial.mjs
+          node --check apps/api-gateway/test/zuni-commercial.test.mjs
+
+      - name: Prove server-selected Zuni commercial boundary
+        run: |
+          set -euo pipefail
+          node --test             packages/saas-runtime/test/zuni-plan-catalog.test.mjs             apps/api-gateway/test/zuni-commercial.test.mjs
