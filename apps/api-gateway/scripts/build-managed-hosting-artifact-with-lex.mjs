@@ -15,6 +15,7 @@ const SCRIPT_DIRECTORY = dirname(fileURLToPath(import.meta.url));
 const APP_DIRECTORY = resolve(SCRIPT_DIRECTORY, "..");
 const REPOSITORY_ROOT = resolve(APP_DIRECTORY, "../..");
 const LEX_PACKAGE_DIRECTORY = join(REPOSITORY_ROOT, "packages", "lex-legal-runtime");
+const EXPECTED_LEX_SOURCE_SHA = "a32f20f8fe7d4197eab8168a990846e2b89a8048";
 const LEX_VENDOR_DIRECTORY = "vendor/lex-legal-runtime";
 const EMBEDDED_FACADE = "src/mitra-embedded-professional-facade.mjs";
 const PACKAGE_IMPORT = '"@apidevelopers/lex-legal-runtime"';
@@ -69,6 +70,15 @@ async function readLexSourceSha() {
     /LEX_SOURCE_SHA\s*=\s*"([0-9a-f]{40})"/,
   );
   if (!match) throw new TypeError("Lex provenance must expose a 40-character source SHA");
+  if (match[1] !== EXPECTED_LEX_SOURCE_SHA) {
+    throw new TypeError(`Lex provenance mismatch: expected ${EXPECTED_LEX_SOURCE_SHA}, got ${match[1]}`);
+  }
+  const snapshot = JSON.parse(
+    await readFile(join(LEX_PACKAGE_DIRECTORY, "SNAPSHOT_VERIFIED.json"), "utf8"),
+  );
+  if (snapshot.verified !== true || snapshot.path_count !== 14 || snapshot.source_sha !== EXPECTED_LEX_SOURCE_SHA) {
+    throw new TypeError("Lex snapshot verification marker is missing or inconsistent");
+  }
   return match[1];
 }
 
