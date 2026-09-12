@@ -9,6 +9,7 @@ import { createUniCoProvisioningApp } from "./saas-uni-co-provisioning.mjs";
 import { createZuniProvisioningRuntimeGuard } from "./saas-zuni-provisioning-runtime-guard.mjs";
 import { createZuniOperationalReadinessComposition } from "./saas-zuni-operational-readiness-composition.mjs";
 import { createZuniPublicReadinessProbe } from "./saas-zuni-public-readiness-probe.mjs";
+import { createUniJuriAccessInventoryApp } from "./saas-unijuri-access-inventory.mjs";
 import { createApp } from "./server.mjs";
 
 function pathnameOf(url) {
@@ -38,6 +39,7 @@ export function createSaasOperationalHttpComposition({
     federatedPrincipal: saasComposition.federatedPrincipal,
     ...(delegatedBindingSigner ? { bindingSigner: delegatedBindingSigner } : {}),
   });
+  const unijuriAccessInventoryApp = createUniJuriAccessInventoryApp({ authenticator, store });
   const zuniCommercialActivationPlanApp = createZuniCommercialActivationPlanApp({ authenticator });
   const zuniCommercialActivationDryRunApp = createZuniCommercialActivationDryRunApp({ authenticator });
   const zuniCommercialActivationControlledWriteApp =
@@ -92,6 +94,9 @@ export function createSaasOperationalHttpComposition({
   const wrappedApp = Object.freeze({
     async handleRequest(request = {}) {
       const pathname = pathnameOf(request.url);
+      if (pathname === "/v1/saas/uni-juri/access/inventory") {
+        return unijuriAccessInventoryApp.handleRequest(request);
+      }
       if (pathname === "/v1/saas/uni-co/provision") {
         return uniCoProvisioningApp.handleRequest(request);
       }
