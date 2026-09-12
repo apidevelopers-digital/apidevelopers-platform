@@ -19,11 +19,10 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: "22"
-
       - name: Build and verify managed artifact
         run: |
           set -euo pipefail
-          node apps/api-gateway/scripts/build-managed-hosting-artifact.mjs
+          node apps/api-gateway/scripts/build-managed-hosting-artifact-with-lex.mjs
           node apps/api-gateway/scripts/verify-managed-hosting-artifact.mjs
 
       - name: Validate canonical Git production guardrails
@@ -31,26 +30,22 @@ jobs:
         run: |
           set -euo pipefail
           file=".github/workflows/api-gateway-managed-hosting-production.yml"
-
           grep -q "expected_main_sha" "$file"
           grep -q "expected_runtime_sha" "$file"
           grep -q "deploy/hostinger-gateway-runtime" "$file"
           grep -q "PRODUCTION_READY_URL" "$file"
           grep -q "gateway.apidevelopers.digital/ready" "$file"
           grep -q "persistence" "$file"
-
           if grep -Eq 'HOSTINGER_API_TOKEN|--mode apply|--transport multipart|from-archive|IGOR_APROVA_API_GATEWAY_PRODUCTION_DEPLOY' "$file"; then
             echo "Legacy Hostinger archive/apply path detected in production workflow." >&2
             exit 1
           fi
-
       - name: Validate production observability guardrails
         shell: bash
         run: |
           set -euo pipefail
           workflow=".github/workflows/api-gateway-production-observability.yml"
           script="apps/api-gateway/scripts/observe-production-readiness.mjs"
-
           test -f "$workflow"
           test -f "$script"
           grep -Fq 'cron: "*/30 * * * *"' "$workflow"
@@ -62,7 +57,6 @@ jobs:
           grep -q "production_domain_routing_regression" "$script"
           grep -q "runtime_or_upstream_unavailable" "$script"
           node --check "$script"
-
           if grep -Eq 'HOSTINGER_API_TOKEN|from-archive|parked-domains|api\.mutate|--request[[:space:]]+(POST|PUT|PATCH|DELETE)' "$workflow" "$script"; then
             echo "Mutation-capable token or Hostinger write path detected in observability monitor." >&2
             exit 1
@@ -73,7 +67,6 @@ jobs:
         run: |
           set -euo pipefail
           file=".github/workflows/api-gateway-trust-one-time-production.yml"
-
           grep -q "Trust production activation is intentionally disabled" "$file"
 
           if grep -Eq 'HOSTINGER_API_TOKEN|--mode apply|--transport multipart|from-archive|IGOR_APROVA_GATEWAY_TRUST_PRODUCAO' "$file"; then
