@@ -56,26 +56,6 @@ function loginComposition(loginApp) {
   });
 }
 
-async function withEnabledAccountRuntime(assertion) {
-  const directory = await mkdtemp(join(tmpdir(), "uni-account-runtime-wiring-"));
-  try {
-    const store = createJsonFileStore({
-      filePath: join(directory, "state.json"),
-      fsync: false,
-    });
-    const composition = createUniAccountPreviewRuntimeComposition({
-      app: app("base"),
-      store,
-      loginBootstrap: Object.freeze({ async login() {} }),
-      redeemerAuthorization: `Bearer ${"R".repeat(48)}`,
-      enabled: true,
-    });
-    await assertion(composition);
-  } finally {
-    await rm(directory, { recursive: true, force: true });
-  }
-}
-
 test("operational runtime keeps account handoff disabled without dedicated redeemer auth", () => {
   const baseApp = app("base");
   const loginApp = app("login");
@@ -143,7 +123,6 @@ test("operational runtime mounts account handoff only with dedicated redeemer au
       return loginComposition(loginApp);
     },
     previewAccountRuntimeCompositionFactory(input) {
-      accountInput = input;
       assert.equal(input.app, loginApp);
       assert.equal(input.store, store);
       assert.equal(input.enabled, true);
@@ -174,32 +153,27 @@ test("operational runtime mounts account handoff only with dedicated redeemer au
   assert.equal(JSON.stringify(runtime.descriptor).includes(authorization), false);
 });
 
-test("enabled account runtime reports enabled=true", async () => {
-  await withEnabledAccountRuntime(async (composition) => {
+test("enabled account runtime exposes authorize-facing handoff service and stays preview-only", async () => {
+  const directory = await mkdtemp(join(tmpdir(), "uni-account-runtime-wiring-"));
+  try {
+    const store = createJsonFileStore({
+      filePath: join(directory, "state.json"),
+      fsync: false,
+    });
+    const composition = createUniAccountPreviewRuntimeComposition({
+      app: app("base"),
+      store,
+      loginBootstrap: Object.freeze({ async login() {} }),
+      redeemerAuthorization: `Bearer ${"R".repeat(48)}`,
+      enabled: true,
+    });
+
     assert.equal(composition.enabled, true);
-  });
-});
-
-test("enabled account runtime exposes authorize-facing issue service", async () => {
-  await withEnabledAccountRuntime(async (composition) => {
     assert.equal(typeof composition.handoffService?.issue, "function");
-  });
-});
-
-test("enabled account runtime marks runtime auto-wiring", async () => {
-  await withEnabledAccountRuntime(async (composition) => {
     assert.equal(composition.descriptor.runtimeAutoWiring, true);
-  });
-});
-
-test("enabled account runtime marks redeemer configured", async () => {
-  await withEnabledAccountRuntime(async (composition) => {
     assert.equal(composition.descriptor.redeemerConfigured, true);
-  });
-});
-
-test("enabled account runtime remains preview-only", async () => {
-  await withEnabledAccountRuntime(async (composition) => {
     assert.equal(composition.descriptor.productionEnabled, false);
-  });
+  } finally {
+    await rm(directory, { recursive: true, force: true });
+  }
 });
