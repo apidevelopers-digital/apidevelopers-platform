@@ -23,7 +23,7 @@ function createMitraEmbeddedLexTransport({
     throw new TypeError("dispatch function is required");
   }
 
-  const normalizedBase = String(baseUrl || "").replace(/\/+$, "");
+  const normalizedBase = String(baseUrl || "").replace(/\/+$/, "");
 
   return Object.freeze({
     baseUrl: normalizedBase,
