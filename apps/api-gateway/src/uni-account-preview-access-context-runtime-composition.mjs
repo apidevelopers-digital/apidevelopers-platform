@@ -13,7 +13,7 @@ function optionalText(value) {
 function readHeader(headers, name) {
   const target = String(name).toLowerCase();
   const entry = Object.entries(headers ?? {}).find(
-    ([key]) => String key).toLowerCase() === target,
+    ([key]) => String(key).toLowerCase() === target,
   );
   const value = entry?.[1];
   return Array.isArray(value) ? value.join(", ") : value;
