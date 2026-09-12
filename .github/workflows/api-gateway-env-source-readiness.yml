@@ -91,3 +91,39 @@ jobs:
           fi
 
           echo "Environment source is complete. No values were printed."
+
+      - name: Inventory UniJuri production access context (read-only)
+        shell: bash
+        run: |
+          set -euo pipefail
+          tmp="$(mktemp)"
+          trap 'rm -f "$tmp"' EXIT
+          status="$(curl --silent --show-error --output "$tmp" --write-out '%{http_code}' \
+            --connect-timeout 10 --max-time 20 \
+            --header "Authorization: Bearer $API_GATEWAY_OPERATOR_KEY" \
+            "https://gateway.apidevelopers.digital/v1/saas/uni-juri/access/inventory")"
+
+          node --input-type=module - "$tmp" "$status" <<'NODE'
+          import fs from "node:fs";
+          const [path, status] = process.argv.slice(2);
+          let body = {};
+          try { body = JSON.parse(fs.readFileSync(path, "utf8")); } catch {}
+          const counts = Object.fromEntries(
+            ["tenants","workspaces","subscriptions","entitlements","provisioningJobs","accessGrants","principals"]
+              .map((key) => [key, Array.isArray(body[key]) ? body[key].length : null])
+          );
+          const evidence = {
+            status: Number(status),
+            ok: body.ok === true,
+            productId: body.productId ?? null,
+            revision: body.revision ?? null,
+            counts,
+            productionChanged: body.productionChanged === true,
+            secretsExposed: body.secretsExposed === true
+          };
+          console.log(`::notice title=UNIJURI_INVENTORY::${JSON.stringify(evidence)}`);
+          fs.appendFileSync(process.env.GITHUB_STEP_SUMMARY,
+            `\n## UniJuri production access inventory\n\n- HTTP: \`${status}\`\n- productId: \`${body.productId ?? "unknown"}\`\n- revision: \`${body.revision ?? "unknown"}\`\n- counts: \`${JSON.stringify(counts)}\`\n- productionChanged: \`${body.productionChanged === true}\`\n- secretsExposed: \`${body.secretsExposed === true}\`\n`
+          );
+          if (Number(status) !== 200 || body.ok !== true) process.exit(1);
+          NODE
