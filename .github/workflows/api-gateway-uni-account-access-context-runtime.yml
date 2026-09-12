@@ -59,14 +59,30 @@ jobs:
             node --check test/uni-account-preview-access-context-operational-wiring.test.mjs
           fi
 
-      - name: Exercise Uni account access-context runtime
+      - name: Exercise auth disabled boundary
+        working-directory: apps/api-gateway
+        run: node --test --test-name-pattern="consumer auth is disabled" test/uni-account-preview-access-context-runtime-composition.test.mjs
+
+      - name: Exercise dedicated server credential
+        working-directory: apps/api-gateway
+        run: node --test --test-name-pattern="consumer auth requires dedicated server credential" test/uni-account-preview-access-context-runtime-composition.test.mjs 
+
+      - name: Exercise fail-closed runtime boundary
+        working-directory: apps/api-gateway
+        run: node --test --test-name-pattern="runtime stays disabled" test/uni-account-preview-access-context-runtime-composition.test.mjs 
+
+      - name: Exercise mounted resolver boundary
+        working-directory: apps/api-gateway
+        run: node --test --test-name-pattern="runtime mounts preview resolver" test/uni-account-preview-access-context-runtime-composition.test.mjs 
+
+      - name: Exercise operational wiring when present
         working-directory: apps/api-gateway
         run: |
-          tests=(test/uni-account-preview-access-context-runtime-composition.test.mjs)
           if [ -f test/uni-account-preview-access-context-operational-wiring.test.mjs ]; then
-            tests+=(test/uni-account-preview-access-context-operational-wiring.test.mjs)
+            node --test test/uni-account-preview-access-context-operational-wiring.test.mjs
+          else
+            echo "Operational wiring test not present yet."
           fi
-          node --test "${tests[@]}"
 
       - name: Enforce preview-only boundary
         shell: bash
