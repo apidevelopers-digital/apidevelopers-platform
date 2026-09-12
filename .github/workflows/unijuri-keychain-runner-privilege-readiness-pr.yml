@@ -93,3 +93,76 @@ jobs:
           echo "::notice title=UniJuri install target::parentState=${parent_state}; parentWritable=${parent_writable}; targetState=${target_state}; targetWritable=${target_writable}"
           echo "::notice title=UniJuri privilege readiness::sudoNonInteractive=${sudo_noninteractive}; sudoInstallListable=${sudo_install_listable}; osascriptExecutable=${osascript_executable}"
           echo "::notice title=UniJuri diagnostic contract::mode=read-only; writesPerformed=false"
+
+      - name: Read-only macOS management-plane discovery
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          mdm_status=unknown
+          dep_enrolled=unknown
+          profiles_available=false
+          [[ -x /usr/bin/profiles ]] && profiles_available=true
+
+          tmp_status="${RUNNER_TEMP}/unijuri-profiles-enrollment.txt"
+          rm -f "$tmp_status"
+          trap 'rm -f "$tmp_status"' EXIT
+
+          if [[ "$profiles_available" == true ]]; then
+            set +e
+            /usr/bin/profiles status -type enrollment >"$tmp_status" 2>&1
+            profiles_rc=$?
+            set -e
+
+            if [[ "$profiles_rc" -eq 0 ]]; then
+              if /usr/bin/grep -Eiq 'MDM enrollment:[[:space:]]*Yes' "$tmp_status"; then
+                mdm_status=enrolled
+              elif /usr/bin/grep -Eiq 'MDM enrollment:[[:space:]]*No' "$tmp_status"; then
+                mdm_status=not-enrolled
+              fi
+
+              if /usr/bin/grep -Eiq 'Enrolled via DEP:[[:space:]]*Yes' "$tmp_status"; then
+                dep_enrolled=true
+              elif /usr/bin/grep -Eiq 'Enrolled via DEP:[[:space:]]*No' "$tmp_status"; then
+                dep_enrolled=false
+              fi
+            else
+              mdm_status=probe-failed
+              dep_enrolled=probe-failed
+            fi
+          fi
+
+          jamf_agent=false
+          [[ -x /usr/local/jamf/bin/jamf ]] && jamf_agent=true
+
+          kandji_agent=false
+          if [[ -d /Library/Kandji || -x /usr/local/bin/kandji ]]; then
+            kandji_agent=true
+          fi
+
+          mosyle_agent=false
+          if [[ -d "/Library/Application Support/Mosyle" || -x /usr/local/bin/mosyle ]]; then
+            mosyle_agent=true
+          fi
+
+          fleet_agent=false
+          if [[ -d "/Library/Application Support/Fleet" || -x /usr/local/bin/orbit ]]; then
+            fleet_agent=true
+          fi
+
+          root_runner_launchdaemon=false
+          shopt -s nullglob
+          for plist in /Library/LaunchDaemons/actions.runner*.plist; do
+            if [[ -f "$plist" ]]; then
+              owner="$("/usr/bin/stat" -f '%Su' "$plist" 2>/dev/null || true)"
+              if [[ "$owner" == root ]]; then
+                root_runner_launchdaemon=true
+                break
+              fi
+            fi
+          done
+
+          echo "::notice title=UniJuri macOS management enrollment::profilesAvailable=${profiles_available}; mdmStatus=${mdm_status}; automatedDeviceEnrollment=${dep_enrolled}"
+          echo "::notice title=UniJuri management agents::jamf=${jamf_agent}; kandji=${kandji_agent}; mosyle=${mosyle_agent}; fleet=${fleet_agent}"
+          echo "::notice title=UniJuri runner service plane::rootOwnedActionsRunnerLaunchDaemon=${root_runner_launchdaemon}"
+          echo "::notice title=UniJuri management-plane discovery contract::mode=read-only; rawProfileOutputEmitted=false; writesPerformed=false"
