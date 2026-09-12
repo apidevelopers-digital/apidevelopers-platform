@@ -35,7 +35,6 @@ jobs:
           test -n "${{ inputs.expected_main_sha }}"
           test -n "${{ inputs.expected_runtime_sha }}"
           test "${{ inputs.expected_main_sha }}" = "$GITHUB_SHA"
-
       - name: Checkout exact main SHA
         uses: actions/checkout@v4
         with:
@@ -47,12 +46,11 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: "22"
-
       - name: Build and verify managed runtime artifact
         shell: bash
         run: |
           set -euo pipefail
-          node apps/api-gateway/scripts/build-managed-hosting-artifact.mjs
+          node apps/api-gateway/scripts/build-managed-hosting-artifact-with-lex.mjs
           node apps/api-gateway/scripts/apply-hostinger-fixed-entry-compat.mjs
           node apps/api-gateway/scripts/verify-managed-hosting-artifact.mjs
           artifact="apps/api-gateway/dist/api-gateway-managed"
@@ -60,7 +58,6 @@ jobs:
           test -f "$artifact/src/operational-server.mjs"
           test -f "$artifact/src/hostinger-entry.mjs"
           test -f "$artifact/release-manifest.json"
-
       - name: Verify published runtime branch
         shell: bash
         run: |
@@ -74,7 +71,6 @@ jobs:
           git cat-file -e "refs/remotes/origin/$RUNTIME_BRANCH:src/operational-server.mjs"
           git cat-file -e "refs/remotes/origin/$RUNTIME_BRANCH:src/hostinger-entry.mjs"
           echo "Runtime branch is pinned to source $source_sha at $runtime_sha."
-
       - name: Verify public production readiness
         shell: bash
         run: |
@@ -82,7 +78,6 @@ jobs:
           response="$(curl --fail --silent --show-error --max-time 20 "$PRODUCTION_READY_URL")"
           READY_JSON="$response" node -e 'const p=JSON.parse(process.env.READY_JSON); const c=(p.checks||[]).find(x=>x&&x.name==="persistence"); if(p.service!=="api-gateway"||p.status!=="ready"||!c||c.critical!==true||c.status!=="ok"||c.code!=="readable"){process.exit(1)}'
           echo "Production readiness is ready with critical persistence ok/readable."
-
       - name: Confirm preflight-only behavior
         shell: bash
         run: |
