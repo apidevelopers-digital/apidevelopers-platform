@@ -6,7 +6,6 @@ import { createZuniCommercialActivationPlanApp } from "./saas-zuni-commercial-ac
 import { createZuniCommercialActivationDryRunApp } from "./saas-zuni-commercial-activation-dry-run.mjs";
 import { createZuniCommercialActivationControlledWriteApp } from "./saas-zuni-commercial-activation-controlled-write.mjs";
 import { createUniCoProvisioningApp } from "./saas-uni-co-provisioning.mjs";
-import { createUniCoCustomerProvisioningApp } from "./saas-uni-co-customer-provisioning.mjs";
 import { createZuniProvisioningRuntimeGuard } from "./saas-zuni-provisioning-runtime-guard.mjs";
 import { createZuniOperationalReadinessComposition } from "./saas-zuni-operational-readiness-composition.mjs";
 import { createZuniPublicReadinessProbe } from "./saas-zuni-public-readiness-probe.mjs";
@@ -55,13 +54,7 @@ export function createSaasOperationalHttpComposition({
     federatedPrincipal: saasComposition.federatedPrincipal,
     ...(clock ? { clock } : {}),
   });
-  const uniCoCustomerProvisioningApp = createUniCoCustomerProvisioningApp({
-    provisioningApp: uniCoProvisioningApp,
-    saasRuntime: saasComposition.saasRuntime,
-    saasAccess: saasComposition.saasAccess,
-    membershipRuntime: saasComposition.membershipRuntime,
-    ...(clock ? { clock } : {}),
-  });
+
   const concreteProbe = resolveZuniReadinessProbe({ probeZuniProductReadiness, zuniReadinessFetch });
   const readinessProvisioner =
     zuniProductProvisioner ??
@@ -71,6 +64,7 @@ export function createSaasOperationalHttpComposition({
           probeZuniProductReadiness: concreteProbe,
         }).adapter
       : undefined);
+
   const guardedProvisioningRuntime = createZuniProvisioningRuntimeGuard({
     saasRuntime: saasComposition.saasRuntime,
     ...(readinessProvisioner ? { zuniProductProvisioner: readinessProvisioner } : {}),
@@ -99,7 +93,7 @@ export function createSaasOperationalHttpComposition({
     async handleRequest(request = {}) {
       const pathname = pathnameOf(request.url);
       if (pathname === "/v1/saas/uni-co/provision") {
-        return uniCoCustomerProvisioningApp.handleRequest(request);
+        return uniCoProvisioningApp.handleRequest(request);
       }
       if (pathname === "/v1/saas/zuni/activation/plan") {
         return zuniCommercialActivationPlanApp.handleRequest(request);
