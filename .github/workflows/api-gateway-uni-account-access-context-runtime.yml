@@ -70,15 +70,15 @@ jobs:
 
       - name: Exercise dedicated server credential
         working-directory: apps/api-gateway
-        run: node --test --test-name-pattern="consumer auth requires dedicated server credential" test/uni-account-preview-access-context-runtime-composition.test.mjs 
+        run: node --test --test-name-pattern="consumer auth requires dedicated server credential" test/uni-account-preview-access-context-runtime-composition.test.mjs
 
       - name: Exercise fail-closed runtime boundary
         working-directory: apps/api-gateway
-        run: node --test --test-name-pattern="runtime stays disabled" test/uni-account-preview-access-context-runtime-composition.test.mjs 
+        run: node --test --test-name-pattern="runtime stays disabled" test/uni-account-preview-access-context-runtime-composition.test.mjs
 
       - name: Exercise mounted resolver boundary
         working-directory: apps/api-gateway
-        run: node --test --test-name-pattern="runtime mounts preview resolver" test/uni-account-preview-access-context-runtime-composition.test.mjs 
+        run: node --test --test-name-pattern="runtime mounts preview resolver" test/uni-account-preview-access-context-runtime-composition.test.mjs
 
       - name: Exercise operational wiring when present
         working-directory: apps/api-gateway
@@ -93,8 +93,8 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          grep -Fq 'productionEnabled: false' apps/api-gateway/src/account-access-context-preview-composition.mjs
-          grep -Fq 'runtimeAutoWiring: true' apps/api-gateway/src/uni-account-preview-access-context-runtime-composition.mjs
+          grep -Eq 'productionEnabled:[[:space:]]*false' apps/api-gateway/src/account-access-context-preview-composition.mjs
+          grep -Eq 'runtimeAutoWiring:[[:space:]]*true' apps/api-gateway/src/uni-account-preview-access-context-runtime-composition.mjs
           if grep -Fq 'UNI_CO_PREVIEW_ACCESS_CONTEXT_AUTHORIZATION' apps/api-gateway/src/uni-account-preview-access-context-runtime-composition.mjs; then
             echo "Runtime composition must not embed environment variable names or secret values."
             exit 1
