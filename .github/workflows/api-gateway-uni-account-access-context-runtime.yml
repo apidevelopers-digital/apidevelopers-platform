@@ -37,24 +37,7 @@ jobs:
           node-version: "22"
 
       - name: Link institutional local dependencies
-        shell: bash
-        run: |
-          set -euo pipefail
-          root="$GITHUB_WORKSPACE"
-          mkdir -p "$root/apps/api-gateway/node_modules/@apidevelopers"
-          ln -sfn "$root/packages/contracts" "$root/apps/api-gateway/node_modules/@apidevelopers/contracts"
-          ln -sfn "$root/packages/persistence-core" "$root/apps/api-gateway/node_modules/@apidevelopers/persistence-core"
-          ln -sfn "$root/packages/auth-core" "$root/apps/api-gateway/node_modules/@apidevelopers/auth-core"
-          ln -sfn "$root/packages/apikey-core" "$root/apps/api-gateway/node_modules/@apidevelopers/apikey-core"
-          ln -sfn "$root/packages/saas-runtime" "$root/apps/api-gateway/node_modules/@apidevelopers/saas-runtime"
-          mkdir -p "$root/packages/auth-core/node_modules/@apidevelopers"
-          ln -sfn "$root/packages/apikey-core" "$root/packages/auth-core/node_modules/@apidevelopers/apikey-core"
-          mkdir -p "$root/packages/apikey-core/node_modules/@apidevelopers"
-          ln -sfn "$root/packages/persistence-core" "$root/packages/apikey-core/node_modules/@apidevelopers/persistence-core"
-          mkdir -p "$root/packages/saas-runtime/node_modules/@apidevelopers"
-          ln -sfn "$root/packages/contracts" "$root/packages/saas-runtime/node_modules/@apidevelopers/contracts"
-          ln -sfn "$root/packages/auth-core" "$root/packages/saas-runtime/node_modules/@apidevelopers/auth-core"
-          ln -sfn "$root/packages/persistence-core" "$root/packages/saas-runtime/node_modules/@apidevelopers/persistence-core"
+        run: node apps/api-gateway/scripts/link-local-dependencies.mjs
 
       - name: Check Uni account access-context runtime syntax
         working-directory: apps/api-gateway
@@ -71,7 +54,6 @@ jobs:
       - name: Exercise dedicated server credential
         working-directory: apps/api-gateway
         run: node --test --test-name-pattern="consumer auth requires dedicated server credential" test/uni-account-preview-access-context-runtime-composition.test.mjs
-
       - name: Exercise fail-closed runtime boundary
         working-directory: apps/api-gateway
         run: node --test --test-name-pattern="runtime stays disabled" test/uni-account-preview-access-context-runtime-composition.test.mjs
@@ -79,7 +61,6 @@ jobs:
       - name: Exercise mounted resolver boundary
         working-directory: apps/api-gateway
         run: node --test --test-name-pattern="runtime mounts preview resolver" test/uni-account-preview-access-context-runtime-composition.test.mjs
-
       - name: Exercise operational wiring when present
         working-directory: apps/api-gateway
         run: |
