@@ -3,7 +3,7 @@
   "format": "managed-node-zip",
   "service": "api-gateway",
   "version": "0.8.0",
-  "sourceRevision": "7cd4ffe4ca087c6619922e7ef6e7b60352602729",
+  "sourceRevision": "d6d1d0f259cb878f4f01be3bb74b117b625bf038",
   "runtime": {
     "node": ">=22",
     "entrypoint": "src/hostinger-entry.mjs",
@@ -67,6 +67,13 @@
       "name": "@apidevelopers/kernel-runtime",
       "version": "0.2.0",
       "directory": "vendor/kernel-runtime"
+    },
+    {
+      "name": "@apidevelopers/lex-legal-runtime",
+      "version": "1.0.0",
+      "directory": "vendor/lex-legal-runtime",
+      "distribution": "embedded-relative-import",
+      "sourceRevision": "a32f20f8fe7d4197eab8168a990846e2b89a8048"
     },
     {
       "name": "@apidevelopers/persistence-core",
@@ -566,6 +573,16 @@
       "sha256": "4fe357539d41458b7419ac4ba62fe7b9deb3213ab6f0c5a16d5dafa06248fbbb"
     },
     {
+      "path": "src/mitra-embedded-lex-transport.mjs",
+      "bytes": 2427,
+      "sha256": "9e3de28cb4aae938f383dfd1f601f9302d928cd1f8b401e194004ab4277026b3"
+    },
+    {
+      "path": "src/mitra-embedded-professional-facade.mjs",
+      "bytes": 1543,
+      "sha256": "6b06846b5c5f2abe0c628f024b208b542c33be0e10255e7fc9238010363d76d1"
+    },
+    {
       "path": "src/mitra-professional-common.mjs",
       "bytes": 5268,
       "sha256": "f53a8d59a1c08ec7ddf4c5ddb7769ef4a629661c2eab81ac155357ce08df7348"
@@ -577,8 +594,8 @@
     },
     {
       "path": "src/mitra-professional-facade.mjs",
-      "bytes": 8433,
-      "sha256": "c12f41db5fbc8a47158390f0c81116589884b36d37a5a51c9605a451195f1192"
+      "bytes": 8489,
+      "sha256": "b43cd217ffdda87a91027309669f893dfbfd0fc5124d6ee38791f219aebad6ae"
     },
     {
       "path": "src/mitra-public-camara-upstream.mjs",
@@ -592,8 +609,8 @@
     },
     {
       "path": "src/mitra-public-operational-wrapper.mjs",
-      "bytes": 4570,
-      "sha256": "96aa8f3cb992e0dc640cadc52efccc0d6a39c8a02144ae4383b30c2a27bd0991"
+      "bytes": 4579,
+      "sha256": "44d27b4222067f15ffd1aebbc9679139a4a7b9431f2fb7337bc39f52fc98cd37"
     },
     {
       "path": "src/mitra-public-research.mjs",
@@ -677,8 +694,8 @@
     },
     {
       "path": "src/operational-runtime.mjs",
-      "bytes": 9569,
-      "sha256": "bc816e7afacc56f361288a1e61f088fa7ad11ff3ecdae840d8c5023bd604d4bd"
+      "bytes": 6625,
+      "sha256": "436e75a97dff9b6f1034bdaaeea042343d66359c6a1ef68362ae4dff41328b11"
     },
     {
       "path": "src/operational-server-runtime.mjs",
@@ -977,8 +994,8 @@
     },
     {
       "path": "src/saas-operational-http-composition.mjs",
-      "bytes": 6397,
-      "sha256": "da58e0114462eb9a23e37b65ce7c6c9fe034a419c8f6b88b2f6b07a06bf5c6dd"
+      "bytes": 6309,
+      "sha256": "51bf3487b076846854344f40a8d6af8d258f469d670b48b9e0d8884df6819f70"
     },
     {
       "path": "src/saas-provisioning.mjs",
@@ -991,19 +1008,19 @@
       "sha256": "6573fe1e64dc5a14d08c85867fc8bab0b939b8bc1746330784c089bda2ce5a06"
     },
     {
-      "path": "src/saas-uni-co-customer-membership.mjs",
-      "bytes": 5216,
-      "sha256": "b7f504c6222d8003c58fd0fd61402c426e55985d509a94846a6051387d2693d8"
-    },
-    {
-      "path": "src/saas-uni-co-customer-provisioning.mjs",
-      "bytes": 5386,
-      "sha256": "5cd5b040aec80ee03da6c9bd7e22bb9838142ae5ceb20c5115e92fa7d2abe3b0"
-    },
-    {
       "path": "src/saas-uni-co-provisioning.mjs",
       "bytes": 8719,
       "sha256": "3cbcb4fc441539b3b8f4e4b8860d7e0a495fd108ad619fa04011d06074136463"
+    },
+    {
+      "path": "src/saas-unijuri-access-grant-writer.mjs",
+      "bytes": 3811,
+      "sha256": "f66603db20310514e0cf963943086762e7136c049e5fb88098d55310e83e353d"
+    },
+    {
+      "path": "src/saas-unijuri-access-inventory.mjs",
+      "bytes": 4287,
+      "sha256": "badf63e54afe7fd77e5996d6b064c6e88128ec9fe755bd473f40db56c5c8fcb6"
     },
     {
       "path": "src/saas-unijuri-delegated-binding-keychain-provisioner.mjs",
@@ -1111,26 +1128,6 @@
       "sha256": "6b406e14ae73d890086e2bf78d857079410d6a6669f070c0d8981d98bc6816ef"
     },
     {
-      "path": "src/uni-account-preview-access-context-runtime-composition.mjs",
-      "bytes": 3407,
-      "sha256": "3e3a6cba6386ad62308319f26b516824c426e5d3db36e8dc665e8dc0461c863c"
-    },
-    {
-      "path": "src/uni-account-preview-authorize-http.mjs",
-      "bytes": 7333,
-      "sha256": "490a42d34e2198e382e8090654966462682e02cfbf0ae774f33271f35ee11dd2"
-    },
-    {
-      "path": "src/uni-account-preview-operational-server.mjs",
-      "bytes": 2925,
-      "sha256": "f0a2617f244f4113aa8faa2c7722a3dff6933a0346d4dec4e769948197325a9f"
-    },
-    {
-      "path": "src/uni-account-preview-runtime-composition.mjs",
-      "bytes": 4377,
-      "sha256": "36d2a81c58247f3ce83c38c5e0e18ebd46fa94fa78ef9a84b2291e72f6f62d95"
-    },
-    {
       "path": "src/uni-co-preview-bootstrap.mjs",
       "bytes": 4295,
       "sha256": "869851a3b910e35207a848cd7b35d8af7b0c58ade9dde5baf56f45566fc57e64"
@@ -1172,8 +1169,8 @@
     },
     {
       "path": "src/web-agent-preview-login-composition.mjs",
-      "bytes": 2796,
-      "sha256": "cfaa713099e8c73fbd74b8cb2f407eb5e869e2c7881fff7e3eea52d7b3a52408"
+      "bytes": 2798,
+      "sha256": "c03df197e44ea70f1b0f6d4e7d2b932d318e8359ca66b51365fdf4176c52458c"
     },
     {
       "path": "src/web-agent-preview-login-http.mjs",
@@ -1187,8 +1184,8 @@
     },
     {
       "path": "src/web-agent-preview-session-bootstrap.mjs",
-      "bytes": 3713,
-      "sha256": "a716016c4ba7524e158e4ab834c3b1aa49708c2d03960b64c9c8c2d9dfaaec6d"
+      "bytes": 3715,
+      "sha256": "9488a8407efb78753e0d2ec46ef54b165f8ca6765a90fad83d2e415af288de4b"
     },
     {
       "path": "src/web-agent-product-binding.mjs",
@@ -1579,6 +1576,91 @@
       "path": "vendor/kernel-runtime/src/index.mjs",
       "bytes": 4564,
       "sha256": "9c2c1fa951510411a54bab3fe7ded1c754000ddeb793715a4f27f08d4bf44df9"
+    },
+    {
+      "path": "vendor/lex-legal-runtime/package.json",
+      "bytes": 334,
+      "sha256": "affbec5555ee7bab72286c8e6783df09d89dd861c7d934862d46d231cd430365"
+    },
+    {
+      "path": "vendor/lex-legal-runtime/src/index.js",
+      "bytes": 229,
+      "sha256": "d784a197d2903bc89c459e0445a988f64115efd80eb0c50727395c4fd80d5ae7"
+    },
+    {
+      "path": "vendor/lex-legal-runtime/src/provenance.js",
+      "bytes": 649,
+      "sha256": "2ba899eaa9159878c8663f0900e3a5ae2fa89e16616fb10788bdd86499f87816"
+    },
+    {
+      "path": "vendor/lex-legal-runtime/src/vendor/lex/lex_strategy_contract.js",
+      "bytes": 8586,
+      "sha256": "7bb1c1cdb6420dd8a61a811571cd24780c5debdcfd8a38003a63723b8963a3f1"
+    },
+    {
+      "path": "vendor/lex-legal-runtime/src/vendor/lex/lex_strategy.js",
+      "bytes": 11350,
+      "sha256": "77e7362ee32986962ce4301bc30582ffdf35c679510c2e54f70be267deb1192c"
+    },
+    {
+      "path": "vendor/lex-legal-runtime/src/vendor/lex/src/claim-evidence-validator.js",
+      "bytes": 7827,
+      "sha256": "ec82509ce7b6cc49cf12f893436a58f3fd6bd6fe75f9810f6f8ae03754cdfd1e"
+    },
+    {
+      "path": "vendor/lex-legal-runtime/src/vendor/lex/src/consolidated-search.js",
+      "bytes": 3213,
+      "sha256": "798f4649b77ac23b863fab4930a171f8840a84b3fcd91c0aa096f87ef46a846d"
+    },
+    {
+      "path": "vendor/lex-legal-runtime/src/vendor/lex/src/datajud.js",
+      "bytes": 5021,
+      "sha256": "761d3622b8360a1e3507c3d225adf1dbdb251b4f22866694af9d62f6c87a8c86"
+    },
+    {
+      "path": "vendor/lex-legal-runtime/src/vendor/lex/src/evidence-validator.js",
+      "bytes": 7577,
+      "sha256": "e2d28c68ec4d00652bc7aa764f9de87b89777719ce07512b508e046f7f38df1a"
+    },
+    {
+      "path": "vendor/lex-legal-runtime/src/vendor/lex/src/global-search.js",
+      "bytes": 3072,
+      "sha256": "838c2aca5b7856f41fcef580746d722ad5f6eb8a6e3bc20fd8cc1ff18b27825c"
+    },
+    {
+      "path": "vendor/lex-legal-runtime/src/vendor/lex/src/jurimetrics.js",
+      "bytes": 9602,
+      "sha256": "9f87b35c58e2743a604edcda78d3ba66cd56a291c66712b204997576b020d593"
+    },
+    {
+      "path": "vendor/lex-legal-runtime/src/vendor/lex/src/legislation.js",
+      "bytes": 5584,
+      "sha256": "f23eb8577a1f0e9a2eb8e6c62422446fceaa41d8ff69aa41f15c7a0d015454e6"
+    },
+    {
+      "path": "vendor/lex-legal-runtime/src/vendor/lex/src/lexml.js",
+      "bytes": 8691,
+      "sha256": "33a1c98ad82e7c2c75d0835a46639be3593c8f5858ab0fbd7a1f2ec513124c89"
+    },
+    {
+      "path": "vendor/lex-legal-runtime/src/vendor/lex/src/mitra-orchestrator.js",
+      "bytes": 7349,
+      "sha256": "c97a6a5d5f645f1137df86b3fcafe26af533ec9bd7366553c12db4e3ff0acb25"
+    },
+    {
+      "path": "vendor/lex-legal-runtime/src/vendor/lex/src/normative-validity-validator.js",
+      "bytes": 10386,
+      "sha256": "13ea5b7f46b0f0e0e31c92b7a9b71dbe98045145c3f735a198626c11f6f1d43b"
+    },
+    {
+      "path": "vendor/lex-legal-runtime/src/vendor/lex/src/semantic-claim-validator.js",
+      "bytes": 6221,
+      "sha256": "7a9bff8067f9cfd7fc38ad46a30384833a388fcb444e3c4222f197c11e0de8ca"
+    },
+    {
+      "path": "vendor/lex-legal-runtime/src/vendor/lex/stj_jurisprudencia.js",
+      "bytes": 6937,
+      "sha256": "1c6e937a845cf13eeb624b38ad407b8f884d791201218cfbd0428aab7d564e5b"
     },
     {
       "path": "vendor/persistence-core/package.json",

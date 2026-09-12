@@ -6,7 +6,7 @@ import {
   uniCoPreviewAuthenticationEvidenceCollection,
 } from "./web-agent-preview-authentication-evidence.mjs";
 
-export const uniCoPreviewLoginHost="uni-preview.apidevelopers.digital";
+export const uniCoPreviewLoginHost="unico-preview.apidevelopers.digital";
 export const uniCoPreviewProductId="product:uni-co";
 export const uniCoPreviewAgentId="uni.co";
 const req=(v,n)=>{v=String(v??"").trim();if(!v)throw new TypeError(`${n} is required`);return v};

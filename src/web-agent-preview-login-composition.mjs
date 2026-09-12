@@ -71,7 +71,7 @@ export function createUniCoPreviewLoginComposition({
       enabled: true,
       mode: "preview-assisted",
       productId: "product:uni-co",
-      host: "uni-preview.apidevelopers.digital",
+      host: "unico-preview.apidevelopers.digital",
       identityBackendConfigured:
         typeof identityBackendBaseUrl === "string" && identityBackendBaseUrl.trim().length > 0,
       automaticProvisioning: false,
