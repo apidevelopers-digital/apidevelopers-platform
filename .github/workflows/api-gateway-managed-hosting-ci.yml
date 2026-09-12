@@ -24,6 +24,11 @@ jobs:
           set -euo pipefail
           node apps/api-gateway/scripts/build-managed-hosting-artifact-with-lex.mjs
           node apps/api-gateway/scripts/verify-managed-hosting-artifact.mjs
+          artifact="apps/api-gateway/dist/api-gateway-managed"
+          test -f "$artifact/vendor/lex-legal-runtime/src/index.js"
+          grep -Fq '"@apidevelopers/lex-legal-runtime"' "$artifact/release-manifest.json"
+          grep -Fq 'a32f20f8fe7d4197eab8168a990846e2b89a8048' "$artifact/release-manifest.json"
+          grep -Fq '"../vendor/lex-legal-runtime/src/index.js"' "$artifact/src/mitra-embedded-professional-facade.mjs"
 
       - name: Validate canonical Git production guardrails
         shell: bash
