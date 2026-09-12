@@ -7,7 +7,7 @@ function clean(value, limit = 400) {
 }
 
 function intCode(value, field) {
-  if (value === undefined ||.value === null ||.value === "") return null;
+  if (value === undefined || value === null || value === "") return null;
   const raw = clean(value, 30);
   if (!/^\d+$/.test(raw)) {
     const error = new Error(`${field} must be a positive integer code`);
