@@ -1,0 +1,65 @@
+name: API Gateway Readiness Diagnostic
+on:
+  pull_request:
+    branches: [main]
+    paths: [".github/workflows/api-gateway-readiness-diagnostic.yml"]
+permissions:
+  contents: read
+jobs:
+  diagnose:
+    runs-on: [self-hosted, macOS, X64]
+    timeout-minutes: 5
+    steps:
+      - name: Probe sanitized readiness
+        shell: bash
+        env:
+          PARENT_URL: "https://dodgerblue-heron-996886.hostingersite.com/ready"
+          PRODUCTION_URL: "https://gateway.apidevelopers.digital/ready"
+        run: |
+          set -euo pipefail
+          probe() {
+            local name="$1"
+            local url="$2"
+            local body="$RUNNER_TEMP/${name}.json"
+            local status
+            status="$(curl --silent --show-error --location --connect-timeout 10 --max-time 20 --output "$body" --write-out "%{http_code}" "$url" || true)"
+            python3 - "$name" "$status" "$body" <<'PY'
+          import json, sys
+          name, status, path = sys.argv[1:]
+          try:
+              payload = json.load(open(path, encoding="utf-8"))
+          except Exception as exc:
+              payload = {}
+              parse_error = type(exc).__name__
+          else:
+              parse_error = None
+          checks = payload.get("checks") if isinstance(payload.get("checks"), list) else []
+          persistence = next((c for c in checks if isinstance(c, dict) and c.get("name") == "persistence"), None)
+          valid = (
+              status == "200"
+              and payload.get("service") == "api-gateway"
+              and payload.get("status") == "ready"
+              and isinstance(persistence, dict)
+              and persistence.get("critical") is True
+              and persistence.get("status") == "ok"
+              and persistence.get("code") == "readable"
+          )
+          print(json.dumps({
+              "name": name,
+              "httpStatus": int(status) if status.isdigit() else None,
+              "valid": valid,
+              "service": payload.get("service"),
+              "status": payload.get("status"),
+              "persistence": None if not isinstance(persistence, dict) else {
+                  "critical": persistence.get("critical"),
+                  "status": persistence.get("status"),
+                  "code": persistence.get("code"),
+              },
+              "parseError": parse_error,
+              "writeExecuted": False,
+          }, separators=(",", ":")))
+          PY
+          }
+          probe parent "$PARENT_URL"
+          probe production "$PRODUCTION_URL"
+# diagnostic refresh: 2026-08-26T13:07-03:00
