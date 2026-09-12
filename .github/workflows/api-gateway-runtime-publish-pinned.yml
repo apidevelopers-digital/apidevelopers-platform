@@ -58,7 +58,7 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          GITHUB_SHA="$SOURCE_SHA" node apps/api-gateway/scripts/build-managed-hosting-artifact.mjs
+          GITHUB_SHA="$SOURCE_SHA" node apps/api-gateway/scripts/build-managed-hosting-artifact-with-lex.mjs
           node apps/api-gateway/scripts/apply-hostinger-fixed-entry-compat.mjs
           node apps/api-gateway/scripts/verify-managed-hosting-artifact.mjs
           artifact="apps/api-gateway/dist/api-gateway-managed"
