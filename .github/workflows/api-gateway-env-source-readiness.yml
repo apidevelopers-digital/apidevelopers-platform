@@ -1,62 +1,29 @@
 name: API Gateway Env Source Readiness
-
 on:
   workflow_dispatch: {}
-
 permissions:
   contents: read
-
 jobs:
   readiness:
-    runs-on:
-      - self-hosted
-      - macOS
-      - X64
-    timeout-minutes: 10
+    runs-on: [self-hosted, macOS, X64]
+    timeout-minutes: 5
     env:
       API_GATEWAY_OPERATOR_KEY: ${{ secrets.API_GATEWAY_OPERATOR_KEY }}
     steps:
-      - name: Inspect live UniJuri SaaS inventory safely
+      - name: Inspect UniJuri live grants safely
         shell: bash
         run: |
           set -euo pipefail
-          if [ -z "${API_GATEWAY_OPERATOR_KEY:-}" ]; then
-            echo "::error title=unijuri_live_inventory::operator_key_missing"
-            exit 1
-          fi
-
-          base="https://gateway.apidevelopers.digital"
-          subject="e65b5439faf65ea9905025751e6a33010df6551d99b225bf032e163492969ec8"
-          tmp="$(mktemp -d)"
-          trap 'rm -rf "$tmp"' EXIT
-
-          probe() {
-            local name="$1"
-            local path="$2"
-            local out="$tmp/$name.json"
-            local status
-            status="$(curl -sS -o "$out" -w '%{http_code}'               -H "Authorization: Bearer ${API_GATEWAY_OPERATOR_KEY}"               -H 'Accept: application/json'               "${base}${path}")"
-            node - "$name" "$status" "$out" "$subject" <<'NODE'
-          const fs = require('fs');
-          const [name,status,file,subject] = process.argv.slice(2);
-          let data = null;
-          try { data = JSON.parse(fs.readFileSync(file,'utf8')); } catch {}
-          const text = JSON.stringify(data ?? {});
-          const evidence = {
-            name,
-            status: Number(status),
-            json: Boolean(data),
-            mentionsUniJuri: text.includes('uni-juri'),
-            mentionsSubject: text.includes(subject),
-            valuesExposed: false,
-            mutationPerformed: false
-          };
-          console.log(`::notice title=unijuri_live_inventory::${JSON.stringify(evidence)}`);
-          if (Number(status) >= 500) process.exitCode = 1;
+          test -n "${API_GATEWAY_OPERATOR_KEY:-}"
+          out="$(mktemp)"
+          trap 'rm -f "$out"' EXIT
+          status="$(curl -sS -o "$out" -w '%{http_code}' -H "Authorization: Bearer ${API_GATEWAY_OPERATOR_KEY}" -H 'Accept: application/json' 'https://gateway.apidevelopers.digital/api/operator/v1/saas/access-grants')"
+          node - "$status" "$out" <<'NODE'
+          const fs=require('fs');
+          const [status,file]=process.argv.slice(2);
+          let data=null; try{data=JSON.parse(fs.readFileSync(file,'utf8'))}catch{}
+          const text=JSON.stringify(data??{});
+          const evidence={status:Number(status),json:Boolean(data),mentionsUniJuri:text.includes('uni-juri'),mentionsSubject:text.includes('e65b5439faf65ea9905025751e6a33010df6551d99b225bf032e163492969ec8'),valuesExposed:false,mutationPerformed:false};
+          console.log(`::notice title=unijuri_live_grants::${JSON.stringify(evidence)}`);
+          if(Number(status)>=500)process.exit(1);
           NODE
-          }
-
-          probe tenants "/api/operator/v1/saas/tenants"
-          probe workspaces "/api/operator/v1/saas/tenants/tenant_uni/workspaces"
-          probe grants "/api/ioperator/v1/saas/access-grants"
-          probe subscriptions "/api/operator/v1/saas/subscriptions"
