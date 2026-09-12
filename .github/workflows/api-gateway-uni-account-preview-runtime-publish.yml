@@ -43,7 +43,7 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          node apps/api-gateway/scripts/build-managed-hosting-artifact-with-lex.mjs
+          node apps/api-gateway/scripts/build-managed-hosting-artifact.mjs
           node apps/api-gateway/scripts/apply-hostinger-fixed-entry-compat.mjs
           node apps/api-gateway/scripts/verify-managed-hosting-artifact.mjs
           artifact="apps/api-gateway/dist/api-gateway-managed"
@@ -51,13 +51,6 @@ jobs:
           rm -rf "$runtime"
           mkdir -p "$runtime"
           cp -R "$artifact/." "$runtime/"
-          test -f "$runtime/src/uni-account-preview-operational-server.mjs"
-          mv "$runtime/src/operational-server.mjs" "$runtime/src/operational-server-base.mjs"
-          sed 's#"\./operational-server\.mjs"#"./operational-server-base.mjs"#' \
-            "$runtime/src/uni-account-preview-operational-server.mjs" \
-            > "$runtime/src/operational-server.mjs"
-          node --check "$runtime/src/operational-server.mjs"
-          node --check "$runtime/src/operational-server-base.mjs"
           echo "RUNTIME_DIR=$runtime" >> "$GITHUB_ENV"
 
       - name: Publish deploy-only branch from approved preview source
