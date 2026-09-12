@@ -3,7 +3,7 @@
   "format": "managed-node-zip",
   "service": "api-gateway",
   "version": "0.8.0",
-  "sourceRevision": "82f80ebc3fb0c16a39873ebdcb65266434353d22",
+  "sourceRevision": "7cd4ffe4ca087c6619922e7ef6e7b60352602729",
   "runtime": {
     "node": ">=22",
     "entrypoint": "src/hostinger-entry.mjs",
