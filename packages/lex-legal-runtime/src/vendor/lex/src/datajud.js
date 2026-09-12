@@ -3,7 +3,7 @@ const DATAJUD_TRIBUNAIS = new Set(`
 tjsc tjpr tjrs tjmg tjrj tjsp tjba tjce tjpe tjgo tjma tjms tjmt tjpa tjpb tjpi tjrn tjro tjrr tjse tjto tjdft
 trf1 trf2 trf3 trf4 trf5 trf6
 stj stf tst
-trt1 trt2 trt3 trt4 trt5 trt6 trt7 rtt8 trt9 trt10 trt11 trt12 trt13 trt14 trt15 trt16 trt17 trt18 trt19 trt20 trt21 trt22 trt23 trt24
+trt1 trt2 trt3 trt4 trt5 trt6 trt7 trt8 trt9 trt10 trt11 trt12 trt13 trt14 trt15 trt16 trt17 trt18 trt19 trt20 trt21 trt22 trt23 trt24
 tjac tjal tjam tjap tjes
 treac treal tream treap treba trece tredf trees trego trema tremg trems tremt trepa trepb trepe trepi trepr trerj trern trero trerr trers tresc trese tresp treto
 tjmmg tjmrs tjmsp
@@ -40,7 +40,7 @@ async function getProcesso({ numeroCnj, tribunal = "tjsc", size = 1, fetchImpl =
   const numero = normalizeCnj(numeroCnj);
   const trib = normalizeTribunal(tribunal);
 
-  if (!numero) return { http: 400, payload: { ok: false, status: "error", error: "numero_cnj/invalid" } };
+  if (!numero) return { http: 400, payload: { ok: false, status: "error", error: "numero_cnj_invalid" } };
   if (!trib) return { http: 400, payload: { ok: false, status: "error", error: "tribunal_invalid" } };
 
   const ready = readiness();
