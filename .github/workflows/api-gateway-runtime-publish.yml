@@ -51,6 +51,13 @@ jobs:
           rm -rf "$runtime"
           mkdir -p "$runtime"
           cp -R "$artifact/." "$runtime/"
+          test -f "$runtime/src/uni-account-preview-operational-server.mjs"
+          mv "$runtime/src/operational-server.mjs" "$runtime/src/operational-server-base.mjs"
+          sed 's#"\./operational-server\.mjs"#"./operational-server-base.mjs"#' \
+            "$runtime/src/uni-account-preview-operational-server.mjs" \
+            > "$runtime/src/operational-server.mjs"
+          node --check "$runtime/src/operational-server.mjs"
+          node --check "$runtime/src/operational-server-base.mjs"
           echo "RUNTIME_DIR=$runtime" >> "$GITHUB_ENV"
 
       - name: Publish deploy-only branch from approved preview source
