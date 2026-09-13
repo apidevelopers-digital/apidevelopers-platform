@@ -1,32 +1,86 @@
-name: Gateway State Path Classification
+name: UniJuri Persistent Restore Bootstrap
+
 on:
   workflow_dispatch:
+
 permissions:
   contents: read
+
+concurrency:
+  group: unijuri-persistent-restore-bootstrap
+  cancel-in-progress: false
+
 jobs:
-  classify:
+  restore:
     runs-on: [self-hosted, macOS, X64]
-    timeout-minutes: 3
+    timeout-minutes: 5
     env:
-      API_GATEWAY_STATE_FILE: ${{ secrets.API_GATEWAY_STATE_FILE || vars.API_GATEWAY_STATE_FILE }}
+      API_GATEWAY_ADMIN_KEY: ${{ secrets.API_GATEWAY_ADMIN_KEY }}
     steps:
       - uses: actions/setup-node@v4
         with:
           node-version: "22"
-      - name: Classify state path without exposing it
+
+      - name: Restore idempotent UniJuri bootstrap
+        shell: bash
         run: |
+          set -euo pipefail
+          test -n "${API_GATEWAY_ADMIN_KEY:-}"
           node --input-type=module <<'NODE'
-          import path from "node:path";
-          const v=String(process.env.API_GATEWAY_STATE_FILE??"").trim();
-          const present=Boolean(v);
-          const absolute=present&&path.isAbsolute(v);
-          const relative=present&&!absolute;
-          const underHome=absolute&&v.startsWith("/home/");
-          const underHbuilds=v.includes("/hbuilds/");
-          const underPublicHtml=v.includes("/public_html/");
-          const dotRelative=relative&&v.startsWith(".");
-          const safe={present,absolute,relative,underHome,underHbuilds,underPublicHtml,dotRelative};
-          console.log(JSON.stringify(safe));
-          console.log(`::notice title=GATEWAY_STATE_PATH_CLASS::present=${present} absolute=${absolute} relative=${relative} underHome=${underHome} underHbuilds=${underHbuilds} underPublicHtml=${underPublicHtml} dotRelative=${dotRelative}`);
-          if(!present) process.exit(1);
+          try {
+            const url = "https://gateway.apidevelopers.digital/v1/saas/uni-juri/bootstrap";
+            const payload = {
+              approval: "IGOR_APROVA_UNIJURI_BOOTSTRAP_V1",
+              productionApproval: "IGOR_APROVA_UNIJURI_BOOTSTRAP_REAL_20260913",
+              input: {
+                tenantSlug: "uni",
+                workspaceSlug: "uni-juri-main",
+                displayName: "UNI",
+                planId: "internal",
+                subjectRef: "e65b5439faf65ea9905025751e6a33010df6551d99b225bf032e163492969ec8",
+                idempotencyKey: "unijuri-bootstrap-prod-20260913-v1"
+              }
+            };
+            const r = await fetch(url, {
+              method: "POST",
+              headers: {
+                "x-api-key": process.env.API_GATEWAY_ADMIN_KEY,
+                accept: "application/json",
+                "content-type": "application/json"
+              },
+              body: JSON.stringify(payload),
+              cache: "no-store",
+              redirect: "error"
+            });
+            const text = await r.text();
+            let body = {};
+            try { body = text ? JSON.parse(text) : {}; } catch {}
+            const safe = {
+              status: r.status,
+              ok: body?.ok === true,
+              reason: body?.reason ?? null,
+              productId: body?.productId ?? null,
+              writesExecuted: body?.writesExecuted ?? null,
+              accessGrantCreated: body?.accessGrantCreated ?? null,
+              chargeExecuted: body?.chargeExecuted ?? null,
+              secretsExposed: body?.secretsExposed ?? null
+            };
+            console.log(JSON.stringify(safe));
+            const valid =
+              [200, 201].includes(r.status) &&
+              body?.ok === true &&
+              body?.writesExecuted === true &&
+              body?.accessGrantCreated === false &&
+              body?.chargeExecuted === false &&
+              body?.secretsExposed === false;
+            if (!valid) {
+              console.log(`::error title=UNIJURI_RESTORE_FAILED::status=${r.status} reason=${body?.reason ?? "null"} writesExecuted=${body?.writesExecuted ?? "null"}`);
+              process.exit(1);
+            }
+            console.log("::notice title=UNIJURI_RESTORE_OK::writesExecuted=true accessGrantCreated=false chargeExecuted=false secretsExposed=false");
+          } catch (error) {
+            const message = error instanceof Error ? error.message : String(error);
+            console.log(`::error title=UNIJURI_RESTORE_TRANSPORT_FAILED::${message}`);
+            process.exit(1);
+          }
           NODE
