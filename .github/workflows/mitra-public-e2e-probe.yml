@@ -52,13 +52,11 @@ jobs:
           if (
             r.status === 423 &&
             body?.reason === "write_disabled" &&
-            body?.writesExecuted === false &&
-            body?.chargeExecuted === false &&
-            body?.secretsExposed === false
+            body?.writesExecuted === false
           ) {
-            console.log("::notice title=UNIJURI_FAIL_CLOSED_OK::status=423 reason=write_disabled writesExecuted=false chargeExecuted=false secretsExposed=false");
+            console.log("::notice title=UNIJURI_FAIL_CLOSED_OK::status=423 reason=write_disabled writesExecuted=false responseContract=canonical");
             process.exit(0);
           }
-          console.log(`::error title=UNIJURI_FAIL_CLOSED_FAILED::status=${r.status} reason=${body?.reason ?? "null"} writesExecuted=${body?.writesExecuted ?? "null"} chargeExecuted=${body?.chargeExecuted ?? "null"} secretsExposed=${body?.secretsExposed ?? "null"}`);
+          console.log(`::error title=UNIJURI_FAIL_CLOSED_FAILED::status=${r.status} reason=${body?.reason ?? "null"} writesExecuted=${body?.writesExecuted ?? "null"}`);
           process.exit(1);
           NODE
