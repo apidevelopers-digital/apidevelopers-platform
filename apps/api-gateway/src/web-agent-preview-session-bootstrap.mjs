@@ -5,12 +5,10 @@ import {
   createUniCoPreviewAuthenticationEvidence,
   uniCoPreviewAuthenticationEvidenceCollection,
 } from "./web-agent-preview-authentication-evidence.mjs";
-
 export const uniCoPreviewLoginHost="uni-preview.apidevelopers.digital";
 export const uniCoPreviewProductId="product:uni-co";
 export const uniCoPreviewAgentId="uni.co";
 const req=(v,n)=>{v=String(v??"").trim();if(!v)throw new TypeError(`${n} is required`);return v};
-
 export function createUniCoPreviewBrowserSessionBootstrap({
  store,
  verifyCredentials,
@@ -26,7 +24,7 @@ export function createUniCoPreviewBrowserSessionBootstrap({
   if(String(host??"").trim().toLowerCase()!==uniCoPreviewLoginHost){const e=new Error("preview_login_surface_not_allowed");e.status=403;throw e}
   const normalizedEmail=req(email,"email").toLowerCase();
   const identity=await verifyCredentials({email:normalizedEmail,password:req(password,"password")});
-  if(!identity||typeof identity!=="object")throw new Error(preview_identity_verification_failed");
+  if(!identity||typeof identity!=="object")throw new Error("preview_identity_verification_failed");
   const a=await resolveAccess({email:normalizedEmail,identity,productId:uniCoPreviewProductId,requiredScopes:["web:chat"]});
   const principalId=req(a?.principalId,"principalId"),tenantId=req(a?.tenantId,"tenantId"),workspaceId=req(a?.workspaceId,"workspaceId"),accessGrantId=req(a?.accessGrantId,"accessGrantId");
   const now=clock();if(!(now instanceof Date)||Number.isNaN(now.getTime()))throw new TypeError("invalid clock");
