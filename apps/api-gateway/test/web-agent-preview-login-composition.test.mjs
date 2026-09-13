@@ -53,13 +53,14 @@ test("preview login composition automatically uses the explicit HTTPS identity b
 
     assert.equal(composed.enabled, true);
     assert.equal(composed.descriptor.identityBackendConfigured, true);
+    assert.equal(composed.descriptor.host, "uni-preview.apidevelopers.digital");
     assert.equal(composed.descriptor.automaticProvisioning, false);
     assert.equal(composed.descriptor.transientOperatorSessionReturnedToBrowser, false);
 
     await assert.rejects(
       () =>
         composed.bootstrap.login({
-          host: "unico-preview.apidevelopers.digital",
+          host: "uni-preview.apidevelopers.digital",
           email: "igor@example.com",
           password: "bad",
         }),

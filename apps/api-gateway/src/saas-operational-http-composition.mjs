@@ -6,6 +6,7 @@ import { createZuniCommercialActivationPlanApp } from "./saas-zuni-commercial-ac
 import { createZuniCommercialActivationDryRunApp } from "./saas-zuni-commercial-activation-dry-run.mjs";
 import { createZuniCommercialActivationControlledWriteApp } from "./saas-zuni-commercial-activation-controlled-write.mjs";
 import { createUniCoProvisioningApp } from "./saas-uni-co-provisioning.mjs";
+import { createUniCoCustomerProvisioningApp } from "./saas-uni-co-customer-provisioning.mjs";
 import { createZuniProvisioningRuntimeGuard } from "./saas-zuni-provisioning-runtime-guard.mjs";
 import { createZuniOperationalReadinessComposition } from "./saas-zuni-operational-readiness-composition.mjs";
 import { createZuniPublicReadinessProbe } from "./saas-zuni-public-readiness-probe.mjs";
@@ -69,6 +70,13 @@ export function createSaasOperationalHttpComposition({
     federatedPrincipal: saasComposition.federatedPrincipal,
     ...(clock ? { clock } : {}),
   });
+  const uniCoCustomerProvisioningApp = createUniCoCustomerProvisioningApp({
+    provisioningApp: uniCoProvisioningApp,
+    saasRuntime: saasComposition.saasRuntime,
+    saasAccess: saasComposition.saasAccess,
+    membershipRuntime: saasComposition.membershipRuntime,
+    ...(clock ? { clock } : {}),
+  });
   const concreteProbe = resolveZuniReadinessProbe({ probeZuniProductReadiness, zuniReadinessFetch });
   const readinessProvisioner =
     zuniProductProvisioner ??
@@ -112,7 +120,7 @@ export function createSaasOperationalHttpComposition({
         return unijuriAccessInventoryApp.handleRequest(request);
       }
       if (pathname === "/v1/saas/uni-co/provision") {
-        return uniCoProvisioningApp.handleRequest(request);
+        return uniCoCustomerProvisioningApp.handleRequest(request);
       }
       if (pathname === "/v1/saas/zuni/activation/plan") {
         return zuniCommercialActivationPlanApp.handleRequest(request);

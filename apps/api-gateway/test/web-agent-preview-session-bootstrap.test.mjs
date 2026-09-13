@@ -10,7 +10,7 @@ import { createUniCoPreviewBrowserSessionBootstrap } from "../src/web-agent-prev
 const T0 = new Date("2026-08-19T14:45:00.000Z");
 const SECRET = "A".repeat(43);
 
-test("uni.co preview login creates secure browser session without persisting raw credentials", async () => {
+test("preview login accepts the deployed Conta uni. surface and creates a secure browser session without persisting raw credentials", async () => {
   const dir = await mkdtemp(join(tmpdir(), "uni-co-preview-login-"));
   const stateFilePath = join(dir, "state.json");
   const store = createJsonFileStore({ filePath: stateFilePath, fsync: false, clock: () => T0.toISOString() });
@@ -36,7 +36,7 @@ test("uni.co preview login creates secure browser session without persisting raw
     });
 
     const result = await bootstrap.login({
-      host: "unico-preview.apidevelopers.digital",
+      host: "uni-preview.apidevelopers.digital",
       email: "  IGOR@example.com ",
       password: "Preview#123",
     });
