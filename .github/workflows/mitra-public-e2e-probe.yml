@@ -1,4 +1,4 @@
-name: UniJuri Persistent Restore Bootstrap
+name: UniJuri Persistent Inventory Verification
 
 on:
   workflow_dispatch:
@@ -6,14 +6,10 @@ on:
 permissions:
   contents: read
 
-concurrency:
-  group: unijuri-persistent-restore-bootstrap
-  cancel-in-progress: false
-
 jobs:
-  restore:
+  verify:
     runs-on: [self-hosted, macOS, X64]
-    timeout-minutes: 5
+    timeout-minutes: 3
     env:
       API_GATEWAY_ADMIN_KEY: ${{ secrets.API_GATEWAY_ADMIN_KEY }}
     steps:
@@ -21,66 +17,74 @@ jobs:
         with:
           node-version: "22"
 
-      - name: Restore idempotent UniJuri bootstrap
+      - name: Verify persistent UniJuri inventory
         shell: bash
         run: |
           set -euo pipefail
           test -n "${API_GATEWAY_ADMIN_KEY:-}"
           node --input-type=module <<'NODE'
-          try {
-            const url = "https://gateway.apidevelopers.digital/v1/saas/uni-juri/bootstrap";
-            const payload = {
-              approval: "IGOR_APROVA_UNIJURI_BOOTSTRAP_V1",
-              productionApproval: "IGOR_APROVA_UNIJURI_BOOTSTRAP_REAL_20260913",
-              input: {
-                tenantSlug: "uni",
-                workspaceSlug: "uni-juri-main",
-                displayName: "UNI",
-                planId: "internal",
-                subjectRef: "e65b5439faf65ea9905025751e6a33010df6551d99b225bf032e163492969ec8",
-                idempotencyKey: "unijuri-bootstrap-prod-20260913-v1"
-              }
-            };
-            const r = await fetch(url, {
-              method: "POST",
-              headers: {
-                "x-api-key": process.env.API_GATEWAY_ADMIN_KEY,
-                accept: "application/json",
-                "content-type": "application/json"
-              },
-              body: JSON.stringify(payload),
-              cache: "no-store",
-              redirect: "error"
-            });
-            const text = await r.text();
-            let body = {};
-            try { body = text ? JSON.parse(text) : {}; } catch {}
-            const safe = {
-              status: r.status,
-              ok: body?.ok === true,
-              reason: body?.reason ?? null,
-              productId: body?.productId ?? null,
-              writesExecuted: body?.writesExecuted ?? null,
-              accessGrantCreated: body?.accessGrantCreated ?? null,
-              chargeExecuted: body?.chargeExecuted ?? null,
-              secretsExposed: body?.secretsExposed ?? null
-            };
-            console.log(JSON.stringify(safe));
-            const valid =
-              [200, 201].includes(r.status) &&
-              body?.ok === true &&
-              body?.writesExecuted === true &&
-              body?.accessGrantCreated === false &&
-              body?.chargeExecuted === false &&
-              body?.secretsExposed === false;
-            if (!valid) {
-              console.log(`::error title=UNIJURI_RESTORE_FAILED::status=${r.status} reason=${body?.reason ?? "null"} writesExecuted=${body?.writesExecuted ?? "null"}`);
-              process.exit(1);
-            }
-            console.log("::notice title=UNIJURI_RESTORE_OK::writesExecuted=true accessGrantCreated=false chargeExecuted=false secretsExposed=false");
-          } catch (error) {
-            const message = error instanceof Error ? error.message : String(error);
-            console.log(`::error title=UNIJURI_RESTORE_TRANSPORT_FAILED::${message}`);
+          const r = await fetch("https://gateway.apidevelopers.digital/v1/saas/uni-juri/access/inventory", {
+            method: "GET",
+            headers: {
+              "x-api-key": process.env.API_GATEWAY_ADMIN_KEY,
+              accept: "application/json"
+            },
+            cache: "no-store",
+            redirect: "error"
+          });
+          const text = await r.text();
+          let b = {};
+          try { b = text ? JSON.parse(text) : {}; } catch {}
+          const tenants = Array.isArray(b?.tenants) ? b.tenants : [];
+          const workspaces = Array.isArray(b?.workspaces) ? b.workspaces : [];
+          const subscriptions = Array.isArray(b?.subscriptions) ? b.subscriptions : [];
+          const entitlements = Array.isArray(b?.entitlements) ? b.entitlements : [];
+          const jobs = Array.isArray(b?.provisioningJobs) ? b.provisioningJobs : [];
+          const grants = Array.isArray(b?.accessGrants) ? b.accessGrants : [];
+          const principals = Array.isArray(b?.principals) ? b.principals : [];
+
+          const workspace = workspaces.find((x) => x?.productId === "uni-juri");
+          const subscription = subscriptions.find((x) => x?.productId === "uni-juri");
+          const entitlement = entitlements.find((x) => x?.productId === "uni-juri");
+          const job = jobs.find((x) => x?.productId === "uni-juri");
+
+          const safe = {
+            status: r.status,
+            ok: b?.ok === true,
+            tenants: tenants.length,
+            workspaces: workspaces.length,
+            subscriptions: subscriptions.length,
+            entitlements: entitlements.length,
+            provisioningJobs: jobs.length,
+            accessGrants: grants.length,
+            principals: principals.length,
+            workspaceStatus: workspace?.status ?? null,
+            subscriptionStatus: subscription?.status ?? null,
+            entitlementStatus: entitlement?.status ?? null,
+            entitlementCapability: entitlement?.capability ?? null,
+            provisioningStatus: job?.status ?? null,
+            productionChanged: b?.productionChanged ?? null,
+            secretsExposed: b?.secretsExposed ?? null
+          };
+          console.log(JSON.stringify(safe));
+
+          const valid =
+            r.status === 200 &&
+            b?.ok === true &&
+            b?.productionChanged === false &&
+            b?.secretsExposed === false &&
+            tenants.length >= 1 &&
+            workspace?.status === "active" &&
+            subscription?.status === "active" &&
+            entitlement?.status === "active" &&
+            entitlement?.capability === "use_product" &&
+            job?.status === "succeeded" &&
+            principals.length >= 1;
+
+          const line = `status=${r.status} tenants=${tenants.length} workspaces=${workspaces.length} subscriptions=${subscriptions.length} entitlements=${entitlements.length} jobs=${jobs.length} accessGrants=${grants.length} principals=${principals.length} workspaceStatus=${workspace?.status ?? "null"} subscriptionStatus=${subscription?.status ?? "null"} entitlementStatus=${entitlement?.status ?? "null"} entitlementCapability=${entitlement?.capability ?? "null"} provisioningStatus=${job?.status ?? "null"} productionChanged=${b?.productionChanged ?? "null"} secretsExposed=${b?.secretsExposed ?? "null"}`;
+          if (!valid) {
+            console.log(`::error title=UNIJURI_PERSISTENT_INVENTORY_FAILED::${line}`);
             process.exit(1);
           }
+          console.log(`::notice title=UNIJURI_PERSISTENT_INVENTORY_OK::${line}`);
           NODE
