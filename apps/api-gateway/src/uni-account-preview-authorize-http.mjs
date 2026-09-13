@@ -21,24 +21,18 @@ const REDIRECT_HEADERS = Object.freeze({
 });
 
 function response(status, headers = {}, body = "") {
-  return Object.freeze({
-    status,
-    headers: Object.freeze({ ...headers }),
-    body,
-  });
+  return Object.freeze({ status, headers: Object.freeze({ ...headers }), body });
 }
 
 function parseAuthorizeRequest(url) {
   const parsed = new URL(String(url ?? "/"), "https://gateway.apidevelopers.digital");
   const state = String(parsed.searchParams.get("state") ?? "").trim();
   const codeChallenge = String(parsed.searchParams.get("code_challenge") ?? "").trim();
-
   if (!STATE.test(state) || !CHALLENGE.test(codeChallenge)) {
     const error = new Error("invalid_handoff_request");
     error.status = 400;
     throw error;
   }
-
   return Object.freeze({ state, codeChallenge });
 }
 
@@ -90,10 +84,7 @@ function parseForm(body) {
 }
 
 function authorizeUrl({ state, codeChallenge }) {
-  const query = new URLSearchParams({
-    state,
-    code_challenge: codeChallenge,
-  });
+  const query = new URLSearchParams({ state, code_challenge: codeChallenge });
   return `${uniAccountPreviewAuthorizePath}?${query.toString()}`;
 }
 
@@ -114,7 +105,9 @@ function safeFailure(error) {
       code: error.code,
     });
   }
-  if (error?.status === 400) return Object.freeze({ status: 400, code: String(error.message ?? "invalid_request") });
+  if (error?.status === 400) {
+    return Object.freeze({ status: 400, code: String(error.message ?? "invalid_request") });
+  }
   return Object.freeze({ status: 503, code: "uni_account_authorize_unavailable" });
 }
 
@@ -136,10 +129,7 @@ export function createUniAccountPreviewAuthorizeHttpApp({
   return Object.freeze({
     async handleRequest(request = {}) {
       const method = String(request.method ?? "GET").toUpperCase();
-      const parsedUrl = new URL(
-        String(request.url ?? "/"),
-        "https://gateway.apidevelopers.digital",
-      );
+      const parsedUrl = new URL(String(request.url ?? "/"), "https://gateway.apidevelopers.digital");
 
       if (parsedUrl.pathname !== uniAccountPreviewAuthorizePath) {
         return app.handleRequest(request);
@@ -152,21 +142,19 @@ export function createUniAccountPreviewAuthorizeHttpApp({
             authorizeUrl({ state: form.state, codeChallenge: form.codeChallenge }),
           );
           if (!form.email || !form.password) {
-            const error = new Eror("invalid_login_form");
+            const error = new Error("invalid_login_form");
             error.status = 400;
             throw error;
           }
-
           const login = await loginBootstrap.login({
             host: "uni-preview.apidevelopers.digital",
             email: form.email,
             password: form.password,
           });
-
           return response(
             303,
             {
-              ...REDIRECT_HEADERS, 
+              ...REDIRECT_HEADERS,
               location: authorizeUrl({ state, codeChallenge }),
               "set-cookie": login.setCookie,
             },
@@ -177,13 +165,13 @@ export function createUniAccountPreviewAuthorizeHttpApp({
           return response(
             failure.status,
             { ...FORM_HEADERS, "content-type": "application/json; charset=utf-8" },
-            JSON.stringify(s ok: false, authenticated: false, error: failure.code }),
+            JSON.stringify({ ok: false, authenticated: false, error: failure.code }),
           );
         }
       }
 
       if (method !== "GET") {
-        return response(405, { ...FORM_HEADERS,  allow: "GET, POST" }, "Método não permitido.");
+        return response(405, { ...FORM_HEADERS, allow: "GET, POST" }, "Método não permitido.");
       }
 
       let handoff;
@@ -194,7 +182,7 @@ export function createUniAccountPreviewAuthorizeHttpApp({
         return response(
           failure.status,
           { ...FORM_HEADERS, "content-type": "application/json; charset=utf-8" },
-          JSON.stringify(s ok: false, error: failure.code }),
+          JSON.stringify({ ok: false, error: failure.code }),
         );
       }
 
@@ -204,11 +192,10 @@ export function createUniAccountPreviewAuthorizeHttpApp({
           targetOrigin: uniAccountPreviewTargetOrigin,
           codeChallenge: handoff.codeChallenge,
         });
-
         return response(
           303,
           {
-            ...REDIRECT_HEADERS, 
+            ...REDIRECT_HEADERS,
             location: callbackUrl({ state: handoff.state, code: issued.code }),
           },
           "",
@@ -221,7 +208,7 @@ export function createUniAccountPreviewAuthorizeHttpApp({
         return response(
           failure.status,
           { ...FORM_HEADERS, "content-type": "application/json; charset=utf-8" },
-          JSON.stringify(s ok: false, authenticated: false, error: failure.code }),
+          JSON.stringify({ ok: false, authenticated: false, error: failure.code }),
         );
       }
     },
