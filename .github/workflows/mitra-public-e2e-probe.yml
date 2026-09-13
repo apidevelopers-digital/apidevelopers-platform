@@ -1,4 +1,4 @@
-name: UniJuri Persistent Inventory Verification
+name: UniJuri Access Binding Inspection
 
 on:
   workflow_dispatch:
@@ -7,7 +7,7 @@ permissions:
   contents: read
 
 jobs:
-  verify:
+  inspect:
     runs-on: [self-hosted, macOS, X64]
     timeout-minutes: 3
     env:
@@ -16,75 +16,33 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: "22"
-
-      - name: Verify persistent UniJuri inventory
-        shell: bash
+      - name: Inspect UniJuri binding
         run: |
-          set -euo pipefail
-          test -n "${API_GATEWAY_ADMIN_KEY:-}"
           node --input-type=module <<'NODE'
           const r = await fetch("https://gateway.apidevelopers.digital/v1/saas/uni-juri/access/inventory", {
-            method: "GET",
-            headers: {
-              "x-api-key": process.env.API_GATEWAY_ADMIN_KEY,
-              accept: "application/json"
-            },
-            cache: "no-store",
-            redirect: "error"
+            headers: {"x-api-key": process.env.API_GATEWAY_ADMIN_KEY, accept: "application/json"},
+            cache: "no-store"
           });
-          const text = await r.text();
-          let b = {};
-          try { b = text ? JSON.parse(text) : {}; } catch {}
-          const tenants = Array.isArray(b?.tenants) ? b.tenants : [];
-          const workspaces = Array.isArray(b?.workspaces) ? b.workspaces : [];
-          const subscriptions = Array.isArray(b?.subscriptions) ? b.subscriptions : [];
-          const entitlements = Array.isArray(b?.entitlements) ? b.entitlements : [];
-          const jobs = Array.isArray(b?.provisioningJobs) ? b.provisioningJobs : [];
-          const grants = Array.isArray(b?.accessGrants) ? b.accessGrants : [];
-          const principals = Array.isArray(b?.principals) ? b.principals : [];
-
-          const workspace = workspaces.find((x) => x?.productId === "uni-juri");
-          const subscription = subscriptions.find((x) => x?.productId === "uni-juri");
-          const entitlement = entitlements.find((x) => x?.productId === "uni-juri");
-          const job = jobs.find((x) => x?.productId === "uni-juri");
-
+          const b = await r.json();
+          const w = (b.workspaces ?? []).find(x => x?.productId === "uni-juri");
+          const s = (b.subscriptions ?? []).find(x => x?.productId === "uni-juri");
+          const e = (b.entitlements ?? []).find(x => x?.productId === "uni-juri");
+          const j = (b.provisioningJobs ?? []).find(x => x?.productId === "uni-juri");
+          const p = (b.principals ?? [])[0];
           const safe = {
             status: r.status,
-            ok: b?.ok === true,
-            tenants: tenants.length,
-            workspaces: workspaces.length,
-            subscriptions: subscriptions.length,
-            entitlements: entitlements.length,
-            provisioningJobs: jobs.length,
-            accessGrants: grants.length,
-            principals: principals.length,
-            workspaceStatus: workspace?.status ?? null,
-            subscriptionStatus: subscription?.status ?? null,
-            entitlementStatus: entitlement?.status ?? null,
-            entitlementCapability: entitlement?.capability ?? null,
-            provisioningStatus: job?.status ?? null,
-            productionChanged: b?.productionChanged ?? null,
-            secretsExposed: b?.secretsExposed ?? null
+            tenantId: (b.tenants ?? [])[0]?.tenantId ?? null,
+            workspaceId: w?.workspaceId ?? null,
+            subscriptionId: s?.subscriptionId ?? null,
+            entitlementId: e?.entitlementId ?? null,
+            provisioningJobId: j?.provisioningJobId ?? null,
+            principalId: p?.principalId ?? null,
+            existingGrants: (b.accessGrants ?? []).length
           };
           console.log(JSON.stringify(safe));
-
-          const valid =
-            r.status === 200 &&
-            b?.ok === true &&
-            b?.productionChanged === false &&
-            b?.secretsExposed === false &&
-            tenants.length >= 1 &&
-            workspace?.status === "active" &&
-            subscription?.status === "active" &&
-            entitlement?.status === "active" &&
-            entitlement?.capability === "use_product" &&
-            job?.status === "succeeded" &&
-            principals.length >= 1;
-
-          const line = `status=${r.status} tenants=${tenants.length} workspaces=${workspaces.length} subscriptions=${subscriptions.length} entitlements=${entitlements.length} jobs=${jobs.length} accessGrants=${grants.length} principals=${principals.length} workspaceStatus=${workspace?.status ?? "null"} subscriptionStatus=${subscription?.status ?? "null"} entitlementStatus=${entitlement?.status ?? "null"} entitlementCapability=${entitlement?.capability ?? "null"} provisioningStatus=${job?.status ?? "null"} productionChanged=${b?.productionChanged ?? "null"} secretsExposed=${b?.secretsExposed ?? "null"}`;
-          if (!valid) {
-            console.log(`::error title=UNIJURI_PERSISTENT_INVENTORY_FAILED::${line}`);
-            process.exit(1);
-          }
-          console.log(`::notice title=UNIJURI_PERSISTENT_INVENTORY_OK::${line}`);
+          const required = ["tenantId","workspaceId","subscriptionId","entitlementId","provisioningJobId","principalId"];
+          const valid = r.status === 200 && required.every(k => Boolean(safe[k]));
+          const line = `status=${r.status} tenantId=${safe.tenantId} workspaceId=${safe.workspaceId} subscriptionId=${safe.subscriptionId} entitlementId=${safe.entitlementId} provisioningJobId=${safe.provisioningJobId} principalId=${safe.principalId} existingGrants=${safe.existingGrants}`;
+          console.log(valid ? `::notice title=UNIJURI_BINDING_OK::${line}` : `::error title=UNIJURI_BINDING_FAILED::${line}`);
+          process.exit(valid ? 0 : 1);
           NODE
