@@ -17,7 +17,7 @@ function storeWithState() {
           w1: { workspaceId: "w1", tenantId: "tenant_uni", productId: "uni-juri", status: "active" },
           w2: { workspaceId: "w2", tenantId: "tenant_other", productId: "zuni", status: "active" },
         },
-        "saas.subscriptions": { s1: { subscriptionId: "s1", tenantId: "tenant_uni", productId: "uni-juri", planGd: "internal", status: "active" } },
+        "saas.subscriptions": { s1: { subscriptionId: "s1", tenantId: "tenant_uni", productId: "uni-juri", planId: "internal", status: "active" } },
         "saas.entitlements": { e1: { entitlementId: "e1", subscriptionId: "s1", tenantId: "tenant_uni", workspaceId: "w1", productId: "uni-juri", capability: "use_product", status: "active" } },
         "saas.provisioningJobs": { j1: { provisioningJobId: "j1", subscriptionId: "s1", tenantId: "tenant_uni", workspaceId: "w1", productId: "uni-juri", status: "succeeded", entitlementIds: ["e1"] } },
         "saas.accessGrants": {},
@@ -38,6 +38,9 @@ test("UniJuri inventory is read-only and product scoped", async () => {
   assert.equal(body.productId, "uni-juri");
   assert.equal(body.workspaces.length, 1);
   assert.equal(body.workspaces[0].workspaceId, "w1");
+  assert.equal(body.subscriptions.length, 1);
+  assert.equal(body.subscriptions[0].subscriptionId, "s1");
+  assert.equal(body.subscriptions[0].planId, "internal");
   assert.equal(body.entitlements.length, 1);
   assert.equal(body.entitlements[0].entitlementId, "e1");
   assert.equal(body.entitlements[0].capability, "use_product");
