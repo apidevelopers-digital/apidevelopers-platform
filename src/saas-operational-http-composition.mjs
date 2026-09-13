@@ -10,6 +10,10 @@ import { createZuniProvisioningRuntimeGuard } from "./saas-zuni-provisioning-run
 import { createZuniOperationalReadinessComposition } from "./saas-zuni-operational-readiness-composition.mjs";
 import { createZuniPublicReadinessProbe } from "./saas-zuni-public-readiness-probe.mjs";
 import { createUniJuriAccessInventoryApp } from "./saas-unijuri-access-inventory.mjs";
+import {
+  createUniJuriBootstrapHttpApp,
+  resolveUniJuriBootstrapWriteEnabled,
+} from "./saas-unijuri-bootstrap-http.mjs";
 import { createApp } from "./server.mjs";
 
 function pathnameOf(url) {
@@ -26,6 +30,7 @@ function resolveZuniReadinessProbe({ probeZuniProductReadiness, zuniReadinessFet
 export function createSaasOperationalHttpComposition({
   app, authenticator, audit, store, clock, delegatedBindingSigner,
   zuniProductProvisioner, probeZuniProductReadiness, zuniReadinessFetch,
+  unijuriBootstrapWriteEnabled = resolveUniJuriBootstrapWriteEnabled(),
 } = {}) {
   if (typeof app?.handleRequest !== "function") throw new TypeError("app.handleRequest must be a function");
   if (typeof authenticator?.authenticate !== "function") throw new TypeError("authenticator.authenticate must be a function");
@@ -40,6 +45,14 @@ export function createSaasOperationalHttpComposition({
     ...(delegatedBindingSigner ? { bindingSigner: delegatedBindingSigner } : {}),
   });
   const unijuriAccessInventoryApp = createUniJuriAccessInventoryApp({ authenticator, store });
+  const unijuriBootstrapApp = createUniJuriBootstrapHttpApp({
+    authenticator,
+    saasRuntime: saasComposition.saasRuntime,
+    federatedPrincipal: saasComposition.federatedPrincipal,
+    audit: typeof audit === "function" ? audit : async () => {},
+    writeEnabled: unijuriBootstrapWriteEnabled === true,
+    ...(clock ? { clock } : {}),
+  });
   const zuniCommercialActivationPlanApp = createZuniCommercialActivationPlanApp({ authenticator });
   const zuniCommercialActivationDryRunApp = createZuniCommercialActivationDryRunApp({ authenticator });
   const zuniCommercialActivationControlledWriteApp =
@@ -56,7 +69,6 @@ export function createSaasOperationalHttpComposition({
     federatedPrincipal: saasComposition.federatedPrincipal,
     ...(clock ? { clock } : {}),
   });
-
   const concreteProbe = resolveZuniReadinessProbe({ probeZuniProductReadiness, zuniReadinessFetch });
   const readinessProvisioner =
     zuniProductProvisioner ??
@@ -66,7 +78,6 @@ export function createSaasOperationalHttpComposition({
           probeZuniProductReadiness: concreteProbe,
         }).adapter
       : undefined);
-
   const guardedProvisioningRuntime = createZuniProvisioningRuntimeGuard({
     saasRuntime: saasComposition.saasRuntime,
     ...(readinessProvisioner ? { zuniProductProvisioner: readinessProvisioner } : {}),
@@ -94,6 +105,9 @@ export function createSaasOperationalHttpComposition({
   const wrappedApp = Object.freeze({
     async handleRequest(request = {}) {
       const pathname = pathnameOf(request.url);
+      if (pathname === "/v1/saas/uni-juri/bootstrap") {
+        return unijuriBootstrapApp.handleRequest(request);
+      }
       if (pathname === "/v1/saas/uni-juri/access/inventory") {
         return unijuriAccessInventoryApp.handleRequest(request);
       }
@@ -118,7 +132,6 @@ export function createSaasOperationalHttpComposition({
       return app.handleRequest(request);
     },
   });
-
   return Object.freeze({
     app: wrappedApp,
     saasRuntime: saasComposition.saasRuntime,

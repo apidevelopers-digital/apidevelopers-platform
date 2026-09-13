@@ -3,7 +3,7 @@
   "format": "managed-node-zip",
   "service": "api-gateway",
   "version": "0.8.0",
-  "sourceRevision": "d6d1d0f259cb878f4f01be3bb74b117b625bf038",
+  "sourceRevision": "f403cd7ce854548b0685357fd323f14b6a21f897",
   "runtime": {
     "node": ">=22",
     "entrypoint": "src/hostinger-entry.mjs",
@@ -994,8 +994,8 @@
     },
     {
       "path": "src/saas-operational-http-composition.mjs",
-      "bytes": 6309,
-      "sha256": "51bf3487b076846854344f40a8d6af8d258f469d670b48b9e0d8884df6819f70"
+      "bytes": 6974,
+      "sha256": "d14abea86bba7f41980402a2458ee96e0cc0ac03d6ff4651fc3f301bb6db9c5e"
     },
     {
       "path": "src/saas-provisioning.mjs",
@@ -1021,6 +1021,16 @@
       "path": "src/saas-unijuri-access-inventory.mjs",
       "bytes": 4287,
       "sha256": "badf63e54afe7fd77e5996d6b064c6e88128ec9fe755bd473f40db56c5c8fcb6"
+    },
+    {
+      "path": "src/saas-unijuri-bootstrap-http.mjs",
+      "bytes": 3089,
+      "sha256": "b5e76bcd61ac7088ee0968639e6daea56dd65a098919af42807f658245f4006c"
+    },
+    {
+      "path": "src/saas-unijuri-bootstrap-writer.mjs",
+      "bytes": 6556,
+      "sha256": "189dedbdde126ee705ebc41546accaf05c8667d0ef2690ad3e222e4779e7c919"
     },
     {
       "path": "src/saas-unijuri-delegated-binding-keychain-provisioner.mjs",
