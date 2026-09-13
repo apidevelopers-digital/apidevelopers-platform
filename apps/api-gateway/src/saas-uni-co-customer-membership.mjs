@@ -63,7 +63,7 @@ export async function ensureUniCoCustomerMembership({
   workspaceId = requireText(workspaceId, "workspaceId");
   principalId = requireText(principalId, "principalId");
   requireFunction(membershipRuntime?.registerUser, "membershipRuntime.registerUser");
-  requireFunction(membershipRuntime.registerRole, "membershipRuntime.registerRole");
+  requireFunction(membershipRuntime?.registerRole, "membershipRuntime.registerRole");
   requireFunction(membershipRuntime?.addMembership, "membershipRuntime.addMembership");
   assertGrant({ accessGrant, tenantId, workspaceId, principalId });
 
