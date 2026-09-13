@@ -195,7 +195,7 @@ export function createUniAccountPreviewAuthorizeHttpApp({
         return response(
           303,
           {
-            ...REDIRECT_HEADERS, 
+            ...REDIRECT_HEADERS,
             location: callbackUrl({ state: handoff.state, code: issued.code }),
           },
           "",
