@@ -3,7 +3,7 @@
   "format": "managed-node-zip",
   "service": "api-gateway",
   "version": "0.8.0",
-  "sourceRevision": "9405f222c6a3a2eb0b7e50f01a178360b9ab38af",
+  "sourceRevision": "591d17693925e774a68bbf6fcc762a18c58f10b5",
   "runtime": {
     "node": ">=22",
     "entrypoint": "src/hostinger-entry.mjs",
@@ -694,8 +694,8 @@
     },
     {
       "path": "src/operational-runtime.mjs",
-      "bytes": 6625,
-      "sha256": "436e75a97dff9b6f1034bdaaeea042343d66359c6a1ef68362ae4dff41328b11"
+      "bytes": 9569,
+      "sha256": "bc816e7afacc56f361288a1e61f088fa7ad11ff3ecdae840d8c5023bd604d4bd"
     },
     {
       "path": "src/operational-server-runtime.mjs",
@@ -994,8 +994,8 @@
     },
     {
       "path": "src/saas-operational-http-composition.mjs",
-      "bytes": 6974,
-      "sha256": "d14abea86bba7f41980402a2458ee96e0cc0ac03d6ff4651fc3f301bb6db9c5e"
+      "bytes": 7382,
+      "sha256": "0d65f9b294288bfcdd51660b7db09c7985c43c349c8d6fbc5f5b095e442d320d"
     },
     {
       "path": "src/saas-provisioning.mjs",
@@ -1006,6 +1006,16 @@
       "path": "src/saas-trust-sandbox-provisioning.mjs",
       "bytes": 6019,
       "sha256": "6573fe1e64dc5a14d08c85867fc8bab0b939b8bc1746330784c089bda2ce5a06"
+    },
+    {
+      "path": "src/saas-uni-co-customer-membership.mjs",
+      "bytes": 3812,
+      "sha256": "3f08cc61390dd8470aeb67d44ef125bdfe7beac8cdde25cf7891f56a7f1eae66"
+    },
+    {
+      "path": "src/saas-uni-co-customer-provisioning.mjs",
+      "bytes": 5386,
+      "sha256": "5cd5b040aec80ee03da6c9bd7e22bb9838142ae5ceb20c5115e92fa7d2abe3b0"
     },
     {
       "path": "src/saas-uni-co-provisioning.mjs",
@@ -1019,8 +1029,8 @@
     },
     {
       "path": "src/saas-unijuri-access-inventory.mjs",
-      "bytes": 4287,
-      "sha256": "badf63e54afe7fd77e5996d6b064c6e88128ec9fe755bd473f40db56c5c8fcb6"
+      "bytes": 4289,
+      "sha256": "7a62b2ae4bfd146408c907010715456ad4d4ced32371dc678ace2608ce5e5474"
     },
     {
       "path": "src/saas-unijuri-bootstrap-http.mjs",
@@ -1138,6 +1148,26 @@
       "sha256": "6b406e14ae73d890086e2bf78d857079410d6a6669f070c0d8981d98bc6816ef"
     },
     {
+      "path": "src/uni-account-preview-access-context-runtime-composition.mjs",
+      "bytes": 3407,
+      "sha256": "3e3a6cba6386ad62308319f26b516824c426e5d3db36e8dc665e8dc0461c863c"
+    },
+    {
+      "path": "src/uni-account-preview-authorize-http.mjs",
+      "bytes": 7284,
+      "sha256": "185284e02f48dae5cf7c9e43334c036da8025eea6e4109462e808e46eb716877"
+    },
+    {
+      "path": "src/uni-account-preview-operational-server.mjs",
+      "bytes": 2925,
+      "sha256": "f0a2617f244f4113aa8faa2c7722a3dff6933a0346d4dec4e769948197325a9f"
+    },
+    {
+      "path": "src/uni-account-preview-runtime-composition.mjs",
+      "bytes": 4377,
+      "sha256": "36d2a81c58247f3ce83c38c5e0e18ebd46fa94fa78ef9a84b2291e72f6f62d95"
+    },
+    {
       "path": "src/uni-co-preview-bootstrap.mjs",
       "bytes": 4295,
       "sha256": "869851a3b910e35207a848cd7b35d8af7b0c58ade9dde5baf56f45566fc57e64"
@@ -1179,8 +1209,8 @@
     },
     {
       "path": "src/web-agent-preview-login-composition.mjs",
-      "bytes": 2798,
-      "sha256": "c03df197e44ea70f1b0f6d4e7d2b932d318e8359ca66b51365fdf4176c52458c"
+      "bytes": 2796,
+      "sha256": "cfaa713099e8c73fbd74b8cb2f407eb5e869e2c7881fff7e3eea52d7b3a52408"
     },
     {
       "path": "src/web-agent-preview-login-http.mjs",
@@ -1194,8 +1224,8 @@
     },
     {
       "path": "src/web-agent-preview-session-bootstrap.mjs",
-      "bytes": 3715,
-      "sha256": "9488a8407efb78753e0d2ec46ef54b165f8ca6765a90fad83d2e415af288de4b"
+      "bytes": 3711,
+      "sha256": "0e2d017526a570d87c28f161970461a24e68601b41ea8b99a7e823e6aefc4deb"
     },
     {
       "path": "src/web-agent-product-binding.mjs",
