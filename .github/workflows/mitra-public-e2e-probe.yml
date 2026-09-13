@@ -1,4 +1,4 @@
-name: Mitra Professional Block A E2E
+name: UniJuri Bootstrap Production Safe Probe
 
 on:
   workflow_dispatch:
@@ -7,81 +7,30 @@ permissions:
   contents: read
 
 jobs:
-  e2e:
-    name: Mitra Professional Block A E2E
+  probe:
     runs-on: [self-hosted, macOS, X64]
-    timeout-minutes: 5
+    timeout-minutes: 3
     steps:
       - uses: actions/setup-node@v4
         with:
           node-version: "22"
-      - name: Professional stage diagnostic
-        env:
-          BASE: "https://gateway.apidevelopers.digital"
-          ORIGIN: "https://preview-apidevelopers.apidevelopers.digital"
+      - name: Probe UniJuri bootstrap route without writes
         run: |
           node --input-type=module <<'NODE'
-          const base = process.env.BASE;
-          const origin = process.env.ORIGIN;
-          async function call(stage, path, body) {
-            try {
-              const r = await fetch(base + path, {
-                method: "POST",
-                headers: { origin, accept: "application/json", "content-type":"application/json" },
-                body: JSON.stringify(body),
-                cache: "no-store",
-                redirect: "error"
-              });
-              let p = {};
-              try { p = await r.json(); } catch {}
-              if (r.status !== 200 || p?.ok !== true) {
-                console.log(`::error title=MITRA_STAGE_FAILURE::${stage} status=${r.status} ok=${p?.ok===true} error=${p?.error ?? "null"} message=${p?.message ?? "null"}`);
-                process.exit(1);
-              }
-              console.log(`::notice title=MITRA_STAGE_OK::${stage} status=${r.status}`);
-              return p;
-            } catch (e) {
-              console.log(`::error title=MITRA_STAGE_TRANSPORT::${stage} ${e instanceof Error ? e.message : String(e)}`);
-              process.exit(1);
+          const url = "https://gateway.apidevelopers.digital/v1/saas/uni-juri/bootstrap";
+          try {
+            const r = await fetch(url, { method: "GET", headers: { accept: "application/json" }, cache: "no-store", redirect: "error" });
+            const text = await r.text();
+            let p = {};
+            try { p = text ? JSON.parse(text) : {}; } catch {}
+            if (r.status === 405 && p?.reason === "method_not_allowed" && p?.writesExecuted === false) {
+              console.log("::notice title=UNIJURI_BOOTSTRAP_ROUTE_OK::status=405 writesExecuted=false");
+              process.exit(0);
             }
+            console.log(`::error title=UNIJURI_BOOTSTRAP_ROUTE_FAILURE::status=${r.status} reason=${p?.reason ?? "null"} writesExecuted=${p?.writesExecuted} contentType=${r.headers.get("content-type")}`);
+            process.exit(1);
+          } catch (e) {
+            console.log(`::error title=UNIJURI_BOOTSTRAP_TRANSPORT::${e instanceof Error ? e.message : String(e)}`);
+            process.exit(1);
           }
-
-          const search = await call("seed_search", "/v1/mitra/public/search", {query:"responsabilidade civil", limit:3});
-          const first = Array.isArray(search?.results) ? search.results[0] : null;
-
-          await call("assistant", "/v1/mitra/professional/analyze", {
-            question: "Quais pontos jurídicos devem ser revisados em responsabilidade civil por serviço de saúde?",
-            facts: ["Houve prestação de serviço de saúde.", "A relação causal precisa ser verificada com evidências."],
-            tribunal: "STJ",
-            limit: 8
-          });
-
-          await call("jurimetrics", "/v1/mitra/professional/jurimetrics", {
-            tribunal: "TJSP",
-            query: "responsabilidade civil",
-            limit: 20
-          });
-
-          await call("documents", "/v1/mitra/professional/document/preview", {
-            documentType: "legal_brief",
-            objective: "Organizar argumentos jurídicos sobre responsabilidade civil para revisão profissional.",
-            facts: ["Houve prestação de serviço.", "Os fatos e o nexo causal exigem validação documental."],
-            instructions: "Separar fatos, fundamentos a validar e fontes oficiais.",
-            citations: [{
-              title: first?.title ?? "Fonte pública",
-              source: first?.source ?? "Câmara dos Deputados — Dados Abertos",
-              source_url: first?.source_url ?? "",
-              citation: first?.citation ?? ""
-            }]
-          });
-
-          await call("veritas", "/v1/mitra/professional/veritas", {
-            mode: "claim_precheck",
-            claim: "A referência pública usada nesta análise deve ser conferida antes de uso profissional.",
-            evidence: {
-              source: first?.source ?? "Câmara dos Deputados — Dados Abertos",
-              citation: first?.citation ?? "",
-              source_url: first?.source_url ?? ""
-            }
-          });
           NODE
