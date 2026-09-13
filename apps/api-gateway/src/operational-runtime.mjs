@@ -145,7 +145,7 @@ export function createOperationalRuntime({
     stateFilePath: config.stateFilePath,
     ...(config.adminKey ? { adminKey: config.adminKey } : {}),
     ...(delegatedBindingSigner ? { delegatedBindingSigner } : {}),
-    ...(gitHubRuntime.configured
+    ...(githubRuntime.configured
       ? {
           githubReadonlyClient: githubRuntime.client,
           githubReadonlyOrganization: githubRuntime.organization,
