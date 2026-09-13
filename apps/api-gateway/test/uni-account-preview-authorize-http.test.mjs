@@ -145,7 +145,7 @@ test("authorize rejects malformed state/challenge before authentication", async 
   });
 
   assert.equal(result.status, 400);
-  assert.equal(issueCallsed, false);
+  assert.equal(issueCalled, false);
   assert.equal(JSON.parse(result.body).error, "invalid_handoff_request");
 });
 
