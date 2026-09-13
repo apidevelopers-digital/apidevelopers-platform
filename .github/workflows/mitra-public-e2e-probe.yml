@@ -15,7 +15,7 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: "22"
-      - name: Stage diagnostic
+      - name: Professional stage diagnostic
         env:
           BASE: "https://gateway.apidevelopers.digital"
           ORIGIN: "https://preview-apidevelopers.apidevelopers.digital"
@@ -23,12 +23,12 @@ jobs:
           node --input-type=module <<'NODE'
           const base = process.env.BASE;
           const origin = process.env.ORIGIN;
-          async function probe(stage, path, method="GET", body) {
+          async function call(stage, path, body) {
             try {
               const r = await fetch(base + path, {
-                method,
-                headers: { origin, accept: "application/json", ...(body ? {"content-type":"application/json"} : {}) },
-                ...(body ? {body: JSON.stringify(body)} : {}),
+                method: "POST",
+                headers: { origin, accept: "application/json", "content-type":"application/json" },
+                body: JSON.stringify(body),
                 cache: "no-store",
                 redirect: "error"
               });
@@ -39,12 +39,49 @@ jobs:
                 process.exit(1);
               }
               console.log(`::notice title=MITRA_STAGE_OK::${stage} status=${r.status}`);
+              return p;
             } catch (e) {
               console.log(`::error title=MITRA_STAGE_TRANSPORT::${stage} ${e instanceof Error ? e.message : String(e)}`);
               process.exit(1);
             }
           }
-          await probe("public_health", "/v1/mitra/public/health");
-          await probe("public_search", "/v1/mitra/public/search", "POST", {query:"responsabilidade civil", limit:3});
-          await probe("professional_health", "/v1/mitra/professional/health");
+
+          const search = await call("seed_search", "/v1/mitra/public/search", {query:"responsabilidade civil", limit:3});
+          const first = Array.isArray(search?.results) ? search.results[0] : null;
+
+          await call("assistant", "/v1/mitra/professional/analyze", {
+            question: "Quais pontos jurídicos devem ser revisados em responsabilidade civil por serviço de saúde?",
+            facts: ["Houve prestação de serviço de saúde.", "A relação causal precisa ser verificada com evidências."],
+            tribunal: "STJ",
+            limit: 8
+          });
+
+          await call("jurimetrics", "/v1/mitra/professional/jurimetrics", {
+            tribunal: "TJSP",
+            query: "responsabilidade civil",
+            limit: 20
+          });
+
+          await call("documents", "/v1/mitra/professional/document/preview", {
+            documentType: "legal_brief",
+            objective: "Organizar argumentos jurídicos sobre responsabilidade civil para revisão profissional.",
+            facts: ["Houve prestação de serviço.", "Os fatos e o nexo causal exigem validação documental."],
+            instructions: "Separar fatos, fundamentos a validar e fontes oficiais.",
+            citations: [{
+              title: first?.title ?? "Fonte pública",
+              source: first?.source ?? "Câmara dos Deputados — Dados Abertos",
+              source_url: first?.source_url ?? "",
+              citation: first?.citation ?? ""
+            }]
+          });
+
+          await call("veritas", "/v1/mitra/professional/veritas", {
+            mode: "claim_precheck",
+            claim: "A referência pública usada nesta análise deve ser conferida antes de uso profissional.",
+            evidence: {
+              source: first?.source ?? "Câmara dos Deputados — Dados Abertos",
+              citation: first?.citation ?? "",
+              source_url: first?.source_url ?? ""
+            }
+          });
           NODE
