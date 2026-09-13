@@ -20,7 +20,11 @@ function isHostingerHome(home) {
   return /^\/home\/[^/]+$/.test(String(home ?? "").trim());
 }
 
-function resolveUniAccountRuntimeCredentialFile(env = process.env, home = homedir()) {
+function resolveRuntimeHome(env = process.env, fallbackHome = homedir()) {
+  return normalizeText(env.HOME) ?? fallbackHome;
+}
+
+function resolveUniAccountRuntimeCredentialFile(env = process.env, home = resolveRuntimeHome(env)) {
   const configured = normalizeText(env.UNI_CO_PREVIEW_RUNTIME_CREDENTIALS_FILE);
   if (configured) return isAbsolute(configured) ? configured : resolve(home, configured);
   if (!isHostingerHome(home)) return undefined;
@@ -35,7 +39,7 @@ function requireBearer(value, name) {
   return normalized;
 }
 
-function readUniAccountRuntimeCredentials({ env = process.env, home = homedir(), readFileFn = readFileSync } = {}) {
+function readUniAccountRuntimeCredentials({ env = process.env, home = resolveRuntimeHome(env), readFileFn = readFileSync } = {}) {
   if (normalizeText(env.UNI_CO_PREVIEW_HANDOFF_REDEEMER_AUTHORIZATION) && normalizeText(env.UNI_CO_PREVIEW_ACCESS_CONTEXT_AUTHORIZATION)) {
     return {};
   }
@@ -61,7 +65,7 @@ function readUniAccountRuntimeCredentials({ env = process.env, home = homedir(),
   });
 }
 
-export function resolveHostingerRuntimeEnv(env = process.env, { home = homedir(), readFileFn = readFileSync } = {}) {
+export function resolveHostingerRuntimeEnv(env = process.env, { home = resolveRuntimeHome(env), readFileFn = readFileSync } = {}) {
   const uniAccountCredentials = readUniAccountRuntimeCredentials({ env, home, readFileFn });
   return Object.freeze({
     ...env,
