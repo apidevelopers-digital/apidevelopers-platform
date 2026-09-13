@@ -1,11 +1,8 @@
-name: UniJuri Production Fail-Closed Verification
-
+name: UniJuri Inventory Verify
 on:
   workflow_dispatch:
-
 permissions:
   contents: read
-
 jobs:
   verify:
     runs-on: [self-hosted, macOS, X64]
@@ -16,47 +13,18 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: "22"
-
-      - name: Verify UniJuri bootstrap is fail-closed
-        shell: bash
+      - name: Verify production inventory
         run: |
-          set -euo pipefail
-          test -n "${API_GATEWAY_ADMIN_KEY:-}"
           node --input-type=module <<'NODE'
-          const url = "https://gateway.apidevelopers.digital/v1/saas/uni-juri/bootstrap";
-          const payload = {
-            approval: "IGOR_APROVA_UNIJURI_BOOTSTRAP_V1",
-            input: {
-              tenantSlug: "uni",
-              workspaceSlug: "uni-juri-main",
-              displayName: "UNI",
-              planId: "internal",
-              subjectRef: "e65b5439faf65ea9905025751e6a33010df6551d99b225bf032e163492969ec8",
-              idempotencyKey: "unijuri-bootstrap-prod-20260913-v1"
-            }
-          };
-          const r = await fetch(url, {
-            method: "POST",
-            headers: {
-              "x-api-key": process.env.API_GATEWAY_ADMIN_KEY,
-              accept: "application/json",
-              "content-type": "application/json"
-            },
-            body: JSON.stringify(payload),
-            cache: "no-store",
-            redirect: "error"
-          });
-          const text = await r.text();
-          let body = {};
-          try { body = text ? JSON.parse(text) : {}; } catch {}
-          if (
-            r.status === 423 &&
-            body?.reason === "write_disabled" &&
-            body?.writesExecuted === false
-          ) {
-            console.log("::notice title=UNIJURI_FAIL_CLOSED_OK::status=423 reason=write_disabled writesExecuted=false responseContract=canonical");
-            process.exit(0);
-          }
-          console.log(`::error title=UNIJURI_FAIL_CLOSED_FAILED::status=${r.status} reason=${body?.reason ?? "null"} writesExecuted=${body?.writesExecuted ?? "null"}`);
-          process.exit(1);
+          const r=await fetch("https://gateway.apidevelopers.digital/v1/saas/uni-juri/access/inventory",{headers:{"x-api-key":process.env.API_GATEWAY_ADMIN_KEY,accept:"application/json"},cache:"no-store"});
+          const b=await r.json();
+          const w=(b.workspaces??[]).find(x=>x.productId==="uni-juri");
+          const s=(b.subscriptions??[]).find(x=>x.productId==="uni-juri");
+          const e=(b.entitlements??[]).find(x=>x.productId==="uni-juri");
+          const j=(b.provisioningJobs??[]).find(x=>x.productId==="uni-juri");
+          const counts={tenants:(b.tenants??[]).length,workspaces:(b.workspaces??[]).length,subscriptions:(b.subscriptions??[]).length,entitlements:(b.entitlements??[]).length,jobs:(b.provisioningJobs??[]).length,accessGrants:(b.accessGrants??[]).length,principals:(b.principals??[]).length};
+          const ok=r.status===200&&b.ok===true&&b.productionChanged===false&&b.secretsExposed===false&&w?.status==="active"&&s?.status==="active"&&e?.status==="active"&&e?.capability==="use_product"&&j?.status==="succeeded"&&counts.principals>=1;
+          const line=`status=${r.status} tenants=${counts.tenants} workspaces=${counts.workspaces} subscriptions=${counts.subscriptions} entitlements=${counts.entitlements} jobs=${counts.jobs} accessGrants=${counts.accessGrants} principals=${counts.principals} workspace=${w?.status??"null"} subscription=${s?.status??"null"} entitlement=${e?.status??"null"} capability=${e?.capability??"null"} provisioning=${j?.status??"null"} productionChanged=${b.productionChanged} secretsExposed=${b.secretsExposed}`;
+          console.log(ok?`::notice title=UNIJURI_INVENTORY_OK::${line}`:`::error title=UNIJURI_INVENTORY_FAILED::${line}`);
+          process.exit(ok?0:1);
           NODE
