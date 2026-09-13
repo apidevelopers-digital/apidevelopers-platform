@@ -1,4 +1,3 @@
-import { readFileSync } from "node:fs";
 import { homedir } from "node:os";
 import { isAbsolute, resolve } from "node:path";
 
@@ -28,7 +27,13 @@ function resolveUniAccountRuntimeCredentialFile(env = process.env, home = resolv
   const configured = normalizeText(env.UNI_CO_PREVIEW_RUNTIME_CREDENTIALS_FILE);
   if (configured) return isAbsolute(configured) ? configured : resolve(home, configured);
   if (!isHostingerHome(home)) return undefined;
-  return resolve(home, "domains", "apidevelopers.digital", "uni-preview-account-runtime", "gateway.credentials.json");
+  return resolve(
+    home,
+    "domains",
+    "apidevelopers.digital",
+    "uni-preview-account-runtime",
+    "gateway.credentials.json",
+  );
 }
 
 function requireBearer(value, name) {
@@ -39,12 +44,23 @@ function requireBearer(value, name) {
   return normalized;
 }
 
-function readUniAccountRuntimeCredentials({ env = process.env, home = resolveRuntimeHome(env), readFileFn = readFileSync } = {}) {
-  if (normalizeText(env.UNI_CO_PREVIEW_HANDOFF_REDEEMER_AUTHORIZATION) && normalizeText(env.UNI_CO_PREVIEW_ACCESS_CONTEXT_AUTHORIZATION)) {
+function readUniAccountRuntimeCredentials({
+  env = process.env,
+  home = resolveRuntimeHome(env),
+  readFileFn,
+} = {}) {
+  if (
+    normalizeText(env.UNI_CO_PREVIEW_HANDOFF_REDEEMER_AUTHORIZATION) &&
+    normalizeText(env.UNI_CO_PREVIEW_ACCESS_CONTEXT_AUTHORIZATION)
+  ) {
     return {};
   }
+
+  if (typeof readFileFn !== "function") return {};
+
   const path = resolveUniAccountRuntimeCredentialFile(env, home);
   if (!path) return {};
+
   let raw;
   try {
     raw = readFileFn(path, "utf8");
@@ -60,12 +76,21 @@ function readUniAccountRuntimeCredentials({ env = process.env, home = resolveRun
   }
 
   return Object.freeze({
-    UNI_CO_PREVIEW_HANDOFF_REDEEMER_AUTHORIZATION: requireBearer(parsed?.handoffRedeemerAuthorization, "handoffRedeemerAuthorization"),
-    UNI_CO_PREVIEW_ACCESS_CONTEXT_AUTHORIZATION: requireBearer(parsed?.accessContextAuthorization, "accessContextAuthorization"),
+    UNI_CO_PREVIEW_HANDOFF_REDEEMER_AUTHORIZATION: requireBearer(
+      parsed?.handoffRedeemerAuthorization,
+      "handoffRedeemerAuthorization",
+    ),
+    UNI_CO_PREVIEW_ACCESS_CONTEXT_AUTHORIZATION: requireBearer(
+      parsed?.accessContextAuthorization,
+      "accessContextAuthorization",
+    ),
   });
 }
 
-export function resolveHostingerRuntimeEnv(env = process.env, { home = resolveRuntimeHome(env), readFileFn = readFileSync } = {}) {
+export function resolveHostingerRuntimeEnv(
+  env = process.env,
+  { home = resolveRuntimeHome(env), readFileFn } = {},
+) {
   const uniAccountCredentials = readUniAccountRuntimeCredentials({ env, home, readFileFn });
   return Object.freeze({
     ...env,
