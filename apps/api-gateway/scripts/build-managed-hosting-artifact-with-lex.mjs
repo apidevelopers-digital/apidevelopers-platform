@@ -10,17 +10,15 @@ import {
 import { dirname, join, relative, resolve, sep } from "node:path";
 import { fileURLToPath, pathToFileURL } from "node:url";
 import { buildManagedHostingArtifact } from "./build-managed-hosting-artifact.mjs";
-
 const SCRIPT_DIRECTORY = dirname(fileURLToPath(import.meta.url));
 const APP_DIRECTORY = resolve(SCRIPT_DIRECTORY, "..");
 const REPOSITORY_ROOT = resolve(APP_DIRECTORY, "../..");
 const LEX_PACKAGE_DIRECTORY = join(REPOSITORY_ROOT, "packages", "lex-legal-runtime");
-const EXPECTED_LEX_SOURCE_SHA = "a32f20f8fe7d4197eab8168a990846e2b89a8048";
+const EXPECTED_LEX_SOURCE_SHA = "33ca07c7620755b93f5c247a5570b97f1f1a4555";
 const LEX_VENDOR_DIRECTORY = "vendor/lex-legal-runtime";
 const EMBEDDED_FACADE = "src/mitra-embedded-professional-facade.mjs";
 const PACKAGE_IMPORT = '"@apidevelopers/lex-legal-runtime"';
 const ARTIFACT_IMPORT = '"../vendor/lex-legal-runtime/src/index.js"';
-
 function portablePath(value) {
   return value.split(sep).join("/");
 }
@@ -31,7 +29,6 @@ async function listFiles(root) {
   async function visit(directory) {
     const entries = await readdir(directory, { withFileTypes: true });
     entries.sort((left, right) => left.name.localeCompare(right.name));
-
     for (const entry of entries) {
       const path = join(directory, entry.name);
       const metadata = await lstat(path);
@@ -47,7 +44,6 @@ async function listFiles(root) {
   await visit(root);
   return files;
 }
-
 async function describeFile(root, path) {
   const content = await readFile(path);
   return Object.freeze({
@@ -58,9 +54,9 @@ async function describeFile(root, path) {
 }
 
 async function writeJson(path, value) {
-  await writeFile(path, `${JSON.stringify(value, null, 2)}\n`, "utf8");
+  await writeFile(path, `${JSON.stringify(value, null, 2)}
+`, "utf8");
 }
-
 async function readLexSourceSha() {
   const provenance = await readFile(
     join(LEX_PACKAGE_DIRECTORY, "src", "provenance.js"),
@@ -81,7 +77,6 @@ async function readLexSourceSha() {
   }
   return match[1];
 }
-
 async function vendorLexRuntime(outputDirectory) {
   const destination = join(outputDirectory, ...LEX_VENDOR_DIRECTORY.split("/"));
   const metadata = JSON.parse(
@@ -90,7 +85,6 @@ async function vendorLexRuntime(outputDirectory) {
   if (metadata.name !== "@apidevelopers/lex-legal-runtime") {
     throw new TypeError("unexpected Lex runtime package metadata");
   }
-
   await mkdir(destination, { recursive: true });
   await cp(
     join(LEX_PACKAGE_DIRECTORY, "src"),
@@ -106,7 +100,6 @@ async function vendorLexRuntime(outputDirectory) {
     exports: metadata.exports,
     engines: metadata.engines,
   });
-
   const facadePath = join(outputDirectory, ...EMBEDDED_FACADE.split("/"));
   const facade = await readFile(facadePath, "utf8");
   if (!facade.includes(PACKAGE_IMPORT)) {
@@ -117,7 +110,6 @@ async function vendorLexRuntime(outputDirectory) {
     facade.replace(PACKAGE_IMPORT, ARTIFACT_IMPORT),
     "utf8",
   );
-
   return Object.freeze({
     name: metadata.name,
     version: metadata.version,
@@ -126,7 +118,6 @@ async function vendorLexRuntime(outputDirectory) {
     sourceRevision: await readLexSourceSha(),
   });
 }
-
 async function refreshManifest(outputDirectory, lexDependency) {
   const manifestPath = join(outputDirectory, "release-manifest.json");
   const manifest = JSON.parse(await readFile(manifestPath, "utf8"));
@@ -136,7 +127,6 @@ async function refreshManifest(outputDirectory, lexDependency) {
     ),
     lexDependency,
   ].sort((left, right) => left.name.localeCompare(right.name));
-
   const files = [];
   for (const path of await listFiles(outputDirectory)) {
     if (resolve(path) === resolve(manifestPath)) continue;
@@ -152,7 +142,6 @@ async function refreshManifest(outputDirectory, lexDependency) {
   await writeJson(manifestPath, updated);
   return updated;
 }
-
 export async function buildManagedHostingArtifactWithLex(options = {}) {
   const result = await buildManagedHostingArtifact(options);
   const lexDependency = await vendorLexRuntime(result.outputDirectory);
@@ -162,7 +151,6 @@ export async function buildManagedHostingArtifactWithLex(options = {}) {
     manifest,
   });
 }
-
 async function main() {
   const result = await buildManagedHostingArtifactWithLex();
   console.log(
@@ -180,14 +168,13 @@ async function main() {
     }),
   );
 }
-
 if (
   process.argv[1] &&
   import.meta.url === pathToFileURL(resolve(process.argv[1])).href
 ) {
   main().catch((error) => {
     console.error(
-      JSON.stringify({
+      JSOON.stringify({
         event: "api_gateway_managed_artifact_with_lex_failed",
         message: error instanceof Error ? error.message : "Unknown error",
       }),
