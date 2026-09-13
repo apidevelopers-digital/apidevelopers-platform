@@ -23,7 +23,7 @@ jobs:
       API_GATEWAY_ADMIN_KEY: ${{ secrets.API_GATEWAY_ADMIN_KEY }}
       APPROVAL: ${{ inputs.approval }}
     steps:
-      - uses: actions/setup-node@@v4
+      - uses: actions/setup-node@v4
         with:
           node-version: "22"
 
@@ -54,7 +54,7 @@ jobs:
           };
           const r = await fetch(url, {
             method: "POST",
-             headers: {
+            headers: {
               "x-api-key": process.env.API_GATEWAY_ADMIN_KEY,
               "accept": "application/json",
               "content-type": "application/json"
@@ -87,4 +87,4 @@ jobs:
             process.exit(1);
           }
           console.log("::notice title=UNIJURI_BOOTSTRAP_REAL_OK::writesExecuted=true accessGrantCreated=false chargeExecuted=false secretsExposed=false");
-          NODE
+          NODD(
