@@ -1,75 +1,97 @@
-name: UniJuri Production Inventory Read
+name: UniJuri One-Time Production Bootstrap Retry
 
 on:
   workflow_dispatch:
+    inputs:
+      approval:
+        description: "Exact approval: IGOR_APROVA_UNIJURI_BOOTSTRAP_REAL_20260913"
+        required: true
+        type: string
 
 permissions:
   contents: read
 
+concurrency:
+  group: unijuri-one-time-production-bootstrap
+  cancel-in-progress: false
+
 jobs:
-  inventory:
+  bootstrap:
     runs-on: [self-hosted, macOS, X64]
-    timeout-minutes: 3
+    timeout-minutes: 5
     env:
       API_GATEWAY_ADMIN_KEY: ${{ secrets.API_GATEWAY_ADMIN_KEY }}
+      APPROVAL: ${{ inputs.approval }}
     steps:
       - uses: actions/setup-node@v4
         with:
           node-version: "22"
 
-      - name: Read UniJuri inventory
+      - name: Validate explicit production approval
         shell: bash
         run: |
           set -euo pipefail
+          test "$APPROVAL" = "IGOR_APROVA_UNIJURI_BOOTSTRAP_REAL_20260913"
           test -n "${API_GATEWAY_ADMIN_KEY:-}"
+
+      - name: Execute idempotent UniJuri bootstrap
+        shell: bash
+        run: |
+          set -euo pipefail
           node --input-type=module <<'NODE'
-          const url = "https://gateway.apidevelopers.digital/v1/saas/uni-juri/access/inventory";
-          const r = await fetch(url, {
-            method: "GET",
-            headers: {
-              "x-api-key": process.env.API_GATEWAY_ADMIN_KEY,
-              "accept": "application/json"
-            },
-            cache: "no-store",
-            redirect: "error"
-          });
-          const text = await r.text();
-          let body = {};
-          try { body = text ? JSON.parse(text) : {}; } catch {}
-          const counts = {
-            tenants: Array.isArray(body?.tenants) ? body.tenants.length : null,
-            workspaces: Array.isArray(body?.workspaces) ? body.workspaces.length : null,
-            subscriptions: Array.isArray(body?.subscriptions) ? body.subscriptions.length : null,
-            entitlements: Array.isArray(body?.entitlements) ? body.entitlements.length : null,
-            provisioningJobs: Array.isArray(body?.provisioningJobs) ? body.provisioningJobs.length : null,
-            accessGrants: Array.isArray(body?.accessGrants) ? body.accessGrants.length : null,
-            principals: Array.isArray(body?.principals) ? body.principals.length : null
-          };
-          const workspace = Array.isArray(body?.workspaces)
-            ? body.workspaces.find((item) => item?.productId === "uni-juri")
-            : null;
-          const subscription = Array.isArray(body?.subscriptions)
-            ? body.subscriptions.find((item) => item?.productId === "uni-juri")
-            : null;
-          const entitlement = Array.isArray(body?.entitlements)
-            ? body.entitlements.find((item) => item?.productId === "uni-juri")
-            : null;
-          const job = Array.isArray(body?.provisioningJobs)
-            ? body.provisioningJobs.find((item) => item?.productId === "uni-juri")
-            : null;
-          const safe = {
-            status: r.status,
-            ok: body?.ok === true,
-            productId: body?.productId ?? null,
-            counts,
-            workspaceStatus: workspace?.status ?? null,
-            subscriptionStatus: subscription?.status ?? null,
-            entitlementStatus: entitlement?.status ?? null,
-            provisioningStatus: job?.status ?? null,
-            productionChange: body?.productionChange ?? null,
-            secretsExposed: body?.secretsExposed ?? null
-          };
-          console.log(JSON.stringify(safe));
-          console.log(`::notice title=UNIJURI_INVENTORY::status=${r.status} tenants=${counts.tenants} workspaces=${counts.workspaces} subscriptions=${counts.subscriptions} entitlements=${counts.entitlements} jobs=${counts.provisioningJobs} accessGrants=${counts.accessGrants} principals=${counts.principals} workspaceStatus=${safe.workspaceStatus} subscriptionStatus=${safe.subscriptionStatus} entitlementStatus=${safe.entitlementStatus} provisioningStatus=${safe.provisioningStatus}`);
-          if (!(r.status === 200 && body?.ok === true && body?.secretsExposed === false)) process.exit(1);
+          try {
+            const url = "https://gateway.apidevelopers.digital/v1/saas/uni-juri/bootstrap";
+            const payload = {
+              approval: "IGOR_APROVA_UNIJURI_BOOTSTRAP_V1",
+              productionApproval: "IGOR_APROVA_UNIJURI_BOOTSTRAP_REAL_20260913",
+              input: {
+                tenantSlug: "uni",
+                workspaceSlug: "uni-juri-main",
+                displayName: "UNI",
+                planId: "internal",
+                subjectRef: "e65b5439faf65ea9905025751e6a33010df6551d99b225bf032e163492969ec8",
+                idempotencyKey: "unijuri-bootstrap-prod-20260913-v1"
+              }
+            };
+            const r = await fetch(url, {
+              method: "POST",
+              headers: {
+                "x-api-key": process.env.API_GATEWAY_ADMIN_KEY,
+                "accept": "application/json",
+                "content-type": "application/json"
+              },
+              body: JSON.stringify(payload),
+              cache: "no-store",
+              redirect: "error"
+            });
+            const text = await r.text();
+            let body = {};
+            try { body = text ? JSON.parse(text) : {}; } catch {}
+            const safe = {
+              status: r.status,
+              ok: body?.ok === true,
+              reason: body?.reason ?? null,
+              productId: body?.productId ?? null,
+              writesExecuted: body?.writesExecuted ?? null,
+              accessGrantCreated: body?.accessGrantCreated ?? null,
+              chargeExecuted: body?.chargeExecuted ?? null,
+              secretsExposed: body?.secretsExposed ?? null
+            };
+            console.log(JSON.stringify(safe));
+            if ([200, 201].includes(r.status) &&
+                body?.ok === true &&
+                body?.writesExecuted === true &&
+                body?.chargeExecuted === false &&
+                body?.secretsExposed === false &&
+                body?.accessGrantCreated === false) {
+              console.log("::notice title=UNIJURI_BOOTSTRAP_REAL_OK::writesExecuted=true accessGrantCreated=false chargeExecuted=false secretsExposed=false");
+              process.exit(0);
+            }
+            console.log(`::error title=UNIJURI_BOOTSTRAP_REAL_FAILED::status=${r.status} reason=${body?.reason ?? "null"} writesExecuted=${body?.writesExecuted ?? "null"} chargeExecuted=${body?.chargeExecuted ?? "null"} secretsExposed=${body?.secretsExposed ?? "null"}`);
+            process.exit(1);
+          } catch (error) {
+            const message = error instanceof Error ? error.message : String(error);
+            console.log(`::error title=UNIJURI_BOOTSTRAP_TRANSPORT_FAILED::${message}`);
+            process.exit(1);
+          }
           NODE
