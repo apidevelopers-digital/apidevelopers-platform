@@ -33,7 +33,7 @@ function requireFunction(value, name) {
 }
 
 function principalKeyOf(principalId) {
-  const match = String(principalId ?? "").trim().match(/^component\.principal:([^:]+)$/);
+  const match = String(principalId ?? "").trim().match(/^component\.principal\.([^:]+)$/);
   if (!match) throw new TypeError("principalId must be a canonical component.principal id");
   return match[1];
 }
@@ -63,7 +63,7 @@ export async function ensureUniCoCustomerMembership({
   workspaceId = requireText(workspaceId, "workspaceId");
   principalId = requireText(principalId, "principalId");
   requireFunction(membershipRuntime?.registerUser, "membershipRuntime.registerUser");
-  requireFunction(membershipRuntime?.registerRole, "membershipRuntime.registerRole");
+  requireFunction(membershipRuntime.registerRole, "membershipRuntime.registerRole");
   requireFunction(membershipRuntime?.addMembership, "membershipRuntime.addMembership");
   assertGrant({ accessGrant, tenantId, workspaceId, principalId });
 
