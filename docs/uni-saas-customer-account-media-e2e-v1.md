@@ -25,7 +25,7 @@ This wave is not complete because isolated files, routes, campaigns or previews 
 
 ## Non-negotiable identity boundary
 
-Customer account creation MUST NOT use an API key, service principal, demo fixture or hard-coded human as a substitute for a verified human session.
+Customer account creation MUST NOT use an API key, service principal, demo fixture or hard-coded hw session as a substitute for a verified human session.
 
 The account activation input must come from a verified human-session provider and carry only non-secret canonical references needed for provisioning and later access-context resolution.
 
