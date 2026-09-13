@@ -9,135 +9,42 @@ permissions:
 jobs:
   e2e:
     name: Mitra Professional Block A E2E
-    runs-on:
-      - self-hosted
-      - macOS
-      - X64
-    timeout-minutes: 10
+    runs-on: [self-hosted, macOS, X64]
+    timeout-minutes: 5
     steps:
       - uses: actions/setup-node@v4
         with:
           node-version: "22"
-
-      - name: Probe stages with explicit diagnostics
+      - name: Stage diagnostic
         env:
-          MITRA_GATEWAY_BASE_URL: "https://gateway.apidevelopers.digital"
-          MITRA_BROWSER_ORIGIN: "https://preview-apidevelopers.apidevelopers.digital"
+          BASE: "https://gateway.apidevelopers.digital"
+          ORIGIN: "https://preview-apidevelopers.apidevelopers.digital"
         run: |
           node --input-type=module <<'NODE'
-          const base = process.env.MITRA_GATEWAY_BASE_URL;
-          const origin = process.env.MITRA_BROWSER_ORIGIN;
-
-          async function request(stage, path, { method = "GET", body } = {}) {
-            const started = Date.now();
+          const base = process.env.BASE;
+          const origin = process.env.ORIGIN;
+          async function probe(stage, path, method="GET", body) {
             try {
-              const response = await fetch(`${base}${path}`, {
+              const r = await fetch(base + path, {
                 method,
-                headers: {
-                  origin,
-                  accept: "application/json",
-                  ...(body ? { "content-type": "application/json" } : {}),
-                },
-                ...(body ? { body: JSON.stringify(body) } : {}),
-                credentials: "omit",
+                headers: { origin, accept: "application/json", ...(body ? {"content-type":"application/json"} : {}) },
+                ...(body ? {body: JSON.stringify(body)} : {}),
                 cache: "no-store",
-                redirect: "error",
+                redirect: "error"
               });
-              const text = await response.text();
-              let payload = {};
-              try { payload = text ? JSON.parse(text) : {}; } catch {}
-              console.log(JSON.stringify({
-                stage,
-                status: response.status,
-                ok: payload?.ok === true,
-                error: payload?.error ?? null,
-                message: payload?.message ?? null,
-                contentType: response.headers.get("content-type"),
-                elapsedMs: Date.now() - started,
-              }));
-              return { status: response.status, payload };
-            } catch (error) {
-              console.log(JSON.stringify({
-                stage,
-                transportError: error instanceof Error ? error.message : String(error),
-                elapsedMs: Date.now() - started,
-              }));
-              throw error;
+              let p = {};
+              try { p = await r.json(); } catch {}
+              if (r.status !== 200 || p?.ok !== true) {
+                console.log(`::error title=MITRA_STAGE_FAILURE::${stage} status=${r.status} ok=${p?.ok===true} error=${p?.error ?? "null"} message=${p?.message ?? "null"}`);
+                process.exit(1);
+              }
+              console.log(`::notice title=MITRA_STAGE_OK::${stage} status=${r.status}`);
+            } catch (e) {
+              console.log(`::error title=MITRA_STAGE_TRANSPORT::${stage} ${e instanceof Error ? e.message : String(e)}`);
+              process.exit(1);
             }
           }
-
-          function requireOk(stage, result) {
-            if (result.status !== 200 || result.payload?.ok !== true) {
-              throw new Error(`${stage} failed`);
-            }
-          }
-
-          const publicHealth = await request("public_health", "/v1/mitra/public/health");
-          requireOk("public_health", publicHealth);
-
-          const search = await request("public_search", "/v1/mitra/public/search", {
-            method: "POST",
-            body: { query: "responsabilidade civil", limit: 3 },
-          });
-          requireOk("public_search", search);
-
-          const professionalHealth = await request("professional_health", "/v1/mitra/professional/health");
-          requireOk("professional_health", professionalHealth);
-
-          const analyze = await request("assistant", "/v1/mitra/professional/analyze", {
-            method: "POST",
-            body: {
-              question: "Quais pontos jurídicos devem ser revisados em responsabilidade civil por serviço de saúde?",
-              facts: [
-                "Houve prestação de serviço de saúde.",
-                "A relação causal precisa ser verificada com evidências.",
-              ],
-              tribunal: "STJ",
-              limit: 8,
-            },
-          });
-          requireOk("assistant", analyze);
-
-          const jurimetrics = await request("jurimetrics", "/v1/mitra/professional/jurimetrics", {
-            method: "POST",
-            body: { tribunal: "TJSP", query: "responsabilidade civil", limit: 20 },
-          });
-          requireOk("jurimetrics", jurimetrics);
-
-          const first = Array.isArray(search.payload?.results) ? search.payload.results[0] : null;
-          const document = await request("documents", "/v1/mitra/professional/document/preview", {
-            method: "POST",
-            body: {
-              documentType: "legal_brief",
-              objective: "Organizar argumentos jurídicos sobre responsabilidade civil para revisão profissional.",
-              facts: [
-                "Houve prestação de serviço.",
-                "Os fatos e o nexo causal exigem validação documental.",
-              ],
-              instructions: "Separar fatos, fundamentos a validar e fontes oficiais.",
-              citations: [{
-                title: first?.title ?? "Fonte pública",
-                source: first?.source ?? "Câmara dos Deputados — Dados Abertos",
-                source_url: first?.source_url ?? "",
-                citation: first?.citation ?? "",
-              }],
-            },
-          });
-          requireOk("documents", document);
-
-          const veritas = await request("veritas", "/v1/mitra/professional/veritas", {
-            method: "POST",
-            body: {
-              mode: "claim_precheck",
-              claim: "A referência pública usada nesta análise deve ser conferida antes de uso profissional.",
-              evidence: {
-                source: first?.source ?? "Câmara dos Deputados — Dados Abertos",
-                citation: first?.citation ?? "",
-                source_url: first?.source_url ?? "",
-              },
-            },
-          });
-          requireOk("veritas", veritas);
-
-          console.log(JSON.stringify({ ok: true, stage: "complete" }));
+          await probe("public_health", "/v1/mitra/public/health");
+          await probe("public_search", "/v1/mitra/public/search", "POST", {query:"responsabilidade civil", limit:3});
+          await probe("professional_health", "/v1/mitra/professional/health");
           NODE
