@@ -169,10 +169,15 @@ function policy(payload = {}) {
   };
 }
 
+function timeoutFor(env = process.env, override) {
+  const raw = override ?? env.DATAJUD_JURIMETRICS_TIMEOUT_MS ?? 25_000;
+  return Math.min(Math.max(Number(raw) || 25_000, 1_000), 30_000);
+}
+
 export async function searchJurimetrics(payload = {}, {
   env = process.env,
   fetchImpl = globalThis.fetch,
-  timeoutMs = 15_000
+  timeoutMs
 } = {}) {
   const unsupported = unsupportedFilters(payload);
   if (unsupported.length) {
@@ -233,7 +238,7 @@ export async function searchJurimetrics(payload = {}, {
 
   const endpoint = `${DATAJUD_HOST}/api_publica_${tribunal}/_search`;
   const controller = new AbortController();
-  const timer = setTimeout(() => controller.abort(), Math.min(Math.max(Number(timeoutMs) || 15_000, 1_000), 30_000));
+  const timer = setTimeout(() => controller.abort(), timeoutFor(env, timeoutMs));
 
   try {
     const response = await fetchImpl(endpoint, {
@@ -298,5 +303,6 @@ export const __test = {
   normalizeTribunal,
   normalizePeriod,
   buildFilterQuery,
-  readiness
+  readiness,
+  timeoutFor
 };
