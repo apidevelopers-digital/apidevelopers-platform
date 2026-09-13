@@ -4,14 +4,6 @@ import {
 } from "./saas-unijuri-bootstrap-writer.mjs";
 
 const ROUTE = "/v1/saas/uni-juri/bootstrap";
-const ONE_TIME_PRODUCTION_APPROVAL = "IGOR_APROVA_UNIJURI_BOOTSTRAP_REAL_20260913";
-const ONE_TIME_PRODUCTION_INPUT = Object.freeze({
-  tenantSlug: "uni",
-  workspaceSlug: "uni-juri-main",
-  displayName: "UNI",
-  planId: "internal",
-  idempotencyKey: "unijuri-bootstrap-prod-20260913-v1",
-});
 
 function response(status, payload) {
   return Object.freeze({
@@ -36,13 +28,6 @@ function bodyOf(value) {
   return parsed;
 }
 
-function isExactOneTimeProductionBootstrap(payload = {}) {
-  if (payload?.productionApproval !== ONE_TIME_PRODUCTION_APPROVAL) return false;
-  const input = payload?.input ?? {};
-  return Object.entries(ONE_TIME_PRODUCTION_INPUT)
-    .every(([key, value]) => input?.[key] === value);
-}
-
 export function resolveUniJuriBootstrapWriteEnabled(
   env = process.env,
 ) {
@@ -57,20 +42,16 @@ export function createUniJuriBootstrapHttpApp({
   federatedPrincipal,
   audit = async () => {},
   writeEnabled = false,
-  // TEMPORARY production bridge: remove immediately after the governed bootstrap completes.
-  allowOneTimeProductionBootstrap = true,
   clock,
 } = {}) {
-  const createWriter = (enabled) => createUniJuriBootstrapWriter({
+  const writer = createUniJuriBootstrapWriter({
     authenticator,
     saasRuntime,
     federatedPrincipal,
     audit,
-    writeEnabled: enabled === true,
+    writeEnabled: writeEnabled === true,
     ...(clock ? { clock } : {}),
   });
-  const writer = createWriter(writeEnabled === true);
-  const oneTimeWriter = createWriter(true);
 
   return Object.freeze({
     async handleRequest({
@@ -106,11 +87,7 @@ export function createUniJuriBootstrapHttpApp({
       }
 
       try {
-        const oneTimeApproved =
-          allowOneTimeProductionBootstrap === true &&
-          isExactOneTimeProductionBootstrap(payload);
-        const selectedWriter = oneTimeApproved ? oneTimeWriter : writer;
-        const result = await selectedWriter.bootstrap({
+        const result = await writer.bootstrap({
           headers,
           approval: payload.approval,
           input: payload.input ?? {},
@@ -136,5 +113,4 @@ export function createUniJuriBootstrapHttpApp({
 export {
   ROUTE as UNIJURI_BOOTSTRAP_ROUTE,
   UNIJURI_BOOTSTRAP_APPROVAL,
-  ONE_TIME_PRODUCTION_APPROVAL as UNIJURI_ONE_TIME_PRODUCTION_APPROVAL,
 };
