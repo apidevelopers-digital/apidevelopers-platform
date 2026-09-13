@@ -5,7 +5,7 @@ import {
   mitraProfessionalOrchestrator,
 } from "@apidevelopers/lex-legal-runtime";
 
-const EXPECTED_SOURCE_SHA = "a32f20f8fe7d4197eab8168a990846e2b89a8048";
+const EXPECTED_SOURCE_SHA = "33ca07c7620755b93f5c247a5570b97f1f1a4555";
 
 test("embedded Lex runtime is pinned to the approved canonical SHA", () => {
   assert.equal(LEX_SOURCE_SHA, EXPECTED_SOURCE_SHA);
