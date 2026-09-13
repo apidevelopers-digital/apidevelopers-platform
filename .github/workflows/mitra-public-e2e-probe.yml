@@ -1,30 +1,32 @@
-name: UniJuri Inventory Verify
+name: Gateway State Path Classification
 on:
   workflow_dispatch:
 permissions:
   contents: read
 jobs:
-  verify:
+  classify:
     runs-on: [self-hosted, macOS, X64]
     timeout-minutes: 3
     env:
-      API_GATEWAY_ADMIN_KEY: ${{ secrets.API_GATEWAY_ADMIN_KEY }}
+      API_GATEWAY_STATE_FILE: ${{ secrets.API_GATEWAY_STATE_FILE || vars.API_GATEWAY_STATE_FILE }}
     steps:
       - uses: actions/setup-node@v4
         with:
           node-version: "22"
-      - name: Verify production inventory
+      - name: Classify state path without exposing it
         run: |
           node --input-type=module <<'NODE'
-          const r=await fetch("https://gateway.apidevelopers.digital/v1/saas/uni-juri/access/inventory",{headers:{"x-api-key":process.env.API_GATEWAY_ADMIN_KEY,accept:"application/json"},cache:"no-store"});
-          const b=await r.json();
-          const w=(b.workspaces??[]).find(x=>x.productId==="uni-juri");
-          const s=(b.subscriptions??[]).find(x=>x.productId==="uni-juri");
-          const e=(b.entitlements??[]).find(x=>x.productId==="uni-juri");
-          const j=(b.provisioningJobs??[]).find(x=>x.productId==="uni-juri");
-          const counts={tenants:(b.tenants??[]).length,workspaces:(b.workspaces??[]).length,subscriptions:(b.subscriptions??[]).length,entitlements:(b.entitlements??[]).length,jobs:(b.provisioningJobs??[]).length,accessGrants:(b.accessGrants??[]).length,principals:(b.principals??[]).length};
-          const ok=r.status===200&&b.ok===true&&b.productionChanged===false&&b.secretsExposed===false&&w?.status==="active"&&s?.status==="active"&&e?.status==="active"&&e?.capability==="use_product"&&j?.status==="succeeded"&&counts.principals>=1;
-          const line=`status=${r.status} tenants=${counts.tenants} workspaces=${counts.workspaces} subscriptions=${counts.subscriptions} entitlements=${counts.entitlements} jobs=${counts.jobs} accessGrants=${counts.accessGrants} principals=${counts.principals} workspace=${w?.status??"null"} subscription=${s?.status??"null"} entitlement=${e?.status??"null"} capability=${e?.capability??"null"} provisioning=${j?.status??"null"} productionChanged=${b.productionChanged} secretsExposed=${b.secretsExposed}`;
-          console.log(ok?`::notice title=UNIJURI_INVENTORY_OK::${line}`:`::error title=UNIJURI_INVENTORY_FAILED::${line}`);
-          process.exit(ok?0:1);
+          import path from "node:path";
+          const v=String(process.env.API_GATEWAY_STATE_FILE??"").trim();
+          const present=Boolean(v);
+          const absolute=present&&path.isAbsolute(v);
+          const relative=present&&!absolute;
+          const underHome=absolute&&v.startsWith("/home/");
+          const underHbuilds=v.includes("/hbuilds/");
+          const underPublicHtml=v.includes("/public_html/");
+          const dotRelative=relative&&v.startsWith(".");
+          const safe={present,absolute,relative,underHome,underHbuilds,underPublicHtml,dotRelative};
+          console.log(JSON.stringify(safe));
+          console.log(`::notice title=GATEWAY_STATE_PATH_CLASS::present=${present} absolute=${absolute} relative=${relative} underHome=${underHome} underHbuilds=${underHbuilds} underPublicHtml=${underPublicHtml} dotRelative=${dotRelative}`);
+          if(!present) process.exit(1);
           NODE
