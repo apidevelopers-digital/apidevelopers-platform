@@ -86,7 +86,7 @@ async function vendorLexRuntime(outputDirectory) {
   }
   await mkdir(destination, { recursive: true });
   await cp(
-    join(LEX_PAACKAGE_DIRECTORY, "src"),
+    join(LEX_PACKAGE_DIRECTORY, "src"),
     join(destination, "src"),
     { recursive: true },
   );
