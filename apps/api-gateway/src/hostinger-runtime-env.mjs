@@ -16,9 +16,14 @@ function resolveHostingerStateFile(env = process.env) {
   return home ? resolve(home, configured) : configured;
 }
 
+function isHostingerHome(home) {
+  return /^\/home\/[^/]+$/.test(String(home ?? "").trim());
+}
+
 function resolveUniAccountRuntimeCredentialFile(env = process.env, home = homedir()) {
   const configured = normalizeText(env.UNI_CO_PREVIEW_RUNTIME_CREDENTIALS_FILE);
   if (configured) return isAbsolute(configured) ? configured : resolve(home, configured);
+  if (!isHostingerHome(home)) return undefined;
   return resolve(home, "domains", "apidevelopers.digital", "uni-preview-account-runtime", "gateway.credentials.json");
 }
 
@@ -35,6 +40,7 @@ function readUniAccountRuntimeCredentials({ env = process.env, home = homedir(),
     return {};
   }
   const path = resolveUniAccountRuntimeCredentialFile(env, home);
+  if (!path) return {};
   let raw;
   try {
     raw = readFileFn(path, "utf8");
