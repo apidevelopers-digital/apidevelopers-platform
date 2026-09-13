@@ -38,6 +38,9 @@ test("UniJuri inventory is read-only and product scoped", async () => {
   assert.equal(body.productId, "uni-juri");
   assert.equal(body.workspaces.length, 1);
   assert.equal(body.workspaces[0].workspaceId, "w1");
+  assert.equal(body.entitlements.length, 1);
+  assert.equal(body.entitlements[0].entitlementId, "e1");
+  assert.equal(body.entitlements[0].capability, "use_product");
   assert.equal(body.accessGrants.length, 0);
   assert.equal(body.productionChanged, false);
   assert.equal(body.secretsExposed, false);
