@@ -1,27 +1,38 @@
-name: UniJuri Bootstrap Authenticated Fail-Closed Preflight
+name: UniJuri One-Time Production Bootstrap
 
 on:
   workflow_dispatch:
+    inputs:
+      approval:
+        description: "Exact approval: IGOR_APROVA_UNIJURI_BOOTSTRAP_REAL_20260913"
+        required: true
+        type: string
 
 permissions:
   contents: read
 
+concurrency:
+  group: unijuri-one-time-production-bootstrap
+  cancel-in-progress: false
+
 jobs:
-  preflight:
+  bootstrap:
     runs-on: [self-hosted, macOS, X64]
-    timeout-minutes: 3
+    timeout-minutes: 5
     env:
       API_GATEWAY_ADMIN_KEY: ${{ secrets.API_GATEWAY_ADMIN_KEY }}
+      APPROVAL: ${{ inputs.approval }}
     steps:
       - uses: actions/setup-node@v4
         with:
           node-version: "22"
-      - name: Validate admin source presence
+      - name: Validate explicit production approval
         shell: bash
         run: |
           set -euo pipefail
+          test "$APPROVAL" = "IGOR_APROVA_UNIJURI_BOOTSTRAP_REAL_20260913"
           test -n "${API_GATEWAY_ADMIN_KEY:-}"
-      - name: Probe authenticated UniJuri bootstrap while write is disabled
+      - name: Execute idempotent UniJuri bootstrap
         shell: bash
         run: |
           set -euo pipefail
@@ -42,7 +53,6 @@ jobs:
             method: "POST",
             headers: {
               "x-key": "",
-              "x-key2": "",
               "x-api-key": process.env.API_GATEWAY_ADMIN_KEY,
               "accept": "application/json",
               "content-type": "application/json"
@@ -54,16 +64,20 @@ jobs:
           const text = await r.text();
           let body = {};
           try { body = text ? JSON.parse(text) : {}; } catch {}
-          if (
-            r.status === 423 &&
-            body?.reason === "write_disabled" &&
-            body?.writesExecuted === false &&
-            body?.chargeExecuted === false &&
-            body?.secretsExposed === false
-          ) {
-            console.log("::notice title=UNIJURI_AUTHENTICATED_FAIL_CLOSED_OK::status=423 reason=write_disabled writesExecuted=false chargeExecuted=false secretsExposed=false");
-            process.exit(0);
+          const safe = {
+            status: r.status,
+            ok: body?.ok === true,
+            reason: body?.reason ?? null,
+            productId: body?.productId ?? null,
+            writesExecuted: body?.writesExecuted ?? null,
+            accessGrantCreated: body?.accessGrantCreated ?? null,
+            chargeExecuted: body?.chargeExecuted ?? null,
+            secretsExposed: body?.secretsExposed ?? null
+          };
+          console.log(JSON.stringify(safe));
+          if (!([200, 201].includes(r.status) && body?.ok === true && body?.chargeExecuted === false && body?.secretsExposed === false)) {
+            console.log(`::error title=UNIJURI_BOOTSTRAP_REAL_FAILED::status=${r.status} reason=${body?.reason ?? "null"}`);
+            process.exit(1);
           }
-          console.log(`::error title=UNIJURI_AUTHENTICATED_PREFLIGHT_FAILED::status=${r.status} reason=${body?.reason ?? "null"} writesExecuted=${body?.writesExecuted}`);
-          process.exit(1);
+          console.log("::notice title=UNIJURI_BOOTSTRAP_REAL_OK::chargeExecuted=false secretsExposed=false");
           NODE
