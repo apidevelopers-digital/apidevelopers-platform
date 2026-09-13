@@ -56,9 +56,11 @@ function sameStringSet(left = [], right = []) {
 
 function assertCustomerRole(role) {
   if (!role || typeof role !== "object") throw new TypeError("role is required");
-  if (role.key !== UNI_CO_CUSTOMER_ROLE_KEY) throw new Error(‰Õ¹¥}½}ÕÍÑ½µ•É}É½±•}­•å}µ¥Íµ…Ñ ˆ¤ì(€¥˜€¡É½±”¹Í½Á”€„ôô€‰İ½É­ÍÁ…”ˆ¤Ñ¡É½Ü¹•ÜÉÉ½È¢'Væ•ö6õö7W7FöÖW%÷&öÆU÷66÷UöÖ—6ÖF6‚"“°¢–b‡&öÆRç7FGW2ÓÒ&7F—fR"’F‡&÷ræWrW'&÷"ˆ[šWØÛ×Øİ\İÛY\—Ü›ÛWÛ›İØXİ]™HŠNÂˆYˆ
-\Ø[YTİš[™ÔÙ]
-›ÛKœ\›Z\ÜÚ[ÛœËS’WĞÓ×ĞÕTÕÓQT—ÔT“RTÔÒSÓ”ÊJHÂˆ›İÈ™]È\œ›ÜŠ"uni_co_customer_role_permissions_mismatch");
+  if (role.key !== UNI_CO_CUSTOMER_ROLE_KEY) throw new Error("uni_co_customer_role_key_mismatch");
+  if (role.scope !== "workspace") throw new Error("uni_co_customer_role_scope_mismatch");
+  if (role.status !== "active") throw new Error("uni_co_customer_role_not_active");
+  if (!sameStringSet(role.permissions, UNI_CO_CUSTOMER_PERMISSIONS)) {
+    throw new Error("uni_co_customer_role_permissions_mismatch");
   }
 }
 
