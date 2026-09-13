@@ -1,4 +1,4 @@
-name: UniJuri Bootstrap Production Safe Probe
+name: UniJuri Bootstrap Environment Source Readiness
 
 on:
   workflow_dispatch:
@@ -7,30 +7,66 @@ permissions:
   contents: read
 
 jobs:
-  probe:
+  readiness:
     runs-on: [self-hosted, macOS, X64]
-    timeout-minutes: 3
+    timeout-minutes: 5
+    env:
+      OPENAI_MODEL: ${{ secrets.OPENAI_MODEL || vars.OPENAI_MODEL }}
+      OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY || vars.OPENAI_API_KEY }}
+      DATAJUD_API_KEY: ${{ secrets.DATAJUD_API_KEY || vars.DATAJUD_API_KEY }}
+      DATAJUD_ENABLED: ${{ secrets.DATAJUD_ENABLED || vars.DATAJUD_ENABLED }}
+      AI_ENABLED: ${{ secrets.AI_ENABLED || vars.AI_ENABLED }}
+      HOST: ${{ secrets.HOST || vars.HOST }}
+      GLOBAL_TRUST_EVALUATION_PORTAL_ENABLED: ${{ secrets.GLOBAL_TRUST_EVALUATION_PORTAL_ENABLED || vars.GLOBAL_TRUST_EVALUATION_PORTAL_ENABLED }}
+      GLOBAL_TRUST_EVALUATION_ENABLED: ${{ secrets.GLOBAL_TRUST_EVALUATION_ENABLED || vars.GLOBAL_TRUST_EVALUATION_ENABLED }}
+      API_GATEWAY_ADMIN_KEY: ${{ secrets.API_GATEWAY_ADMIN_KEY }}
+      API_GATEWAY_STATE_FILE: ${{ secrets.API_GATEWAY_STATE_FILE || vars.API_GATEWAY_STATE_FILE }}
+      API_GATEWAY_DELEGATED_TENANT_ID: ${{ secrets.API_GATEWAY_DELEGATED_TENANT_ID || vars.API_GATEWAY_DELEGATED_TENANT_ID }}
+      API_GATEWAY_DELEGATED_KEY: ${{ secrets.API_GATEWAY_DELEGATED_KEY }}
+      API_GATEWAY_PROVISIONING_KEY: ${{ secrets.API_GATEWAY_PROVISIONING_KEY }}
+      UNI_CO_PREVIEW_IDENTITY_BACKEND_BASE_URL: ${{ secrets.UNI_CO_PREVIEW_IDENTITY_BACKEND_BASE_URL || vars.UNI_CO_PREVIEW_IDENTITY_BACKEND_BASE_URL }}
+      WEB_AGENT_SHADOW_API_KEY: ${{ secrets.WEB_AGENT_SHADOW_API_KEY }}
+      WEB_AGENT_SHADOW_BASE_URL: ${{ secrets.WEB_AGENT_SHADOW_BASE_URL || vars.WEB_AGENT_SHADOW_BASE_URL }}
+      WEB_AGENT_SHADOW_ENABLED: ${{ secrets.WEB_AGENT_SHADOW_ENABLED || vars.WEB_AGENT_SHADOW_ENABLED }}
+      API_GATEWAY_OPERATOR_KEY: ${{ secrets.API_GATEWAY_OPERATOR_KEY }}
+      API_GATEWAY_OPERATOR_TENANT_ID: ${{ secrets.API_GATEWAY_OPERATOR_TENANT_ID || vars.API_GATEWAY_OPERATOR_TENANT_ID }}
+      HOSTINGER_API_TOKEN: ${{ secrets.HOSTINGER_API_TOKEN }}
     steps:
-      - uses: actions/setup-node@v4
-        with:
-          node-version: "22"
-      - name: Probe UniJuri bootstrap route without writes
+      - name: Check source presence without exposing values
+        shell: bash
         run: |
-          node --input-type=module <<'NODE'
-          const url = "https://gateway.apidevelopers.digital/v1/saas/uni-juri/bootstrap";
-          try {
-            const r = await fetch(url, { method: "GET", headers: { accept: "application/json" }, cache: "no-store", redirect: "error" });
-            const text = await r.text();
-            let p = {};
-            try { p = text ? JSON.parse(text) : {}; } catch {}
-            if (r.status === 405 && p?.reason === "method_not_allowed" && p?.writesExecuted === false) {
-              console.log("::notice title=UNIJURI_BOOTSTRAP_ROUTE_OK::status=405 writesExecuted=false");
-              process.exit(0);
-            }
-            console.log(`::error title=UNIJURI_BOOTSTRAP_ROUTE_FAILURE::status=${r.status} reason=${p?.reason ?? "null"} writesExecuted=${p?.writesExecuted} contentType=${r.headers.get("content-type")}`);
-            process.exit(1);
-          } catch (e) {
-            console.log(`::error title=UNIJURI_BOOTSTRAP_TRANSPORT::${e instanceof Error ? e.message : String(e)}`);
-            process.exit(1);
-          }
-          NODE
+          set -euo pipefail
+          required=(
+            OPENAI_MODEL
+            OPENAI_API_KEY
+            DATAJUD_API_KEY
+            DATAJUD_ENABLED
+            AI_ENABLED
+            HOST
+            GLOBAL_TRUST_EVALUATION_PORTAL_ENABLED
+            GLOBAL_TRUST_EVALUATION_ENABLED
+            API_GATEWAY_ADMIN_KEY
+            API_GATEWAY_STATE_FILE
+            API_GATEWAY_DELEGATED_TENANT_ID
+            API_GATEWAY_DELEGATED_KEY
+            API_GATEWAY_PROVISIONING_KEY
+            UNI_CO_PREVIEW_IDENTITY_BACKEND_BASE_URL
+            WEB_AGENT_SHADOW_API_KEY
+            WEB_AGENT_SHADOW_BASE_URL
+            WEB_AGENT_SHADOW_ENABLED
+            API_GATEWAY_OPERATOR_KEY
+            API_GATEWAY_OPERATOR_TENANT_ID
+            HOSTINGER_API_TOKEN
+          )
+          missing=()
+          for key in "${required[@]}"; do
+            if [[ -z "${!key:-}" ]]; then
+              missing+=("$key")
+            fi
+          done
+          if (( ${#missing[@]} > 0 )); then
+            joined="$(IFS=,; echo "${missing[*]}")"
+            echo "::error title=UNIJURI_ENV_SOURCE_INCOMPLETE::missingCount=${#missing[@]} missing=${joined}"
+            exit 1
+          fi
+          echo "::notice title=UNIJURI_ENV_SOURCE_READY::allSourcesPresent=true valuesExposed=false hostingerMutationPerformed=false"
