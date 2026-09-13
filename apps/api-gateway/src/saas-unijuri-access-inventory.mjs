@@ -48,7 +48,7 @@ export function createUniJuriAccessInventoryApp({ authenticator, store } = {}) {
       const state = await store.read();
       const workspaces = values(state, "saas.workspaces").filter((item) => item?.productId === PRODUCT_ID);
       const subscriptions = values(state, "saas.subscriptions").filter((item) => item?.productId === PRODUCT_ID);
-      const entitlements = values(state, "saas.entitments").filter((item) => item?.productId === PRODUCT_ID);
+      const entitlements = values(state, "saas.entitlements").filter((item) => item?.productId === PRODUCT_ID);
       const provisioningJobs = values(state, "saas.provisioningJobs").filter((item) => item?.productId === PRODUCT_ID);
       const accessGrants = values(state, "saas.accessGrants").filter((item) => item?.productId === PRODUCT_ID);
 
