@@ -1,4 +1,4 @@
-name: UniJuri Persistent Inventory Verification
+name: UniJuri Production Fail-Closed Verification
 
 on:
   workflow_dispatch:
@@ -17,74 +17,45 @@ jobs:
         with:
           node-version: "22"
 
-      - name: Verify persistent UniJuri inventory
+      - name: Verify UniJuri bootstrap is fail-closed
         shell: bash
         run: |
           set -euo pipefail
           test -n "${API_GATEWAY_ADMIN_KEY:-}"
           node --input-type=module <<'NODE'
-          const r = await fetch("https://gateway.apidevelopers.digital/v1/saas/uni-juri/access/inventory", {
-            method: "GET",
+          const url = "https://gateway.apidevelopers.digital/v1/saas/uni-juri/bootstrap";
+          const payload = {
+            approval: "IGOR_APROVA_UNIJURI_BOOTSTRAP_V1",
+            input: {
+              tenantSlug: "uni",
+              workspaceSlug: "uni-juri-main",
+              displayName: "UNI",
+              planId: "internal",
+              subjectRef: "e65b5439faf65ea9905025751e6a33010df6551d99b225bf032e163492969ec8",
+              idempotencyKey: "unijuri-bootstrap-prod-20260913-v1"
+            }
+          };
+          const r = await fetch(url, {
+            method: "POST",
             headers: {
               "x-api-key": process.env.API_GATEWAY_ADMIN_KEY,
-              accept: "application/json"
+              accept: "application/json",
+              "content-type": "application/json"
             },
+            body: JSON.stringify(payload),
             cache: "no-store",
             redirect: "error"
           });
           const text = await r.text();
-          let b = {};
-          try { b = text ? JSON.parse(text) : {}; } catch {}
-          const tenants = Array.isArray(b?.tenants) ? b.tenants : [];
-          const workspaces = Array.isArray(b?.workspaces) ? b.workspaces : [];
-          const subscriptions = Array.isArray(b?.subscriptions) ? b.subscriptions : [];
-          const entitlements = Array.isArray(b?.entitlements) ? b.entitlements : [];
-          const jobs = Array.isArray(b?.provisioningJobs) ? b.provisioningJobs : [];
-          const grants = Array.isArray(b?.accessGrants) ? b.accessGrants : [];
-          const principals = Array.isArray(b?.principals) ? b.principals : [];
-
-          const workspace = workspaces.find((x) => x?.productId === "uni-juri");
-          const subscription = subscriptions.find((x) => x?.productId === "uni-juri");
-          const entitlement = entitlements.find((x) => x?.productId === "uni-juri");
-          const job = jobs.find((x) => x?.productId === "uni-juri");
-
-          const safe = {
-            status: r.status,
-            ok: b?.ok === true,
-            tenants: tenants.length,
-            workspaces: workspaces.length,
-            subscriptions: subscriptions.length,
-            entitlements: entitlements.length,
-            provisioningJobs: jobs.length,
-            accessGrants: grants.length,
-            principals: principals.length,
-            workspaceStatus: workspace?.status ?? null,
-            subscriptionStatus: subscription?.status ?? null,
-            entitlementStatus: entitlement?.status ?? null,
-            entitlementCapability: entitlement?.capability ?? null,
-            provisioningStatus: job?.status ?? null,
-            productionChanged: b?.productionChanged ?? null,
-            secretsExposed: b?.secretsExposed ?? null
-          };
-          console.log(JSON.stringify(safe));
-
-          const valid =
-            r.status === 200 &&
-            b?.ok === true &&
-            b?.productionChanged === false &&
-            b?.secretsExposed === false &&
-            tenants.length >= 1 &&
-            workspace?.status === "active" &&
-            subscription?.status === "active" &&
-            entitlement?.status === "active" &&
-            entitlement?.capability === "use_product" &&
-            job?.status === "succeeded" &&
-            principals.length >= 1;
-
-          const line = `status=${r.status} tenants=${tenants.length} workspaces=${workspaces.length} subscriptions=${subscriptions.length} entitlements=${entitlements.length} jobs=${jobs.length} accessGrants=${grants.length} principals=${principals.length} workspaceStatus=${workspace?.status ?? "null"} subscriptionStatus=${subscription?.status ?? "null"} entitlementStatus=${entitlement?.status ?? "null"} entitlementCapability=${entitlement?.capability ?? "null"} provisioningStatus=${job?.status ?? "null"} productionChanged=${b?.productionChanged ?? "null"} secretsExposed=${b?.secretsExposed ?? "null"}`;
-          if (!valid) {
-            console.log(`::error title=UNIJURI_PERSISTENT_INVENTORY_FAILED::${line}`);
+          let body = {};
+          try { body = text ? JSON.parse(text) : {}; } catch {}
+          const ok = r.status === 423 &&
+            body?.reason === "write_disabled" &&
+            body?.writesExecuted === false;
+          const line = `status=${r.status} reason=${body?.reason ?? "null"} writesExecuted=${body?.writesExecuted ?? "null"}`;
+          if (!ok) {
+            console.log(`::error title=UNIJURI_FAIL_CLOSED_FAILED::${line}`);
             process.exit(1);
           }
-          console.log(`::notice title=UNIJURI_PERSISTENT_INVENTORY_OK::${line}`);
+          console.log(`::notice title=UNIJURI_FAIL_CLOSED_OK::${line}`);
           NODE
