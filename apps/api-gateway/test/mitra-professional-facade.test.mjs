@@ -3,13 +3,14 @@ import assert from"node:assert/strict";
 import{createMitraProfessionalFacade}from"../src/mitra-professional-facade.mjs";
 
 const ORIGIN="https://preview-apidevelopers.apidevelopers.digital";
+const UPSTREAM="https://mitra-professional-orchestrator.example";
 function response(status,payload){return{ok:status>=200&&status<300,status,async json(){return payload}}}
 function request(path,body,headers={}){
  return{method:"POST",url:path,headers:{origin:ORIGIN,"x-real-ip":"203.0.113.40",authorization:"Bearer browser-must-not-forward",cookie:"office_session=private",...headers},body:JSON.stringify(body)};
 }
 
-test("professional facade is fail-closed for protected capabilities when server bearer is absent",async()=>{
- const facade=createMitraProfessionalFacade({upstreamBearer:"",fetchImpl:async()=>{throw new Error("must not call")}});
+test("professional facade is fail-closed for protected capabilities when explicit upstream URL is absent",async()=>{
+ const facade=createMitraProfessionalFacade({upstreamBearer:"server-only",fetchImpl:async()=>{throw new Error("must not call")}});
  const health=await facade.handleRequest({method:"GET",url:"/v1/mitra/professional/health",headers:{origin:ORIGIN}});
  assert.equal(health.status,503);
  const healthBody=JSON.parse(health.body);
@@ -27,7 +28,7 @@ test("document preview is ephemeral, citation-backed and works without an upstre
   objective:"Organizar argumentos sobre responsabilidade civil.",
   facts:["Houve prestação de serviço de saúde.","Existe controvérsia sobre nexo causal."],
   instructions:"Revisar fundamentos antes de qualquer uso.",
-  citations:[{title:"Fonte oficial",source:"Câmara dos Deputados",source_url:"https://dadosabertos.camara.leg.br/",citation:"Referência de teste"}],
+  citations:[ {title:"Fonte oficial",source:"Câmara dos Deputados",source_url:"https://dadosabertos.camara.leg.br/",citation:"Referência de teste"}],
  }));
  assert.equal(result.status,200);
  const body=JSON.parse(result.body);
@@ -46,17 +47,18 @@ test("document preview is ephemeral, citation-backed and works without an upstre
 test("assistant uses only server-side bearer, allowlisted payload and strips raw/token material",async()=>{
  let captured=null;
  const facade=createMitraProfessionalFacade({
-  upstreamBearer:"server-only",
-  fetchImpl:async(url,options)=>{
+  upstreamBaseUrl:UPSTREAM,
+ upstreamBearer:"server-only",
+ fetchImpl:async(url,options)=>{
    captured={url:String(url),options};
    return response(200,{ok:true,path:"/v1/analyze",data:{answer:"Estratégia com revisão humana",raw:{secret:"never"},access_token:"never"}});
   },
  });
  const result=await facade.handleRequest(request("/v1/mitra/professional/analyze",{
   question:"Quais pontos jurídicos devo revisar?",
-  facts:["Fato um","Fato dois"],
-  tribunal:"STJ",
-  limit:8,
+ facts:["Fato um","Fato dois"],
+ tribunal:"STJ",
+ limit:8,
  }));
  assert.equal(result.status,200);
  const body=JSON.parse(result.body);
@@ -67,7 +69,7 @@ test("assistant uses only server-side bearer, allowlisted payload and strips raw
  assert.equal(body.result.data.access_token,undefined);
  assert.equal(body.persistence,false);
  assert.equal(body.office_database_access,false);
- assert.equal(captured.url,"https://peterle-ops.apidevelopers.digital/mitra/orchestrator/dispatch");
+ assert.equal(captured.url,`${UPSTREAM}/mitra/orchestrator/dispatch`);
  assert.equal(captured.options.headers.authorization,"Bearer server-only");
  assert.equal(captured.options.headers.cookie,undefined);
  const sent=JSON.parse(captured.options.body);
@@ -79,12 +81,13 @@ test("assistant uses only server-side bearer, allowlisted payload and strips raw
 test("jurimetrics dispatch is forced to real read-only mode and rejects office/private fields",async()=>{
  let sent=null;
  const facade=createMitraProfessionalFacade({
-  upstreamBearer:"server-only",
-  fetchImpl:async(_url,options)=>{sent=JSON.parse(options.body);return response(200,{ok:true,data:{read_only:true,total:12,sample:[{numero:"1"}]}})},
+  upstreamBaseUrl:UPSTREAM,
+ upstreamBearer:"server-only",
+ fetchImpl:async(_url,options)=>{sent=JSON.parse(options.body);return response(200,{ok:true,data:{read_only:true,total:12,sample:[{numero:"1"}]}})},
  });
  const result=await facade.handleRequest(request("/v1/mitra/professional/jurimetrics",{
-  tribunal:"TJSP",query:"responsabilidade civil",limit:100,
- }));
+ tribunal:"TJSP",query:"responsabilidade civil",limit:100,
+}));
  assert.equal(result.status,200);
  assert.equal(sent.path,"/v1/jurimetrics/search");
  assert.equal(sent.payload.dry_run,false);
@@ -93,7 +96,7 @@ test("jurimetrics dispatch is forced to real read-only mode and rejects office/p
  assert.equal(JSON.parse(result.body).database_write_allowed,false);
 
  const blocked=await facade.handleRequest(request("/v1/mitra/professional/jurimetrics",{
-  tribunal:"TJSP",client_id:"private-client",
+ tribunal:"TJSP",client_id:"private-client",
  }));
  assert.equal(blocked.status,400);
  assert.equal(JSON.parse(blocked.body).error,"jurimetrics_unexpected_input");
@@ -102,15 +105,16 @@ test("jurimetrics dispatch is forced to real read-only mode and rejects office/p
 test("Veritas accepts only governed modes and sends structured evidence",async()=>{
  let sent=null;
  const facade=createMitraProfessionalFacade({
-  upstreamBearer:"server-only",
-  fetchImpl:async(_url,options)=>{sent=JSON.parse(options.body);return response(200,{ok:true,data:{status:"review_required"}})},
+ upstreamBaseUrl:UPSTREAM,
+ upstreamBearer:"server-only",
+ fetchImpl:async(_url,options)=>{sent=JSON.parse(options.body);return response(200,{ok:true,data:{status:"review_required"}})},
  });
  const result=await facade.handleRequest(request("/v1/mitra/professional/veritas",{
   mode:"claim_precheck",
-  claim:"A norma X estava vigente na data Y.",
-  evidence:{source:"Fonte oficial",citation:"Referência"},
-  as_of_date:"2026-09-08",
- }));
+ claim:"A norma X estava vigente na data Y.",
+ evidence:{source:"Fonte oficial",citation:"Referência"},
+ as_of_date:"2026-09-08",
+}));
  assert.equal(result.status,200);
  assert.equal(sent.path,"/v1/veritas");
  assert.equal(sent.payload.mode,"claim_precheck");
@@ -119,8 +123,8 @@ test("Veritas accepts only governed modes and sends structured evidence",async()
 
  const invalid=await facade.handleRequest(request("/v1/mitra/professional/veritas",{
   mode:"certainty",
-  claim:"algo",
-  evidence:{source:"x"},
+ claim:"algo",
+ evidence:{source:"x"},
  }));
  assert.equal(invalid.status,400);
  assert.equal(JSON.parse(invalid.body).error,"veritas_mode_invalid");
@@ -128,7 +132,7 @@ test("Veritas accepts only governed modes and sends structured evidence",async()
 
 test("professional CORS rejects unknown browser origins before upstream dispatch",async()=>{
  let calls=0;
- const facade=createMitraProfessionalFacade({upstreamBearer:"server-only",fetchImpl:async()=>{calls+=1;return response(200,{ok:true})}});
+ const facade=createMitraProfessionalFacade({upstreamBaseUrl:UPSTREAM,upstreamBearer:"server-only",fetchImpl:async()=>{calls+=1;return response(200,{ok:true})}});
  const result=await facade.handleRequest({
   method:"POST",url:"/v1/mitra/professional/analyze",
   headers:{origin:"https://evil.example","x-real-ip":"203.0.113.50"},
