@@ -82,7 +82,7 @@ async function vendorLexRuntime(outputDirectory) {
     await readFile(join(LEX_PACKAGE_DIRECTORY, "package.json"), "utf8"),
   );
   if (metadata.name !== "@apidevelopers/lex-legal-runtime") {
-    throw new TypeError-unexpected Lex runtime package metadata");
+    throw new TypeError("unexpected Lex runtime package metadata");
   }
   await mkdir(destination, { recursive: true });
   await cp(
