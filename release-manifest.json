@@ -3,7 +3,7 @@
   "format": "managed-node-zip",
   "service": "api-gateway",
   "version": "0.8.0",
-  "sourceRevision": "ac4158476e493b24f95ba35886c8ca4044a9799d",
+  "sourceRevision": "b8fa20b303fdff520dc873981b84d1b6c5bdfb4c",
   "runtime": {
     "node": ">=22",
     "entrypoint": "src/hostinger-entry.mjs",
@@ -1009,8 +1009,8 @@
     },
     {
       "path": "src/saas-uni-co-customer-membership.mjs",
-      "bytes": 3812,
-      "sha256": "3f08cc61390dd8470aeb67d44ef125bdfe7beac8cdde25cf7891f56a7f1eae66"
+      "bytes": 4759,
+      "sha256": "63d364d66d6e64385c79a6c431ee5b76a6d773223a5350e3c605526a020cfd78"
     },
     {
       "path": "src/saas-uni-co-customer-provisioning.mjs",
