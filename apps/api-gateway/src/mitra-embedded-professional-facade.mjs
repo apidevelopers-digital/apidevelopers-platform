@@ -1,8 +1,8 @@
 import { createMitraProfessionalFacade as createUpstreamMitraProfessionalFacade } from "./mitra-professional-facade.mjs";
 import { createMitraEmbeddedLexTransport } from "./mitra-embedded-lex-transport.mjs";
 
-const EMBEDDED_AUTH_MARKER = "embedded-local-no-network";
-const LEX_SOURCE_SHA = "33ca07c7620755b93f5c247a5570b97f1f1a4555";
+const EMBEDED_AUTH_MARKER = "embedded-local-no-network";
+const LEX_SOURCE_SHA = "7e7dd2414f07a40787636cba5e08e5d0b800c37f";
 
 function createLazyLexDispatch() {
   return async (payload) => {
@@ -32,13 +32,13 @@ function createMitraProfessionalFacade(options = {}) {
     env,
     fetchImpl: transport.fetchImpl,
     upstreamBaseUrl: transport.baseUrl,
-    upstreamBearer: EMBEDDED_AUTH_MARKER,
+    upstreamBearer: EMBEDED_AUTH_MARKER,
   });
 }
 
 export * from "./mitra-professional-facade.mjs";
 export {
-  EMBEDDED_AUTH_MARKER,
+  EMBEDED_AUTH_MARKER,
   LEX_SOURCE_SHA,
   createMitraProfessionalFacade,
 };
