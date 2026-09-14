@@ -3,7 +3,7 @@
   "format": "managed-node-zip",
   "service": "api-gateway",
   "version": "0.8.0",
-  "sourceRevision": "29919a8e91a86734fcce7de62ee6f46dbaa613e1",
+  "sourceRevision": "d8bb0dce37a94d01df7b8cbad61e28181979f859",
   "runtime": {
     "node": ">=22",
     "entrypoint": "src/hostinger-entry.mjs",
@@ -614,8 +614,8 @@
     },
     {
       "path": "src/mitra-public-research.mjs",
-      "bytes": 14013,
-      "sha256": "24cd26831a45dc68346486613dc804918a19801660d6d3e42d65e9461ba490c7"
+      "bytes": 13539,
+      "sha256": "a90d55a515580fff73982da05530de1867f70f73e094d086cda8becfe825a1c3"
     },
     {
       "path": "src/mitra-public-server.mjs",
@@ -1009,8 +1009,8 @@
     },
     {
       "path": "src/saas-uni-co-customer-membership.mjs",
-      "bytes": 4759,
-      "sha256": "63d364d66d6e64385c79a6c431ee5b76a6d773223a5350e3c605526a020cfd78"
+      "bytes": 3812,
+      "sha256": "3f08cc61390dd8470aeb67d44ef125bdfe7beac8cdde25cf7891f56a7f1eae66"
     },
     {
       "path": "src/saas-uni-co-customer-provisioning.mjs",
