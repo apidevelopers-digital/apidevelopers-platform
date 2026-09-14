@@ -3,16 +3,8 @@ name: API Gateway Runtime Branch Preview Publish
 on:
   workflow_dispatch:
     inputs:
-      source_ref:
-        description: "Approved source branch, for example ada/uni-saas-customer-account-media-e2e-v1"
-        required: true
-        type: string
-      expected_source_sha:
-        description: "Exact approved source SHA"
-        required: true
-        type: string
-      approval:
-        description: "Exact Igor approval token"
+      example:
+        description: "JSON payload with source_ref, expected_source_sha and approval"
         required: true
         type: string
 
@@ -26,8 +18,7 @@ concurrency:
 jobs:
   publish:
     if: >-
-      github.ref == 'refs/heads/main' &&
-      github.event.inputs.approval == 'IGOR_APROVA_GATEWAY_RUNTIME_BRANCH_20260814'
+      github.ref == 'refs/heads/main'
     runs-on: [self-hosted, macOS, X64]
     timeout-minutes: 25
     env:
@@ -39,25 +30,36 @@ jobs:
           fetch-depth: 0
           persist-credentials: true
 
-      - name: Pin approved branch source
+      - name: Parse approved preview payload
         shell: bash
         env:
-          SOURCE_REF: ${{ github.event.inputs.source_ref }}
-          EXPECTED_SOURCE_SHA: ${{ github.event.inputs.expected_source_sha }}
+          PAYLOAD: ${{ github.event.inputs.example }}
         run: |
           set -euo pipefail
-          ref="$(printf '%s' "$SOURCE_REF" | sed 's#^refs/heads/##')"
-          sha="$(printf '%s' "$EXPECTED_SOURCE_SHA" | tr '[:upper:]' '[:lower:]')"
-          [[ "$ref" =~ ^ada/[A-Za-z0-9._/-]+$ ]]
-          [[ "$sha" =~ ^[0-9a-f]{40}$ ]]
-          git fetch --no-tags origin "refs/heads/$ref:refs/remotes/origin/$ref"
-          git cat-file -e "${sha}^{commit}"
-          git merge-base --is-ancestor "$sha" "origin/$ref"
-          test "$(git rev-parse "origin/$ref")" = "$sha"
-          git checkout --detach "$sha"
-          test "$(git rev-parse HEAD)" = "$sha"
-          echo "SOURCE_SHA=$sha" >> "$GITHUB_ENV"
-          echo "SOURCE_REF=$ref" >> "$GITHUB_ENV"
+          node <<'NODE' > "$RUNNER_TEMP/preview-payload.env"
+          const payload = JSON.parse(process.env.PAYLOAD || '{}');
+          const sourceRef = String(payload.source_ref || '').trim().replace(/^refs\/heads\//, '');
+          const expectedSha = String(payload.expected_source_sha || '').trim().toLowerCase();
+          const approval = String(payload.approval || '').trim();
+          if (!/^ada\/[A-Za-z0-9._\/-]+$/.test(sourceRef)) throw new Error('source_ref must be an ada/* branch');
+          if (!/^[0-9a-f]{40}$/.test(expectedSha)) throw new Error('expected_source_sha must be a 40-character SHA');
+          if (approval !== 'IGOR_APROVA_GATEWAY_RUNTIME_BRANCH_20260814') throw new Error('approval mismatch');
+          console.log(`SOURCE_REF=${sourceRef}`);
+          console.log(`EXPECTED_SOURCE_SHA=${expectedSha}`);
+          NODE
+          cat "$RUNNER_TEMP/preview-payload.env" >> "$GITHUB_ENV"
+
+      - name: Pin approved branch source
+        shell: bash
+        run: |
+          set -euo pipefail
+          git fetch --no-tags origin "refs/heads/$SOURCE_REF:refs/remotes/origin/$SOURCE_REF"
+          git cat-file -e "${EXPECTED_SOURCE_SHA}^{commit}"
+          git merge-base --is-ancestor "$EXPECTED_SOURCE_SHA" "origin/$SOURCE_REF"
+          test "$(git rev-parse "origin/$SOURCE_REF")" = "$EXPECTED_SOURCE_SHA"
+          git checkout --detach "$EXPECTED_SOURCE_SHA"
+          test "$(git rev-parse HEAD)" = "$EXPECTED_SOURCE_SHA"
+          echo "SOURCE_SHA=$EXPECTED_SOURCE_SHA" >> "$GITHUB_ENV"
 
       - uses: actions/setup-node@v4
         with:
