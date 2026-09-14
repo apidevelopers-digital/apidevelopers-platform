@@ -37,6 +37,10 @@ jobs:
         run: node --test packages/saas-runtime/test/channel-binding.upsert.test.mjs
       - name: Get only
         run: node --test packages/saas-runtime/test/channel-binding.get.test.mjs
+      - name: List argument contract
+        run: node --test packages/saas-runtime/test/channel-binding.list-args.test.mjs
+      - name: List scope validation
+        run: node --test packages/saas-runtime/test/channel-binding.list-scope.test.mjs
       - name: List only
         run: node --test packages/saas-runtime/test/channel-binding.list.test.mjs
       - name: Basic upsert get list
