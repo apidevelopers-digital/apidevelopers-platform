@@ -29,23 +29,52 @@ jobs:
           const origin = process.env.MITRA_BROWSER_ORIGIN;
           let currentStage = "startup";
 
+          function safeSnippet(value, limit = 900) {
+            try {
+              return JSON.stringify(value ?? null)
+                .replace(/\r?\n/g, " ")
+                .replace(/%/g, "%25")
+                .replace(/\n/g, "%0A")
+                .replace(/\r/g, "%0D")
+                .slice(0, limit);
+            } catch {
+              return "unserializable";
+            }
+          }
+
           function beginStage(stage) {
             currentStage = stage;
             console.log(JSON.stringify({ event: "mitra_e2e_stage_start", stage }));
           }
 
           function emitFailure(stage, result, message = null) {
-            console.error(`::error title=Mitra E2E failed::${stage} status=${result?.status ?? "unknown"} ok=${result?.payload?.ok === true} message=${message ?? result?.payload?.message ?? result?.payload?.error ?? "unknown"}`);
+            const payload = result?.payload ?? {};
+            const nested = payload?.result ?? payload?.upstream ?? payload?.error_cause ?? null;
+            console.error(`::error title=Mitra E2E failed::${stage} status=${result?.status ?? "unknown"} ok=${payload?.ok === true} message=${message ?? payload?.message ?? payload?.error ?? "unknown"} payload=${safeSnippet({
+              error: payload?.error ?? null,
+              message: payload?.message ?? null,
+              status: payload?.status ?? null,
+              capability: payload?.capability ?? null,
+              service: payload?.service ?? null,
+              result_status: nested?.status ?? null,
+              result_error: nested?.error ?? null,
+              result_message: nested?.message ?? null,
+              result_payload_status: nested?.payload?.status ?? null,
+              result_payload_error: nested?.payload?.error ?? null,
+              result_payload_message: nested?.payload?.message ?? null,
+              error_cause: payload?.error_cause ?? nested?.error_cause ?? null,
+            })}`);
             console.log(JSON.stringify({
               event: "mitra_e2e_stage_failure",
               stage,
               status: result?.status ?? null,
-              ok: result?.payload?.ok === true,
-              error: result?.payload?.error ?? null,
-              message: message ?? result?.payload?.message ?? null,
-              payload_status: result?.payload?.status ?? null,
-              capability: result?.payload?.capability ?? null,
-              service: result?.payload?.service ?? null,
+              ok: payload?.ok === true,
+              error: payload?.error ?? null,
+              message: message ?? payload?.message ?? null,
+              payload_status: payload?.status ?? null,
+              capability: payload?.capability ?? null,
+              service: payload?.service ?? null,
+              nested,
             }));
           }
 
@@ -71,8 +100,14 @@ jobs:
               status: response.status,
               ok: payload?.ok === true,
               payload_status: payload?.status ?? null,
+              payload_error: payload?.error ?? null,
+              payload_message: payload?.message ?? null,
               capability: payload?.capability ?? null,
               service: payload?.service ?? null,
+              result_status: payload?.result?.status ?? null,
+              result_error: payload?.result?.error ?? null,
+              result_payload_status: payload?.result?.payload?.status ?? null,
+              error_cause: payload?.error_cause ?? payload?.result?.error_cause ?? null,
             }));
             return { status: response.status, payload };
           }
