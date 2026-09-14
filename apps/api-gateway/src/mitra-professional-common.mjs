@@ -1,6 +1,7 @@
 export const JSON_HEADERS=Object.freeze({"content-type":"application/json; charset=utf-8"});
 export const DEFAULT_ALLOWED_ORIGINS=Object.freeze([
  "https://preview-apidevelopers.apidevelopers.digital",
+ "https://mitra-preview.apidevelopers.digital",
  "https://mitra.apidevelopers.digital",
  "http://127.0.0.1:5173",
  "http://localhost:5173",
