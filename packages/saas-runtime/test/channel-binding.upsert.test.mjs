@@ -10,6 +10,10 @@ test("channel binding upsert alone", async () => {
     async list() { return [...rows.values()]; },
   };
   const store = createSaasChannelBindingStore({ repository });
-  const row = await store.upsert({ bindingId: "binding-1", tenantId: "tenant-1", workspaceId: "workspace-1", provider: "meta_whatsapp", channelId: "channel-1", credentialRef: "ref-1" });
-  assert.equal(row.bindingId, "binding-1");
+  try {
+    const row = await store.upsert({ bindingId: "binding-1", tenantId: "tenant-1", workspaceId: "workspace-1", provider: "meta_whatsapp", channelId: "channel-1", credentialRef: "ref-1" });
+    assert.equal(row.bindingId, "binding-1");
+  } catch (error) {
+    throw new Error(`UPSERT_PHASE_FAILED: ${error.name}: ${error.message}`);
+  }
 });
