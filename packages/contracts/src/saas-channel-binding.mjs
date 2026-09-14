@@ -35,7 +35,7 @@ export function createSaasChannelBinding({
     channelId: requireText(channelId, "channelId"),
     credentialRef: requireText(credentialRef, "credentialRef"),
     status,
-    metadata: Object.freez({ ...metadata }),
+    metadata: Object.freeze({ ...metadata }),
     createdAt: requireIso(createdAt, "createdAt"),
     updatedAt: requireIso(updatedAt, "updatedAt"),
   };
