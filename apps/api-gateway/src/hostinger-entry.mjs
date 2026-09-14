@@ -6,6 +6,7 @@ import { runUniCoPreviewBootstrap } from "./uni-co-preview-bootstrap.mjs";
 import { startWebAgentOperationalGateway } from "./web-agent-operational-startup.mjs";
 import { createOperatorBootstrapHttpApp } from "./operator-bootstrap-http.mjs";
 import { attachMitraPublicResearchToGateway } from "./mitra-public-operational-wrapper.mjs";
+import { attachUniJuriProductionHandoffToGateway } from "./unijuri-production-handoff-operational-wrapper.mjs";
 
 function attachOperatorBootstrap({ gateway }) {
   const app = createOperatorBootstrapHttpApp({
@@ -20,8 +21,12 @@ function attachOperatorBootstrap({ gateway }) {
 
 function attachHostingerCompositions({ gateway, env }) {
   const operatorGateway = attachOperatorBootstrap({ gateway });
-  return attachMitraPublicResearchToGateway({
+  const mitraGateway = attachMitraPublicResearchToGateway({
     gateway: operatorGateway,
+    env,
+  });
+  return attachUniJuriProductionHandoffToGateway({
+    gateway: mitraGateway,
     env,
   });
 }
