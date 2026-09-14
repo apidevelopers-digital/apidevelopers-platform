@@ -8,7 +8,7 @@ function memoryRepo() {
     async getById(id) { return rows.get(id) ?? null; },
     async upsert(row) { rows.set(row.bindingId, row); return row; },
     async list({ where }) {
-      return [...rows.values()].filter((row) => Object.entries(wher).every(([k, v]) => row[k] === v));
+      return [...rows.values()].filter((row) => Object.entries(where).every(([k, v]) => row[k] === v));
     },
   };
 }
