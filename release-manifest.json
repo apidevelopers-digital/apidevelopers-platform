@@ -3,7 +3,7 @@
   "format": "managed-node-zip",
   "service": "api-gateway",
   "version": "0.8.0",
-  "sourceRevision": "86826e847e2327e83f9e7de7f7cc154d4b67b816",
+  "sourceRevision": "b2ca8d1f24fc9cad431d4001270bd2aff604de69",
   "runtime": {
     "node": ">=22",
     "entrypoint": "src/hostinger-entry.mjs",
@@ -580,7 +580,7 @@
     {
       "path": "src/mitra-embedded-professional-facade.mjs",
       "bytes": 1543,
-      "sha256": "6b06846b5c5f2abe0c628f024b208b542c33be0e10255e7fc9238010363d76d1"
+      "sha256": "3c99e4a2f3926a53add2b510a2fc42e088ea8663741fa2e296b715871353bbf3"
     },
     {
       "path": "src/mitra-professional-common.mjs",
