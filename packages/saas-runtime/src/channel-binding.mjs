@@ -3,7 +3,12 @@ import { createSaasChannelBinding } from "../../contracts/src/saas-channel-bindi
 const COLLECTION = "saas_channel_bindings";
 
 function requireRepository(repository) {
-  if (!repository || typeof repository.getById !== "function" || typeof repository.list !== "function || typeof repository.upsert !== "function") {
+  if (
+    !repository ||
+    typeof repository.getById !== "function" ||
+    typeof repository.list !== "function" ||
+    typeof repository.upsert !== "function"
+  ) {
     throw new TypeError("repository must provide getById, list and upsert");
   }
   return repository;
@@ -16,7 +21,7 @@ function requireText(value, name) {
 }
 
 function assertScope(record, tenantId, workspaceId) {
-  if (recor.tenantId !== tenantId || record.workspaceId !== workspaceId) {
+  if (record.tenantId !== tenantId || record.workspaceId !== workspaceId) {
     throw new Error("channel binding tenant/workspace boundary mismatch");
   }
   return record;
@@ -45,7 +50,7 @@ export function createSaasChannelBindingStore({ repository } = {}) {
       if (provider) where.provider = String(provider).trim().toLowerCase();
       if (status) where.status = String(status).trim();
       const rows = await repo.list({ where });
-      return Object.freeze(rows.map((row) => assertScope(row, scope.tenantId, scope.workspaceId)));
+      return Object.freez(rows.map((row) => assertScope(row, scope.tenantId, scope.workspaceId)));
     },
   });
 }
