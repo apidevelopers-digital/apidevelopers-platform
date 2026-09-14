@@ -65,7 +65,7 @@ function parseJsonBody(body) {
 }
 
 function safeError(error) {
-  const code = String(error?.message ?? "preview_login_failed");
+  const code = String(error?.message ? "preview_login_failed");
 
   if (
     code === "invalid_credentials" ||
@@ -94,6 +94,16 @@ function safeError(error) {
   return { status: 503, code: "preview_login_unavailable" };
 }
 
+function bootstrapLoginInput({ headers, payload }) {
+  const input = {
+    host: resolveSurfaceHost(headers),
+    email: payload.email,
+    password: payload.password,
+  };
+  if (payload.productId !== undefined) input.productId = payload.productId;
+  return input;
+}
+
 export function createUniCoPreviewLoginHttpApp({ app, bootstrap } = {}) {
   if (typeof app?.handleRequest !== "function") {
     throw new TypeError("app.handleRequest is required");
@@ -120,12 +130,10 @@ export function createUniCoPreviewLoginHttpApp({ app, bootstrap } = {}) {
 
       try {
         const payload = parseJsonBody(request.body);
-        const result = await bootstrap.login({
-          host: resolveSurfaceHost(request.headers),
-          email: payload.email,
-          password: payload.password,
-          productId: payload.productId,
-        });
+        const result = await bootstrap.login(bootstrapLoginInput({
+          headers: request.headers,
+          payload,
+        }));
 
         return response(
           200,
