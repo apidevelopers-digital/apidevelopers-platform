@@ -5,19 +5,13 @@ on:
     paths:
       - "packages/contracts/src/saas-channel-binding.mjs"
       - "packages/saas-runtime/src/channel-binding.mjs"
-      - "packages/saas-runtime/test/channel-binding.test.mjs"
-      - "packages/saas-runtime/test/channel-binding.basic.test.mjs"
-      - "packages/saas-runtime/test/channel-binding.cross-tenant.test.mjs"
-      - "packages/saas-runtime/test/channel-binding.secret.test.mjs"
+      - "packages/saas-runtime/test/channel-binding*.test.mjs"
       - ".github/workflows/saas-channel-binding-v1-ci.yml"
   pull_request:
     paths:
       - "packages/contracts/src/saas-channel-binding.mjs"
       - "packages/saas-runtime/src/channel-binding.mjs"
-      - "packages/saas-runtime/test/channel-binding.test.mjs"
-      - "packages/saas-runtime/test/channel-binding.basic.test.mjs"
-      - "packages/saas-runtime/test/channel-binding.cross-tenant.test.mjs"
-      - "packages/saas-runtime/test/channel-binding.secret.test.mjs"
+      - "packages/saas-runtime/test/channel-binding*.test.mjs"
       - ".github/workflows/saas-channel-binding-v1-ci.yml"
 
 permissions:
@@ -39,6 +33,8 @@ jobs:
         run: |
           node --check packages/contracts/src/saas-channel-binding.mjs
           node --check packages/saas-runtime/src/channel-binding.mjs
+      - name: Upsert only
+        run: node --test packages/saas-runtime/test/channel-binding.upsert.test.mjs
       - name: Basic upsert get list
         run: node --test packages/saas-runtime/test/channel-binding.basic.test.mjs
       - name: Cross-tenant guard
