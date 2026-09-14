@@ -13,7 +13,7 @@ function memoryRepo() {
 
 test("basic channel binding store behavior", async () => {
   const store = createSaasChannelBindingStore({ repository: memoryRepo() });
-  const base = { bindingId: "binding-1", tenantId: "tenant-1", workspaceId: "workspace-1", provider: "meta_whatsapp", channelId: "5548912345678", credentialRef: "secret://zuni/binding-1" };
+  const base = { bindingId: "binding-1", tenantId: "tenant-1", workspaceId: "workspace-1", provider: "meta_whatsapp", channelId: "5548912345678", credentialRef: "secret://zuni/binding-1", status: "active" };
   await store.upsert(base);
   assert.equal((await store.get({ bindingId: "binding-1", tenantId: "tenant-1", workspaceId: "workspace-1" })).channelId, base.channelId);
   assert.equal((await store.list("tenant-1", "workspace-1", { provider: "meta_whatsapp", status: "active" })).length, 1);
