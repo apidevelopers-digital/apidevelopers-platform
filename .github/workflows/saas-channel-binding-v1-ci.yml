@@ -1,0 +1,37 @@
+name: SaaS Channel Binding v1 CI
+
+on:
+  push:
+    paths:
+      - "packages/contracts/src/saas-channel-binding.mjs"
+      - "packages/saas-runtime/src/channel-binding.mjs"
+      - "packages/saas-runtime/test/channel-binding.test.mjs"
+      - ".github/workflows/saas-channel-binding-v1-ci.yml"
+  pull_request:
+    paths:
+      - "packages/contracts/src/saas-channel-binding.mjs"
+      - "packages/saas-runtime/src/channel-binding.mjs"
+      - "packages/saas-runtime/test/channel-binding.test.mjs"
+      - ".github/workflows/saas-channel-binding-v1-ci.yml"
+
+permissions:
+  contents: read
+
+jobs:
+  validate:
+    runs-on:
+      - self-hosted
+      - macOS
+      - X64
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+      - name: Check syntax
+        run: |
+          node --check packages/contracts/src/saas-channel-binding.mjs
+          node --check packages/saas-runtime/src/channel-binding.mjs
+      - name: Run focused tests
+        run: node --test packages/saas-runtime/test/channel-binding.test.mjs
