@@ -1,4 +1,4 @@
-name: UniJuri Access Inventory Diagnostic
+name: UniJuri Governed Access Grant
 
 on:
   workflow_dispatch:
@@ -7,7 +7,7 @@ permissions:
   contents: read
 
 jobs:
-  inspect:
+  grant:
     runs-on: [self-hosted, macOS, X64]
     timeout-minutes: 3
     env:
@@ -16,32 +16,32 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: "22"
-      - name: Read only UniJuri access inventory
+      - name: Create exact governed UniJuri access grant
         run: |
           node --input-type=module <<'NODE'
-          const r = await fetch("https://gateway.apidevelopers.digital/v1/saas/uni-juri/access/inventory", {
-            method: "GET",
-            headers: {"x-api-key": process.env.API_GATEWAY_ADMIN_KEY, accept: "application/json"}
+          const binding = {
+            tenantId: "component.tenant.uni",
+            workspaceId: "component.workspace.uni.uni-juri-main",
+            subscriptionId: "component.subscription.uni.uni-juri",
+            entitlementId: "component.entitlement.uni.uni-juri-main.use-product",
+            provisioningJobId: "component.provisioning.uni.uni-juri-main.uni-juri",
+            accessGrantId: "component.access.uni.juri.igor",
+            principalId: "component.principal.2dad5f8ab425485a95b838442a1ccd04",
+            productId: "uni-juri"
+          };
+          const r = await fetch("https://gateway.apidevelopers.digital/v1/saas/uni-juri/access/provision", {
+            method: "POST",
+            headers: {"x-api-key": process.env.API_GATEWAY_ADMIN_KEY, "content-type":"application/json", accept:"application/json"},
+            body: JSON.stringify({
+              approval: "IGOR_APROVA_UNIJURI_ACCESS_PROVISIONING_V1",
+              productionApproval: "IGOR_APROVA_UNIJURI_ACCESS_REAL_20260913",
+              binding
+            })
           });
           const b = await r.json();
-          const summary = {
-            status: r.status,
-            tenants: b.tenants?.length ?? 0,
-            workspaces: b.workspaces?.length ?? 0,
-            subscriptions: b.subscriptions?.length ?? 0,
-            entitlements: b.entitlements?.length ?? 0,
-            jobs: b.provisioningJobs?.length ?? 0,
-            accessGrants: b.accessGrants?.length ?? 0,
-            principals: b.principals?.length ?? 0,
-            grantStatus: b.accessGrants?.[0]?.status ?? null,
-            workspaceStatus: b.workspaces?.[0]?.status ?? null,
-            subscriptionStatus: b.subscriptions?.[0]?.status ?? null,
-            entitlementStatus: b.entitlements?.[0]?.status ?? null,
-            provisioningStatus: b.provisioningJobs?.[0]?.status ?? null,
-            productionChanged: b.productionChanged ?? false,
-            secretsExposed: b.secretsExposed ?? false
-          };
-          const ok = r.status === 200 && b.ok === true && summary.productionChanged === false && summary.secretsExposed === false;
-          console.log(`::${ok ? "notice" : "error"} title=UNIJURI_INVENTORY_${ok ? "OK" : "FAILED"}::${Object.entries(summary).map(([k,v])=>`${k}=${v}`).join(" ")}`);
+          const ok = r.status === 201 && b.ok === true && b.writesExecuted === true && b.chargeExecuted === false && b.secretsExposed === false;
+          console.log(ok
+            ? `::notice title=UNIJURI_ACCESS_GRANT_OK::status=${r.status} writesExecuted=${b.writesExecuted} chargeExecuted=${b.chargeExecuted} secretsExposed=${b.secretsExposed}`
+            : `::error title=UNIJURI_ACCESS_GRANT_FAILED::status=${r.status} reason=${b.reason ?? "unknown"} writesExecuted=${b.writesExecuted ?? false}`);
           process.exit(ok ? 0 : 1);
           NODE
