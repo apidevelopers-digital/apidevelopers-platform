@@ -3,7 +3,7 @@
   "format": "managed-node-zip",
   "service": "api-gateway",
   "version": "0.8.0",
-  "sourceRevision": "ac4158476e493b24f95ba35886c8ca4044a9799d",
+  "sourceRevision": "d54c3299adae4416d7158bc034c1485e453c793f",
   "runtime": {
     "node": ">=22",
     "entrypoint": "src/hostinger-entry.mjs",
@@ -146,6 +146,11 @@
       "path": "src/browser-session-handoff-preview-composition.mjs",
       "bytes": 2709,
       "sha256": "9e1d40a25ee5c49a666f3ded8953c4378bd3330c642851af1e4339c9762d83e7"
+    },
+    {
+      "path": "src/browser-session-handoff-unijuri-production-composition.mjs",
+      "bytes": 2753,
+      "sha256": "6d044e13539239d428be95f450ddede52bbadaf1e57c51a0e427c1066d668dd9"
     },
     {
       "path": "src/canonical-hash.mjs",
@@ -564,8 +569,8 @@
     },
     {
       "path": "src/hostinger-entry.mjs",
-      "bytes": 1620,
-      "sha256": "3b817eab73fb45bbab2a410301bf29593f443b63590341dbb2710522e039da37"
+      "bytes": 1839,
+      "sha256": "01bdd03080d1dec19a303a1fa3be4084edebbb25e5507b82fa2a9984eebe9ded"
     },
     {
       "path": "src/hostinger-runtime-env.mjs",
@@ -1176,6 +1181,11 @@
       "path": "src/uni-co-preview-bootstrap.mjs",
       "bytes": 4295,
       "sha256": "869851a3b910e35207a848cd7b35d8af7b0c58ade9dde5baf56f45566fc57e64"
+    },
+    {
+      "path": "src/unijuri-production-handoff-operational-wrapper.mjs",
+      "bytes": 1752,
+      "sha256": "43539d8182beb318a090f2eeffb63460cd4de05f45e9b899c082c40f54c1f26f"
     },
     {
       "path": "src/web-agent-browser-composition.mjs",
