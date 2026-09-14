@@ -1,0 +1,139 @@
+name: API Gateway Runtime Branch Preview Publish
+
+on:
+  workflow_dispatch:
+    inputs:
+      example:
+        description: "JSON payload with source_ref, expected_source_sha and approval"
+        required: true
+        type: string
+
+permissions:
+  contents: write
+
+concurrency:
+  group: api-gateway-runtime-publish
+  cancel-in-progress: false
+
+jobs:
+  publish:
+    if: >-
+      github.ref == 'refs/heads/main'
+    runs-on: [self-hosted, macOS, X64]
+    timeout-minutes: 25
+    env:
+      RUNTIME_BRANCH: deploy/hostinger-gateway-runtime
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: main
+          fetch-depth: 0
+          persist-credentials: true
+
+      - name: Parse approved preview payload
+        shell: bash
+        env:
+          PAYLOAD: ${{ github.event.inputs.example }}
+        run: |
+          set -euo pipefail
+          node <<'NODE' > "$RUNNER_TEMP/preview-payload.env"
+          const payload = JSON.parse(process.env.PAYLOAD || '{}');
+          const sourceRef = String(payload.source_ref || '').trim().replace(/^refs\/heads\//, '');
+          const expectedSha = String(payload.expected_source_sha || '').trim().toLowerCase();
+          const approval = String(payload.approval || '').trim();
+          if (!/^ada\/[A-Za-z0-9._\/-]+$/.test(sourceRef)) throw new Error('source_ref must be an ada/* branch');
+          if (!/^[0-9a-f]{40}$/.test(expectedSha)) throw new Error('expected_source_sha must be a 40-character SHA');
+          if (approval !== 'IGOR_APROVA_GATEWAY_RUNTIME_BRANCH_20260814') throw new Error('approval mismatch');
+          console.log(`SOURCE_REF=${sourceRef}`);
+          console.log(`EXPECTED_SOURCE_SHA=${expectedSha}`);
+          NODE
+          cat "$RUNNER_TEMP/preview-payload.env" >> "$GITHUB_ENV"
+
+      - name: Pin approved branch source
+        shell: bash
+        run: |
+          set -euo pipefail
+          git fetch --no-tags origin "refs/heads/$SOURCE_REF:refs/remotes/origin/$SOURCE_REF"
+          git cat-file -e "${EXPECTED_SOURCE_SHA}^{commit}"
+          git merge-base --is-ancestor "$EXPECTED_SOURCE_SHA" "origin/$SOURCE_REF"
+          test "$(git rev-parse "origin/$SOURCE_REF")" = "$EXPECTED_SOURCE_SHA"
+          git checkout --detach "$EXPECTED_SOURCE_SHA"
+          test "$(git rev-parse HEAD)" = "$EXPECTED_SOURCE_SHA"
+          echo "SOURCE_SHA=$EXPECTED_SOURCE_SHA" >> "$GITHUB_ENV"
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+
+      - name: Link local security dependencies
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p "$GITHUB_WORKSPACE/apps/api-gateway/node_modules/@apidevelopers"
+          ln -sfn "$GITHUB_WORKSPACE/packages/contracts" "$GITHUB_WORKSPACE/apps/api-gateway/node_modules/@apidevelopers/contracts"
+          ln -sfn "$GITHUB_WORKSPACE/packages/auth-core" "$GITHUB_WORKSPACE/apps/api-gateway/node_modules/@apidevelopers/auth-core"
+          ln -sfn "$GITHUB_WORKSPACE/packages/apikey-core" "$GITHUB_WORKSPACE/apps/api-gateway/node_modules/@apidevelopers/apikey-core"
+          ln -sfn "$GITHUB_WORKSPACE/packages/persistence-core" "$GITHUB_WORKSPACE/apps/api-gateway/node_modules/@apidevelopers/persistence-core"
+          ln -sfn "$GITHUB_WORKSPACE/packages/saas-runtime" "$GITHUB_WORKSPACE/apps/api-gateway/node_modules/@apidevelopers/saas-runtime"
+          ln -sfn "$GITHUB_WORKSPACE/packages/lex-legal-runtime" "$GITHUB_WORKSPACE/apps/api-gateway/node_modules/@apidevelopers/lex-legal-runtime"
+
+          mkdir -p "$GITHUB_WORKSPACE/packages/auth-core/node_modules/@apidevelopers"
+          ln -sfn "$GITHUB_WORKSPACE/packages/apikey-core" "$GITHUB_WORKSPACE/packages/auth-core/node_modules/@apidevelopers/apikey-core"
+
+          mkdir -p "$GITHUB_WORKSPACE/packages/apikey-core/node_modules/@apidevelopers"
+          ln -sfn "$GITHUB_WORKSPACE/packages/persistence-core" "$GITHUB_WORKSPACE/packages/apikey-core/node_modules/@apidevelopers/persistence-core"
+
+          mkdir -p "$GITHUB_WORKSPACE/packages/saas-runtime/node_modules/@apidevelopers"
+          ln -sfn "$GITHUB_WORKSPACE/packages/contracts" "$GITHUB_WORKSPACE/packages/saas-runtime/node_modules/@apidevelopers/contracts"
+          ln -sfn "$GITHUB_WORKSPACE/packages/auth-core" "$GITHUB_WORKSPACE/packages/saas-runtime/node_modules/@apidevelopers/auth-core"
+          ln -sfn "$GITHUB_WORKSPACE/packages/persistence-core" "$GITHUB_WORKSPACE/packages/saas-runtime/node_modules/@apidevelopers/persistence-core"
+
+      - name: Validate source before build
+        shell: bash
+        run: |
+          set -euo pipefail
+          cd apps/api-gateway
+          npm run check
+
+      - name: Build runtime
+        shell: bash
+        run: |
+          set -euo pipefail
+          GITHUB_SHA="$SOURCE_SHA" node apps/api-gateway/scripts/build-managed-hosting-artifact-with-lex.mjs
+          node apps/api-gateway/scripts/apply-hostinger-fixed-entry-compat.mjs
+          node apps/api-gateway/scripts/verify-managed-hosting-artifact.mjs
+          artifact="apps/api-gateway/dist/api-gateway-managed"
+          runtime="$RUNNER_TEMP/api-gateway-runtime-$SOURCE_SHA"
+          rm -rf "$runtime"
+          mkdir -p "$runtime"
+          cp -R "$artifact/." "$runtime/"
+          zip_path="$RUNNER_TEMP/api-gateway-runtime-$SOURCE_SHA.zip"
+          (cd "$runtime" && /usr/bin/zip -X -q -r "$zip_path" . -x ".DS_Store" "__MACOSX/*")
+          /usr/bin/unzip -t "$zip_path" >/dev/null
+          echo "RUNTIME_DIR=$runtime" >> "$GITHUB_ENV"
+          echo "RUNTIME_ZIP=$zip_path" >> "$GITHUB_ENV"
+          echo "RUNTIME_ZIP_SHA256=$(shasum -a 256 "$zip_path" | awk '{print $1}')" >> "$GITHUB_ENV"
+          echo "RUNTIME_ZIP_BYTES=$(stat -f '%z' "$zip_path")" >> "$GITHUB_ENV"
+
+      - name: Publish exact preview runtime
+        shell: bash
+        run: |
+          set -euo pipefail
+          git config user.name "api-developers-runtime-publisher"
+          git config user.email "runtime-publisher@users.noreply.github.com"
+          git fetch origin "$RUNTIME_BRANCH:$RUNTIME_BRANCH"
+          git switch "$RUNTIME_BRANCH"
+          find . -mindepth 1 -maxdepth 1 -not -name .git -exec rm -rf {} +
+          cp -R "$RUNTIME_DIR/." .
+          cp "$RUNTIME_ZIP" ./api-gateway-runtime.zip
+          printf '%s\n' "$SOURCE_SHA" > SOURCE_SHA
+          printf '%s\n' "$SOURCE_REF" > SOURCE_REF
+          printf '%s\n' "$RUNTIME_ZIP_SHA256" > RUNTIME_ZIP_SHA256
+          printf '%s\n' "$RUNTIME_ZIP_BYTES" > RUNTIME_ZIP_BYTES
+          git add -A
+          git diff --cached --quiet && exit 0
+          git commit -m "deploy(gateway): preview runtime from $SOURCE_SHA"
+          git push origin "HEAD:refs/heads/$RUNTIME_BRANCH"
+          git fetch origin "$RUNTIME_BRANCH"
+          git show "origin/$RUNTIME_BRANCH:SOURCE_SHA" | grep -Fx "$SOURCE_SHA"
+          git show "origin/$RUNTIME_BRANCH:SOURCE_REF" | grep -Fx "$SOURCE_REF"

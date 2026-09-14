@@ -15,6 +15,9 @@ test("Hostinger runtime anchors the default state file under HOME when available
     "/home/u-test/.runtime/gateway-state.json",
   );
   assert.equal(env.PORT, "3000");
+  assert.equal(env.UNI_CO_PREVIEW_IDENTITY_BACKEND_BASE_URL, undefined);
+  assert.equal(env.UNI_CO_PREVIEW_HANDOFF_REDEEMER_AUTHORIZATION, undefined);
+  assert.equal(env.UNI_CO_PREVIEW_ACCESS_CONTEXT_AUTHORIZATION, undefined);
 });
 
 test("Hostinger runtime anchors an explicit relative state file under HOME", () => {
@@ -26,7 +29,7 @@ test("Hostinger runtime anchors an explicit relative state file under HOME", () 
   });
 
   assert.equal(env.HOST, "127.0.0.1");
-  assert.equal(env.API_GATEWAY_STATE_FILE, "/home/u-test/state/custom.json");
+  assert.equal(env.API_GATEWAY_STATE_FILE,"/home/u-test/state/custom.json");
   assert.equal(env.PORT, "4321");
 });
 
@@ -43,4 +46,67 @@ test("Hostinger runtime keeps the historical relative fallback when HOME is unav
   const env = resolveHostingerRuntimeEnv({ PORT: "3000" });
 
   assert.equal(env.API_GATEWAY_STATE_FILE, ".runtime/gateway-state.json");
+});
+
+test("Hostinger runtime loads Uni account preview identity and S2S credentials when reader is injected", () => {
+  const env = resolveHostingerRuntimeEnv({
+    HOME: "/home/u-test",
+    PORT: "3000",
+  }, {
+    readFileFn(path, encoding) {
+      assert.equal(
+        path,
+        "/home/u-test/domains/apidevelopers.digital/uni-preview-account-runtime/gateway.credentials.json",
+      );
+      assert.equal(encoding, "utf8");
+      return JSON.stringify({
+        identityBackendBaseUrl: "https://identity.example.test",
+        handoffRedeemerAuthorization: `Bearer ${"H".repeat(64)}`,
+        accessContextAuthorization: `Bearer ${"A".repeat(64)}`,
+      });
+    },
+  });
+
+  assert.equal(env.UNI_CO_PREVIEW_IDENTITY_BACKEND_BASE_URL, "https://identity.example.test");
+  assert.equal(env.UNI_CO_PREVIEW_HANDOFF_REDEEMER_AUTHORIZATION, `Bearer ${"H".repeat(64)}`);
+  assert.equal(env.UNI_CO_PREVIEW_ACCESS_CONTEXT_AUTHORIZATION, `Bearer ${"A".repeat(64)}`);
+});
+
+test("Hostinger runtime explicit env credentials win over private file reads", () => {
+  let reads = 0;
+  const env = resolveHostingerRuntimeEnv({
+    HOME: "/home/u-test",
+    UNI_CO_PREVIEW_IDENTITY_BACKEND_BASE_URL: "https://identity-explicit.example.test",
+    UNI_CO_PREVIEW_HANDOFF_REDEEMER_AUTHORIZATION: `Bearer ${"E".repeat(64)}`,
+    UNI_CO_PREVIEW_ACCESS_CONTEXT_AUTHORIZATION: `Bearer ${"C".repeat(64)}`,
+  }, {
+    readFileFn() {
+      reads += 1;
+      throw new Error("must not read");
+    },
+  });
+
+  assert.equal(reads, 0);
+  assert.equal(env.UNI_CO_PREVIEW_IDENTITY_BACKEND_BASE_URL, "https://identity-explicit.example.test");
+  assert.equal(env.UNI_CO_PREVIEW_HANDOFF_REDEEMER_AUTHORIZATION, `Bearer ${"E".repeat(64)}`);
+  assert.equal(env.UNI_CO_PREVIEW_ACCESS_CONTEXT_AUTHORIZATION, `Bearer ${"C".repeat(64)}`);
+});
+
+test("Hostinger runtime can combine explicit identity URL with private S2S credentials", () => {
+  const env = resolveHostingerRuntimeEnv({
+    HOME: "/home/u-test",
+    UNI_CO_PREVIEW_IDENTITY_BACKEND_BASE_URL: "https://identity-explicit.example.test",
+  }, {
+    readFileFn() {
+      return JSON.stringify({
+        identityBackendBaseUrl: "https://identity-file.example.test",
+        handoffRedeemerAuthorization: `Bearer ${"H".repeat(64)}`,
+        accessContextAuthorization: `Bearer ${"A".repeat(64)}`,
+      });
+    },
+  });
+
+  assert.equal(env.UNI_CO_PREVIEW_IDENTITY_BACKEND_BASE_URL, "https://identity-explicit.example.test");
+  assert.equal(env.UNI_CO_PREVIEW_HANDOFF_REDEEMER_AUTHORIZATION, `Bearer ${"H".repeat(64)}`);
+  assert.equal(env.UNI_CO_PREVIEW_ACCESS_CONTEXT_AUTHORIZATION, `Bearer ${"A".repeat(64)}`);
 });

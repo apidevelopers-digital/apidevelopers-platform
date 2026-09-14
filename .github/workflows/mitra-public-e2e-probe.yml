@@ -27,6 +27,27 @@ jobs:
           node --input-type=module <<'NODE'
           const base = process.env.MITRA_GATEWAY_BASE_URL;
           const origin = process.env.MITRA_BROWSER_ORIGIN;
+          let currentStage = "startup";
+
+          function beginStage(stage) {
+            currentStage = stage;
+            console.log(JSON.stringify({ event: "mitra_e2e_stage_start", stage }));
+          }
+
+          function emitFailure(stage, result, message = null) {
+            console.error(`::error title=Mitra E2E failed::${stage} status=${result?.status ?? "unknown"} ok=${result?.payload?.ok === true} message=${message ?? result?.payload?.message ?? result?.payload?.error ?? "unknown"}`);
+            console.log(JSON.stringify({
+              event: "mitra_e2e_stage_failure",
+              stage,
+              status: result?.status ?? null,
+              ok: result?.payload?.ok === true,
+              error: result?.payload?.error ?? null,
+              message: message ?? result?.payload?.message ?? null,
+              payload_status: result?.payload?.status ?? null,
+              capability: result?.payload?.capability ?? null,
+              service: result?.payload?.service ?? null,
+            }));
+          }
 
           async function request(path, { method = "GET", body } = {}) {
             const response = await fetch(`${base}${path}`, {
@@ -42,18 +63,23 @@ jobs:
               redirect: "error",
             });
             const payload = await response.json().catch(() => ({}));
+            console.log(JSON.stringify({
+              event: "mitra_e2e_response",
+              stage: currentStage,
+              method,
+              path,
+              status: response.status,
+              ok: payload?.ok === true,
+              payload_status: payload?.status ?? null,
+              capability: payload?.capability ?? null,
+              service: payload?.service ?? null,
+            }));
             return { status: response.status, payload };
           }
 
           function requireOk(stage, result) {
             if (result.status !== 200 || result.payload?.ok !== true) {
-              console.log(JSON.stringify({
-                stage,
-                status: result.status,
-                ok: result.payload?.ok === true,
-                error: result.payload?.error ?? null,
-                message: result.payload?.message ?? null,
-              }));
+              emitFailure(stage, result);
               throw new Error(`${stage} failed`);
             }
           }
@@ -66,9 +92,12 @@ jobs:
             }
           }
 
+          try {
+            beginStage("public_health");
           const publicHealth = await request("/v1/mitra/public/health");
           requireOk("public_health", publicHealth);
 
+          beginStage("public_search");
           const search = await request("/v1/mitra/public/search", {
             method: "POST",
             body: { query: "responsabilidade civil", limit: 3 },
@@ -85,6 +114,7 @@ jobs:
             throw new Error("public_search leaked raw upstream payload");
           }
 
+          beginStage("professional_health");
           const professionalHealth = await request("/v1/mitra/professional/health");
           requireOk("professional_health", professionalHealth);
           for (const capability of ["assistant", "jurimetrics", "veritas"]) {
@@ -96,6 +126,7 @@ jobs:
             throw new Error("professional_health documents capability mismatch");
           }
 
+          beginStage("assistant");
           const analyze = await request("/v1/mitra/professional/analyze", {
             method: "POST",
             body: {
@@ -114,6 +145,7 @@ jobs:
             throw new Error("assistant capability mismatch");
           }
 
+          beginStage("jurimetrics");
           const jurimetrics = await request("/v1/mitra/professional/jurimetrics", {
             method: "POST",
             body: {
@@ -128,6 +160,7 @@ jobs:
             throw new Error("jurimetrics capability mismatch");
           }
 
+          beginStage("documents");
           const document = await request("/v1/mitra/professional/document/preview", {
             method: "POST",
             body: {
@@ -154,6 +187,7 @@ jobs:
             throw new Error("document governance mismatch");
           }
 
+          beginStage("veritas");
           const veritas = await request("/v1/mitra/professional/veritas", {
             method: "POST",
             body: {
@@ -188,4 +222,13 @@ jobs:
             },
             write_executed: false,
           }));
+          } catch (error) {
+            console.error(`::error title=Mitra E2E failed::stage=${currentStage} message=${error instanceof Error ? error.message : String(error)}`);
+            console.log(JSON.stringify({
+              event: "mitra_e2e_uncaught_failure",
+              stage: currentStage,
+              message: error instanceof Error ? error.message : String(error),
+            }));
+            throw error;
+          }
           NODE
