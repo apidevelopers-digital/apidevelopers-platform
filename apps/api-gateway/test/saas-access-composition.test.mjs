@@ -24,6 +24,8 @@ test("composes SaaS runtime and access on the same durable store", async () => {
     });
 
     assert.equal(typeof saasRuntime.registerTenantWorkspace, "function");
+    assert.equal(typeof saasRuntime.grantAccess, "function");
+    assert.equal(typeof saasRuntime.activateAccess, "function");
     assert.equal(typeof saasAccess.evaluateAccess, "function");
 
     await saasRuntime.registerTenantWorkspace({
