@@ -1,7 +1,20 @@
-export function createUniCoPreviewSaasAccessResolver({ accessRuntime } = {}) {
+export const uniCoPreviewProductId = "product:uni-co";
+export const mitraPreviewProductId = "product:mitra";
+
+function normalizeAllowedProductIds(value) {
+  const ids = Array.isArray(value) && value.length ? value : [uniCoPreviewProductId];
+  return new Set(ids.map((item) => String(item ?? "").trim()).filter(Boolean));
+}
+
+export function createUniCoPreviewSaasAccessResolver({
+  accessRuntime,
+  allowedProductIds,
+} = {}) {
   if (!accessRuntime || typeof accessRuntime.resolveActiveGrant !== "function") {
     throw new TypeError("accessRuntime.resolveActiveGrant is required");
   }
+
+  const allowed = normalizeAllowedProductIds(allowedProductIds);
 
   return async function resolveAccess({ identity, productId, requiredScopes = [] } = {}) {
     const principalId = String(identity?.principalId ?? identity?.principal?.id ?? "").trim();
@@ -13,7 +26,7 @@ export function createUniCoPreviewSaasAccessResolver({ accessRuntime } = {}) {
       error.status = 403;
       throw error;
     }
-    if (requestedProductId !== "product:uni-co") {
+    if (!allowed.has(requestedProductId)) {
       const error = new Error("preview_product_not_allowed");
       error.status = 403;
       throw error;
