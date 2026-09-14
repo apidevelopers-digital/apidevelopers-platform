@@ -15,6 +15,20 @@ function jsonResponse(status, payload) {
   };
 }
 
+function safeErrorCause(error) {
+  if (!(error instanceof Error)) {
+    return {
+      name: "NonError",
+      message: "Embedded dispatch failed with a non-Error throw.",
+    };
+  }
+
+  return {
+    name: String(error.name || "Error").slice(0, 120),
+    message: String(error.message || "Embedded dispatch failed.").slice(0, 500),
+  };
+}
+
 function createMitraEmbeddedLexTransport({
   dispatch,
   baseUrl = EMBEDDED_BASE_URL,
@@ -71,10 +85,11 @@ function createMitraEmbeddedLexTransport({
           read_only: true,
           write_executed: false,
         });
-      } catch {
+      } catch (error) {
         return jsonResponse(502, {
           ok: false,
           status: "embedded_transport_dispatch_failed",
+          error_cause: safeErrorCause(error),
           read_only: true,
           persistence: false,
           database_write_allowed: false,
