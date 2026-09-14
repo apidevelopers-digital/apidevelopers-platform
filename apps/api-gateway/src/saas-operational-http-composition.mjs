@@ -51,9 +51,18 @@ export function createSaasOperationalHttpComposition({
     ...(delegatedBindingSigner ? { bindingSigner: delegatedBindingSigner } : {}),
   });
   const unijuriAccessInventoryApp = createUniJuriAccessInventoryApp({ authenticator, store });
+  const unijuriAccessRuntime = Object.freeze({
+    getTenant: (...args) => saasComposition.saasRuntime.getTenant(...args),
+    getWorkspace: (...args) => saasComposition.saasRuntime.getWorkspace(...args),
+    getSubscription: (...args) => saasComposition.saasRuntime.getSubscription(...args),
+    getEntitlement: (...args) => saasComposition.saasRuntime.getEntitlement(...args),
+    getProvisioningJob: (...args) => saasComposition.saasRuntime.getProvisioningJob(...args),
+    grantAccess: (...args) => saasComposition.saasAccess.grantAccess(...args),
+    activateAccess: (...args) => saasComposition.saasAccess.activateAccess(...args),
+  });
   const unijuriAccessApp = createUniJuriAccessHttpApp({
     authenticator,
-    runtime: saasComposition.saasRuntime,
+    runtime: unijuriAccessRuntime,
     audit: typeof audit === "function" ? audit : async () => {},
     writeEnabled: unijuriAccessWriteEnabled === true,
   });
@@ -75,7 +84,7 @@ export function createSaasOperationalHttpComposition({
       writeEnabled: false,
     });
   const uniCoProvisioningApp = createUniCoProvisioningApp({
-    authenticator,
+    authenticator: authenticator,
     saasRuntime: saasComposition.saasRuntime,
     saasAccess: saasComposition.saasAccess,
     federatedPrincipal: saasComposition.federatedPrincipal,
@@ -99,7 +108,7 @@ export function createSaasOperationalHttpComposition({
       : undefined);
   const guardedProvisioningRuntime = createZuniProvisioningRuntimeGuard({
     saasRuntime: saasComposition.saasRuntime,
-    ...(readinessProvisioner ? { zuniProductProvisioner: readinessProvisioner } : {}),
+    ...(readinessProvisioner ? { zeniProductProvisioner: readinessProvisioner } : {}),
   });
   const provisioningApp = createSaasProvisioningApp({
     authenticator: authenticator,
