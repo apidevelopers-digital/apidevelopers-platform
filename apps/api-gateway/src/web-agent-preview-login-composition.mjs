@@ -52,7 +52,7 @@ export function createUniCoPreviewLoginComposition({
     throw new TypeError("store must provide read and transaction");
   }
 
-  let effectiveVerifier = verifyCredentials,
+  let effectiveVerifier = verifyCredentials;
   if (
     typeof effectiveVerifier !== "function" &&
     typeof identityBackendBaseUrl === "string" &&
