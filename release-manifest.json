@@ -3,7 +3,7 @@
   "format": "managed-node-zip",
   "service": "api-gateway",
   "version": "0.8.0",
-  "sourceRevision": "f0d51fd6d62cb48fa0d0dd957a8f2d78ce321616",
+  "sourceRevision": "86826e847e2327e83f9e7de7f7cc154d4b67b816",
   "runtime": {
     "node": ">=22",
     "entrypoint": "src/hostinger-entry.mjs",
@@ -564,13 +564,13 @@
     },
     {
       "path": "src/hostinger-entry.mjs",
-      "bytes": 1549,
-      "sha256": "2f40f83b4a33676c4161355b068bb908b2cccf249772aa4506c35866ae7bac2c"
+      "bytes": 1620,
+      "sha256": "3b817eab73fb45bbab2a410301bf29593f443b63590341dbb2710522e039da37"
     },
     {
       "path": "src/hostinger-runtime-env.mjs",
-      "bytes": 691,
-      "sha256": "e534a849655b2cb203676b7c83dd9ee53b83f89a9a1d0f2693e230c291de7998"
+      "bytes": 2798,
+      "sha256": "10aaa03cdf799327dd259a560f9baeb5dad1dbe0a5290f1e1d78dd1e08d511c0"
     },
     {
       "path": "src/mitra-embedded-lex-transport.mjs",
