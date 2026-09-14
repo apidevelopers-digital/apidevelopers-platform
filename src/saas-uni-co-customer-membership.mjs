@@ -47,6 +47,23 @@ function assertGrant({ accessGrant, tenantId, workspaceId, principalId }) {
   }
 }
 
+function sameStringSet(left = [], right = []) {
+  if (!Array.isArray(left) || !Array.isArray(right)) return false;
+  const a = [...new Set(left.map((value) => String(value).trim()).filter(Boolean))].sort();
+  const b = [...new Set(right.map((value) => String(value).trim()).filter(Boolean))].sort();
+  return a.length === b.length && a.every((value, index) => value === b[index]);
+}
+
+function assertCustomerRole(role) {
+  if (!role || typeof role !== "object") throw new TypeError("role is required");
+  if (role.key !== UNI_CO_CUSTOMER_ROLE_KEY) throw new Error("uni_co_customer_role_key_mismatch");
+  if (role.scope !== "workspace") throw new Error("uni_co_customer_role_scope_mismatch");
+  if (role.status !== "active") throw new Error("uni_co_customer_role_not_active");
+  if (!sameStringSet(role.permissions, UNI_CO_CUSTOMER_PERMISSIONS)) {
+    throw new Error("uni_co_customer_role_permissions_mismatch");
+  }
+}
+
 export async function ensureUniCoCustomerMembership({
   membershipRuntime,
   tenantSlug,
@@ -88,6 +105,7 @@ export async function ensureUniCoCustomerMembership({
     status: "active",
     createdAt,
   }));
+  assertCustomerRole(role);
   const membership = await membershipRuntime.addMembership(createMembership({
     membershipId,
     tenantId,

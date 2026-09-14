@@ -3,7 +3,7 @@
   "format": "managed-node-zip",
   "service": "api-gateway",
   "version": "0.8.0",
-  "sourceRevision": "b2ca8d1f24fc9cad431d4001270bd2aff604de69",
+  "sourceRevision": "f6cb0f3e5419f376febf3200a1fb208764a0b613",
   "runtime": {
     "node": ">=22",
     "entrypoint": "src/hostinger-entry.mjs",
@@ -564,13 +564,13 @@
     },
     {
       "path": "src/hostinger-entry.mjs",
-      "bytes": 1620,
-      "sha256": "3b817eab73fb45bbab2a410301bf29593f443b63590341dbb2710522e039da37"
+      "bytes": 1549,
+      "sha256": "2f40f83b4a33676c4161355b068bb908b2cccf249772aa4506c35866ae7bac2c"
     },
     {
       "path": "src/hostinger-runtime-env.mjs",
-      "bytes": 2798,
-      "sha256": "10aaa03cdf799327dd259a560f9baeb5dad1dbe0a5290f1e1d78dd1e08d511c0"
+      "bytes": 691,
+      "sha256": "e534a849655b2cb203676b7c83dd9ee53b83f89a9a1d0f2693e230c291de7998"
     },
     {
       "path": "src/mitra-embedded-lex-transport.mjs",
@@ -580,7 +580,7 @@
     {
       "path": "src/mitra-embedded-professional-facade.mjs",
       "bytes": 1543,
-      "sha256": "3c99e4a2f3926a53add2b510a2fc42e088ea8663741fa2e296b715871353bbf3"
+      "sha256": "6b06846b5c5f2abe0c628f024b208b542c33be0e10255e7fc9238010363d76d1"
     },
     {
       "path": "src/mitra-professional-common.mjs",
@@ -1009,8 +1009,8 @@
     },
     {
       "path": "src/saas-uni-co-customer-membership.mjs",
-      "bytes": 3812,
-      "sha256": "3f08cc61390dd8470aeb67d44ef125bdfe7beac8cdde25cf7891f56a7f1eae66"
+      "bytes": 4759,
+      "sha256": "63d364d66d6e64385c79a6c431ee5b76a6d773223a5350e3c605526a020cfd78"
     },
     {
       "path": "src/saas-uni-co-customer-provisioning.mjs",
