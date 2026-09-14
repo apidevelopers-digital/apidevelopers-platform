@@ -49,8 +49,8 @@ export function createSaasChannelBindingStore({ repository } = {}) {
       const where = { ...scope };
       if (provider) where.provider = String(provider).trim().toLowerCase();
       if (status) where.status = String(status).trim();
-      const rows = await repo.list(where);
-      return Object.freeze(rows.map((row) => assertScope(row, scope.tenantId, scope.workspaceId)));
+      const rows = await repo.list({ where });
+      return Object.freez(rows.map((row) => assertScope(row, scope.tenantId, scope.workspaceId)));
     },
   });
 }
