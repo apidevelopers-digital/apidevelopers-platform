@@ -79,7 +79,9 @@ function safeError(error) {
     code === "access_grant_ambiguous" ||
     code === "active_access_grant_scope_mismatch" ||
     code === "preview_identity_binding_required" ||
+    code === "preview_identity_binding_mismatch" ||
     code === "preview_product_not_allowed" ||
+    code === "preview_login_product_mismatch" ||
     code === "preview_login_surface_not_allowed"
   ) {
     return { status: 403, code };
@@ -122,6 +124,7 @@ export function createUniCoPreviewLoginHttpApp({ app, bootstrap } = {}) {
           host: resolveSurfaceHost(request.headers),
           email: payload.email,
           password: payload.password,
+          productId: payload.productId,
         });
 
         return response(
