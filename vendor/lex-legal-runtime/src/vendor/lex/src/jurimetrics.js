@@ -174,6 +174,32 @@ function timeoutFor(env = process.env, override) {
   return Math.min(Math.max(Number(raw) || 25_000, 1_000), 30_000);
 }
 
+function degradedDatajudPayload(status, details = {}) {
+  return {
+    http: 200,
+    payload: policy({
+      ok: true,
+      status,
+      degraded: true,
+      data_available: false,
+      service: "lex-jurimetrics",
+      source: "CNJ DataJud API Pública",
+      total: null,
+      aggregations: {
+        classes: [],
+        subjects: [],
+        judging_bodies: [],
+        movements: []
+      },
+      ...details
+    })
+  };
+}
+
+function isTransientUpstreamStatus(status) {
+  return status === 408 || status === 429 || status >= 500;
+}
+
 export async function searchJurimetrics(payload = {}, {
   env = process.env,
   fetchImpl = globalThis.fetch,
@@ -257,6 +283,12 @@ export async function searchJurimetrics(payload = {}, {
     try { data = raw ? JSON.parse(raw) : null; } catch {}
 
     if (!response.ok) {
+      if (isTransientUpstreamStatus(response.status)) {
+        return degradedDatajudPayload("datajud_upstream_unavailable", {
+          upstream_http_status: response.status
+        });
+      }
+
       return {
         http: 502,
         payload: policy({
@@ -286,14 +318,7 @@ export async function searchJurimetrics(payload = {}, {
       })
     };
   } catch (error) {
-    return {
-      http: 502,
-      payload: policy({
-        ok: false,
-        status: error?.name === "AbortError" ? "datajud_timeout" : "datajud_fetch_failed",
-        service: "lex-jurimetrics"
-      })
-    };
+    return degradedDatajudPayload(error?.name === "AbortError" ? "datajud_timeout" : "datajud_fetch_failed");
   } finally {
     clearTimeout(timer);
   }
@@ -304,5 +329,6 @@ export const __test = {
   normalizePeriod,
   buildFilterQuery,
   readiness,
-  timeoutFor
+  timeoutFor,
+  isTransientUpstreamStatus
 };

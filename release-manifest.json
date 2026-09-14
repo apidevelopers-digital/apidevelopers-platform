@@ -3,7 +3,7 @@
   "format": "managed-node-zip",
   "service": "api-gateway",
   "version": "0.8.0",
-  "sourceRevision": "af969566fecb01de90be973c05e001052aa5d8d8",
+  "sourceRevision": "6babef78961129992bed96d5de85b3b5394d914d",
   "runtime": {
     "node": ">=22",
     "entrypoint": "src/hostinger-entry.mjs",
@@ -73,7 +73,7 @@
       "version": "1.0.0",
       "directory": "vendor/lex-legal-runtime",
       "distribution": "embedded-relative-import",
-      "sourceRevision": "33ca07c7620755b93f5c247a5570b97f1f1a4555"
+      "sourceRevision": "7e7dd2414f07a40787636cba5e08e5d0b800c37f"
     },
     {
       "name": "@apidevelopers/persistence-core",
@@ -574,8 +574,8 @@
     },
     {
       "path": "src/mitra-embedded-lex-transport.mjs",
-      "bytes": 2427,
-      "sha256": "9e3de28cb4aae938f383dfd1f601f9302d928cd1f8b401e194004ab4277026b3"
+      "bytes": 2820,
+      "sha256": "cbf92d4fcf4e39c52b0b5ed9ad2dd3c884c1827992c62eb4593be8f2fbea5e1f"
     },
     {
       "path": "src/mitra-embedded-professional-facade.mjs",
@@ -924,8 +924,8 @@
     },
     {
       "path": "src/saas-access-composition.mjs",
-      "bytes": 1008,
-      "sha256": "293228eaacd8826b8d5c335ea2069001eb6554eb3f33cb59be99ee696e2c859c"
+      "bytes": 1235,
+      "sha256": "4daac0c7d51d0ce0078be0e497f88b81c3288f72979e56f44db79a6739e3d89a"
     },
     {
       "path": "src/saas-delegated-access-v2.mjs",
@@ -1635,7 +1635,7 @@
     {
       "path": "vendor/lex-legal-runtime/src/provenance.js",
       "bytes": 649,
-      "sha256": "8f315c058d2f695f410e97728b97f9f57f747e1accdd8b6b56ba9908ae6f3212"
+      "sha256": "bbae140351422d9d759a9fdac67f5f9238dfa023548bb891a20955b0b93728fa"
     },
     {
       "path": "vendor/lex-legal-runtime/src/vendor/lex/lex_strategy_contract.js",
@@ -1674,8 +1674,8 @@
     },
     {
       "path": "vendor/lex-legal-runtime/src/vendor/lex/src/jurimetrics.js",
-      "bytes": 9764,
-      "sha256": "6af5a44b437f207ba225bced60c7c2af5370ea3a8903641e9c67e8202076be6a"
+      "bytes": 10429,
+      "sha256": "5d00935430743c05462ac878123aa6fbb50c2a57f9baf4d3cff4f1b95386ff6a"
     },
     {
       "path": "vendor/lex-legal-runtime/src/vendor/lex/src/legislation.js",

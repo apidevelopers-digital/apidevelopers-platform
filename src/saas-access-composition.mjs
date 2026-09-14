@@ -13,14 +13,19 @@ export function createSaasAccessComposition({
     throw new TypeError("store is required");
   }
 
-  const saasRuntime = createSaasRuntime({
+  const baseSaasRuntime = createSaasRuntime({
     store,
     ...(clock ? { clock } : {}),
   });
   const accessRuntime = createAccessRuntime({
     store,
-    saasRuntime,
+    saasRuntime: baseSaasRuntime,
     ...(clock ? { clock } : {}),
+  });
+  const saasRuntime = Object.freeze({
+    ...baseSaasRuntime,
+    grantAccess: (...args) => accessRuntime.grantAccess(...args),
+    activateAccess: (...args) => accessRuntime.activateAccess(...args),
   });
   const membershipRuntime = createMembershipRuntime({
     store,
