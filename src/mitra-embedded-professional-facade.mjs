@@ -2,7 +2,7 @@ import { createMitraProfessionalFacade as createUpstreamMitraProfessionalFacade 
 import { createMitraEmbeddedLexTransport } from "./mitra-embedded-lex-transport.mjs";
 
 const EMBEDDED_AUTH_MARKER = "embedded-local-no-network";
-const LEX_SOURCE_SHA = "33ca07c7620755b93f5c247a5570b97f1f1a4555";
+const LEX_SOURCE_SHA = "7e7dd2414f07a40787636cba5e08e5d0b800c37f";
 
 function createLazyLexDispatch() {
   return async (payload) => {
