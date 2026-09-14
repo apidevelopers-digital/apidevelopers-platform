@@ -49,14 +49,14 @@ export function createMitraProfessionalFacade({
  upstreamBearer=process.env.MITRA_PROFESSIONAL_ORCHESTRATOR_BEARER,
  allowedOrigins=process.env.MITRA_PROFESSIONAL_ALLOWED_ORIGINS,
  fetchImpl=globalThis.fetch,
- timeoutMs=Number(process.env.MITRA_PROFESSIONAL_TIMEOUT_MS??18_000),
+ timeoutMs=Number(process.env.MITRA_PROFESSIONAL_TIMEOUT_MS??30_000),
  rateLimitMax=Number(process.env.MITRA_PROFESSIONAL_RATE_LIMIT_MAX??20),
  rateLimitWindowMs=Number(process.env.MITRA_PROFESSIONAL_RATE_LIMIT_WINDOW_MS??60_000),
  now=()=>Date.now(),
 }={}){
  const explicitBase=text(upstreamBaseUrl,2_000);
  const base=normalizeHttpsBase(explicitBase||UNCONFIGURED_BASE,UNCONFIGURED_BASE,"MITRA_PROFESSIONAL_ORCHESTRATOR_BASE_URL");
- const bearer=text(upstreamBearer,8_000),origins=normalizeAllowedOrigins(allowedOrigins),timeout=Math.max(1_000,Number(timeoutMs)||18_000);
+ const bearer=text(upstreamBearer,8_000),origins=normalizeAllowedOrigins(allowedOrigins),timeout=Math.max(1_000,Number(timeoutMs)||30_000);
  const limiter=createRateLimiter({now,max:Math.max(0,Math.floor(Number(rateLimitMax)||20)),windowMs:Math.max(1_000,Number(rateLimitWindowMs)||60_000)});
  const configured=Boolean(explicitBase&&bearer&&typeof fetchImpl==="function");
  async function dispatch(path,payload){

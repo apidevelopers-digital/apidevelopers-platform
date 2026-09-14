@@ -1,3 +1,5 @@
+import { readFileSync } from "node:fs";
+
 import { registerOperationalShutdown } from "./operational-server-runtime.mjs";
 import { resolveHostingerRuntimeEnv } from "./hostinger-runtime-env.mjs";
 import { runUniCoPreviewBootstrap } from "./uni-co-preview-bootstrap.mjs";
@@ -30,7 +32,7 @@ async function startOperationalGateway(options = {}) {
   return startWebAgentOperationalGateway(options);
 }
 
-const env = resolveHostingerRuntimeEnv(process.env);
+const env = resolveHostingerRuntimeEnv(process.env, { readFileFn: readFileSync });
 const { server, runtime } = await startOperationalGateway({
   env,
   gatewayTransform: attachHostingerCompositions,
