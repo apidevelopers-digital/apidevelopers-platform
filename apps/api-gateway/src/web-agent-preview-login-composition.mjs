@@ -27,6 +27,12 @@ export const defaultPreviewLoginSurfaces = Object.freeze([
   }),
 ]);
 
+function primarySurface(loginSurfaces) {
+  return Array.isArray(loginSurfaces) && loginSurfaces.length > 0
+    ? loginSurfaces[0]
+    : defaultPreviewLoginSurfaces[0];
+}
+
 export function createUniCoPreviewLoginComposition({
   app,
   store,
@@ -46,7 +52,7 @@ export function createUniCoPreviewLoginComposition({
     throw new TypeError("store must provide read and transaction");
   }
 
-  let effectiveVerifier = verifyCredentials;
+  let effectiveVerifier = verifyCredentials,
   if (
     typeof effectiveVerifier !== "function" &&
     typeof identityBackendBaseUrl === "string" &&
@@ -90,6 +96,7 @@ export function createUniCoPreviewLoginComposition({
     ...(sessionTtlSeconds ? { sessionTtlSeconds } : {}),
   });
   const http = createUniCoPreviewLoginHttpApp({ app, bootstrap });
+  const primary = primarySurface(loginSurfaces);
 
   return Object.freeze({
     enabled: true,
@@ -99,6 +106,9 @@ export function createUniCoPreviewLoginComposition({
     descriptor: Object.freeze({
       enabled: true,
       mode: "preview-assisted",
+      host: primary.host,
+      productId: primary.productId,
+      agentId: primary.agentId,
       products: Object.freeze(loginSurfaces.map((surface) => Object.freeze({
         productId: surface.productId,
         host: surface.host,
