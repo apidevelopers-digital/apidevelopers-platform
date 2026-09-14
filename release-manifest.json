@@ -3,7 +3,7 @@
   "format": "managed-node-zip",
   "service": "api-gateway",
   "version": "0.8.0",
-  "sourceRevision": "ab841e70a47c0e2529b0932f9908f846fe8484f7",
+  "sourceRevision": "f0d51fd6d62cb48fa0d0dd957a8f2d78ce321616",
   "runtime": {
     "node": ">=22",
     "entrypoint": "src/hostinger-entry.mjs",
@@ -73,7 +73,7 @@
       "version": "1.0.0",
       "directory": "vendor/lex-legal-runtime",
       "distribution": "embedded-relative-import",
-      "sourceRevision": "a32f20f8fe7d4197eab8168a990846e2b89a8048"
+      "sourceRevision": "33ca07c7620755b93f5c247a5570b97f1f1a4555"
     },
     {
       "name": "@apidevelopers/persistence-core",
@@ -994,8 +994,8 @@
     },
     {
       "path": "src/saas-operational-http-composition.mjs",
-      "bytes": 7382,
-      "sha256": "0d65f9b294288bfcdd51660b7db09c7985c43c349c8d6fbc5f5b095e442d320d"
+      "bytes": 7933,
+      "sha256": "7843c2f634723894a728f5e68af5707ef8611dc30fb99a6a59d5cd467bc45f6b"
     },
     {
       "path": "src/saas-provisioning.mjs",
@@ -1026,6 +1026,11 @@
       "path": "src/saas-unijuri-access-grant-writer.mjs",
       "bytes": 3811,
       "sha256": "f66603db20310514e0cf963943086762e7136c049e5fb88098d55310e83e353d"
+    },
+    {
+      "path": "src/saas-unijuri-access-http.mjs",
+      "bytes": 3724,
+      "sha256": "a2603a1686b96dbbf0f8e9a71af55728fbe6e0180bb88104f000f6fef255f4e7"
     },
     {
       "path": "src/saas-unijuri-access-inventory.mjs",
@@ -1630,7 +1635,7 @@
     {
       "path": "vendor/lex-legal-runtime/src/provenance.js",
       "bytes": 649,
-      "sha256": "2ba899eaa9159878c8663f0900e3a5ae2fa89e16616fb10788bdd86499f87816"
+      "sha256": "8f315c058d2f695f410e97728b97f9f57f747e1accdd8b6b56ba9908ae6f3212"
     },
     {
       "path": "vendor/lex-legal-runtime/src/vendor/lex/lex_strategy_contract.js",
@@ -1669,8 +1674,8 @@
     },
     {
       "path": "vendor/lex-legal-runtime/src/vendor/lex/src/jurimetrics.js",
-      "bytes": 9602,
-      "sha256": "9f87b35c58e2743a604edcda78d3ba66cd56a291c66712b204997576b020d593"
+      "bytes": 9764,
+      "sha256": "6af5a44b437f207ba225bced60c7c2af5370ea3a8903641e9c67e8202076be6a"
     },
     {
       "path": "vendor/lex-legal-runtime/src/vendor/lex/src/legislation.js",

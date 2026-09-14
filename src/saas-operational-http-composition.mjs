@@ -12,6 +12,10 @@ import { createZuniOperationalReadinessComposition } from "./saas-zuni-operation
 import { createZuniPublicReadinessProbe } from "./saas-zuni-public-readiness-probe.mjs";
 import { createUniJuriAccessInventoryApp } from "./saas-unijuri-access-inventory.mjs";
 import {
+  createUniJuriAccessHttpApp,
+  resolveUniJuriAccessWriteEnabled,
+} from "./saas-unijuri-access-http.mjs";
+import {
   createUniJuriBootstrapHttpApp,
   resolveUniJuriBootstrapWriteEnabled,
 } from "./saas-unijuri-bootstrap-http.mjs";
@@ -32,6 +36,7 @@ export function createSaasOperationalHttpComposition({
   app, authenticator, audit, store, clock, delegatedBindingSigner,
   zuniProductProvisioner, probeZuniProductReadiness, zuniReadinessFetch,
   unijuriBootstrapWriteEnabled = resolveUniJuriBootstrapWriteEnabled(),
+  unijuriAccessWriteEnabled = resolveUniJuriAccessWriteEnabled(),
 } = {}) {
   if (typeof app?.handleRequest !== "function") throw new TypeError("app.handleRequest must be a function");
   if (typeof authenticator?.authenticate !== "function") throw new TypeError("authenticator.authenticate must be a function");
@@ -46,6 +51,12 @@ export function createSaasOperationalHttpComposition({
     ...(delegatedBindingSigner ? { bindingSigner: delegatedBindingSigner } : {}),
   });
   const unijuriAccessInventoryApp = createUniJuriAccessInventoryApp({ authenticator, store });
+  const unijuriAccessApp = createUniJuriAccessHttpApp({
+    authenticator,
+    runtime: saasComposition.saasRuntime,
+    audit: typeof audit === "function" ? audit : async () => {},
+    writeEnabled: unijuriAccessWriteEnabled === true,
+  });
   const unijuriBootstrapApp = createUniJuriBootstrapHttpApp({
     authenticator,
     saasRuntime: saasComposition.saasRuntime,
@@ -115,6 +126,9 @@ export function createSaasOperationalHttpComposition({
       const pathname = pathnameOf(request.url);
       if (pathname === "/v1/saas/uni-juri/bootstrap") {
         return unijuriBootstrapApp.handleRequest(request);
+      }
+      if (pathname === "/v1/saas/uni-juri/access/provision") {
+        return unijuriAccessApp.handleRequest(request);
       }
       if (pathname === "/v1/saas/uni-juri/access/inventory") {
         return unijuriAccessInventoryApp.handleRequest(request);
