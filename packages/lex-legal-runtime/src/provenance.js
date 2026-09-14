@@ -1,5 +1,5 @@
 const LEX_SOURCE_REPOSITORY = "apidevelopers-digital/lex-legal-api";
-const LEX_SOURCE_SHA = "33ca07c7620755b93f5c247a5570b97f1f1a4555";
+const LEX_SOURCE_SHA = "7e7dd2414f07a40787636cba5e08e5d0b800c37f";
 const LEX_SOURCE_PATHS = Object.freeze([
   "lex_strategy.js",
   "lex_strategy_contract.js",
