@@ -1,4 +1,4 @@
-name: UniJuri Access Binding Inspection
+name: UniJuri Governed Access Grant
 
 on:
   workflow_dispatch:
@@ -7,7 +7,7 @@ permissions:
   contents: read
 
 jobs:
-  inspect:
+  grant:
     runs-on: [self-hosted, macOS, X64]
     timeout-minutes: 3
     env:
@@ -16,33 +16,32 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: "22"
-      - name: Inspect UniJuri binding
+      - name: Create exact governed UniJuri access grant
         run: |
           node --input-type=module <<'NODE'
-          const r = await fetch("https://gateway.apidevelopers.digital/v1/saas/uni-juri/access/inventory", {
-            headers: {"x-api-key": process.env.API_GATEWAY_ADMIN_KEY, accept: "application/json"},
-            cache: "no-store"
+          const binding = {
+            tenantId: "component.tenant.uni",
+            workspaceId: "component.workspace.uni.uni-juri-main",
+            subscriptionId: "component.subscription.uni.uni-juri",
+            entitlementId: "component.entitlement.uni.uni-juri-main.use-product",
+            provisioningJobId: "component.provisioning.uni.uni-juri-main.uni-juri",
+            accessGrantId: "component.access.uni.juri.igor",
+            principalId: "component.principal.2dad5f8ab425485a95b838442a1ccd04",
+            productId: "uni-juri"
+          };
+          const r = await fetch("https://gateway.apidevelopers.digital/v1/saas/uni-juri/access/provision", {
+            method: "POST",
+            headers: {"x-api-key": process.env.API_GATEWAY_ADMIN_KEY, "content-type":"application/json", accept:"application/json"},
+            body: JSON.stringify({
+              approval: "IGOR_APROVA_UNIJURI_ACCESS_PROVISIONING_V1",
+              productionApproval: "IGOR_APROVA_UNIJURI_ACCESS_REAL_20260913",
+              binding
+            })
           });
           const b = await r.json();
-          const w = (b.workspaces ?? []).find(x => x?.productId === "uni-juri");
-          const s = (b.subscriptions ?? []).find(x => x?.productId === "uni-juri");
-          const e = (b.entitlements ?? []).find(x => x?.productId === "uni-juri");
-          const j = (b.provisioningJobs ?? []).find(x => x?.productId === "uni-juri");
-          const p = (b.principals ?? [])[0];
-          const safe = {
-            status: r.status,
-            tenantId: (b.tenants ?? [])[0]?.tenantId ?? null,
-            workspaceId: w?.workspaceId ?? null,
-            subscriptionId: s?.subscriptionId ?? null,
-            entitlementId: e?.entitlementId ?? null,
-            provisioningJobId: j?.provisioningJobId ?? null,
-            principalId: p?.principalId ?? null,
-            existingGrants: (b.accessGrants ?? []).length
-          };
-          console.log(JSON.stringify(safe));
-          const required = ["tenantId","workspaceId","subscriptionId","entitlementId","provisioningJobId","principalId"];
-          const valid = r.status === 200 && required.every(k => Boolean(safe[k]));
-          const line = `status=${r.status} tenantId=${safe.tenantId} workspaceId=${safe.workspaceId} subscriptionId=${safe.subscriptionId} entitlementId=${safe.entitlementId} provisioningJobId=${safe.provisioningJobId} principalId=${safe.principalId} existingGrants=${safe.existingGrants}`;
-          console.log(valid ? `::notice title=UNIJURI_BINDING_OK::${line}` : `::error title=UNIJURI_BINDING_FAILED::${line}`);
-          process.exit(valid ? 0 : 1);
+          const ok = r.status === 201 && b.ok === true && b.writesExecuted === true && b.chargeExecuted === false && b.secretsExposed === false;
+          console.log(ok
+            ? `::notice title=UNIJURI_ACCESS_GRANT_OK::status=${r.status} writesExecuted=${b.writesExecuted} chargeExecuted=${b.chargeExecuted} secretsExposed=${b.secretsExposed}`
+            : `::error title=UNIJURI_ACCESS_GRANT_FAILED::status=${r.status} reason=${b.reason ?? "unknown"} writesExecuted=${b.writesExecuted ?? false}`);
+          process.exit(ok ? 0 : 1);
           NODE
