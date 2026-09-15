@@ -1,6 +1,10 @@
 const LOGIN_PATH = "/operator/v1/session/login";
-const ACCESS_PATH = "/operator/v1/uni-co/preview/saas/access";
 const LOGOUT_PATH = "/operator/v1/session/logout";
+
+const ACCESS_PATHS_BY_PRODUCT = Object.freeze({
+  "product:uni-co": "/operator/v1/uni-co/preview/saas/access",
+  "product:mitra": "/operator/v1/mitra/preview/saas/access",
+});
 
 function text(value) {
   return String(value ?? "").trim();
@@ -20,6 +24,15 @@ function upstreamError(code, status = 503) {
   const error = new Error(code);
   error.status = status;
   return error;
+}
+
+function resolveAccessPath(productId) {
+  const product = text(productId) || "product:uni-co";
+  const path = ACCESS_PATHS_BY_PRODUCT[product];
+  if (!path) {
+    throw upstreamError("preview_identity_product_not_supported", 403);
+  }
+  return { productId: product, path };
 }
 
 export function createUniCoPreviewBackendIdentityVerifier({
@@ -52,9 +65,10 @@ export function createUniCoPreviewBackendIdentityVerifier({
     }
   }
 
-  return async function verifyCredentials({ email, password } = {}) {
+  return async function verifyCredentials({ email, password, productId } = {}) {
     const normalizedEmail = text(email).toLowerCase();
     const suppliedPassword = String(password ?? "");
+    const requested = resolveAccessPath(productId);
     if (!normalizedEmail || !suppliedPassword) {
       throw upstreamError("invalid_credentials", 401);
     }
@@ -88,7 +102,7 @@ export function createUniCoPreviewBackendIdentityVerifier({
     }
 
     try {
-      const accessResponse = await request(ACCESS_PATH, {
+      const accessResponse = await request(requested.path, {
         method: "GET",
         headers: {
           accept: "application/json",
@@ -106,14 +120,14 @@ export function createUniCoPreviewBackendIdentityVerifier({
       const tenantId = text(accessBody.binding.tenantId);
       const workspaceId = text(accessBody.binding.workspaceId);
       const accessGrantId = text(accessBody.binding.accessGrantId);
-      const productId = text(accessBody.binding.productId);
+      const resolvedProductId = text(accessBody.binding.productId);
 
       if (
         !principalId ||
         !tenantId ||
         !workspaceId ||
         !accessGrantId ||
-        productId !== "product:uni-co"
+        resolvedProductId !== requested.productId
       ) {
         throw upstreamError("preview_identity_binding_invalid", 403);
       }
@@ -126,7 +140,7 @@ export function createUniCoPreviewBackendIdentityVerifier({
         expectedBinding: Object.freeze({
           workspaceId,
           accessGrantId,
-          productId,
+          productId: resolvedProductId,
         }),
       });
     } finally {
