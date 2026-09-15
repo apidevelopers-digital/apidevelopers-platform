@@ -131,7 +131,7 @@ export function createUniCoPreviewBackendIdentityVerifier({
   }
 
   async function request(path, options = {}) {
-    controller = new AbortController();
+    const controller = new AbortController();
     const timer = setTimeout(() => controller.abort(), timeoutMs);
     try {
       return await fetchImpl(new URL(path, base), {
