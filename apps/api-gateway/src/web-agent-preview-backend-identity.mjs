@@ -19,7 +19,6 @@ async function readJson(response) {
     return {};
   }
 }
-
 function upstreamError(code, status = 503) {
   const error = new Error(code);
   error.status = status;
@@ -34,7 +33,6 @@ function resolveProductAccessPath(productId) {
   }
   return Object.freeze({ productId: product, path });
 }
-
 function normalizeAccessBinding({ loginBody, normalizedEmail, accessBody, productId }) {
   const expectedProductId = text(productId) || "product:uni-co";
   const principalId = text(accessBody.principalId);
@@ -42,7 +40,6 @@ function normalizeAccessBinding({ loginBody, normalizedEmail, accessBody, produc
   const workspaceId = text(accessBody.binding?.workspaceId);
   const accessGrantId = text(accessBody.binding?.accessGrantId);
   const resolvedProductId = text(accessBody.binding?.productId);
-
   if (
     !principalId ||
     !tenantId ||
@@ -52,7 +49,6 @@ function normalizeAccessBinding({ loginBody, normalizedEmail, accessBody, produc
   ) {
     throw upstreamError("preview_identity_binding_invalid", 403);
   }
-
   return Object.freeze({
     principalId,
     tenantId,
@@ -64,6 +60,27 @@ function normalizeAccessBinding({ loginBody, normalizedEmail, accessBody, produc
       productId: resolvedProductId,
     }),
   });
+}
+const SAFE_ASSISTED_PROVISIONING_ERRORS = new Set([
+  "preview_assisted_provisioning_invalid",
+  "uni_co_provisioning_not_complete",
+  "uni_co_product_mismatch",
+  "uni_co_tenantId_required",
+  "uni_co_workspaceId_required",
+  "uni_co_principalId_required",
+  "uni_co_accessGrantId_required",
+  "uni_co_customer_tenant_not_active",
+  "uni_co_customer_workspace_not_active",
+  "uni_co_customer_access_grant_not_resolved",
+  "uni_co_customer_membership_failed",
+  "uni_co_customer_account_not_ready",
+]);
+
+function assistedProvisioningErrorFromBody(provisionBody) {
+  const code = text(provisionBody?.reason || provisionBody?.error || provisionBody?.diagnosticStage);
+  return SAFE_ASSISTED_PROVISIONING_ERRORS.has(code)
+    ? code
+    : "preview_assisted_provisioning_invalid";
 }
 
 function normalizeProvisionedBinding({ loginBody, normalizedEmail, provisionBody, productId }) {
@@ -73,7 +90,6 @@ function normalizeProvisionedBinding({ loginBody, normalizedEmail, provisionBody
   const workspaceId = text(provisionBody.workspaceId);
   const accessGrantId = text(provisionBody.accessGrantId);
   const resolvedProductId = text(provisionBody.productId);
-
   if (
     provisionBody?.ok !== true ||
     provisionBody?.provisioned !== true ||
@@ -83,9 +99,8 @@ function normalizeProvisionedBinding({ loginBody, normalizedEmail, provisionBody
     !accessGrantId ||
     resolvedProductId !== expectedProductId
   ) {
-    throw upstreamError("preview_assisted_provisioning_invalid", 503);
+    throw upstreamError(assistedProvisioningErrorFromBody(provisionBody), 503);
   }
-
   return Object.freeze({
     principalId,
     tenantId,
@@ -98,7 +113,6 @@ function normalizeProvisionedBinding({ loginBody, normalizedEmail, provisionBody
     }),
   });
 }
-
 function shouldAttemptAssistedProvisioning({ status, code }) {
   if (![401, 403, 404, 409, 503].includes(status)) return false;
   return [
@@ -109,7 +123,6 @@ function shouldAttemptAssistedProvisioning({ status, code }) {
     "preview_identity_binding_invalid",
   ].includes(code) || status === 403 || status === 404;
 }
-
 export function createUniCoPreviewBackendIdentityVerifier({
   baseUrl,
   fetchImpl = fetch,
@@ -129,7 +142,6 @@ export function createUniCoPreviewBackendIdentityVerifier({
   if (provisionAccess !== undefined && typeof provisionAccess !== "function") {
     throw new TypeError("provisionAccess must be a function");
   }
-
   async function request(path, options = {}) {
     const controller = new AbortController();
     const timer = setTimeout(() => controller.abort(), timeoutMs);
@@ -143,7 +155,6 @@ export function createUniCoPreviewBackendIdentityVerifier({
       clearTimeout(timer);
     }
   }
-
   async function requestAccess(sessionToken, productId) {
     const accessPath = resolveProductAccessPath(productId);
     const accessResponse = await request(accessPath.path, {
@@ -156,7 +167,6 @@ export function createUniCoPreviewBackendIdentityVerifier({
     const accessBody = await readJson(accessResponse);
     return Object.freeze({ response: accessResponse, body: accessBody, productId: accessPath.productId });
   }
-
   async function logout(sessionToken) {
     try {
       await request(LOGOUT_PATH, {
@@ -172,7 +182,6 @@ export function createUniCoPreviewBackendIdentityVerifier({
       // The operator token remains short-lived and is never returned to the browser.
     }
   }
-
   async function verifyCredentials({ email, password, productId } = {}) {
     const normalizedEmail = text(email).toLowerCase();
     const suppliedPassword = String(password ?? "");
@@ -180,7 +189,6 @@ export function createUniCoPreviewBackendIdentityVerifier({
     if (!normalizedEmail || !suppliedPassword) {
       throw upstreamError("invalid_credentials", 401);
     }
-
     const loginResponse = await request(LOGIN_PATH, {
       method: "POST",
       headers: {
@@ -193,7 +201,6 @@ export function createUniCoPreviewBackendIdentityVerifier({
       }),
     });
     const loginBody = await readJson(loginResponse);
-
     if (loginResponse.status === 401 || loginResponse.status === 429) {
       throw upstreamError(
         loginResponse.status === 429 ? "too_many_login_attempts" : "invalid_credentials",
@@ -208,10 +215,8 @@ export function createUniCoPreviewBackendIdentityVerifier({
     if (!sessionToken) {
       throw upstreamError("preview_identity_session_missing", 503);
     }
-
     try {
       let { response: accessResponse, body: accessBody } = await requestAccess(sessionToken, requestedProduct);
-
       if (!accessResponse.ok || accessBody?.allowed !== true || !accessBody?.binding) {
         const code = text(accessBody?.error) || "access_grant_not_found";
         if (
@@ -226,10 +231,10 @@ export function createUniCoPreviewBackendIdentityVerifier({
             accessStatus: accessResponse.status,
             accessError: code,
           });
-          if (!provisionBody) {
-            throw upstreamError("preview_assisted_provisioning_invalid", 503);
+          if (provisionBody) {
+            return normalizeProvisionedBinding({ loginBody, normalizedEmail, provisionBody, productId: requestedProduct });
           }
-          return normalizeProvisionedBinding({ loginBody, normalizedEmail, provisionBody, productId: requestedProduct });
+          ({ response: accessResponse, body: accessBody } = await requestAccess(sessionToken, requestedProduct));
         }
       }
 
