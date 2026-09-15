@@ -13,6 +13,52 @@ function formatSafeError(err) {
   return details ? `${message} (${details})` : message;
 }
 
+function safeLocationSnapshot() {
+  if (typeof window === "undefined") {
+    return Object.freeze({ href: "", origin: "", host: "", pathname: "" });
+  }
+  return Object.freeze({
+    href: String(window.location?.href || ""),
+    origin: String(window.location?.origin || ""),
+    host: String(window.location?.host || ""),
+    pathname: String(window.location?.pathname || ""),
+  });
+}
+
+function makeBuildDiagnostic({ client, status, lastFailure }) {
+  const location = safeLocationSnapshot();
+  return Object.freeze({
+    product: "product:mitra",
+    app: "mitra-public",
+    buildSha: String(
+      import.meta.env.VITE_MITRA_BUILD_SHA ||
+        import.meta.env.VITE_APP_SOURCE_SHA ||
+        import.meta.env.VITE_GITHUB_SHA ||
+        "unknown",
+    ),
+    buildTime: String(import.meta.env.VITE_MITRA_BUILD_TIME || import.meta.env.VITE_BUILD_TIME || "unknown"),
+    loadedAt: new Date().toISOString(),
+    browserHost: location.host,
+    browserOrigin: location.origin,
+    browserPath: location.pathname,
+    gatewayBaseUrl: client.baseUrl || "",
+    loginPath: client.loginPath,
+    surfaceHost: client.surfaceHost,
+    authClientConfigured: client.configured,
+    uiStatus: status,
+    lastFailure: lastFailure || null,
+  });
+}
+
+async function copyDiagnostic(diagnostic) {
+  const payload = JSON.stringify(diagnostic, null, 2);
+  if (typeof navigator !== "undefined" && navigator.clipboard?.writeText) {
+    await navigator.clipboard.writeText(payload);
+    return true;
+  }
+  return false;
+}
+
 export default function MitraAuthGate({ children }) {
   const baseUrl = String(
     import.meta.env.VITE_MITRA_AUTH_BASE_URL ||
@@ -37,19 +83,41 @@ export default function MitraAuthGate({ children }) {
   const [session, setSession] = useState(null);
   const [status, setStatus] = useState(client.configured ? "idle" : "not_configured");
   const [error, setError] = useState("");
+  const [lastFailure, setLastFailure] = useState(null);
+  const [copyStatus, setCopyStatus] = useState("");
+
+  const diagnostic = makeBuildDiagnostic({ client, status, lastFailure });
 
   async function submit(event) {
     event.preventDefault();
     setStatus("loading");
     setError("");
+    setLastFailure(null);
+    setCopyStatus("");
     try {
       const next = await client.login({ email, password });
       setSession(next);
       setStatus("authenticated");
     } catch (err) {
+      const failure = Object.freeze({
+        code: String(err?.code || "unknown"),
+        status: Number.isInteger(err?.status) ? err.status : 0,
+        message: String(err?.message || "Não foi possível autenticar."),
+        occurredAt: new Date().toISOString(),
+      });
       setSession(null);
       setStatus("error");
+      setLastFailure(failure);
       setError(formatSafeError(err));
+    }
+  }
+
+  async function handleCopyDiagnostic() {
+    try {
+      copied = await copyDiagnostic(diagnostic);
+      setCopyStatus(copied ? "Diagnóstico copiado." : "Copie manualmente o JSON abaixo.");
+    } catch {
+      setCopyStatus("Copie manualmente o JSON abaixo.");
     }
   }
 
@@ -116,6 +184,30 @@ export default function MitraAuthGate({ children }) {
           <div><dt>Host autorizado</dt><dd>{client.surfaceHost}</dd></div>
           <div><dt>Endpoint</dt><dd>{client.loginPath}</dd></div>
         </dl>
+
+        <div className="auth-diagnostic-panel">
+          <div className="auth-diagnostic-header">
+            <div>
+              <strong>Diagnóstico do preview</strong>
+              <small>Use para diferenciar cache, bundle antigo e erro real do Gateway.</small>
+            </div>
+            <button type="button" className="secondary" onClick={handleCopyDiagnostic}>Copiar diagnóstico</button>
+          </div>
+          {copyStatus ? <p className="auth-copy-status">{copyStatus}</p> : null}
+          <dl className="auth-diagnostic-grid">
+            <div><dt>Build SHA</dt><dd>{diagnostic.buildSha}</dd></div>
+            <div><dt>Carregado em</dt><dd>{diagnostic.loadedAt}</dd></div>
+            <div><dt>Browser host</dt><dd>{diagnostic.browserHost}</dd></div>
+            <div><dt>Gateway</dt><dd>{diagnostic.gatewayBaseUrl || "não configurado"}</dd></div>
+            <div><dt>Surface</dt><dd>{diagnostic.surfaceHost}</dd></div>
+            <div><dt>Status UI</dt><dd>{diagnostic.uiStatus}</dd></div>
+            <div><dt>Último erro</dt><dd>{lastFailure ? `${lastFailure.code} · ${lastFailure.status}` : "nenhum"}</dd></div>
+          </dl>
+          <details>
+            <summary>Ver JSON seguro</summary>
+            <pre>{JSON.stringify(diagnostic, null, 2)}</pre>
+          </details>
+        </div>
       </div>
     </section>
   );
