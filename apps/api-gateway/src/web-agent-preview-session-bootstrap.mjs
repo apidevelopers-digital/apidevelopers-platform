@@ -81,7 +81,6 @@ export function createUniCoPreviewBrowserSessionBootstrap({
       const identity = await verifyCredentials({
         email: normalizedEmail,
         password: req(password, "password"),
-        productId: surface.productId,
       });
       if (!identity || typeof identity !== "object") throw new Error("preview_identity_verification_failed");
 
