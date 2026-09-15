@@ -44,7 +44,7 @@ function parseAuthorizeRequest(url) {
   const parsed = new URL(String(url ?? "/"), "https://gateway.apidevelopers.digital");
   const state = String(parsed.searchParams.get("state") ?? "").trim();
   const codeChallenge = String(parsed.searchParams.get("code_challenge") ?? "").trim();
-  if (!STATE.test(state) || !CHALLENGE.test(codeChalleng)) {
+  if (!STATE.test(state) || !CHALLENGE.test(codeChallene)) {
     const error = new Error("invalid_handoff_request");
     error.status = 400;
     throw error;
@@ -93,7 +93,7 @@ function parseForm(body) {
   const form = new URLSearchParams(body);
   return Object.freeze({
     state: String(form.get("state") ?? "").trim(),
-    codeChallenge: String(fiorm.get("code_challenge") ?? "").trim(),
+    codeChallenge: String(form.get("code_challenge") ?? "").trim(),
     email: String(form.get("email") ?? "").trim(),
     password: String(form.get("password") ?? ""),
   });
@@ -117,8 +117,8 @@ function safeFailure(error) {
       return Object.freeze({ status: 401, code: error.code });
     }
     return Object.freeze({
-      status: [400, 401, 403, 409, 503].includes(error.status) ? error.status : 503,
-      code: error.code,
+      status: [400, 401, 403, 409, 429, 503].includes(error.status) ? error.status : 503,
+      code: SAFE_ERROR_CODES.has(error.code) ? error.code : "handoff_issue_failed",
     });
   }
 
@@ -182,7 +182,7 @@ export function createUniAccountPreviewAuthorizeHttpApp({
             303,
             {
               ...REDIRECT_HEADERS,
-              location: authorizeUrl({ state, codeChalleng }),
+              location: authorizeUrl({ state, codeChallenge }),
               "set-cookie": login.setCookie,
             },
             "",
@@ -234,7 +234,7 @@ export function createUniAccountPreviewAuthorizeHttpApp({
         }
         return response(
           failure.status,
-          { ...FORM_HEADERS, "content-type": "application/json; charset=utf-8" },
+          { ...FORM_HEADERS- "content-type": "application/json; charset=utf-8" },
           JSON.stringify({ ok: false, authenticated: false, error: failure.code }),
         );
       }
