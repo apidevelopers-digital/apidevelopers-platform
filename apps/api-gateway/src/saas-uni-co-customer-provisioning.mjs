@@ -19,6 +19,16 @@ function parseJsonBody(response) {
   return parsed;
 }
 
+function parseRequestBody(body) {
+  if (body && typeof body === "object" && !Array.isArray(body)) return body;
+  try {
+    const parsed = JSON.parse(String(body ?? "{}"));
+    return parsed && typeof parsed === "object" && !Array.isArray(parsed) ? parsed : {};
+  } catch {
+    return {};
+  }
+}
+
 function replyLike(response, status, payload) {
   return Object.freeze({
     status,
@@ -30,9 +40,14 @@ function replyLike(response, status, payload) {
   });
 }
 
-function assertProvisionedBinding(body) {
+function expectedProductIdFromRequest(request) {
+  const requested = String(parseRequestBody(request?.body).productId ?? "").trim();
+  return requested || UNI_CO_CUSTOMER_PRODUCT_ID;
+}
+
+function assertProvisionedBinding(body, expectedProductId = UNI_CO_CUSTOMER_PRODUCT_ID) {
   if (body?.ok !== true || body?.provisioned !== true) throw new Error("uni_co_provisioning_not_complete");
-  if (body?.productId !== UNI_CO_CUSTOMER_PRODUCT_ID) throw new Error("uni_co_product_mismatch");
+  if (body?.productId !== expectedProductId) throw new Error("uni_co_product_mismatch");
   for (const field of ["tenantId", "workspaceId", "principalId", "accessGrantId"]) {
     if (typeof body?.[field] !== "string" || !body[field].trim()) {
       throw new Error(`uni_co_${field}_required`);
@@ -63,10 +78,11 @@ export function createUniCoCustomerProvisioningApp({
         return response;
       }
 
+      const expectedProductId = expectedProductIdFromRequest(request);
       let body = null;
       try {
         body = parseJsonBody(response);
-        assertProvisionedBinding(body);
+        assertProvisionedBinding(body, expectedProductId);
 
         const [tenant, workspace, resolvedGrant] = await Promise.all([
           saasRuntime.getTenant(body.tenantId),
@@ -74,7 +90,7 @@ export function createUniCoCustomerProvisioningApp({
           saasAccess.resolveActiveGrant({
             tenantId: body.tenantId,
             principalId: body.principalId,
-            productId: UNI_CO_CUSTOMER_PRODUCT_ID,
+            productId: expectedProductId,
           }),
         ]);
 
@@ -86,7 +102,7 @@ export function createUniCoCustomerProvisioningApp({
           workspace.status !== "active" ||
           workspace.workspaceId !== body.workspaceId ||
           workspace.tenantId !== body.tenantId ||
-          workspace.productId !== UNI_CO_CUSTOMER_PRODUCT_ID
+          workspace.productId !== expectedProductId
         ) {
           throw new Error("uni_co_customer_workspace_not_active");
         }
@@ -106,6 +122,7 @@ export function createUniCoCustomerProvisioningApp({
           workspaceId: body.workspaceId,
           principalId: body.principalId,
           accessGrant: resolvedGrant.grant,
+          productId: expectedProductId,
           createdAt: clock(),
         });
 
@@ -128,7 +145,7 @@ export function createUniCoCustomerProvisioningApp({
           ok: false,
           provisioned: body?.provisioned === true,
           accountReady: false,
-          productId: UNI_CO_CUSTOMER_PRODUCT_ID,
+          productId: expectedProductId,
           reason: "uni_co_customer_account_not_ready",
           humanSessionRequiredUpstream: true,
           automaticLoginProvisioning: false,
@@ -143,6 +160,7 @@ export function createUniCoCustomerProvisioningApp({
 export const uniCoCustomerProvisioningContract = Object.freeze({
   path: ROUTE,
   productId: UNI_CO_CUSTOMER_PRODUCT_ID,
+  supportedProductIds: Object.freeze([UNI_CO_CUSTOMER_PRODUCT_ID, "product:mitra"]),
   completes: Object.freeze(["saas_user", "customer_role", "membership"]),
   humanSessionRequiredUpstream: true,
   automaticLoginProvisioning: false,
