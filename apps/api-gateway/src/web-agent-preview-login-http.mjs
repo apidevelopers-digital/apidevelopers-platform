@@ -126,7 +126,7 @@ function parseJsonBody(body) {
 }
 
 function safeError(error) {
-  code = String(error?.message ?? "preview_login_failed");
+  const code = String(error?.message ?? "preview_login_failed");
 
   if (code === "preview_identity_verification_failed") {
     return { status: 401, code: "invalid_credentials" };
