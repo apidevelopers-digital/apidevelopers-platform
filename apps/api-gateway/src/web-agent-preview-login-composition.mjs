@@ -178,7 +178,7 @@ function createAssistedProvisionAccess({
     const response = await customerProvisioningApp.handleRequest({
       method: "POST",
       url: "/v1/saas/uni-co/provision",
-      body: JSON.stringify {
+      body: JSON.stringify({
         tenantSlug: effectiveTenantSlug,
         workspaceSlug: effectiveWorkspaceSlug,
         displayName: effectiveDisplayName,
