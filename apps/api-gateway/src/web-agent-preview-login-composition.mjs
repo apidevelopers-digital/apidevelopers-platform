@@ -1,4 +1,7 @@
+import { createHash } from "node:crypto";
+
 import { createSaasAccessComposition } from "./saas-access-composition.mjs";
+import { createUniCoProvisioningApp } from "./saas-uni-co-provisioning.mjs";
 import { createUniCoPreviewBackendIdentityVerifier } from "./web-agent-preview-backend-identity.mjs";
 import { createUniCoPreviewLoginHttpApp } from "./web-agent-preview-login-http.mjs";
 import {
@@ -39,6 +42,95 @@ function primarySurface(loginSurfaces) {
     : defaultPreviewLoginSurfaces[0];
 }
 
+function text(value) {
+  return String(value ?? "").trim();
+}
+
+function slug(value, fallback) {
+  const out = text(value || fallback).toLowerCase();
+  if (!/^[a-z0-9]+(?:-[a-z0-9]+)*$/.test(out)) {
+    throw new TypeError("preview assisted provisioning slug is invalid");
+  }
+  return out;
+}
+
+function sha256(value) {
+  return createHash("sha256").update(String(value)).digest("hex");
+}
+
+function readJsonBody(response) {
+  try {
+    return JSON.parse(String(response?.body ?? "{}"));
+  } catch {
+    return {};
+  }
+}
+
+function createPreviewProvisioningActor() {
+  return Object.freeze({
+    role: "service",
+    principal: Object.freeze({
+      id: "server.uni-co-preview-login",
+      name: "Uni.co Preview Login Assisted Provisioning",
+      status: "active",
+      scopes: Object.freeze(["saas:provision"]),
+    }),
+  });
+}
+
+function createAssistedProvisionAccess({
+  saasRuntime,
+  saasAccess,
+  federatedPrincipal,
+  clock,
+  tenantSlug,
+  workspaceSlug,
+  displayName,
+} = {}) {
+  const provisioningApp = createUniCoProvisioningApp({
+    authenticator: Object.freeze({
+      async authenticate() {
+        return createPreviewProvisioningActor();
+      },
+    }),
+    saasRuntime,
+    saasAccess,
+    federatedPrincipal,
+    ...(clock ? { clock: () => clock().toISOString() } : {}),
+  });
+
+  const effectiveTenantSlug = slug(tenantSlug, "institution-preview");
+  const effectiveWorkspaceSlug = slug(workspaceSlug, "uni-co-main");
+  const effectiveDisplayName = text(displayName) || "Institution Preview";
+
+  return async function provisionAccess({ email, loginBody } = {}) {
+    const normalizedEmail = text(email).toLowerCase();
+    if (!normalizedEmail) return null;
+
+    const response = await provisioningApp.handleRequest({
+      method: "POST",
+      url: "/v1/saas/uni-co/provision",
+      body: JSON.stringify({
+        tenantSlug: effectiveTenantSlug,
+        workspaceSlug: effectiveWorkspaceSlug,
+        displayName: effectiveDisplayName,
+        subjectRef: sha256(normalizedEmail),
+        idempotencyKey: `uni-co-preview-bootstrap:${effectiveTenantSlug}:${effectiveWorkspaceSlug}`,
+      }),
+    });
+    const body = readJsonBody(response);
+    if (response.status < 200 || response.status >= 300 || body?.ok !== true) {
+      return null;
+    }
+
+    return Object.freeze({
+      ...body,
+      name: text(loginBody?.operator?.email) || normalizedEmail,
+      email: text(loginBody?.operator?.email).toLowerCase() || normalizedEmail,
+    });
+  };
+}
+
 export function createUniCoPreviewLoginComposition({
   app,
   store,
@@ -50,6 +142,10 @@ export function createUniCoPreviewLoginComposition({
   generateSecret,
   sessionTtlSeconds,
   loginSurfaces = defaultPreviewLoginSurfaces,
+  assistedProvisioning = true,
+  assistedProvisioningTenantSlug,
+  assistedProvisioningWorkspaceSlug,
+  assistedProvisioningDisplayName,
 } = {}) {
   if (typeof app?.handleRequest !== "function") {
     throw new TypeError("app.handleRequest is required");
@@ -57,6 +153,27 @@ export function createUniCoPreviewLoginComposition({
   if (!store || typeof store.read !== "function" || typeof store.transaction !== "function") {
     throw new TypeError("store must provide read and transaction");
   }
+
+  const {
+    saasRuntime,
+    saasAccess,
+    federatedPrincipal,
+  } = createSaasAccessComposition({
+    store,
+    ...(clock ? { clock: () => clock().toISOString() } : {}),
+  });
+
+  const assistedProvisionAccess = assistedProvisioning === true
+    ? createAssistedProvisionAccess({
+      saasRuntime,
+      saasAccess,
+      federatedPrincipal,
+      clock,
+      tenantSlug: assistedProvisioningTenantSlug,
+      workspaceSlug: assistedProvisioningWorkspaceSlug,
+      displayName: assistedProvisioningDisplayName,
+    })
+    : undefined;
 
   let effectiveVerifier = verifyCredentials;
   if (
@@ -68,6 +185,7 @@ export function createUniCoPreviewLoginComposition({
       baseUrl: identityBackendBaseUrl,
       ...(identityFetchImpl ? { fetchImpl: identityFetchImpl } : {}),
       ...(identityTimeoutMs ? { timeoutMs: identityTimeoutMs } : {}),
+      ...(assistedProvisionAccess ? { provisionAccess: assistedProvisionAccess } : {}),
     });
   }
 
@@ -83,10 +201,6 @@ export function createUniCoPreviewLoginComposition({
     });
   }
 
-  const { saasAccess } = createSaasAccessComposition({
-    store,
-    ...(clock ? { clock: () => clock().toISOString() } : {}),
-  });
   const allowedProductIds = loginSurfaces.map((surface) => surface.productId);
   const resolveAccess = createUniCoPreviewSaasAccessResolver({
     accessRuntime: saasAccess,
@@ -122,7 +236,7 @@ export function createUniCoPreviewLoginComposition({
       }))),
       identityBackendConfigured:
         typeof identityBackendBaseUrl === "string" && identityBackendBaseUrl.trim().length > 0,
-      automaticProvisioning: false,
+      automaticProvisioning: assistedProvisioning === true,
       rawSessionSecretPersisted: false,
       transientOperatorSessionReturnedToBrowser: false,
     }),
