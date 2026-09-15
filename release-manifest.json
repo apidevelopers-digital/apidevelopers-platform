@@ -3,7 +3,7 @@
   "format": "managed-node-zip",
   "service": "api-gateway",
   "version": "0.8.0",
-  "sourceRevision": "d54c3299adae4416d7158bc034c1485e453c793f",
+  "sourceRevision": "da53dc56662fac585c4d31330f46f5b24408cb58",
   "runtime": {
     "node": ">=22",
     "entrypoint": "src/hostinger-entry.mjs",
@@ -1224,23 +1224,23 @@
     },
     {
       "path": "src/web-agent-preview-login-composition.mjs",
-      "bytes": 2796,
-      "sha256": "cfaa713099e8c73fbd74b8cb2f407eb5e869e2c7881fff7e3eea52d7b3a52408"
+      "bytes": 4018,
+      "sha256": "9335817386dfca9f0af29e9e3c132fb5c8608330f75861154a6b4306417a44e8"
     },
     {
       "path": "src/web-agent-preview-login-http.mjs",
-      "bytes": 4145,
-      "sha256": "90316f64f54a46ae715b7af73810dab36c9b38e18a56404e9975329800b0e9be"
+      "bytes": 4467,
+      "sha256": "6e652cc990806491756bdfa6e724ff8fc43c9d5a5d7d2c96703ef5363c1f3e06"
     },
     {
       "path": "src/web-agent-preview-saas-access.mjs",
-      "bytes": 2690,
-      "sha256": "9e78ff517d1640c23925e65b8848cb3a69fd413f9bfe769807c7a6bf05ef1cdc"
+      "bytes": 3097,
+      "sha256": "5ae819edd99ace2181ee31f74a5b995a92ba427fa5dca1a74d6687b19c5dd090"
     },
     {
       "path": "src/web-agent-preview-session-bootstrap.mjs",
-      "bytes": 3711,
-      "sha256": "0e2d017526a570d87c28f161970461a24e68601b41ea8b99a7e823e6aefc4deb"
+      "bytes": 5830,
+      "sha256": "3ab914a59250970398e66f089107ce488fc0d27845c31c2dec7300cda8f6b55c"
     },
     {
       "path": "src/web-agent-product-binding.mjs",
