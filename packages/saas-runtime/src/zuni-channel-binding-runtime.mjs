@@ -1,4 +1,4 @@
-import { createSaasChannelBinding } from "../../contracts/src/saas-channel-binding.mjs";
+import { createChannelBindingId, createSaasChannelBinding } from "../../contracts/src/saas-channel-binding.mjs";
 import { createDurableRepository } from "../../persistence-core/src/index.mjs";
 
 function requireText(value, name) {
@@ -60,10 +60,27 @@ export function createZuniChannelBindingRuntime({ store, saasRuntime } = {}) {
   }
 
   async function registerChannelBinding(input = {}) {
-    const binding = createSaasChannelBinding(input);
-    const scope = await assertScope({
-      tenantId: binding.tenantId,
-      workspaceId: binding.workspaceId,
+    const tenantId = requireText(input.tenantId, "tenantId");
+    const workspaceId = requireText(input.workspaceId, "workspaceId");
+    const channelId = requireText(input.channelId, "channelId");
+    const scope = await assertScope({ tenantId, workspaceId });
+
+    const generatedBindingId = createChannelBindingId(
+      scope.tenant.slug,
+      scope.workspace.slug,
+      channelId,
+    );
+    const requestedBindingId = String(input.bindingId ?? "").trim();
+    if (requestedBindingId && requestedBindingId !== generatedBindingId) {
+      throw new Error("channel binding id boundary mismatch");
+    }
+
+    const binding = createSaasChannelBinding({
+      ...input,
+      bindingId: generatedBindingId,
+      tenantId: scope.tenant.tenantId,
+      workspaceId: scope.workspace.workspaceId,
+      productId: "zuni",
     });
 
     if (scope.workspace.tenantId !== binding.tenantId) {
