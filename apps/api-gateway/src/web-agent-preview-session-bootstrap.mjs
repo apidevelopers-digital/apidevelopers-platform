@@ -78,7 +78,11 @@ export function createUniCoPreviewBrowserSessionBootstrap({
     async login({ host, email, password, productId } = {}) {
       const surface = selectSurface(surfacesByHost, { host, productId });
       const normalizedEmail = req(email, "email").toLowerCase();
-      const identity = await verifyCredentials({ email: normalizedEmail, password: req(password, "password") });
+      const identity = await verifyCredentials({
+        email: normalizedEmail,
+        password: req(password, "password"),
+        productId: surface.productId,
+      });
       if (!identity || typeof identity !== "object") throw new Error("preview_identity_verification_failed");
 
       const a = await resolveAccess({
