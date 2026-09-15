@@ -14,7 +14,7 @@ export default function MitraAuthGate({ children }) {
   ).trim();
   const surfaceHost = String(
     import.meta.env.VITE_MITRA_AUTH_SURFACE_HOST ||
-      "mitra-preview.apidevelopers.digital",
+      "",
   ).trim();
 
   const client = useMemo(

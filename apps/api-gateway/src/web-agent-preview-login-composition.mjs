@@ -11,6 +11,7 @@ import {
   uniCoPreviewLoginHost,
   uniCoPreviewAgentId,
   mitraPreviewLoginHost,
+  mitraPrimaryLoginHost,
   mitraPreviewAgentId,
 } from "./web-agent-preview-session-bootstrap.mjs";
 
@@ -22,6 +23,11 @@ export const defaultPreviewLoginSurfaces = Object.freeze([
   }),
   Object.freeze({
     host: mitraPreviewLoginHost,
+    productId: mitraPreviewProductId,
+    agentId: mitraPreviewAgentId,
+  }),
+  Object.freeze({
+    host: mitraPrimaryLoginHost,
     productId: mitraPreviewProductId,
     agentId: mitraPreviewAgentId,
   }),
