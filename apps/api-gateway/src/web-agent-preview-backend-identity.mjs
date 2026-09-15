@@ -226,11 +226,10 @@ export function createUniCoPreviewBackendIdentityVerifier({
             accessStatus: accessResponse.status,
             accessError: code,
           });
-          if (provisionBody) {
-            return normalizeProvisionedBinding({ loginBody, normalizedEmail, provisionBody, productId: requestedProduct });
+          if (!provisionBody) {
+            throw upstreamError("preview_assisted_provisioning_invalid", 503);
           }
-
-          ({ response: accessResponse, body: accessBody } = await requestAccess(sessionToken, requestedProduct));
+          return normalizeProvisionedBinding({ loginBody, normalizedEmail, provisionBody, productId: requestedProduct });
         }
       }
 
@@ -238,7 +237,6 @@ export function createUniCoPreviewBackendIdentityVerifier({
         const code = text(accessBody?.error) || "access_grant_not_found";
         throw upstreamError(code, accessResponse.status >= 400 ? accessResponse.status : 403);
       }
-
       return normalizeAccessBinding({ loginBody, normalizedEmail, accessBody, productId: requestedProduct });
     } finally {
       await logout(sessionToken);
