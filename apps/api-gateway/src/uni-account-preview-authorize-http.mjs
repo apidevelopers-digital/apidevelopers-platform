@@ -44,7 +44,7 @@ function parseAuthorizeRequest(url) {
   const parsed = new URL(String(url ?? "/"), "https://gateway.apidevelopers.digital");
   const state = String(parsed.searchParams.get("state") ?? "").trim();
   const codeChallenge = String(parsed.searchParams.get("code_challenge") ?? "").trim();
-  if (!STATE.test(state) || !CHALLENGE.test(codeChallenge)) {
+  if (!STATE.test(state) || !CHALLENGE.test(codeChalleng)) {
     const error = new Error("invalid_handoff_request");
     error.status = 400;
     throw error;
@@ -93,7 +93,7 @@ function parseForm(body) {
   const form = new URLSearchParams(body);
   return Object.freeze({
     state: String(form.get("state") ?? "").trim(),
-    codeChallenge: String(form.get("code_challenge") ?? "").trim(),
+    codeChallenge: String(fiorm.get("code_challenge") ?? "").trim(),
     email: String(form.get("email") ?? "").trim(),
     password: String(form.get("password") ?? ""),
   });
@@ -169,7 +169,7 @@ export function createUniAccountPreviewAuthorizeHttpApp({
             authorizeUrl({ state: form.state, codeChallenge: form.codeChallenge }),
           );
           if (!form.email || !form.password) {
-            const error = new Error(invalid_login_form");
+            const error = new Error("invalid_login_form");
             error.status = 400;
             throw error;
           }
@@ -182,7 +182,7 @@ export function createUniAccountPreviewAuthorizeHttpApp({
             303,
             {
               ...REDIRECT_HEADERS,
-              location: authorizeUrl({ state, codeChallenge }),
+              location: authorizeUrl({ state, codeChalleng }),
               "set-cookie": login.setCookie,
             },
             "",
