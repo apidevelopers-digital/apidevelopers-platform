@@ -19,29 +19,26 @@ jobs:
       - name: Read only UniJuri access inventory
         run: |
           node --input-type=module <<'NODE'
-          const r = await fetch("https://gateway.apidevelopers.digital/v1/saas/uni-juri/access/inventory", {
+          const r = await fetch("https://gateway.apidevelopers.digital/v1/saas/uni-juri/access/inventory",{
             method: "GET",
             headers: {"x-api-key": process.env.API_GATEWAY_ADMIN_KEY, accept: "application/json"}
           });
           const b = await r.json();
+          const grant = b.accessGrants?.[0] ?? null;
+          const principal = b.principals?.[0] ?? null;
           const summary = {
             status: r.status,
-            tenants: b.tenants?.length ?? 0,
-            workspaces: b.workspaces?.length ?? 0,
-            subscriptions: b.subscriptions?.length ?? 0,
-            entitlements: b.entitlements?.length ?? 0,
-            jobs: b.provisioningJobs?.length ?? 0,
             accessGrants: b.accessGrants?.length ?? 0,
             principals: b.principals?.length ?? 0,
-            grantStatus: b.accessGrants?.[0]?.status ?? null,
-            workspaceStatus: b.workspaces?.[0]?.status ?? null,
-            subscriptionStatus: b.subscriptions?.[0]?.status ?? null,
-            entitlementStatus: b.entitlements?.[0]?.status ?? null,
-            provisioningStatus: b.provisioningJobs?.[0]?.status ?? null,
+            grantStatus: grant?.status ?? null,
+            principalStatus: principal?.status ?? null,
+            grantPrincipalMatchesFederatedPrincipal: Boolean(grant?.principalId && principal?.principalId) && grant.principalId === principal.principalId,
+            federatedProvider: principal?.provider ?? null,
+            federatedSubjectType: principal?.subjectType ?? null,
             productionChanged: b.productionChanged ?? false,
             secretsExposed: b.secretsExposed ?? false
           };
           const ok = r.status === 200 && b.ok === true && summary.productionChanged === false && summary.secretsExposed === false;
-          console.log(`::${ok ? "notice" : "error"} title=UNIJURI_INVENTORY_${ok ? "OK" : "FAILED"}::${Object.entries(summary).map(([k,v])=>`${k}=${v}`).join(" ")}`);
+          console.log(`::${ok ? "notice" : "error"} title=UNIJURI_IDENTITY_BINDING_${ok ? "OK" : "FAILED"}::${Object.entries(summary).map(([k,v])=>`${k}=${v}`).join(" ")}`);
           process.exit(ok ? 0 : 1);
           NODE
