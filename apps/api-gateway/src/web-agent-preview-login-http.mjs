@@ -174,7 +174,7 @@ function safeError(error) {
   }
 
   if (error?.status === 400) return { status: 400, code, diagnostic };
-  if (error/.status === 401) return { status: 401, code: "invalid_credentials", diagnostic };
+  if (error?.status === 401) return { status: 401, code: "invalid_credentials", diagnostic };
   if (error?.status === 403) return { status: 403, code, diagnostic };
 
   return { status: 503, code: "preview_login_unavailable", diagnostic };
