@@ -154,6 +154,22 @@ export function createUniCoPreviewLoginComposition({
     throw new TypeError("store must provide read and transaction");
   }
 
+  let effectiveVerifier = verifyCredentials;
+  const identityBackendConfigured =
+    typeof identityBackendBaseUrl === "string" && identityBackendBaseUrl.trim().length > 0;
+
+  if (typeof effectiveVerifier !== "function" && !identityBackendConfigured) {
+    return Object.freeze({
+      enabled: false,
+      app,
+      descriptor: Object.freeze({
+        enabled: false,
+        mode: "preview-assisted",
+        reason: "identity_verifier_unavailable",
+      }),
+    });
+  }
+
   const {
     saasRuntime,
     saasAccess,
@@ -175,12 +191,7 @@ export function createUniCoPreviewLoginComposition({
     })
     : undefined;
 
-  let effectiveVerifier = verifyCredentials;
-  if (
-    typeof effectiveVerifier !== "function" &&
-    typeof identityBackendBaseUrl === "string" &&
-    identityBackendBaseUrl.trim()
-  ) {
+  if (typeof effectiveVerifier !== "function" && identityBackendConfigured) {
     effectiveVerifier = createUniCoPreviewBackendIdentityVerifier({
       baseUrl: identityBackendBaseUrl,
       ...(identityFetchImpl ? { fetchImpl: identityFetchImpl } : {}),
