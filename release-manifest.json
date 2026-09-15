@@ -3,7 +3,7 @@
   "format": "managed-node-zip",
   "service": "api-gateway",
   "version": "0.8.0",
-  "sourceRevision": "165f33a2911487e9ba8d87f8e9142b98b9e52183",
+  "sourceRevision": "c05e9393f1b99ec3382f007452c2d6e5be700e4e",
   "runtime": {
     "node": ">=22",
     "entrypoint": "src/hostinger-entry.mjs",
@@ -934,8 +934,8 @@
     },
     {
       "path": "src/saas-delegated-access-v2.mjs",
-      "bytes": 5462,
-      "sha256": "a667ee2e675c0fccfe2b92a07eac370808ab1dc6cffc0f49ef29b6f4aa912181"
+      "bytes": 5441,
+      "sha256": "465ea60016569644299543e461d5c460a983f918079d3f0d094300f105b6497c"
     },
     {
       "path": "src/saas-delegated-access.mjs",
