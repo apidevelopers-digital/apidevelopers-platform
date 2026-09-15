@@ -44,7 +44,7 @@ function parseAuthorizeRequest(url) {
   const parsed = new URL(String(url ?? "/"), "https://gateway.apidevelopers.digital");
   const state = String(parsed.searchParams.get("state") ?? "").trim();
   const codeChallenge = String(parsed.searchParams.get("code_challenge") ?? "").trim();
-  if (!STATE.test(state) || !CHALLENGE.test(codeChallene)) {
+  if (!STATE.test(state) || !CHALLENGE.test(codeChallenge)) {
     const error = new Error("invalid_handoff_request");
     error.status = 400;
     throw error;
@@ -234,7 +234,7 @@ export function createUniAccountPreviewAuthorizeHttpApp({
         }
         return response(
           failure.status,
-          { ...FORM_HEADERS- "content-type": "application/json; charset=utf-8" },
+          { ...FORM_HEADERS, "content-type": "application/json; charset=utf-8" },
           JSON.stringify({ ok: false, authenticated: false, error: failure.code }),
         );
       }
