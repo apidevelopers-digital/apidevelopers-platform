@@ -1,9 +1,23 @@
 export class MitraAuthClientError extends Error {
-  constructor(code, message, status = 0) {
+  constructor(code, message, status = 0, details = null) {
     super(message);
     this.code = code;
     this.status = status;
+    this.details = sanitizeErrorDetails(details);
   }
+}
+
+function sanitizeErrorDetails(value) {
+  if (!value || typeof value !== "object" || Array.isArray(value)) return null;
+  const allowed = {};
+  for (const [key, raw] of Object.entries(value)) {
+    if (!/^(diagnosticStage|provisioning[A-Z][A-Za-z0-9]*|accountReady|productIdPresent|tenantIdPresent|workspaceIdPresent|principalIdPresent|accessGrantIdPresent|reasonPresent|diagnosticStagePresent|secretsExposed)$/.test(key)) {
+      continue;
+    }
+    if (typeof raw === "boolean") allowed[key] = raw;
+    else if (key === "diagnosticStage") allowed[key] = String(raw || "").trim();
+  }
+  return Object.keys(allowed).length > 0 ? Object.freeze(allowed) : null;
 }
 
 function cleanBaseUrl(value) {
@@ -34,6 +48,14 @@ function resolveSurfaceHost(hostname) {
     return String(window.location.host).trim().toLowerCase();
   }
   return "mitra-preview.apidevelopers.digital";
+}
+
+function safeLoginFailureDetails(data) {
+  return sanitizeErrorDetails({
+    ...(sanitizeErrorDetails(data?.diagnostic) || {}),
+    diagnosticStage: data?.diagnosticStage,
+    secretsExposed: data?.secretsExposed,
+  });
 }
 
 export function createMitraAuthClient({
@@ -89,6 +111,7 @@ export function createMitraAuthClient({
         data?.error || "login_failed",
         data?.message || "Não foi possível autenticar na Mitra Professional.",
         response.status,
+        safeLoginFailureDetails(data),
       );
     }
 

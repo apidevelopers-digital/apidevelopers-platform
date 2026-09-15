@@ -25,6 +25,19 @@ function safeLocationSnapshot() {
   });
 }
 
+function safeFailureDetails(details) {
+  if (!details || typeof details !== "object" || Array.isArray(details)) return null;
+  const allowed = {};
+  for (const [key, value] of Object.entries(details)) {
+    if (!/^(diagnosticStage|provisioning[A-Z][A-Za-z0-9]*|accountReady|productIdPresent|tenantIdPresent|workspaceIdPresent|principalIdPresent|accessGrantIdPresent|reasonPresent|diagnosticStagePresent|secretsExposed)$/.test(key)) {
+      continue;
+    }
+    if (typeof value === "boolean") allowed[key] = value;
+    else if (key === "diagnosticStage") allowed[key] = String(value || "").trim();
+  }
+  return Object.keys(allowed).length > 0 ? Object.freeze(allowed) : null;
+}
+
 function makeBuildDiagnostic({ client, status, lastFailure }) {
   const location = safeLocationSnapshot();
   return Object.freeze({
@@ -99,11 +112,13 @@ export default function MitraAuthGate({ children }) {
       setSession(next);
       setStatus("authenticated");
     } catch (err) {
+      const safeDetails = safeFailureDetails(err?.details);
       const failure = Object.freeze({
         code: String(err?.code || "unknown"),
         status: Number.isInteger(err?.status) ? err.status : 0,
         message: String(err?.message || "Não foi possível autenticar."),
         occurredAt: new Date().toISOString(),
+        ...(safeDetails ? { diagnostic: safeDetails } : {}),
       });
       setSession(null);
       setStatus("error");
