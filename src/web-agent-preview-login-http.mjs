@@ -35,6 +35,16 @@ const SAFE_LOGIN_ERROR_CODES = Object.freeze(new Set([
   "preview_product_not_allowed",
   "preview_login_product_mismatch",
   "preview_login_surface_not_allowed",
+  "uni_co_provisioning_not_complete",
+  "uni_co_product_mismatch",
+  "uni_co_tenantId_required",
+  "uni_co_workspaceId_required",
+  "uni_co_principalId_required",
+  "uni_co_accessGrantId_required",
+  "uni_co_customer_tenant_not_active",
+  "uni_co_customer_workspace_not_active",
+  "uni_co_customer_access_grant_not_resolved",
+  "uni_co_customer_membership_failed",
 ]));
 
 function response(status, payload, headers = {}) {
@@ -151,7 +161,21 @@ function safeError(error) {
           "preview_login_surface_not_allowed",
         ].includes(code)
           ? 403
-          : 503;
+          : [
+            "uni_co_provisioning_not_complete",
+            "uni_co_product_mismatch",
+            "uni_co_tenantId_required",
+            "uni_co_workspaceId_required",
+            "uni_co_principalId_required",
+            "uni_co_accessGrantId_required",
+            "uni_co_customer_tenant_not_active",
+            "uni_co_customer_workspace_not_active",
+            "uni_co_customer_access_grant_not_resolved",
+            "uni_co_customer_membership_failed",
+            "uni_co_customer_account_not_ready",
+          ].includes(code)
+            ? 409
+            : 503;
     const status = Number.isInteger(error?.status) && error.status >= 400 && error.status < 600
       ? error.status
       : defaultStatus;
