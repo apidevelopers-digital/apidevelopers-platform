@@ -14,6 +14,29 @@ const ALLOWED_LOGIN_ORIGINS = Object.freeze(new Set([
   "https://unico-preview.apidevelopers.digital",
 ]));
 
+const SAFE_LOGIN_ERROR_CODES = Object.freeze(new Set([
+  "invalid_credentials",
+  "too_many_login_attempts",
+  "preview_identity_verification_failed",
+  "preview_identity_backend_unavailable",
+  "preview_identity_session_missing",
+  "preview_identity_binding_invalid",
+  "preview_identity_product_not_supported",
+  "preview_assisted_provisioning_invalid",
+  "access_grant_not_found",
+  "access_grant_ambiguous",
+  "access_not_found",
+  "active_access_grant_scope_mismatch",
+  "uni_account_access_not_found",
+  "uni_account_access_unavailable",
+  "uni_co_customer_account_not_ready",
+  "preview_identity_binding_required",
+  "preview_identity_binding_mismatch",
+  "preview_product_not_allowed",
+  "preview_login_product_mismatch",
+  "preview_login_surface_not_allowed",
+]));
+
 function response(status, payload, headers = {}) {
   return Object.freeze({
     status,
@@ -56,7 +79,7 @@ function resolveSurfaceHost(headers) {
 
 function resolveOrigin(headers) {
   const origin = readHeader(headers, "origin") ?? readHeader(headers, "Origin");
-  return String(origin ?? "").trim().toLowerCase().replace(/\/+$/, "");
+  return String(origin ?? "").trim().toLowerCase().replace(/\\/+$/, "");
 }
 
 function corsHeaders(headers) {
@@ -105,24 +128,34 @@ function parseJsonBody(body) {
 function safeError(error) {
   const code = String(error?.message ?? "preview_login_failed");
 
-  if (
-    code === "invalid_credentials" ||
-    code === "preview_identity_verification_failed"
-  ) {
+  if (code === "preview_identity_verification_failed") {
     return { status: 401, code: "invalid_credentials" };
   }
 
-  if (
-    code === "access_grant_not_found" ||
-    code === "access_grant_ambiguous" ||
-    code === "active_access_grant_scope_mismatch" ||
-    code === "preview_identity_binding_required" ||
-    code === "preview_identity_binding_mismatch" ||
-    code === "preview_product_not_allowed" ||
-    code === "preview_login_product_mismatch" ||
-    code === "preview_login_surface_not_allowed"
-  ) {
-    return { status: 403, code };
+  if (SAFE_LOGIN_ERROR_CODES.has(code)) {
+    const defaultStatus = code === "invalid_credentials"
+      ? 401
+      : code === "too_many_login_attempts"
+        ? 429
+        : [
+          "access_grant_not_found",
+          "access_grant_ambiguous",
+          "access_not_found",
+          "active_access_grant_scope_mismatch",
+          "preview_identity_binding_invalid",
+          "preview_identity_product_not_supported",
+          "preview_identity_binding_required",
+          "preview_identity_binding_mismatch",
+          "preview_product_not_allowed",
+          "preview_login_product_mismatch",
+          "preview_login_surface_not_allowed",
+        ].includes(code)
+          ? 403
+          : 503;
+    const status = Number.isInteger(error?.status) && error.status >= 400 && error.status < 600
+      ? error.status
+      : defaultStatus;
+    return { status, code };
   }
 
   if (error?.status === 400) return { status: 400, code };
