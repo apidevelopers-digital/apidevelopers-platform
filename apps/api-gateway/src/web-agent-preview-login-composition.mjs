@@ -79,12 +79,13 @@ function createPreviewProvisioningActor() {
   });
 }
 
-function normalizeProvisionedAccess({ loginBody, normalizedEmail, body }) {
+function normalizeProvisionedAccess({ loginBody, normalizedEmail, body, expectedProductId }) {
   const principalId = text(body.principalId);
   const tenantId = text(body.tenantId);
   const workspaceId = text(body.workspaceId);
   const accessGrantId = text(body.accessGrantId);
   const productId = text(body.productId);
+  const requestedProductId = text(expectedProductId) || uniCoPreviewProductId;
 
   if (
     body?.ok !== true ||
@@ -94,7 +95,7 @@ function normalizeProvisionedAccess({ loginBody, normalizedEmail, body }) {
     !tenantId ||
     !workspaceId ||
     !accessGrantId ||
-    productId !== "product:uni-co"
+    productId !== requestedProductId
   ) {
     return null;
   }
@@ -146,8 +147,9 @@ function createAssistedProvisionAccess({
   const effectiveWorkspaceSlug = slug(workspaceSlug, "uni-co-main");
   const effectiveDisplayName = text(displayName) || "Institution Preview";
 
-  return async function provisionAccess({ email, loginBody } = {}) {
+  return async function provisionAccess({ email, loginBody, productId } = {}) {
     const normalizedEmail = text(email).toLowerCase();
+    const requestedProductId = text(productId) || uniCoPreviewProductId;
     if (!normalizedEmail) return null;
 
     const response = await customerProvisioningApp.handleRequest({
@@ -157,8 +159,9 @@ function createAssistedProvisionAccess({
         tenantSlug: effectiveTenantSlug,
         workspaceSlug: effectiveWorkspaceSlug,
         displayName: effectiveDisplayName,
+        productId: requestedProductId,
         subjectRef: sha256(normalizedEmail),
-        idempotencyKey: `uni-co-preview-bootstrap:${effectiveTenantSlug}:${effectiveWorkspaceSlug}:${sha256(normalizedEmail)}`,
+        idempotencyKey: `preview-bootstrap:${requestedProductId}:${effectiveTenantSlug}:${effectiveWorkspaceSlug}:${sha256(normalizedEmail)}`,
       }),
     });
 
@@ -167,7 +170,7 @@ function createAssistedProvisionAccess({
       return null;
     }
 
-    return normalizeProvisionedAccess({ loginBody, normalizedEmail, body });
+    return normalizeProvisionedAccess({ loginBody, normalizedEmail, body, expectedProductId: requestedProductId });
   };
 }
 
@@ -322,6 +325,7 @@ export function createUniCoPreviewLoginComposition({
       automaticProvisioning: assistedProvisioning === true,
       customerMembershipProvisioning: assistedProvisioning === true,
       provisionedBindingReuse: true,
+      productScopedAssistedProvisioning: true,
       rawSessionSecretPersisted: false,
       transientOperatorSessionReturnedToBrowser: false,
     }),
