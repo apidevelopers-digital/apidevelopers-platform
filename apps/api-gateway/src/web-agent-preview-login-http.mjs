@@ -79,7 +79,9 @@ function safeError(error) {
     code === "access_grant_ambiguous" ||
     code === "active_access_grant_scope_mismatch" ||
     code === "preview_identity_binding_required" ||
+    code === "preview_identity_binding_mismatch" ||
     code === "preview_product_not_allowed" ||
+    code === "preview_login_product_mismatch" ||
     code === "preview_login_surface_not_allowed"
   ) {
     return { status: 403, code };
@@ -90,6 +92,16 @@ function safeError(error) {
   if (error?.status === 403) return { status: 403, code };
 
   return { status: 503, code: "preview_login_unavailable" };
+}
+
+function bootstrapLoginInput({ headers, payload }) {
+  const input = {
+    host: resolveSurfaceHost(headers),
+    email: payload.email,
+    password: payload.password,
+  };
+  if (payload.productId !== undefined) input.productId = payload.productId;
+  return input;
 }
 
 export function createUniCoPreviewLoginHttpApp({ app, bootstrap } = {}) {
@@ -118,11 +130,10 @@ export function createUniCoPreviewLoginHttpApp({ app, bootstrap } = {}) {
 
       try {
         const payload = parseJsonBody(request.body);
-        const result = await bootstrap.login({
-          host: resolveSurfaceHost(request.headers),
-          email: payload.email,
-          password: payload.password,
-        });
+        const result = await bootstrap.login(bootstrapLoginInput({
+          headers: request.headers,
+          payload,
+        }));
 
         return response(
           200,
