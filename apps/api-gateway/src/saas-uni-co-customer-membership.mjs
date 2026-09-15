@@ -10,6 +10,7 @@ import {
 } from "@apidevelopers/contracts";
 
 export const UNI_CO_CUSTOMER_PRODUCT_ID = "product:uni-co";
+export const MITRA_CUSTOMER_PRODUCT_ID = "product:mitra";
 export const UNI_CO_CUSTOMER_ROLE_KEY = "customer";
 export const UNI_CO_CUSTOMER_PERMISSIONS = Object.freeze([
   "web:chat",
@@ -38,10 +39,11 @@ function principalKeyOf(principalId) {
   return match[1];
 }
 
-function assertGrant({ accessGrant, tenantId, workspaceId, principalId }) {
+function assertGrant({ accessGrant, tenantId, workspaceId, principalId, productId }) {
+  const expectedProductId = requireText(productId || UNI_CO_CUSTOMER_PRODUCT_ID, "productId");
   if (!accessGrant || typeof accessGrant !== "object") throw new TypeError("accessGrant is required");
   if (accessGrant.status !== "active") throw new Error("uni_co_customer_access_grant_not_active");
-  if (accessGrant.productId !== UNI_CO_CUSTOMER_PRODUCT_ID) throw new Error("uni_co_customer_access_product_mismatch");
+  if (accessGrant.productId !== expectedProductId) throw new Error("uni_co_customer_access_product_mismatch");
   for (const [field, expected] of Object.entries({ tenantId, workspaceId, principalId })) {
     if (accessGrant[field] !== expected) throw new Error(`uni_co_customer_access_${field}_mismatch`);
   }
@@ -55,6 +57,7 @@ export async function ensureUniCoCustomerMembership({
   workspaceId,
   principalId,
   accessGrant,
+  productId = UNI_CO_CUSTOMER_PRODUCT_ID,
   createdAt = new Date().toISOString(),
 } = {}) {
   tenantSlug = requireText(tenantSlug, "tenantSlug");
@@ -62,10 +65,11 @@ export async function ensureUniCoCustomerMembership({
   tenantId = requireText(tenantId, "tenantId");
   workspaceId = requireText(workspaceId, "workspaceId");
   principalId = requireText(principalId, "principalId");
+  productId = requireText(productId, "productId");
   requireFunction(membershipRuntime?.registerUser, "membershipRuntime.registerUser");
   requireFunction(membershipRuntime?.registerRole, "membershipRuntime.registerRole");
   requireFunction(membershipRuntime?.addMembership, "membershipRuntime.addMembership");
-  assertGrant({ accessGrant, tenantId, workspaceId, principalId });
+  assertGrant({ accessGrant, tenantId, workspaceId, principalId, productId });
 
   const principalKey = principalKeyOf(principalId);
   const userId = createSaasUserId(principalKey);
@@ -103,7 +107,7 @@ export async function ensureUniCoCustomerMembership({
   assertMembershipAccessGrantBinding(membership, accessGrant);
 
   return Object.freeze({
-    productId: UNI_CO_CUSTOMER_PRODUCT_ID,
+    productId,
     user,
     role,
     membership,
