@@ -20,6 +20,20 @@ const REDIRECT_HEADERS = Object.freeze({
   "referrer-policy": "no-referrer",
 });
 
+const CUSTOMER_PROVISIONING_ERROR_CODES = Object.freeze([
+  "uni_co_provisioning_not_complete",
+  "uni_co_product_mismatch",
+  "uni_co_tenantId_required",
+  "uni_co_workspaceId_required",
+  "uni_co_principalId_required",
+  "uni_co_accessGrantId_required",
+  "uni_co_customer_tenant_not_active",
+  "uni_co_customer_workspace_not_active",
+  "uni_co_customer_access_grant_not_resolved",
+  "uni_co_customer_membership_failed",
+  "uni_co_customer_account_not_ready",
+]);
+
 const SAFE_ERROR_CODES = new Set([
   "invalid_credentials",
   "too_many_login_attempts",
@@ -31,7 +45,7 @@ const SAFE_ERROR_CODES = new Set([
   "uni_account_access_not_found",
   "uni_account_access_unavailable",
   "preview_assisted_provisioning_invalid",
-  "uni_co_customer_account_not_ready",
+  ...CUSTOMER_PROVISIONING_ERROR_CODES,
   "source_session_required",
   "handoff_issue_failed",
 ]);
@@ -111,14 +125,38 @@ function callbackUrl({ state, code }) {
   return target.toString();
 }
 
+function diagnosticStageFor(code) {
+  if (CUSTOMER_PROVISIONING_ERROR_CODES.includes(code)) return code;
+  if (code === "preview_assisted_provisioning_invalid") return "assisted_provisioning";
+  if (code === "source_session_required") return "handoff_source_session";
+  if (code === "handoff_issue_failed") return "handoff_issue";
+  return code || "unknown";
+}
+
+function diagnosticPayload(failure, { authenticated = false } = {}) {
+  return JSON.stringify({
+    ok: false,
+    authenticated,
+    error: failure.code,
+    diagnosticStage: failure.diagnosticStage ?? diagnosticStageFor(failure.code),
+    secretsExposed: false,
+  });
+}
+
 function safeFailure(error) {
   if (error instanceof BrowserSessionHandoffError) {
     if (error.code === "source_session_required") {
-      return Object.freeze({ status: 401, code: error.code });
+      return Object.freeze({
+        status: 401,
+        code: error.code,
+        diagnosticStage: diagnosticStageFor(error.code),
+      });
     }
+    const code = SAFE_ERROR_CODES.has(error.code) ? error.code : "handoff_issue_failed";
     return Object.freeze({
-      status: [400, 401, 403, 409, 429, 503].includes(error.status) ? error.status : 503,
-      code: SAFE_ERROR_CODES.has(error.code) ? error.code : "handoff_issue_failed",
+      status: [400, 401, 403, 409, 422, 429, 503].includes(error.status) ? error.status : 503,
+      code,
+      diagnosticStage: diagnosticStageFor(code),
     });
   }
 
@@ -126,16 +164,25 @@ function safeFailure(error) {
   const messageCode = String(error?.code ?? error?.message ?? "").trim();
   if (SAFE_ERROR_CODES.has(messageCode)) {
     return Object.freeze({
-      status: [400, 401, 403, 409, 429, 503].includes(status) ? status : 503,
+      status: [400, 401, 403, 409, 422, 429, 503].includes(status) ? status : 503,
       code: messageCode,
+      diagnosticStage: diagnosticStageFor(messageCode),
     });
   }
 
   if (status === 400) {
-    return Object.freeze({ status: 400, code: messageCode || "invalid_request" });
+    return Object.freeze({
+      status: 400,
+      code: messageCode || "invalid_request",
+      diagnosticStage: "invalid_request",
+    });
   }
 
-  return Object.freeze({ status: 503, code: "uni_account_authorize_unavailable" });
+  return Object.freeze({
+    status: 503,
+    code: "uni_account_authorize_unavailable",
+    diagnosticStage: "authorize_unavailable",
+  });
 }
 
 export function createUniAccountPreviewAuthorizeHttpApp({
@@ -192,7 +239,7 @@ export function createUniAccountPreviewAuthorizeHttpApp({
           return response(
             failure.status,
             { ...FORM_HEADERS, "content-type": "application/json; charset=utf-8" },
-            JSON.stringify({ ok: false, authenticated: false, error: failure.code }),
+            diagnosticPayload(failure, { authenticated: false }),
           );
         }
       }
@@ -209,7 +256,7 @@ export function createUniAccountPreviewAuthorizeHttpApp({
         return response(
           failure.status,
           { ...FORM_HEADERS, "content-type": "application/json; charset=utf-8" },
-          JSON.stringify({ ok: false, error: failure.code }),
+          diagnosticPayload(failure),
         );
       }
 
@@ -235,7 +282,7 @@ export function createUniAccountPreviewAuthorizeHttpApp({
         return response(
           failure.status,
           { ...FORM_HEADERS, "content-type": "application/json; charset=utf-8" },
-          JSON.stringify({ ok: false, authenticated: false, error: failure.code }),
+          diagnosticPayload(failure, { authenticated: false }),
         );
       }
     },
