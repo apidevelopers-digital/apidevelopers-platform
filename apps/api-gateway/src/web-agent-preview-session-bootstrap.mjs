@@ -73,12 +73,20 @@ export function createUniCoPreviewBrowserSessionBootstrap({
   if (!Number.isInteger(sessionTtlSeconds) || sessionTtlSeconds < 300 || sessionTtlSeconds > 43200) throw new TypeError("invalid session ttl");
 
   const surfacesByHost = normalizeSurfaces(loginSurfaces);
+  const credentialsAreProductScoped = verifyCredentials.productScoped === true;
 
   return Object.freeze({
     async login({ host, email, password, productId } = {}) {
       const surface = selectSurface(surfacesByHost, { host, productId });
       const normalizedEmail = req(email, "email").toLowerCase();
-      const identity = await verifyCredentials({ email: normalizedEmail, password: req(password, "password") });
+      const credentialRequest = {
+        email: normalizedEmail,
+        password: req(password, "password"),
+      };
+      if (credentialsAreProductScoped) {
+        credentialRequest.productId = surface.productId;
+      }
+      const identity = await verifyCredentials(credentialRequest);
       if (!identity || typeof identity !== "object") throw new Error("preview_identity_verification_failed");
 
       const a = await resolveAccess({
