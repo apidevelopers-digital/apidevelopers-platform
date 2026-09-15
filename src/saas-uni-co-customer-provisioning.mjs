@@ -2,6 +2,20 @@ import { ensureUniCoCustomerMembership, UNI_CO_CUSTOMER_PRODUCT_ID } from "./saa
 
 const ROUTE = "/v1/saas/uni-co/provision";
 
+const SAFE_CUSTOMER_PROVISIONING_REASONS = Object.freeze(new Set([
+  "uni_co_provisioning_not_complete",
+  "uni_co_product_mismatch",
+  "uni_co_tenantId_required",
+  "uni_co_workspaceId_required",
+  "uni_co_principalId_required",
+  "uni_co_accessGrantId_required",
+  "uni_co_customer_tenant_not_active",
+  "uni_co_customer_workspace_not_active",
+  "uni_co_customer_access_grant_not_resolved",
+  "uni_co_customer_membership_failed",
+  "uni_co_customer_account_not_ready",
+]));
+
 function pathnameOf(url) {
   return new URL(String(url ?? "/"), "http://api-gateway.local").pathname;
 }
@@ -43,6 +57,22 @@ function replyLike(response, status, payload) {
 function expectedProductIdFromRequest(request) {
   const requested = String(parseRequestBody(request?.body).productId ?? "").trim();
   return requested || UNI_CO_CUSTOMER_PRODUCT_ID;
+}
+
+function safeCustomerProvisioningReason(error) {
+  const code = String(error?.message ?? "").trim();
+  return SAFE_CUSTOMER_PROVISIONING_REASONS.has(code)
+    ? code
+    : "uni_co_customer_account_not_ready";
+}
+
+function diagnosticPresence(body) {
+  return Object.freeze({
+    tenantIdPresent: typeof body?.tenantId === "string" && body.tenantId.trim().length > 0,
+    workspaceIdPresent: typeof body?.workspaceId === "string" && body.workspaceId.trim().length > 0,
+    principalIdPresent: typeof body?.principalId === "string" && body.principalId.trim().length > 0,
+    accessGrantIdPresent: typeof body?.accessGrantId === "string" && body.accessGrantId.trim().length > 0,
+  });
 }
 
 function assertProvisionedBinding(body, expectedProductId = UNI_CO_CUSTOMER_PRODUCT_ID) {
@@ -114,17 +144,22 @@ export function createUniCoCustomerProvisioningApp({
           throw new Error("uni_co_customer_access_grant_not_resolved");
         }
 
-        const account = await ensureUniCoCustomerMembership({
-          membershipRuntime,
-          tenantSlug: tenant.slug,
-          workspaceSlug: workspace.slug,
-          tenantId: body.tenantId,
-          workspaceId: body.workspaceId,
-          principalId: body.principalId,
-          accessGrant: resolvedGrant.grant,
-          productId: expectedProductId,
-          createdAt: clock(),
-        });
+        let account;
+        try {
+          account = await ensureUniCoCustomerMembership({
+            membershipRuntime,
+            tenantSlug: tenant.slug,
+            workspaceSlug: workspace.slug,
+            tenantId: body.tenantId,
+            workspaceId: body.workspaceId,
+            principalId: body.principalId,
+            accessGrant: resolvedGrant.grant,
+            productId: expectedProductId,
+            createdAt: clock(),
+          });
+        } catch {
+          throw new Error("uni_co_customer_membership_failed");
+        }
 
         return replyLike(response, 201, {
           ...body,
@@ -138,15 +173,24 @@ export function createUniCoCustomerProvisioningApp({
             automaticLoginProvisioning: false,
             productionWriteAuthorized: false,
           },
+          diagnostic: Object.freeze({
+            tenant: "active",
+            workspace: "active",
+            accessGrant: "resolved",
+            membership: "ready",
+          }),
           secretsExposed: false,
         });
-      } catch {
+      } catch (error) {
+        const reason = safeCustomerProvisioningReason(error);
         return replyLike(response, 409, {
           ok: false,
           provisioned: body?.provisioned === true,
           accountReady: false,
           productId: expectedProductId,
-          reason: "uni_co_customer_account_not_ready",
+          reason,
+          diagnosticStage: reason,
+          diagnostic: diagnosticPresence(body),
           humanSessionRequiredUpstream: true,
           automaticLoginProvisioning: false,
           productionWriteAuthorized: false,
@@ -165,4 +209,5 @@ export const uniCoCustomerProvisioningContract = Object.freeze({
   humanSessionRequiredUpstream: true,
   automaticLoginProvisioning: false,
   productionWriteAuthorized: false,
+  diagnosticFailureReasons: Object.freeze([...SAFE_CUSTOMER_PROVISIONING_REASONS]),
 });
