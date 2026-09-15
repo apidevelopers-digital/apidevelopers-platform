@@ -20,6 +20,22 @@ const REDIRECT_HEADERS = Object.freeze({
   "referrer-policy": "no-referrer",
 });
 
+const SAFE_ERROR_CODES = new Set([
+  "invalid_credentials",
+  "too_many_login_attempts",
+  "preview_identity_backend_unavailable",
+  "preview_identity_session_missing",
+  "preview_identity_binding_invalid",
+  "access_grant_not_found",
+  "access_not_found",
+  "uni_account_access_not_found",
+  "uni_account_access_unavailable",
+  "preview_assisted_provisioning_invalid",
+  "uni_co_customer_account_not_ready",
+  "source_session_required",
+  "handoff_issue_failed",
+]);
+
 function response(status, headers = {}, body = "") {
   return Object.freeze({ status, headers: Object.freeze({ ...headers }), body });
 }
@@ -101,13 +117,24 @@ function safeFailure(error) {
       return Object.freeze({ status: 401, code: error.code });
     }
     return Object.freeze({
-      status: [400, 401, 403, 503].includes(error.status) ? error.status : 503,
+      status: [400, 401, 403, 409, 503].includes(error.status) ? error.status : 503,
       code: error.code,
     });
   }
-  if (error?.status === 400) {
-    return Object.freeze({ status: 400, code: String(error.message ?? "invalid_request") });
+
+  const status = Number.isInteger(error?.status) ? error.status : 503;
+  const messageCode = String(error?.code ?? error?.message ?? "").trim();
+  if (SAFE_ERROR_CODES.has(messageCode)) {
+    return Object.freeze({
+      status: [400, 401, 403, 409, 429, 503].includes(status) ? status : 503,
+      code: messageCode,
+    });
   }
+
+  if (status === 400) {
+    return Object.freeze({ status: 400, code: messageCode || "invalid_request" });
+  }
+
   return Object.freeze({ status: 503, code: "uni_account_authorize_unavailable" });
 }
 
@@ -171,7 +198,7 @@ export function createUniAccountPreviewAuthorizeHttpApp({
       }
 
       if (method !== "GET") {
-        return response(405, { ...FORM_HEADERS, allow: "GET, POST" }, "Método não permitido.");
+        return response(405, { ...FORM_HEADERS- allow: "GET, POST" }, "Método não permitido.");
       }
 
       let handoff;
