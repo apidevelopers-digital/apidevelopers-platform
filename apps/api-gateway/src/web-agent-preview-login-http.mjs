@@ -7,11 +7,26 @@ const JSON_HEADERS = Object.freeze({
   "x-content-type-options": "nosniff",
 });
 
+const ALLOWED_LOGIN_ORIGINS = Object.freeze(new Set([
+  "https://mitra-preview.apidevelopers.digital",
+  "https://mitra.apidevelopers.digital",
+  "https://uni-preview.apidevelopers.digital",
+  "https://unico-preview.apidevelopers.digital",
+]));
+
 function response(status, payload, headers = {}) {
   return Object.freeze({
     status,
     headers: Object.freeze({ ...JSON_HEADERS, ...headers }),
     body: JSON.stringify(payload),
+  });
+}
+
+function emptyResponse(status, headers = {}) {
+  return Object.freeze({
+    status,
+    headers: Object.freeze({ ...headers }),
+    body: "",
   });
 }
 
@@ -37,6 +52,29 @@ function resolveSurfaceHost(headers) {
     headerText(headers, uniCoPreviewSurfaceHostHeader) ||
     headerText(headers, "host")
   );
+}
+
+function resolveOrigin(headers) {
+  const origin = readHeader(headers, "origin") ?? readHeader(headers, "Origin");
+  return String(origin ?? "").trim().toLowerCase().replace(/\/+$/, "");
+}
+
+function corsHeaders(headers) {
+  const origin = resolveOrigin(headers);
+  if (!origin || !ALLOWED_LOGIN_ORIGINS.has(origin)) return {};
+
+  return {
+    "access-control-allow-origin": origin,
+    "access-control-allow-credentials": "true",
+    "access-control-allow-methods": "POST, OPTIONS",
+    "access-control-allow-headers": [
+      "content-type",
+      "accept",
+      uniCoPreviewSurfaceHostHeader,
+    ].join(", "),
+    "access-control-max-age": "600",
+    vary: "origin, access-control-request-headers",
+  };
 }
 
 function parseJsonBody(body) {
@@ -124,10 +162,23 @@ export function createUniCoPreviewLoginHttpApp({ app, bootstrap } = {}) {
         "http://api-gateway.local",
       ).pathname;
 
+      if (pathname === uniCoPreviewLoginHttpPath && method === "OPTIONS") {
+        const cors = corsHeaders(request.headers);
+        if (!cors["access-control-allow-origin"]) {
+          return response(403, {
+            ok: false,
+            authenticated: false,
+            error: "preview_login_origin_not_allowed",
+          });
+        }
+        return emptyResponse(204, cors);
+      }
+
       if (method !== "POST" || pathname !== uniCoPreviewLoginHttpPath) {
         return app.handleRequest(request);
       }
 
+      const cors = corsHeaders(request.headers);
       try {
         const payload = parseJsonBody(request.body);
         const result = await bootstrap.login(bootstrapLoginInput({
@@ -146,7 +197,7 @@ export function createUniCoPreviewLoginHttpApp({ app, bootstrap } = {}) {
             accessGrantId: result.accessGrantId,
             expiresAt: result.expiresAt,
           },
-          { "set-cookie": result.setCookie },
+          { ...cors, "set-cookie": result.setCookie },
         );
       } catch (error) {
         const failure = safeError(error);
@@ -154,7 +205,7 @@ export function createUniCoPreviewLoginHttpApp({ app, bootstrap } = {}) {
           ok: false,
           authenticated: false,
           error: failure.code,
-        });
+        }, cors);
       }
     },
   });
