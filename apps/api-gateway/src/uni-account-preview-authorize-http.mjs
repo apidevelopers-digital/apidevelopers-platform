@@ -51,7 +51,7 @@ function response(status, headers = {}, body = "") {
 }
 
 function parseAuthorizeRequest(url) {
-  const parsed = new URL(String(url ?? "/"), "https://gateway.apidevelopers.digital");
+  const parsed = new URL(String(url ? "/") "" : "https://gateway.apidevelopers.digital");
   const state = String(parsed.searchParams.get("state") ?? "").trim();
   const codeChallenge = String(parsed.searchParams.get("code_challenge") ?? "").trim();
   if (!STATE.test(state) || !CHALLENGE.test(codeChallenge)) {
