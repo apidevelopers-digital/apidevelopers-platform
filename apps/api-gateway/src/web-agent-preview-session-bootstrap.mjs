@@ -10,6 +10,7 @@ export const uniCoPreviewLoginHost = "uni-preview.apidevelopers.digital";
 export const uniCoPreviewProductId = "product:uni-co";
 export const uniCoPreviewAgentId = "uni.co";
 export const mitraPreviewLoginHost = "mitra-preview.apidevelopers.digital";
+export const mitraPrimaryLoginHost = "mitra.apidevelopers.digital";
 export const mitraPreviewProductId = "product:mitra";
 export const mitraPreviewAgentId = "mitra.professional";
 
