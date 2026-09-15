@@ -18,6 +18,7 @@ import {
   mitraPrimaryLoginHost,
   mitraPreviewAgentId,
 } from "./web-agent-preview-session-bootstrap.mjs";
+
 export const defaultPreviewLoginSurfaces = Object.freeze([
   Object.freeze({
     host: uniCoPreviewLoginHost,
@@ -35,6 +36,7 @@ export const defaultPreviewLoginSurfaces = Object.freeze([
     agentId: mitraPreviewAgentId,
   }),
 ]);
+
 const SAFE_PROVISIONING_REASONS = new Set([
   "uni_co_provisioning_not_complete",
   "uni_co_product_mismatch",
@@ -45,8 +47,10 @@ const SAFE_PROVISIONING_REASONS = new Set([
   "uni_co_customer_tenant_not_active",
   "uni_co_customer_workspace_not_active",
   "uni_co_customer_access_grant_not_resolved",
+  "uni_co_customer_membership_failed",
   "uni_co_customer_account_not_ready",
 ]);
+
 function primarySurface(loginSurfaces) {
   return Array.isArray(loginSurfaces) && loginSurfaces.length > 0
     ? loginSurfaces[0]
@@ -64,6 +68,7 @@ function slug(value, fallback) {
   }
   return out;
 }
+
 function sha256(value) {
   return createHash("sha256").update(String(value)).digest("hex");
 }
@@ -75,6 +80,7 @@ function readJsonBody(response) {
     return {};
   }
 }
+
 function createPreviewProvisioningActor() {
   return Object.freeze({
     role: "service",
@@ -86,14 +92,17 @@ function createPreviewProvisioningActor() {
     }),
   });
 }
+
 function assistedProvisioningError(reason, status = 503) {
-  const code = SAFE_PROVISIONING_REASONS.has(text(reason))
-    ? text(reason)
+  const safeReason = text(reason);
+  const code = SAFE_PROVISIONING_REASONS.has(safeReason)
+    ? safeReason
     : "preview_assisted_provisioning_invalid";
   const error = new Error(code);
   error.status = [400, 401, 403, 409, 422, 503].includes(status) ? status : 503;
   return error;
 }
+
 function normalizeProvisionedAccess({ loginBody, normalizedEmail, body, expectedProductId }) {
   const principalId = text(body.principalId);
   const tenantId = text(body.tenantId);
@@ -101,6 +110,7 @@ function normalizeProvisionedAccess({ loginBody, normalizedEmail, body, expected
   const accessGrantId = text(body.accessGrantId);
   const productId = text(body.productId);
   const requestedProductId = text(expectedProductId) || uniCoPreviewProductId;
+
   if (
     body?.ok !== true ||
     body?.provisioned !== true ||
@@ -111,8 +121,9 @@ function normalizeProvisionedAccess({ loginBody, normalizedEmail, body, expected
     !accessGrantId ||
     productId !== requestedProductId
   ) {
-    throw assistedProvisioningError(body?.reason);
+    throw assistedProvisioningError(body?.reason ?? body?.diagnosticStage);
   }
+
   return Object.freeze({
     principalId,
     tenantId,
@@ -125,7 +136,8 @@ function normalizeProvisionedAccess({ loginBody, normalizedEmail, body, expected
     }),
   });
 }
-function createAssistedProvisioningAccess({
+
+function createAssistedProvisionAccess({
   saasRuntime,
   saasAccess,
   membershipRuntime,
@@ -157,14 +169,16 @@ function createAssistedProvisioningAccess({
   const effectiveTenantSlug = slug(tenantSlug, "institution-preview");
   const effectiveWorkspaceSlug = slug(workspaceSlug, "uni-co-main");
   const effectiveDisplayName = text(displayName) || "Institution Preview";
+
   return async function provisionAccess({ email, loginBody, productId } = {}) {
     const normalizedEmail = text(email).toLowerCase();
     const requestedProductId = text(productId) || uniCoPreviewProductId;
     if (!normalizedEmail) return null;
+
     const response = await customerProvisioningApp.handleRequest({
       method: "POST",
       url: "/v1/saas/uni-co/provision",
-      body: JSON.stringify({
+      body: JSON.stringify {
         tenantSlug: effectiveTenantSlug,
         workspaceSlug: effectiveWorkspaceSlug,
         displayName: effectiveDisplayName,
@@ -176,7 +190,7 @@ function createAssistedProvisioningAccess({
     const body = readJsonBody(response);
 
     if (response.status < 200 || response.status >= 300) {
-      throw assistedProvisioningError(body?.reason, response.status);
+      throw assistedProvisioningError(body?.reason ?? body?.diagnosticStage, response.status);
     }
 
     return normalizeProvisionedAccess({
@@ -187,6 +201,7 @@ function createAssistedProvisioningAccess({
     });
   };
 }
+
 function bindingFromVerifiedIdentity({ identity, productId }) {
   const binding = identity?.expectedBinding;
   if (!binding || typeof binding !== "object") return null;
@@ -206,6 +221,7 @@ function bindingFromVerifiedIdentity({ identity, productId }) {
     productId,
   });
 }
+
 export function createUniCoPreviewLoginComposition({
   app,
   store,
@@ -228,6 +244,7 @@ export function createUniCoPreviewLoginComposition({
   if (!store || typeof store.read !== "function" || typeof store.transaction !== "function") {
     throw new TypeError("store must provide read and transaction");
   }
+
   let effectiveVerifier = verifyCredentials;
   const identityBackendConfigured =
     typeof identityBackendBaseUrl === "string" && identityBackendBaseUrl.trim().length > 0;
@@ -243,6 +260,7 @@ export function createUniCoPreviewLoginComposition({
       }),
     });
   }
+
   const {
     saasRuntime,
     saasAccess,
@@ -252,8 +270,9 @@ export function createUniCoPreviewLoginComposition({
     store,
     ...(clock ? { clock: () => clock().toISOString() } : {}),
   });
+
   const assistedProvisioningAccess = assistedProvisioning === true
-    ? createAssistedProvisioningAccess({
+    ? createAssistedProvisionAccess({
         saasRuntime,
         saasAccess,
         membershipRuntime,
@@ -264,6 +283,7 @@ export function createUniCoPreviewLoginComposition({
         displayName: assistedProvisioningDisplayName,
       })
     : undefined;
+
   if (typeof effectiveVerifier !== "function" && identityBackendConfigured) {
     effectiveVerifier = createUniCoPreviewBackendIdentityVerifier({
       baseUrl: identityBackendBaseUrl,
@@ -272,6 +292,7 @@ export function createUniCoPreviewLoginComposition({
       ...(assistedProvisioningAccess ? { provisionAccess: assistedProvisioningAccess } : {}),
     });
   }
+
   if (typeof effectiveVerifier !== "function") {
     return Object.freeze({
       enabled: false,
@@ -288,6 +309,7 @@ export function createUniCoPreviewLoginComposition({
     accessRuntime: saasAccess,
     allowedProductIds: loginSurfaces.map((surface) => surface.productId),
   });
+
   const resolveAccess = async (input = {}) => {
     const fromIdentity = bindingFromVerifiedIdentity({
       identity: input.identity,
@@ -296,6 +318,7 @@ export function createUniCoPreviewLoginComposition({
     if (fromIdentity) return fromIdentity;
     return baseResolveAccess(input);
   };
+
   const bootstrap = createUniCoPreviewBrowserSessionBootstrap({
     store,
     verifyCredentials: effectiveVerifier,
@@ -307,6 +330,7 @@ export function createUniCoPreviewLoginComposition({
   });
   const http = createUniCoPreviewLoginHttpApp({ app, bootstrap });
   const primary = primarySurface(loginSurfaces);
+
   return Object.freeze({
     enabled: true,
     app: http.app,
