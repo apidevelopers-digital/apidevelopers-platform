@@ -5,14 +5,16 @@ on:
     paths:
       - "packages/contracts/src/saas-channel-binding.mjs"
       - "packages/contracts/src/index.mjs"
-      - "packages/saas-runtime/src/runtime.mjs"
+      - "packages/saas-runtime/src/zuni-channel-binding-runtime.mjs"
+      - "packages/saas-runtime/src/index.mjs"
       - "packages/saas-runtime/test/zuni-channel-binding-runtime.test.mjs"
       - ".github/workflows/zuni-saas-channel-binding-runtime-ci.yml"
   pull_request:
     paths:
       - "packages/contracts/src/saas-channel-binding.mjs"
       - "packages/contracts/src/index.mjs"
-      - "packages/saas-runtime/src/runtime.mjs"
+      - "packages/saas-runtime/src/zuni-channel-binding-runtime.mjs"
+      - "packages/saas-runtime/src/index.mjs"
       - "packages/saas-runtime/test/zuni-channel-binding-runtime.test.mjs"
       - ".github/workflows/zuni-saas-channel-binding-runtime-ci.yml"
 
@@ -35,7 +37,9 @@ jobs:
         run: |
           set -euo pipefail
           node --check packages/contracts/src/saas-channel-binding.mjs
-          node --check packages/saas-runtime/src/runtime.mjs
+          node --check packages/contracts/src/index.mjs
+          node --check packages/saas-runtime/src/zuni-channel-binding-runtime.mjs
+          node --check packages/saas-runtime/src/index.mjs
           node --check packages/saas-runtime/test/zuni-channel-binding-runtime.test.mjs
 
       - name: Validate channel binding runtime
@@ -46,5 +50,6 @@ jobs:
       - name: Guard against secret material
         run: |
           set -euo pipefail
-          ! grep -Eq 'accessToken[[:space:]]*:|access_token[[:space:]]*:|appSecret[[:space:]]*:|credentialValue[[:space:]]*:'             packages/saas-runtime/src/runtime.mjs
+          ! grep -Eq 'accessToken[[:space:]]*:|access_token[[:space:]]*:|appSecret[[:space:]]*:|credentialValue[[:space:]]*:' \
+            packages/saas-runtime/src/zuni-channel-binding-runtime.mjs
           grep -Fq 'credentialRef' packages/contracts/src/saas-channel-binding.mjs
