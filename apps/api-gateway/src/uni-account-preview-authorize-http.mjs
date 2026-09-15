@@ -169,7 +169,7 @@ export function createUniAccountPreviewAuthorizeHttpApp({
             authorizeUrl({ state: form.state, codeChallenge: form.codeChallenge }),
           );
           if (!form.email || !form.password) {
-            const error = new Error("invalid_login_form");
+            const error = new Error(invalid_login_form");
             error.status = 400;
             throw error;
           }
@@ -198,7 +198,7 @@ export function createUniAccountPreviewAuthorizeHttpApp({
       }
 
       if (method !== "GET") {
-        return response(405, { ...FORM_HEADERS- allow: "GET, POST" }, "Método não permitido.");
+        return response(405, { ...FORM_HEADERS, allow: "GET, POST" }, "Método não permitido.");
       }
 
       let handoff;
