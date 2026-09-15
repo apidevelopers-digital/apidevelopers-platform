@@ -67,7 +67,6 @@ async function seed(runtime, tenantSlug, workspaceSlug = "principal") {
 
 function binding(x, overrides = {}) {
   return {
-    bindingId: x.bindingId,
     tenantId: x.tenantId,
     workspaceId: x.workspaceId,
     productId: "zuni",
@@ -95,10 +94,26 @@ test("zero channels is a valid tenant-scoped state", async () => {
   });
 });
 
+test("platform derives the canonical binding id from authoritative tenant and workspace scope", async () => {
+  await withRuntime(async ({ runtime }) => {
+    const acme = await seed(runtime, "acme");
+    const created = await runtime.registerChannelBinding(binding(acme));
+    assert.equal(created.bindingId, acme.bindingId);
+
+    await assert.rejects(
+      () => runtime.registerChannelBinding(binding(acme, {
+        bindingId: createChannelBindingId("other", "principal", "phone-123"),
+      })),
+      /channel binding id boundary mismatch/,
+    );
+  });
+});
+
 test("persists only an opaque credential reference for a Zuni WhatsApp channel", async () => {
   await withRuntime(async ({ runtime, store }) => {
     const acme = await seed(runtime, "acme");
     const created = await runtime.registerChannelBinding(binding(acme));
+    assert.equal(created.bindingId, acme.bindingId);
     assert.equal(created.credentialRef, "credential://zuni/acme/principal/phone-123");
     assert.equal("accessToken" in created, false);
 
