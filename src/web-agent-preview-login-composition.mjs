@@ -2,6 +2,7 @@ import { createHash } from "node:crypto";
 
 import { createSaasAccessComposition } from "./saas-access-composition.mjs";
 import { createUniCoProvisioningApp } from "./saas-uni-co-provisioning.mjs";
+import { createUniCoCustomerProvisioningApp } from "./saas-uni-co-customer-provisioning.mjs";
 import { createUniCoPreviewBackendIdentityVerifier } from "./web-agent-preview-backend-identity.mjs";
 import { createUniCoPreviewLoginHttpApp } from "./web-agent-preview-login-http.mjs";
 import {
@@ -81,6 +82,7 @@ function createPreviewProvisioningActor() {
 function createAssistedProvisionAccess({
   saasRuntime,
   saasAccess,
+  membershipRuntime,
   federatedPrincipal,
   clock,
   tenantSlug,
@@ -99,6 +101,14 @@ function createAssistedProvisionAccess({
     ...(clock ? { clock: () => clock().toISOString() } : {}),
   });
 
+  const customerProvisioningApp = createUniCoCustomerProvisioningApp({
+    provisioningApp,
+    saasRuntime,
+    saasAccess,
+    membershipRuntime,
+    ...(clock ? { clock: () => clock().toISOString() } : {}),
+  });
+
   const effectiveTenantSlug = slug(tenantSlug, "institution-preview");
   const effectiveWorkspaceSlug = slug(workspaceSlug, "uni-co-main");
   const effectiveDisplayName = text(displayName) || "Institution Preview";
@@ -107,7 +117,7 @@ function createAssistedProvisionAccess({
     const normalizedEmail = text(email).toLowerCase();
     if (!normalizedEmail) return null;
 
-    const response = await provisioningApp.handleRequest({
+    const response = await customerProvisioningApp.handleRequest({
       method: "POST",
       url: "/v1/saas/uni-co/provision",
       body: JSON.stringify({
@@ -115,11 +125,18 @@ function createAssistedProvisionAccess({
         workspaceSlug: effectiveWorkspaceSlug,
         displayName: effectiveDisplayName,
         subjectRef: sha256(normalizedEmail),
-        idempotencyKey: `uni-co-preview-bootstrap:${effectiveTenantSlug}:${effectiveWorkspaceSlug}`,
+        idempotencyKey: `uni-co-preview-bootstrap:${effectiveTenantSlug}:${effectiveWorkspaceSlug}:${sha256(normalizedEmail)}`,
       }),
     });
+
     const body = readJsonBody(response);
-    if (response.status < 200 || response.status >= 300 || body?.ok !== true) {
+    if (
+      response.status < 200 ||
+      response.status >= 300 ||
+      body?.ok !== true ||
+      body?.provisioned !== true ||
+      body?.accountReady !== true
+    ) {
       return null;
     }
 
@@ -173,6 +190,7 @@ export function createUniCoPreviewLoginComposition({
   const {
     saasRuntime,
     saasAccess,
+    membershipRuntime,
     federatedPrincipal,
   } = createSaasAccessComposition({
     store,
@@ -183,6 +201,7 @@ export function createUniCoPreviewLoginComposition({
     ? createAssistedProvisionAccess({
       saasRuntime,
       saasAccess,
+      membershipRuntime,
       federatedPrincipal,
       clock,
       tenantSlug: assistedProvisioningTenantSlug,
@@ -248,6 +267,7 @@ export function createUniCoPreviewLoginComposition({
       identityBackendConfigured:
         typeof identityBackendBaseUrl === "string" && identityBackendBaseUrl.trim().length > 0,
       automaticProvisioning: assistedProvisioning === true,
+      customerMembershipProvisioning: assistedProvisioning === true,
       rawSessionSecretPersisted: false,
       transientOperatorSessionReturnedToBrowser: false,
     }),

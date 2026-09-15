@@ -1,6 +1,10 @@
 const LOGIN_PATH = "/operator/v1/session/login";
-const ACCESS_PATH = "/operator/v1/uni-co/preview/saas/access";
 const LOGOUT_PATH = "/operator/v1/session/logout";
+
+const ACCESS_PATHS_BY_PRODUCT = Object.freeze({
+  "product:uni-co": "/operator/v1/uni-co/preview/saas/access",
+  "product:mitra": "/operator/v1/mitra/preview/saas/access",
+});
 
 function text(value) {
   return String(value ?? "").trim();
@@ -22,19 +26,29 @@ function upstreamError(code, status = 503) {
   return error;
 }
 
-function normalizeAccessBinding({ loginBody, normalizedEmail, accessBody }) {
+function resolveProductAccessPath(productId) {
+  const product = text(productId) || "product:uni-co";
+  const path = ACCESS_PATHS_BY_PRODUCT[product];
+  if (!path) {
+    throw upstreamError("preview_identity_product_not_supported", 403);
+  }
+  return Object.freeze({ productId: product, path });
+}
+
+function normalizeAccessBinding({ loginBody, normalizedEmail, accessBody, productId }) {
+  const expectedProductId = text(productId) || "product:uni-co";
   const principalId = text(accessBody.principalId);
   const tenantId = text(accessBody.binding?.tenantId);
   const workspaceId = text(accessBody.binding?.workspaceId);
   const accessGrantId = text(accessBody.binding?.accessGrantId);
-  const productId = text(accessBody.binding?.productId);
+  const resolvedProductId = text(accessBody.binding?.productId);
 
   if (
     !principalId ||
     !tenantId ||
     !workspaceId ||
     !accessGrantId ||
-    productId !== "product:uni-co"
+    resolvedProductId !== expectedProductId
   ) {
     throw upstreamError("preview_identity_binding_invalid", 403);
   }
@@ -47,17 +61,18 @@ function normalizeAccessBinding({ loginBody, normalizedEmail, accessBody }) {
     expectedBinding: Object.freeze({
       workspaceId,
       accessGrantId,
-      productId,
+      productId: resolvedProductId,
     }),
   });
 }
 
-function normalizeProvisionedBinding({ loginBody, normalizedEmail, provisionBody }) {
+function normalizeProvisionedBinding({ loginBody, normalizedEmail, provisionBody, productId }) {
+  const expectedProductId = text(productId) || "product:uni-co";
   const principalId = text(provisionBody.principalId);
   const tenantId = text(provisionBody.tenantId);
   const workspaceId = text(provisionBody.workspaceId);
   const accessGrantId = text(provisionBody.accessGrantId);
-  const productId = text(provisionBody.productId);
+  const resolvedProductId = text(provisionBody.productId);
 
   if (
     provisionBody?.ok !== true ||
@@ -66,7 +81,7 @@ function normalizeProvisionedBinding({ loginBody, normalizedEmail, provisionBody
     !tenantId ||
     !workspaceId ||
     !accessGrantId ||
-    productId !== "product:uni-co"
+    resolvedProductId !== expectedProductId
   ) {
     throw upstreamError("preview_assisted_provisioning_invalid", 503);
   }
@@ -79,7 +94,7 @@ function normalizeProvisionedBinding({ loginBody, normalizedEmail, provisionBody
     expectedBinding: Object.freeze({
       workspaceId,
       accessGrantId,
-      productId,
+      productId: resolvedProductId,
     }),
   });
 }
@@ -129,8 +144,9 @@ export function createUniCoPreviewBackendIdentityVerifier({
     }
   }
 
-  async function requestAccess(sessionToken) {
-    const accessResponse = await request(ACCESS_PATH, {
+  async function requestAccess(sessionToken, productId) {
+    const accessPath = resolveProductAccessPath(productId);
+    const accessResponse = await request(accessPath.path, {
       method: "GET",
       headers: {
         accept: "application/json",
@@ -138,7 +154,7 @@ export function createUniCoPreviewBackendIdentityVerifier({
       },
     });
     const accessBody = await readJson(accessResponse);
-    return Object.freeze({ response: accessResponse, body: accessBody });
+    return Object.freeze({ response: accessResponse, body: accessBody, productId: accessPath.productId });
   }
 
   async function logout(sessionToken) {
@@ -157,9 +173,10 @@ export function createUniCoPreviewBackendIdentityVerifier({
     }
   }
 
-  return async function verifyCredentials({ email, password } = {}) {
+  async function verifyCredentials({ email, password, productId } = {}) {
     const normalizedEmail = text(email).toLowerCase();
     const suppliedPassword = String(password ?? "");
+    const requestedProduct = resolveProductAccessPath(productId).productId;
     if (!normalizedEmail || !suppliedPassword) {
       throw upstreamError("invalid_credentials", 401);
     }
@@ -193,7 +210,7 @@ export function createUniCoPreviewBackendIdentityVerifier({
     }
 
     try {
-      let { response: accessResponse, body: accessBody } = await requestAccess(sessionToken);
+      let { response: accessResponse, body: accessBody } = await requestAccess(sessionToken, requestedProduct);
 
       if (!accessResponse.ok || accessBody?.allowed !== true || !accessBody?.binding) {
         const code = text(accessBody?.error) || "access_grant_not_found";
@@ -203,16 +220,17 @@ export function createUniCoPreviewBackendIdentityVerifier({
         ) {
           const provisionBody = await provisionAccess({
             email: normalizedEmail,
+            productId: requestedProduct,
             loginBody,
             sessionToken,
             accessStatus: accessResponse.status,
             accessError: code,
           });
           if (provisionBody) {
-            return normalizeProvisionedBinding({ loginBody, normalizedEmail, provisionBody });
+            return normalizeProvisionedBinding({ loginBody, normalizedEmail, provisionBody, productId: requestedProduct });
           }
 
-          ({ response: accessResponse, body: accessBody } = await requestAccess(sessionToken));
+          ({ response: accessResponse, body: accessBody } = await requestAccess(sessionToken, requestedProduct));
         }
       }
 
@@ -221,9 +239,12 @@ export function createUniCoPreviewBackendIdentityVerifier({
         throw upstreamError(code, accessResponse.status >= 400 ? accessResponse.status : 403);
       }
 
-      return normalizeAccessBinding({ loginBody, normalizedEmail, accessBody });
+      return normalizeAccessBinding({ loginBody, normalizedEmail, accessBody, productId: requestedProduct });
     } finally {
       await logout(sessionToken);
     }
-  };
+  }
+
+  verifyCredentials.productScoped = true;
+  return verifyCredentials;
 }
