@@ -79,7 +79,7 @@ function resolveSurfaceHost(headers) {
 
 function resolveOrigin(headers) {
   const origin = readHeader(headers, "origin") ?? readHeader(headers, "Origin");
-  return String(origin ?? "").trim().toLowerCase().replace(/\\/+$/, "");
+  return String(origin ?? "").trim().toLowerCase().replace(/\/+$/, "");
 }
 
 function corsHeaders(headers) {
@@ -126,7 +126,7 @@ function parseJsonBody(body) {
 }
 
 function safeError(error) {
-  const code = String(error?.message ?? "preview_login_failed");
+  code = String(error?.message ?? "preview_login_failed");
 
   if (code === "preview_identity_verification_failed") {
     return { status: 401, code: "invalid_credentials" };
