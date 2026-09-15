@@ -23,12 +23,10 @@ function requireText(value, name) {
   if (!normalized) throw new TypeError(`${name} is required`);
   return normalized;
 }
-
 function optionalText(value) {
   const normalized = String(value ?? "").trim();
   return normalized || undefined;
 }
-
 function hasGitHubRuntimeConfiguration(env) {
   return Boolean(
     optionalText(env.OPERATOR_GITHUB_ORGANIZATION) &&
@@ -52,7 +50,6 @@ export function resolveOperationalRuntimeConfig({
     requireText(env.API_GATEWAY_STATE_FILE, "API_GATEWAY_STATE_FILE"),
   );
   const adminKey = optionalText(env.API_GATEWAY_ADMIN_KEY);
-
   return Object.freeze({
     host: optionalText(env.HOST) ?? "127.0.0.1",
     port: parsePort(env.PORT),
@@ -165,12 +162,20 @@ export function createOperationalRuntime({
   let previewLoginDescriptor;
   let previewAccountHandoffDescriptor;
   let previewAccountAccessContextDescriptor;
-
   if (identityBackendBaseUrl) {
     const previewLogin = previewLoginCompositionFactory({
       app: baseGateway.app,
       store: baseGateway.store,
       identityBackendBaseUrl,
+      assistedProvisioningTenantSlug:
+        optionalText(env.UNI_CO_PREVIEW_ASSISTED_PROVISIONING_TENANT_SLUG) ??
+        "apidevelopers-digital",
+      assistedProvisioningWorkspaceSlug:
+        optionalText(env.UNI_CO_PREVIEW_ASSISTED_PROVISIONING_WORKSPACE_SLUG) ??
+        "uni-co-preview",
+      assistedProvisioningDisplayName:
+        optionalText(env.UNI_CO_PREVIEW_ASSISTED_PROVISIONING_DISPLAY_NAME) ??
+        "API Developers.digital Preview",
     });
     if (
       previewLogin?.enabled !== true ||
@@ -196,7 +201,6 @@ export function createOperationalRuntime({
       ...baseGateway,
       app: previewAccountHandoff?.app ?? previewLogin.app,
     });
-
     const previewAccountAccessContext =
       previewAccountAccessContextRuntimeCompositionFactory({
         app: gatewayBeforeTransforms.app,
@@ -218,7 +222,6 @@ export function createOperationalRuntime({
       app:
         previewAccountAccessContext?.app ?? gatewayBeforeTransforms.app,
     });
-
     previewLoginDescriptor = previewLogin.descriptor;
     previewAccountHandoffDescriptor = previewAccountHandoff?.descriptor;
     previewAccountAccessContextDescriptor =
@@ -234,7 +237,6 @@ export function createOperationalRuntime({
   if (typeof gateway?.app?.handleRequest !== "function") {
     throw new TypeError("operational gateway app is unavailable");
   }
-
   return Object.freeze({
     mode: "operational",
     host: config.host,
