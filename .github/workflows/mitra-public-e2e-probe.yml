@@ -1,4 +1,4 @@
-name: UniJuri Access Inventory Diagnostic
+name: UniJuri Delegated Access Production Diagnostic
 
 on:
   workflow_dispatch:
@@ -12,33 +12,29 @@ jobs:
     timeout-minutes: 3
     env:
       API_GATEWAY_ADMIN_KEY: ${{ secrets.API_GATEWAY_ADMIN_KEY }}
+      UNIJURI_DELEGATED_ACCESS_API_KEY: ${{ secrets.UNIJURI_DELEGATED_ACCES_API_KEY }}
     steps:
       - uses: actions/setup-node@v4
         with:
           node-version: "22"
-      - name: Read only UniJuri access inventory
+      - name: Validate live UniJuri delegated access without exposing identity
         run: |
           node --input-type=module <<'NODE'
-          const r = await fetch("https://gateway.apidevelopers.digital/v1/saas/uni-juri/access/inventory",{
-            method: "GET",
-            headers: {"x-api-key": process.env.API_GATEWAY_ADMIN_KEY, accept: "application/json"}
-          });
-          const b = await r.json();
-          const grant = b.accessGrants?.[0] ?? null;
-          const principal = b.principals?.[0] ?? null;
-          const summary = {
-            status: r.status,
-            accessGrants: b.accessGrants?.length ?? 0,
-            principals: b.principals?.length ?? 0,
-            grantStatus: grant?.status ?? null,
-            principalStatus: principal?.status ?? null,
-            grantPrincipalMatchesFederatedPrincipal: Boolean(grant?.principalId && principal?.principalId) && grant.principalId === principal.principalId,
-            federatedProvider: principal?.provider ?? null,
-            federatedSubjectType: principal?.subjectType ?? null,
-            productionChanged: b.productionChanged ?? false,
-            secretsExposed: b.secretsExposed ?? false
-          };
-          const ok = r.status === 200 && b.ok === true && summary.productionChanged === false && summary.secretsExposed === false;
-          console.log(`::${ok ? "notice" : "error"} title=UNIJURI_IDENTITY_BINDING_${ok ? "OK" : "FAILED"}::${Object.entries(summary).map(([k,v])=>`${k}=${v}`).join(" ")}`);
+          const adminKey = process.env.API_GATEWAY_ADMIN_KEY ?? "";
+          const delegatedKey = process.env.UNIJURI_DELEGATED_ACCESS_API_KEY ?? "";
+          if (!adminKey) { console.log("::error title=UNIJURI_DELEGATED_ACCESS_DIAG_FAILED::reason=admin_key_unavailable"); process.exit(1); }
+          if (!delegatedKey) { console.log("::error title=UNIJURI_DELEGATED_ACCESS_DIAG_FAILED::reason=delegated_key_unavailable"); process.exit(1); }
+
+          const ir = await fetch("https://gateway.apidevelopers.digital/v1/saas/uni-juri/access/inventory",{headers:{"x-api-key":adminKey,accept:"application/json"}});
+          const inv = await ir.json();
+          const p = inv?.principals?.[0] ?? null;
+          const subjectRef = String(p?.externalSubjectHash ?? "").trim().toLowerCase();
+          const inventoryOk = ir.status===200 && inv?.ok===true && /^[a-f0-9]{64}$/.test(subjectRef) && p?.provider==="unico" && p?.subjectType==="unico_subject_ref";
+          if (!inventoryOk) { console.log(`::error title=UNIJURI_DELEGATED_ACCESS_DIAG_FAILED::stage=inventory status=${ir.status} provider=${p?.provider ?? "none"} subjectType=${p?.subjectType ?? "none"}`); process.exit(1); }
+
+          const r = await fetch("https://gateway.apidevelopers.digital/v1/saas/access/delegated?productId=uni-juri",{headers:{"x-api-key":delegatedKey,"x-delegated-subject-ref":subjectRef,accept:"application/json"}});
+          const b = await r.json().catch(()=>({}));
+          const ok = r.status===200 && b?.allowed===true && b?.binding?.productId==="uni-juri";
+          console.log(`${ok ? "::notice" : "::error"} title=UNIJURI_DELEGATED_ACCESS_${ok ? "OK" : "FAILED"}::status=${r.status} allowed=${b?.allowed===true} reason=${b?.reason ?? "none"} productMatch=${b?.binding?.productId==="uni-juri"} identityExposed=false secretsExposed=false productionChanged=false`);
           process.exit(ok ? 0 : 1);
           NODE
