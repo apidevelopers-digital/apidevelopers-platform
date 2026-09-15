@@ -9,7 +9,6 @@ const ACCESS_PATHS_BY_PRODUCT = Object.freeze({
 function text(value) {
   return String(value ?? "").trim();
 }
-
 async function readJson(response) {
   const raw = await response.text();
   if (!raw) return {};
@@ -24,7 +23,6 @@ function upstreamError(code, status = 503) {
   error.status = status;
   return error;
 }
-
 function resolveProductAccessPath(productId) {
   const product = text(productId) || "product:uni-co";
   const path = ACCESS_PATHS_BY_PRODUCT[product];
@@ -75,21 +73,22 @@ const SAFE_ASSISTED_PROVISIONING_ERRORS = new Set([
   "uni_co_customer_membership_failed",
   "uni_co_customer_account_not_ready",
 ]);
-
 function assistedProvisioningErrorFromBody(provisionBody) {
   const code = text(provisionBody?.reason || provisionBody?.error || provisionBody?.diagnosticStage);
   return SAFE_ASSISTED_PROVISIONING_ERRORS.has(code)
     ? code
     : "preview_assisted_provisioning_invalid";
 }
-
 function normalizeProvisionedBinding({ loginBody, normalizedEmail, provisionBody, productId }) {
   const expectedProductId = text(productId) || "product:uni-co";
-  const principalId = text(provisionBody.principalId);
-  const tenantId = text(provisionBody.tenantId);
-  const workspaceId = text(provisionBody.workspaceId);
-  const accessGrantId = text(provisionBody.accessGrantId);
-  const resolvedProductId = text(provisionBody.productId);
+  const binding = provisionBody?.expectedBinding && typeof provisionBody.expectedBinding === "object"
+    ? provisionBody.expectedBinding
+    : provisionBody;
+  const principalId = text(provisionBody?.principalId);
+  const tenantId = text(provisionBody?.tenantId);
+  const workspaceId = text(binding?.workspaceId);
+  const accessGrantId = text(binding?.accessGrantId);
+  const resolvedProductId = text(binding?.productId);
   if (
     provisionBody?.ok !== true ||
     provisionBody?.provisioned !== true ||
@@ -210,7 +209,6 @@ export function createUniCoPreviewBackendIdentityVerifier({
     if (!loginResponse.ok) {
       throw upstreamError("preview_identity_backend_unavailable", 503);
     }
-
     const sessionToken = text(loginBody.sessionToken);
     if (!sessionToken) {
       throw upstreamError("preview_identity_session_missing", 503);
@@ -237,7 +235,6 @@ export function createUniCoPreviewBackendIdentityVerifier({
           ({ response: accessResponse, body: accessBody } = await requestAccess(sessionToken, requestedProduct));
         }
       }
-
       if (!accessResponse.ok || accessBody?.allowed !== true || !accessBody?.binding) {
         const code = text(accessBody?.error) || "access_grant_not_found";
         throw upstreamError(code, accessResponse.status >= 400 ? accessResponse.status : 403);
