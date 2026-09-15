@@ -37,6 +37,19 @@ export const defaultPreviewLoginSurfaces = Object.freeze([
   }),
 ]);
 
+const SAFE_PROVISIONING_REASONS = new Set([
+  "uni_co_provisioning_not_complete",
+  "uni_co_product_mismatch",
+  "uni_co_tenantId_required",
+  "uni_co_workspaceId_required",
+  "uni_co_principalId_required",
+  "uni_co_accessGrantId_required",
+  "uni_co_customer_tenant_not_active",
+  "uni_co_customer_workspace_not_active",
+  "uni_co_customer_access_grant_not_resolved",
+  "uni_co_customer_account_not_ready",
+]);
+
 function primarySurface(loginSurfaces) {
   return Array.isArray(loginSurfaces) && loginSurfaces.length > 0
     ? loginSurfaces[0]
@@ -79,6 +92,15 @@ function createPreviewProvisioningActor() {
   });
 }
 
+function assistedProvisioningError(reason, status = 503) {
+  const code = SAFE_PROVISIONING_REASONS.has(text(reason))
+    ? text(reason)
+    : "preview_assisted_provisioning_invalid";
+  const error = new Error(code);
+  error.status = [400, 401, 403, 409, 422, 503].includes(status) ? status : 503;
+  return error;
+}
+
 function normalizeProvisionedAccess({ loginBody, normalizedEmail, body, expectedProductId }) {
   const principalId = text(body.principalId);
   const tenantId = text(body.tenantId);
@@ -97,7 +119,7 @@ function normalizeProvisionedAccess({ loginBody, normalizedEmail, body, expected
     !accessGrantId ||
     productId !== requestedProductId
   ) {
-    return null;
+    throw assistedProvisioningError(body?.reason);
   }
 
   return Object.freeze({
@@ -113,7 +135,7 @@ function normalizeProvisionedAccess({ loginBody, normalizedEmail, body, expected
   });
 }
 
-function createAssistedProvisionAccess({
+function createAssistedProvisioningAccess({
   saasRuntime,
   saasAccess,
   membershipRuntime,
@@ -166,11 +188,17 @@ function createAssistedProvisionAccess({
     });
 
     const body = readJsonBody(response);
+
     if (response.status < 200 || response.status >= 300) {
-      return null;
+      throw assistedProvisioningError(body?.reason, response.status);
     }
 
-    return normalizeProvisionedAccess({ loginBody, normalizedEmail, body, expectedProductId: requestedProductId });
+    return normalizeProvisionedAccess({
+      loginBody,
+      normalizedEmail,
+      body,
+      expectedProductId: requestedProductId,
+    });
   };
 }
 
@@ -244,17 +272,17 @@ export function createUniCoPreviewLoginComposition({
     ...(clock ? { clock: () => clock().toISOString() } : {}),
   });
 
-  const assistedProvisionAccess = assistedProvisioning === true
-    ? createAssistedProvisionAccess({
-      saasRuntime,
-      saasAccess,
-      membershipRuntime,
-      federatedPrincipal,
-      clock,
-      tenantSlug: assistedProvisioningTenantSlug,
-      workspaceSlug: assistedProvisioningWorkspaceSlug,
-      displayName: assistedProvisioningDisplayName,
-    })
+  const assistedProvisionIngAccess = assistedProvisioning === true
+    ? createAssistedProvisioningAccess({
+        saasRuntime,
+        saasAccess,
+        membershipRuntime,
+        federatedPrincipal,
+        clock,
+        tenantSlug: assistedProvisioningTenantSlug,
+        workspaceSlug: assistedProvisioningWorkspaceSlug,
+        displayName: assistedProvisioningDisplayName,
+      })
     : undefined;
 
   if (typeof effectiveVerifier !== "function" && identityBackendConfigured) {
@@ -262,7 +290,7 @@ export function createUniCoPreviewLoginComposition({
       baseUrl: identityBackendBaseUrl,
       ...(identityFetchImpl ? { fetchImpl: identityFetchImpl } : {}),
       ...(identityTimeoutMs ? { timeoutMs: identityTimeoutMs } : {}),
-      ...(assistedProvisionAccess ? { provisionAccess: assistedProvisionAccess } : {}),
+      ...(assistedProvisioningAccess ? { provisionAccess: assistedProvisioningAccess } : {}),
     });
   }
 
@@ -326,6 +354,7 @@ export function createUniCoPreviewLoginComposition({
       customerMembershipProvisioning: assistedProvisioning === true,
       provisionedBindingReuse: true,
       productScopedAssistedProvisioning: true,
+      provisioningReasonPassthrough: true,
       rawSessionSecretPersisted: false,
       transientOperatorSessionReturnedToBrowser: false,
     }),
