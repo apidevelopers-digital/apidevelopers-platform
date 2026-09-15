@@ -79,6 +79,39 @@ function createPreviewProvisioningActor() {
   });
 }
 
+function normalizeProvisionedAccess({ loginBody, normalizedEmail, body }) {
+  const principalId = text(body.principalId);
+  const tenantId = text(body.tenantId);
+  const workspaceId = text(body.workspaceId);
+  const accessGrantId = text(body.accessGrantId);
+  const productId = text(body.productId);
+
+  if (
+    body?.ok !== true ||
+    body?.provisioned !== true ||
+    body?.accountReady !== true ||
+    !principalId ||
+    !tenantId ||
+    !workspaceId ||
+    !accessGrantId ||
+    productId !== "product:uni-co"
+  ) {
+    return null;
+  }
+
+  return Object.freeze({
+    principalId,
+    tenantId,
+    name: text(loginBody?.operator?.email) || normalizedEmail,
+    email: text(loginBody?.operator?.email).toLowerCase() || normalizedEmail,
+    expectedBinding: Object.freeze({
+      workspaceId,
+      accessGrantId,
+      productId,
+    }),
+  });
+}
+
 function createAssistedProvisionAccess({
   saasRuntime,
   saasAccess,
@@ -130,22 +163,33 @@ function createAssistedProvisionAccess({
     });
 
     const body = readJsonBody(response);
-    if (
-      response.status < 200 ||
-      response.status >= 300 ||
-      body?.ok !== true ||
-      body?.provisioned !== true ||
-      body?.accountReady !== true
-    ) {
+    if (response.status < 200 || response.status >= 300) {
       return null;
     }
 
-    return Object.freeze({
-      ...body,
-      name: text(loginBody?.operator?.email) || normalizedEmail,
-      email: text(loginBody?.operator?.email).toLowerCase() || normalizedEmail,
-    });
+    return normalizeProvisionedAccess({ loginBody, normalizedEmail, body });
   };
+}
+
+function bindingFromVerifiedIdentity({ identity, productId }) {
+  const binding = identity?.expectedBinding;
+  if (!binding || typeof binding !== "object") return null;
+  if (text(binding.productId) !== productId) return null;
+
+  const principalId = text(identity.principalId);
+  const tenantId = text(identity.tenantId);
+  const workspaceId = text(binding.workspaceId);
+  const accessGrantId = text(binding.accessGrantId);
+
+  if (!principalId || !tenantId || !workspaceId || !accessGrantId) return null;
+
+  return Object.freeze({
+    principalId,
+    tenantId,
+    workspaceId,
+    accessGrantId,
+    productId,
+  });
 }
 
 export function createUniCoPreviewLoginComposition({
@@ -231,11 +275,20 @@ export function createUniCoPreviewLoginComposition({
     });
   }
 
-  const allowedProductIds = loginSurfaces.map((surface) => surface.productId);
-  const resolveAccess = createUniCoPreviewSaasAccessResolver({
+  const baseResolveAccess = createUniCoPreviewSaasAccessResolver({
     accessRuntime: saasAccess,
-    allowedProductIds,
+    allowedProductIds: loginSurfaces.map((surface) => surface.productId),
   });
+
+  const resolveAccess = async (input = {}) => {
+    const fromIdentity = bindingFromVerifiedIdentity({
+      identity: input.identity,
+      productId: text(input.productId),
+    });
+    if (fromIdentity) return fromIdentity;
+    return baseResolveAccess(input);
+  };
+
   const bootstrap = createUniCoPreviewBrowserSessionBootstrap({
     store,
     verifyCredentials: effectiveVerifier,
@@ -268,6 +321,7 @@ export function createUniCoPreviewLoginComposition({
         typeof identityBackendBaseUrl === "string" && identityBackendBaseUrl.trim().length > 0,
       automaticProvisioning: assistedProvisioning === true,
       customerMembershipProvisioning: assistedProvisioning === true,
+      provisionedBindingReuse: true,
       rawSessionSecretPersisted: false,
       transientOperatorSessionReturnedToBrowser: false,
     }),
