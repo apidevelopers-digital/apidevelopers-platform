@@ -8,7 +8,7 @@ import { createJsonFileStore } from "../../persistence-core/src/index.mjs";
 import { createCanonicalId } from "../../contracts/src/canonical-ids.mjs";
 import { createTenantId, createWorkspaceId } from "../../contracts/src/saas-tenancy.mjs";
 import { createChannelBindingId } from "../../contracts/src/saas-channel-binding.mjs";
-import { createSaasRuntime } from "../src/index.mjs";
+import { createSaasRuntime, createZuniChannelBindingRuntime } from "../src/index.mjs";
 
 const T0 = "2026-09-15T01:30:00.000Z";
 
@@ -19,7 +19,9 @@ async function withRuntime(work) {
     fsync: false,
     clock: () => T0,
   });
-  const runtime = createSaasRuntime({ store, clock: () => T0 });
+  const saasRuntime = createSaasRuntime({ store, clock: () => T0 });
+  const channelRuntime = createZuniChannelBindingRuntime({ store, saasRuntime });
+  const runtime = Object.freeze({ ...saasRuntime, ...channelRuntime });
   try {
     return await work({ runtime, store });
   } finally {
@@ -100,8 +102,9 @@ test("persists only an opaque credential reference for a Zuni WhatsApp channel",
     assert.equal(created.credentialRef, "credential://zuni/acme/principal/phone-123");
     assert.equal("accessToken" in created, false);
 
-    const reopened = createSaasRuntime({ store, clock: () => T0 });
-    const persisted = await reopened.getChannelBinding({
+    const reopenedSaas = createSaasRuntime({ store, clock: () => T0 });
+    const reopenedChannel = createZuniChannelBindingRuntime({ store, saasRuntime: reopenedSaas });
+    const persisted = await reopenedChannel.getChannelBinding({
       bindingId: acme.bindingId,
       tenantId: acme.tenantId,
       workspaceId: acme.workspaceId,
