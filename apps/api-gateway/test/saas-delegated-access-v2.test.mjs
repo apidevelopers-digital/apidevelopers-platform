@@ -23,12 +23,14 @@ test("delegated SaaS v2 derives subject scopes from AccessGrant and exposes opaq
       authenticate: async () => actor(["saas:access:delegate"]),
     },
     federatedPrincipal: {
-      resolveFederatedPrincipal: async (input) =>
-        Object.freeze({
+      resolveFederatedPrincipal: async (input) => {
+        observed.federatedIdentity = input;
+        return Object.freeze({
           principalId: "component.principal.0123456789abcdef0123456789abcdef",
           tenantId: input.tenantId,
           status: "active",
-        }),
+        });
+      },
     },
     saasAccess: {
       resolveActiveGrant: async (input) =>
@@ -63,6 +65,9 @@ test("delegated SaaS v2 derives subject scopes from AccessGrant and exposes opaq
   });
 
   assert.equal(response.status, 200);
+  assert.equal(observed.federatedIdentity.provider, "unico");
+  assert.equal(observed.federatedIdentity.subjectType, "unico_subject_ref");
+  assert.equal(observed.federatedIdentity.externalSubject, SUBJECT_REF);
   assert.deepEqual(observed.identity.principal.scopes, ["zuni:read", "zuni:reply"]);
   assert.equal(observed.identity.principal.scopes.includes("zuni:admin"), false);
 

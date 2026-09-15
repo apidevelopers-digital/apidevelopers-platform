@@ -23,7 +23,7 @@ export function createDelegatedSaasAccessApp({
   saasAccess,
   federatedPrincipal,
   bindingSigner,
-  provider = "unico-operator-session",
+  provider = "unico",
 } = {}) {
   if (typeof authenticator?.authenticate !== "function") {
     throw new TypeError("authenticator.authenticate must be a function");
@@ -95,7 +95,7 @@ export function createDelegatedSaasAccessApp({
         tenantId,
         provider,
         externalSubject: subjectRef,
-        subjectType: "delegated_subject_ref",
+        subjectType: "unico_subject_ref",
       });
 
       const binding = await saasAccess.resolveActiveGrant({
