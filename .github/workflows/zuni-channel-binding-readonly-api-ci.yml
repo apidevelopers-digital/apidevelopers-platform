@@ -1,0 +1,50 @@
+name: Zuni Channel Binding Readonly API CI
+
+on:
+  push:
+    paths:
+      - "apps/api-gateway/src/zuni-channel-binding-readonly-composition.mjs"
+      - "apps/api-gateway/test/zuni-channel-binding-readonly-composition.test.mjs"
+      - ".github/workflows/zuni-channel-binding-readonly-api-ci.yml"
+  pull_request:
+    paths:
+      - "apps/api-gateway/src/zuni-channel-binding-readonly-composition.mjs"
+      - "apps/api-gateway/test/zuni-channel-binding-readonly-composition.test.mjs"
+      - ".github/workflows/zuni-channel-binding-readonly-api-ci.yml"
+
+permissions:
+  contents: read
+
+jobs:
+  validate:
+    runs-on:
+      - self-hosted
+      - macOS
+      - X64
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          persist-credentials: false
+
+      - name: Link local workspace dependencies
+        run: node apps/api-gateway/scripts/link-local-dependencies.mjs
+
+      - name: Validate syntax
+        run: |
+          set -euo pipefail
+          node --check apps/api-gateway/src/zuni-channel-binding-readonly-composition.mjs
+          node --check apps/api-gateway/test/zuni-channel-binding-readonly-composition.test.mjs
+
+      - name: Validate readonly channel binding contract
+        run: |
+          set -euo pipefail
+          node --test apps/api-gateway/test/zuni-channel-binding-readonly-composition.test.mjs
+
+      - name: Guard readonly and secret boundaries
+        run: |
+          set -euo pipefail
+          grep -Fq 'writesEnabled: false' apps/api-gateway/src/zuni-channel-binding-readonly-composition.mjs
+          grep -Fq 'secretsReturned: false' apps/api-gateway/src/zuni-channel-binding-readonly-composition.mjs
+          grep -Fq 'status: "active"' apps/api-gateway/src/zuni-channel-binding-readonly-composition.mjs
+          grep -Fq 'credentialRefsReturned: true' apps/api-gateway/src/zuni-channel-binding-readonly-composition.mjs
