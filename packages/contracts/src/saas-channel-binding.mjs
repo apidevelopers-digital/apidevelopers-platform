@@ -99,7 +99,7 @@ export function createSaasChannelBinding(input = {}) {
     throw new TypeError("channel binding channelType must be whatsapp_business");
   }
   if (!STATUSES.has(status)) {
-    throw new TypeError "channel binding status is invalid");
+    throw new TypeError("channel binding status is invalid");
   }
   if (normalizedCredentialRef.length > 512) {
     throw new TypeError("credentialRef must be 512 characters or fewer");
