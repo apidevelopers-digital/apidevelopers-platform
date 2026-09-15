@@ -2,6 +2,17 @@ import React, { useMemo, useState } from "react";
 import { createMitraAuthClient } from "./auth-client.js";
 import "./auth.css";
 
+function formatSafeError(err) {
+  const message = String(err?.message || "Não foi possível autenticar.").trim();
+  const code = String(err?.code || "").trim();
+  const status = Number.isInteger(err?.status) && err.status > 0 ? err.status : null;
+  const details = [
+    code ? `código: ${code}` : "",
+    status ? `status: ${status}` : "",
+  ].filter(Boolean).join(" · ");
+  return details ? `${message} (${details})` : message;
+}
+
 export default function MitraAuthGate({ children }) {
   const baseUrl = String(
     import.meta.env.VITE_MITRA_AUTH_BASE_URL ||
@@ -38,7 +49,7 @@ export default function MitraAuthGate({ children }) {
     } catch (err) {
       setSession(null);
       setStatus("error");
-      setError(err?.message || "Não foi possível autenticar.");
+      setError(formatSafeError(err));
     }
   }
 
