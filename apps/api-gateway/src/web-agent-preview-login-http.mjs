@@ -23,6 +23,7 @@ const SAFE_LOGIN_ERROR_CODES = Object.freeze(new Set([
   "preview_identity_binding_invalid",
   "preview_identity_product_not_supported",
   "preview_assisted_provisioning_invalid",
+  "preview_assisted_provisioning_response_unclassified",
   "access_grant_not_found",
   "access_grant_ambiguous",
   "access_not_found",
@@ -162,6 +163,7 @@ function safeError(error) {
         ].includes(code)
           ? 403
           : [
+            "preview_assisted_provisioning_response_unclassified",
             "uni_co_provisioning_not_complete",
             "uni_co_product_mismatch",
             "uni_co_tenantId_required",
