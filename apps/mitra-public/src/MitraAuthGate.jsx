@@ -114,7 +114,7 @@ export default function MitraAuthGate({ children }) {
 
   async function handleCopyDiagnostic() {
     try {
-      copied = await copyDiagnostic(diagnostic);
+      const copied = await copyDiagnostic(diagnostic);
       setCopyStatus(copied ? "Diagnóstico copiado." : "Copie manualmente o JSON abaixo.");
     } catch {
       setCopyStatus("Copie manualmente o JSON abaixo.");
