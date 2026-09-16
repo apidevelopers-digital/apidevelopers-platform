@@ -11,7 +11,7 @@ function sanitizeErrorDetails(value) {
   if (!value || typeof value !== "object" || Array.isArray(value)) return null;
   const allowed = {};
   for (const [key, raw] of Object.entries(value)) {
-    if (!/^(diagnosticStage|provisioning[A-Z][A-Za-z0-9]*|accountReady|productIdPresent|tenantIdPresent|workspaceIdPresent|principalIdPresent|accessGrantIdPresent|reasonPresent|diagnosticStagePresent|secretsExposed)$/.test(key)) {
+    if (!/^(diagnosticStage|provisioning[A-Z][A-Za-z0-9]*|accountReady|productIdPresent|tenantIdPresent|workspaceIdPresent|principalIdPresent|accessGrantIdPresent|reasonPresent|reasonMapped|reasonSafePattern|diagnosticStagePresent|secretsExposed)$/.test(key)) {
       continue;
     }
     if (typeof raw === "boolean") allowed[key] = raw;
@@ -51,9 +51,11 @@ function resolveSurfaceHost(hostname) {
 }
 
 function safeLoginFailureDetails(data) {
+  const diagnostic = sanitizeErrorDetails(data?.diagnostic) || {};
+  const topLevelStage = String(data?.diagnosticStage || "").trim();
   return sanitizeErrorDetails({
-    ...(sanitizeErrorDetails(data?.diagnostic) || {}),
-    diagnosticStage: data?.diagnosticStage,
+    ...diagnostic,
+    ...(topLevelStage ? { diagnosticStage: topLevelStage } : {}),
     secretsExposed: data?.secretsExposed,
   });
 }
