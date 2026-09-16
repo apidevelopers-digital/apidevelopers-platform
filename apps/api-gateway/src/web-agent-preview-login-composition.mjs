@@ -80,12 +80,34 @@ function createPreviewProvisioningActor() {
   });
 }
 
-function assistedProvisioningError(reason, status = 503) {
+function assistedProvisioningError(reason, status = 503, diagnostic = null) {
   const safeReason = text(reason);
   const code = SAFE_PROVISIONING_REASONS.has(safeReason) ? safeReason : UNCLASSIFIED;
   const error = new Error(code);
   error.status = [400, 401, 403, 409, 422, 503].includes(status) ? status : 503;
+  if (diagnostic && typeof diagnostic === "object" && !Array.isArray(diagnostic)) {
+    error.diagnostic = Object.freeze({ ...diagnostic, diagnosticStage: code, secretsExposed: false });
+  }
   return error;
+}
+
+function provisioningDiagnosticFromBody(body, reason = UNCLASSIFIED) {
+  const objectBody = body && typeof body === "object" && !Array.isArray(body) ? body : null;
+  return Object.freeze({
+    diagnosticStage: text(reason) || UNCLASSIFIED,
+    provisioningBodyPresent: Boolean(objectBody),
+    provisioningOk: objectBody?.ok === true,
+    provisioned: objectBody?.provisioned === true,
+    accountReady: objectBody?.accountReady === true,
+    productIdPresent: Boolean(text(objectBody?.productId)),
+    tenantIdPresent: Boolean(text(objectBody?.tenantId)),
+    workspaceIdPresent: Boolean(text(objectBody?.workspaceId)),
+    principalIdPresent: Boolean(text(objectBody?.principalId)),
+    accessGrantIdPresent: Boolean(text(objectBody?.accessGrantId)),
+    reasonPresent: Boolean(text(objectBody?.reason ?? objectBody?.error)),
+    diagnosticStagePresent: Boolean(text(objectBody?.diagnosticStage)),
+    secretsExposed: false,
+  });
 }
 
 function provisioningReasonForNormalizedBody({
@@ -127,18 +149,16 @@ function normalizeProvisionedAccess({ loginBody, normalizedEmail, body, expected
     !accessGrantId ||
     productId !== requestedProductId
   ) {
-    throw assistedProvisioningError(
-      provisioningReasonForNormalizedBody({
-        body,
-        principalId,
-        tenantId,
-        workspaceId,
-        accessGrantId,
-        productId,
-        requestedProductId,
-      }),
-      409,
-    );
+    const reason = provisioningReasonForNormalizedBody({
+      body,
+      principalId,
+      tenantId,
+      workspaceId,
+      accessGrantId,
+      productId,
+      requestedProductId,
+    });
+    throw assistedProvisioningError(reason, 409, provisioningDiagnosticFromBody(body, reason));
   }
 
   return Object.freeze({
@@ -203,7 +223,8 @@ function createAssistedProvisionAccess({
     const body = readJsonBody(response);
 
     if (response.status < 200 || response.status >= 300) {
-      throw assistedProvisioningError(body?.reason ?? body?.diagnosticStage ?? UNCLASSIFIED, response.status);
+      const reason = body?.reason ?? body?.diagnosticStage ?? UNCLASSIFIED;
+      throw assistedProvisioningError(reason, response.status, provisioningDiagnosticFromBody(body, reason));
     }
 
     return normalizeProvisionedAccess({ loginBody, normalizedEmail, body, expectedProductId: requestedProductId });
