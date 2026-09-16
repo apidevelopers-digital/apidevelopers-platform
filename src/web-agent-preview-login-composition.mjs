@@ -25,6 +25,8 @@ export const defaultPreviewLoginSurfaces = Object.freeze([
 ]);
 
 const UNCLASSIFIED = "preview_assisted_provisioning_response_unclassified";
+const REASON_UNMAPPED = "preview_assisted_provisioning_reason_unmapped";
+const SAFE_REASON_PATTERN = /^[a-z][a-z0-9_]{2,96}$/;
 const SAFE_PROVISIONING_REASONS = new Set([
   "uni_co_provisioning_not_complete",
   "uni_co_product_mismatch",
@@ -38,6 +40,7 @@ const SAFE_PROVISIONING_REASONS = new Set([
   "uni_co_customer_membership_failed",
   "uni_co_customer_account_not_ready",
   UNCLASSIFIED,
+  REASON_UNMAPPED,
 ]);
 
 function primarySurface(loginSurfaces) {
@@ -91,10 +94,20 @@ function assistedProvisioningError(reason, status = 503, diagnostic = null) {
   return error;
 }
 
-function provisioningDiagnosticFromBody(body, reason = UNCLASSIFIED) {
+function provisioningReasonMetadata(body, fallbackReason = UNCLASSIFIED) {
   const objectBody = body && typeof body === "object" && !Array.isArray(body) ? body : null;
+  const rawReason = text(objectBody?.reason ?? objectBody?.error ?? objectBody?.diagnosticStage);
+  const fallback = text(fallbackReason) || UNCLASSIFIED;
+  const reasonSafePattern = Boolean(rawReason && SAFE_REASON_PATTERN.test(rawReason));
+  const reasonMapped = Boolean(rawReason && SAFE_PROVISIONING_REASONS.has(rawReason));
+  const diagnosticStage = reasonMapped ? rawReason : rawReason ? REASON_UNMAPPED : fallback;
+  return Object.freeze({ objectBody, rawReason, reasonSafePattern, reasonMapped, diagnosticStage });
+}
+
+function provisioningDiagnosticFromBody(body, reason = UNCLASSIFIED) {
+  const { objectBody, rawReason, reasonSafePattern, reasonMapped, diagnosticStage } = provisioningReasonMetadata(body, reason);
   return Object.freeze({
-    diagnosticStage: text(reason) || UNCLASSIFIED,
+    diagnosticStage,
     provisioningBodyPresent: Boolean(objectBody),
     provisioningOk: objectBody?.ok === true,
     provisioned: objectBody?.provisioned === true,
@@ -104,7 +117,9 @@ function provisioningDiagnosticFromBody(body, reason = UNCLASSIFIED) {
     workspaceIdPresent: Boolean(text(objectBody?.workspaceId)),
     principalIdPresent: Boolean(text(objectBody?.principalId)),
     accessGrantIdPresent: Boolean(text(objectBody?.accessGrantId)),
-    reasonPresent: Boolean(text(objectBody?.reason ?? objectBody?.error)),
+    reasonPresent: Boolean(rawReason),
+    reasonMapped,
+    reasonSafePattern,
     diagnosticStagePresent: Boolean(text(objectBody?.diagnosticStage)),
     secretsExposed: false,
   });
@@ -119,7 +134,7 @@ function provisioningReasonForNormalizedBody({
   productId,
   requestedProductId,
 }) {
-  const explicit = text(body?.reason ?? body?.diagnosticStage);
+  const explicit = provisioningReasonMetadata(body).diagnosticStage;
   if (SAFE_PROVISIONING_REASONS.has(explicit)) return explicit;
   if (body?.ok !== true || body?.provisioned !== true) return "uni_co_provisioning_not_complete";
   if (productId !== requestedProductId) return "uni_co_product_mismatch";
@@ -223,7 +238,7 @@ function createAssistedProvisionAccess({
     const body = readJsonBody(response);
 
     if (response.status < 200 || response.status >= 300) {
-      const reason = body?.reason ?? body?.diagnosticStage ?? UNCLASSIFIED;
+      const reason = provisioningReasonMetadata(body).diagnosticStage;
       throw assistedProvisioningError(reason, response.status, provisioningDiagnosticFromBody(body, reason));
     }
 
