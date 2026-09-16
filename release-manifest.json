@@ -3,7 +3,7 @@
   "format": "managed-node-zip",
   "service": "api-gateway",
   "version": "0.8.0",
-  "sourceRevision": "e89c329e5e369715718538cd535291df4a7194c7",
+  "sourceRevision": "5eaed20eea4af8ef86db864f0e1503238e848316",
   "runtime": {
     "node": ">=22",
     "entrypoint": "src/hostinger-entry.mjs",
@@ -1219,8 +1219,8 @@
     },
     {
       "path": "src/web-agent-preview-backend-identity.mjs",
-      "bytes": 11187,
-      "sha256": "769887a4a7af09d2e7174f74ca1a8e8451ed06583d64dac39c2f972ffad070e3"
+      "bytes": 11556,
+      "sha256": "1991b562b84aee94f7d7f98d36f937dcea4b2edbe3f12630181310116d47f91b"
     },
     {
       "path": "src/web-agent-preview-login-composition.mjs",
