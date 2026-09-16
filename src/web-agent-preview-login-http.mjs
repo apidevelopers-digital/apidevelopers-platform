@@ -14,28 +14,8 @@ const ALLOWED_LOGIN_ORIGINS = Object.freeze(new Set([
   "https://unico-preview.apidevelopers.digital",
 ]));
 
-const SAFE_LOGIN_ERROR_CODES = Object.freeze(new Set([
-  "invalid_credentials",
-  "too_many_login_attempts",
-  "preview_identity_verification_failed",
-  "preview_identity_backend_unavailable",
-  "preview_identity_session_missing",
-  "preview_identity_binding_invalid",
-  "preview_identity_product_not_supported",
-  "preview_assisted_provisioning_invalid",
+const CUSTOMER_PROVISIONING_CODES = Object.freeze([
   "preview_assisted_provisioning_response_unclassified",
-  "access_grant_not_found",
-  "access_grant_ambiguous",
-  "access_not_found",
-  "active_access_grant_scope_mismatch",
-  "uni_account_access_not_found",
-  "uni_account_access_unavailable",
-  "uni_co_customer_account_not_ready",
-  "preview_identity_binding_required",
-  "preview_identity_binding_mismatch",
-  "preview_product_not_allowed",
-  "preview_login_product_mismatch",
-  "preview_login_surface_not_allowed",
   "uni_co_provisioning_not_complete",
   "uni_co_product_mismatch",
   "uni_co_tenantId_required",
@@ -46,6 +26,30 @@ const SAFE_LOGIN_ERROR_CODES = Object.freeze(new Set([
   "uni_co_customer_workspace_not_active",
   "uni_co_customer_access_grant_not_resolved",
   "uni_co_customer_membership_failed",
+  "uni_co_customer_account_not_ready",
+]);
+
+const SAFE_LOGIN_ERROR_CODES = Object.freeze(new Set([
+  "invalid_credentials",
+  "too_many_login_attempts",
+  "preview_identity_verification_failed",
+  "preview_identity_backend_unavailable",
+  "preview_identity_session_missing",
+  "preview_identity_binding_invalid",
+  "preview_identity_product_not_supported",
+  "preview_assisted_provisioning_invalid",
+  "access_grant_not_found",
+  "access_grant_ambiguous",
+  "access_not_found",
+  "active_access_grant_scope_mismatch",
+  "uni_account_access_not_found",
+  "uni_account_access_unavailable",
+  "preview_identity_binding_required",
+  "preview_identity_binding_mismatch",
+  "preview_product_not_allowed",
+  "preview_login_product_mismatch",
+  "preview_login_surface_not_allowed",
+  ...CUSTOMER_PROVISIONING_CODES,
 ]));
 
 function response(status, payload, headers = {}) {
@@ -57,35 +61,22 @@ function response(status, payload, headers = {}) {
 }
 
 function emptyResponse(status, headers = {}) {
-  return Object.freeze({
-    status,
-    headers: Object.freeze({ ...headers }),
-    body: "",
-  });
+  return Object.freeze({ status, headers: Object.freeze({ ...headers }), body: "" });
 }
 
 function readHeader(headers, name) {
-  if (typeof headers?.get === "function") {
-    return headers.get(name);
-  }
+  if (typeof headers?.get === "function") return headers.get(name);
   return headers?.[name];
 }
 
 function headerText(headers, name) {
   const value = readHeader(headers, name);
-  if (Array.isArray(value)) {
-    return value.length === 1
-      ? String(value[0] ?? "").trim().toLowerCase()
-      : "";
-  }
+  if (Array.isArray(value)) return value.length === 1 ? String(value[0] ?? "").trim().toLowerCase() : "";
   return String(value ?? "").trim().toLowerCase();
 }
 
 function resolveSurfaceHost(headers) {
-  return (
-    headerText(headers, uniCoPreviewSurfaceHostHeader) ||
-    headerText(headers, "host")
-  );
+  return headerText(headers, uniCoPreviewSurfaceHostHeader) || headerText(headers, "host");
 }
 
 function resolveOrigin(headers) {
@@ -96,7 +87,6 @@ function resolveOrigin(headers) {
 function corsHeaders(headers) {
   const origin = resolveOrigin(headers);
   if (!origin || !ALLOWED_LOGIN_ORIGINS.has(origin)) return {};
-
   return {
     "access-control-allow-origin": origin,
     "access-control-allow-credentials": "true",
@@ -136,11 +126,23 @@ function parseJsonBody(body) {
   return parsed;
 }
 
+function safeDiagnostic(value) {
+  if (!value || typeof value !== "object" || Array.isArray(value)) return null;
+  const out = {};
+  for (const [key, raw] of Object.entries(value)) {
+    if (!/^(diagnosticStage|provisioning[A-Z][A-Za-z0-9]*|accountReady|productIdPresent|tenantIdPresent|workspaceIdPresent|principalIdPresent|accessGrantIdPresent|reasonPresent|diagnosticStagePresent|secretsExposed)$/.test(key)) continue;
+    if (typeof raw === "boolean") out[key] = raw;
+    else if (key === "diagnosticStage") out[key] = String(raw || "").trim();
+  }
+  return Object.keys(out).length > 0 ? Object.freeze(out) : null;
+}
+
 function safeError(error) {
   const code = String(error?.message ?? "preview_login_failed");
+  const diagnostic = safeDiagnostic(error?.diagnostic);
 
   if (code === "preview_identity_verification_failed") {
-    return { status: 401, code: "invalid_credentials" };
+    return { status: 401, code: "invalid_credentials", diagnostic };
   }
 
   if (SAFE_LOGIN_ERROR_CODES.has(code)) {
@@ -162,33 +164,20 @@ function safeError(error) {
           "preview_login_surface_not_allowed",
         ].includes(code)
           ? 403
-          : [
-            "preview_assisted_provisioning_response_unclassified",
-            "uni_co_provisioning_not_complete",
-            "uni_co_product_mismatch",
-            "uni_co_tenantId_required",
-            "uni_co_workspaceId_required",
-            "uni_co_principalId_required",
-            "uni_co_accessGrantId_required",
-            "uni_co_customer_tenant_not_active",
-            "uni_co_customer_workspace_not_active",
-            "uni_co_customer_access_grant_not_resolved",
-            "uni_co_customer_membership_failed",
-            "uni_co_customer_account_not_ready",
-          ].includes(code)
+          : CUSTOMER_PROVISIONING_CODES.includes(code)
             ? 409
             : 503;
     const status = Number.isInteger(error?.status) && error.status >= 400 && error.status < 600
       ? error.status
       : defaultStatus;
-    return { status, code };
+    return { status, code, diagnostic };
   }
 
-  if (error?.status === 400) return { status: 400, code };
-  if (error?.status === 401) return { status: 401, code: "invalid_credentials" };
-  if (error?.status === 403) return { status: 403, code };
+  if (error?.status === 400) return { status: 400, code, diagnostic };
+  if (error?.status === 401) return { status: 401, code: "invalid_credentials", diagnostic };
+  if (error?.status === 403) return { status: 403, code, diagnostic };
 
-  return { status: 503, code: "preview_login_unavailable" };
+  return { status: 503, code: "preview_login_unavailable", diagnostic };
 }
 
 function bootstrapLoginInput({ headers, payload }) {
@@ -201,34 +190,31 @@ function bootstrapLoginInput({ headers, payload }) {
   return input;
 }
 
+function failurePayload(failure) {
+  return {
+    ok: false,
+    authenticated: false,
+    error: failure.code,
+    ...(failure.diagnostic ? { diagnostic: failure.diagnostic } : {}),
+  };
+}
+
 export function createUniCoPreviewLoginHttpApp({ app, bootstrap } = {}) {
-  if (typeof app?.handleRequest !== "function") {
-    throw new TypeError("app.handleRequest is required");
-  }
+  if (typeof app?.handleRequest !== "function") throw new TypeError("app.handleRequest is required");
 
   if (typeof bootstrap?.login !== "function") {
-    return Object.freeze({
-      enabled: false,
-      app,
-    });
+    return Object.freeze({ enabled: false, app });
   }
 
   const wrapped = Object.freeze({
     async handleRequest(request = {}) {
       const method = String(request.method ?? "GET").toUpperCase();
-      const pathname = new URL(
-        String(request.url ?? "/"),
-        "http://api-gateway.local",
-      ).pathname;
+      const pathname = new URL(String(request.url ?? "/"), "http://api-gateway.local").pathname;
 
       if (pathname === uniCoPreviewLoginHttpPath && method === "OPTIONS") {
         const cors = corsHeaders(request.headers);
         if (!cors["access-control-allow-origin"]) {
-          return response(403, {
-            ok: false,
-            authenticated: false,
-            error: "preview_login_origin_not_allowed",
-          });
+          return response(403, { ok: false, authenticated: false, error: "preview_login_origin_not_allowed" });
         }
         return emptyResponse(204, cors);
       }
@@ -240,10 +226,7 @@ export function createUniCoPreviewLoginHttpApp({ app, bootstrap } = {}) {
       const cors = corsHeaders(request.headers);
       try {
         const payload = parseJsonBody(request.body);
-        const result = await bootstrap.login(bootstrapLoginInput({
-          headers: request.headers,
-          payload,
-        }));
+        const result = await bootstrap.login(bootstrapLoginInput({ headers: request.headers, payload }));
 
         return response(
           200,
@@ -260,17 +243,10 @@ export function createUniCoPreviewLoginHttpApp({ app, bootstrap } = {}) {
         );
       } catch (error) {
         const failure = safeError(error);
-        return response(failure.status, {
-          ok: false,
-          authenticated: false,
-          error: failure.code,
-        }, cors);
+        return response(failure.status, failurePayload(failure), cors);
       }
     },
   });
 
-  return Object.freeze({
-    enabled: true,
-    app: wrapped,
-  });
+  return Object.freeze({ enabled: true, app: wrapped });
 }
