@@ -71,6 +71,16 @@ function readJsonBody(response) {
   }
 }
 
+function safeObject(value) {
+  return value && typeof value === "object" && !Array.isArray(value) ? value : null;
+}
+
+function bindingBody(body) {
+  const objectBody = safeObject(body);
+  const expectedBinding = safeObject(objectBody?.expectedBinding);
+  return expectedBinding ?? objectBody;
+}
+
 function createPreviewProvisioningActor() {
   return Object.freeze({
     role: "service",
@@ -95,7 +105,7 @@ function assistedProvisioningError(reason, status = 503, diagnostic = null) {
 }
 
 function provisioningReasonMetadata(body, fallbackReason = UNCLASSIFIED) {
-  const objectBody = body && typeof body === "object" && !Array.isArray(body) ? body : null;
+  const objectBody = safeObject(body);
   const rawReason = text(objectBody?.reason ?? objectBody?.error ?? objectBody?.diagnosticStage);
   const fallback = text(fallbackReason) || UNCLASSIFIED;
   const reasonSafePattern = Boolean(rawReason && SAFE_REASON_PATTERN.test(rawReason));
@@ -105,22 +115,25 @@ function provisioningReasonMetadata(body, fallbackReason = UNCLASSIFIED) {
 }
 
 function provisioningDiagnosticFromBody(body, reason = UNCLASSIFIED) {
-  const { objectBody, rawReason, reasonSafePattern, reasonMapped, diagnosticStage } = provisioningReasonMetadata(body, reason);
+  const { objectBody, rawReason, reasonSafePattern, reasonMapped, diagnosticStage } =
+    provisioningReasonMetadata(body, reason);
+  const binding = bindingBody(body);
   return Object.freeze({
     diagnosticStage,
     provisioningBodyPresent: Boolean(objectBody),
     provisioningOk: objectBody?.ok === true,
     provisioned: objectBody?.provisioned === true,
     accountReady: objectBody?.accountReady === true,
-    productIdPresent: Boolean(text(objectBody?.productId)),
+    productIdPresent: Boolean(text(binding?.productId ?? objectBody?.productId)),
     tenantIdPresent: Boolean(text(objectBody?.tenantId)),
-    workspaceIdPresent: Boolean(text(objectBody?.workspaceId)),
+    workspaceIdPresent: Boolean(text(binding?.workspaceId ?? objectBody?.workspaceId)),
     principalIdPresent: Boolean(text(objectBody?.principalId)),
-    accessGrantIdPresent: Boolean(text(objectBody?.accessGrantId)),
+    accessGrantIdPresent: Boolean(text(binding?.accessGrantId ?? objectBody?.accessGrantId)),
     reasonPresent: Boolean(rawReason),
     reasonMapped,
     reasonSafePattern,
     diagnosticStagePresent: Boolean(text(objectBody?.diagnosticStage)),
+    expectedBindingPresent: Boolean(safeObject(objectBody?.expectedBinding)),
     secretsExposed: false,
   });
 }
@@ -147,11 +160,12 @@ function provisioningReasonForNormalizedBody({
 }
 
 function normalizeProvisionedAccess({ loginBody, normalizedEmail, body, expectedProductId }) {
-  const principalId = text(body.principalId);
-  const tenantId = text(body.tenantId);
-  const workspaceId = text(body.workspaceId);
-  const accessGrantId = text(body.accessGrantId);
-  const productId = text(body.productId);
+  const binding = bindingBody(body);
+  const principalId = text(body?.principalId);
+  const tenantId = text(body?.tenantId);
+  const workspaceId = text(binding?.workspaceId ?? body?.workspaceId);
+  const accessGrantId = text(binding?.accessGrantId ?? body?.accessGrantId);
+  const productId = text(binding?.productId ?? body?.productId);
   const requestedProductId = text(expectedProductId) || uniCoPreviewProductId;
 
   if (
@@ -394,6 +408,7 @@ export function createUniCoPreviewLoginComposition({
       provisioningReasonPassthrough: true,
       classifiedProvisioningNormalizeFallback: true,
       unclassifiedProvisioningResponseDiagnostic: true,
+      expectedBindingProvisioningShape: true,
       rawSessionSecretPersisted: false,
       transientOperatorSessionReturnedToBrowser: false,
     }),
