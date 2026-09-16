@@ -16,6 +16,7 @@ const ALLOWED_LOGIN_ORIGINS = Object.freeze(new Set([
 
 const CUSTOMER_PROVISIONING_CODES = Object.freeze([
   "preview_assisted_provisioning_response_unclassified",
+  "preview_assisted_provisioning_reason_unmapped",
   "uni_co_provisioning_not_complete",
   "uni_co_product_mismatch",
   "uni_co_tenantId_required",
@@ -130,7 +131,7 @@ function safeDiagnostic(value) {
   if (!value || typeof value !== "object" || Array.isArray(value)) return null;
   const out = {};
   for (const [key, raw] of Object.entries(value)) {
-    if (!/^(diagnosticStage|provisioning[A-Z][A-Za-z0-9]*|accountReady|productIdPresent|tenantIdPresent|workspaceIdPresent|principalIdPresent|accessGrantIdPresent|reasonPresent|diagnosticStagePresent|secretsExposed)$/.test(key)) continue;
+    if (!/^(diagnosticStage|provisioning[A-Z][A-Za-z0-9]*|accountReady|productIdPresent|tenantIdPresent|workspaceIdPresent|principalIdPresent|accessGrantIdPresent|reasonPresent|reasonMapped|reasonSafePattern|diagnosticStagePresent|secretsExposed)$/.test(key)) continue;
     if (typeof raw === "boolean") out[key] = raw;
     else if (key === "diagnosticStage") out[key] = String(raw || "").trim();
   }
