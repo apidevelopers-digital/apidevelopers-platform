@@ -4,7 +4,6 @@ export const uniAccountPreviewAuthorizePath = "/v1/uni/account/handoff/authorize
 export const uniAccountPreviewTargetOrigin = "https://uni-preview.apidevelopers.digital";
 export const uniAccountPreviewCallbackUrl =
   "https://uni-preview.apidevelopers.digital/api/account-handoff-callback.php";
-
 const STATE = /^[A-Za-z0-9_-]{43,128}$/;
 const CHALLENGE = /^[A-Za-z0-9_-]{43}$/;
 const FORM_HEADERS = Object.freeze({
@@ -19,7 +18,6 @@ const REDIRECT_HEADERS = Object.freeze({
   pragma: "no-cache",
   "referrer-policy": "no-referrer",
 });
-
 const CUSTOMER_PROVISIONING_ERROR_CODES = Object.freeze([
   "uni_co_provisioning_not_complete",
   "uni_co_product_mismatch",
@@ -33,7 +31,6 @@ const CUSTOMER_PROVISIONING_ERROR_CODES = Object.freeze([
   "uni_co_customer_membership_failed",
   "uni_co_customer_account_not_ready",
 ]);
-
 const SAFE_ERROR_CODES = new Set([
   "invalid_credentials",
   "too_many_login_attempts",
@@ -49,11 +46,25 @@ const SAFE_ERROR_CODES = new Set([
   "source_session_required",
   "handoff_issue_failed",
 ]);
-
+const SAFE_DIAGNOSTIC_BOOLEAN_FIELDS = Object.freeze([
+  "provisioningBodyPresent",
+  "provisioningOk",
+  "provisioned",
+  "accountReady",
+  "productIdPresent",
+  "tenantIdPresent",
+  "workspaceIdPresent",
+  "principalIdPresent",
+  "accessGrantIdPresent",
+  "reasonPresent",
+  "reasonMapped",
+  "reasonSafePattern",
+  "diagnosticStagePresent",
+  "expectedBindingPresent",
+]);
 function response(status, headers = {}, body = "") {
   return Object.freeze({ status, headers: Object.freeze({ ...headers }), body });
 }
-
 function parseAuthorizeRequest(url) {
   const parsed = new URL(String(url ?? "/"), "https://gateway.apidevelopers.digital");
   const state = String(parsed.searchParams.get("state") ?? "").trim();
@@ -65,7 +76,6 @@ function parseAuthorizeRequest(url) {
   }
   return Object.freeze({ state, codeChallenge });
 }
-
 function escapeHtml(value) {
   return String(value)
     .replaceAll("&", "&amp;")
@@ -73,7 +83,6 @@ function escapeHtml(value) {
     .replaceAll("<", "&lt;")
     .replaceAll(">", "&gt;");
 }
-
 function loginForm({ state, codeChallenge }) {
   return `<!doctype html>
 <html lang="pt-BR">
@@ -97,7 +106,6 @@ function loginForm({ state, codeChallenge }) {
 </body>
 </html>`;
 }
-
 function parseForm(body) {
   if (typeof body !== "string") {
     const error = new Error("invalid_login_form");
@@ -112,7 +120,6 @@ function parseForm(body) {
     password: String(form.get("password") ?? ""),
   });
 }
-
 function authorizeUrl({ state, codeChallenge }) {
   const query = new URLSearchParams({ state, code_challenge: codeChallenge });
   return `${uniAccountPreviewAuthorizePath}?${query.toString()}`;
@@ -124,7 +131,6 @@ function callbackUrl({ state, code }) {
   target.searchParams.set("state", state);
   return target.toString();
 }
-
 function diagnosticStageFor(code) {
   if (CUSTOMER_PROVISIONING_ERROR_CODES.includes(code)) return code;
   if (code === "preview_assisted_provisioning_invalid") return "assisted_provisioning";
@@ -132,17 +138,25 @@ function diagnosticStageFor(code) {
   if (code === "handoff_issue_failed") return "handoff_issue";
   return code || "unknown";
 }
-
+function diagnosticBooleansFrom(error) {
+  const diagnostic = error?.diagnostic;
+  if (!diagnostic || typeof diagnostic !== "object" || Array.isArray(diagnostic)) return Object.freeze({});
+  const safe = {};
+  for (const field of SAFE_DIAGNOSTIC_BOOLEAN_FIELDS) {
+    if (typeof diagnostic[field] === "boolean") safe[field] = diagnostic[field];
+  }
+  return Object.freeze(safe);
+}
 function diagnosticPayload(failure, { authenticated = false } = {}) {
   return JSON.stringify({
     ok: false,
     authenticated,
     error: failure.code,
     diagnosticStage: failure.diagnosticStage ?? diagnosticStageFor(failure.code),
+    ...failure.diagnostic,
     secretsExposed: false,
   });
 }
-
 function safeFailure(error) {
   if (error instanceof BrowserSessionHandoffError) {
     if (error.code === "source_session_required") {
@@ -150,6 +164,7 @@ function safeFailure(error) {
         status: 401,
         code: error.code,
         diagnosticStage: diagnosticStageFor(error.code),
+        diagnostic: diagnosticBooleansFrom(error),
       });
     }
     const code = SAFE_ERROR_CODES.has(error.code) ? error.code : "handoff_issue_failed";
@@ -157,9 +172,9 @@ function safeFailure(error) {
       status: [400, 401, 403, 409, 422, 429, 503].includes(error.status) ? error.status : 503,
       code,
       diagnosticStage: diagnosticStageFor(code),
+      diagnostic: diagnosticBooleansFrom(error),
     });
   }
-
   const status = Number.isInteger(error?.status) ? error.status : 503;
   const messageCode = String(error?.code ?? error?.message ?? "").trim();
   if (SAFE_ERROR_CODES.has(messageCode)) {
@@ -167,14 +182,15 @@ function safeFailure(error) {
       status: [400, 401, 403, 409, 422, 429, 503].includes(status) ? status : 503,
       code: messageCode,
       diagnosticStage: diagnosticStageFor(messageCode),
+      diagnostic: diagnosticBooleansFrom(error),
     });
   }
-
   if (status === 400) {
     return Object.freeze({
       status: 400,
       code: messageCode || "invalid_request",
       diagnosticStage: "invalid_request",
+      diagnostic: diagnosticBooleansFrom(error),
     });
   }
 
@@ -182,9 +198,9 @@ function safeFailure(error) {
     status: 503,
     code: "uni_account_authorize_unavailable",
     diagnosticStage: "authorize_unavailable",
+    diagnostic: diagnosticBooleansFrom(error),
   });
 }
-
 export function createUniAccountPreviewAuthorizeHttpApp({
   app,
   loginBootstrap,
@@ -199,7 +215,6 @@ export function createUniAccountPreviewAuthorizeHttpApp({
   if (typeof handoffService?.issue !== "function") {
     throw new TypeError("handoffService.issue is required");
   }
-
   return Object.freeze({
     async handleRequest(request = {}) {
       const method = String(request.method ?? "GET").toUpperCase();
@@ -208,7 +223,6 @@ export function createUniAccountPreviewAuthorizeHttpApp({
       if (parsedUrl.pathname !== uniAccountPreviewAuthorizePath) {
         return app.handleRequest(request);
       }
-
       if (method === "POST") {
         try {
           const form = parseForm(request.body);
@@ -243,7 +257,6 @@ export function createUniAccountPreviewAuthorizeHttpApp({
           );
         }
       }
-
       if (method !== "GET") {
         return response(405, { ...FORM_HEADERS, allow: "GET, POST" }, "Método não permitido.");
       }
@@ -259,7 +272,6 @@ export function createUniAccountPreviewAuthorizeHttpApp({
           diagnosticPayload(failure),
         );
       }
-
       try {
         const issued = await handoffService.issue({
           headers: request.headers ?? {},
