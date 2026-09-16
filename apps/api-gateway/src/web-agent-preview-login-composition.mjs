@@ -105,7 +105,7 @@ function assistedProvisioningError(reason, status = 503, diagnostic = null) {
 }
 
 function provisioningReasonMetadata(body, fallbackReason = UNCLASSIFIED) {
-  const objectBody = body && typeof body === "object" && !Array.isArray(body) ? body : null;
+  const objectBody = safeObject(body);
   const rawReason = text(objectBody?.reason ?? objectBody?.error ?? objectBody?.diagnosticStage);
   const fallback = text(fallbackReason) || UNCLASSIFIED;
   const reasonSafePattern = Boolean(rawReason && SAFE_REASON_PATTERN.test(rawReason));
@@ -115,7 +115,8 @@ function provisioningReasonMetadata(body, fallbackReason = UNCLASSIFIED) {
 }
 
 function provisioningDiagnosticFromBody(body, reason = UNCLASSIFIED) {
-  const { objectBody, rawReason, reasonSafePattern, reasonMapped, diagnosticStage } = provisioningReasonMetadata(body, reason);
+  const { objectBody, rawReason, reasonSafePattern, reasonMapped, diagnosticStage } =
+    provisioningReasonMetadata(body, reason);
   const binding = bindingBody(body);
   return Object.freeze({
     diagnosticStage,
@@ -149,7 +150,7 @@ function provisioningReasonForNormalizedBody({
   const explicit = provisioningReasonMetadata(body).diagnosticStage;
   if (SAFE_PROVISIONING_REASONS.has(explicit)) return explicit;
   if (body?.ok !== true || body?.provisioned !== true) return "uni_co_provisioning_not_complete";
-  if (productId !== requestedProductId) return "uni_co_product_mismatch",
+  if (productId !== requestedProductId) return "uni_co_product_mismatch";
   if (body?.accountReady !== true) return "uni_co_customer_account_not_ready";
   if (!tenantId) return "uni_co_tenantId_required";
   if (!workspaceId) return "uni_co_workspaceId_required";
@@ -166,6 +167,7 @@ function normalizeProvisionedAccess({ loginBody, normalizedEmail, body, expected
   const accessGrantId = text(binding?.accessGrantId ?? body?.accessGrantId);
   const productId = text(binding?.productId ?? body?.productId);
   const requestedProductId = text(expectedProductId) || uniCoPreviewProductId;
+
   if (
     body?.ok !== true ||
     body?.provisioned !== true ||
@@ -187,6 +189,7 @@ function normalizeProvisionedAccess({ loginBody, normalizedEmail, body, expected
     });
     throw assistedProvisioningError(reason, 409, provisioningDiagnosticFromBody(body, reason));
   }
+
   return Object.freeze({
     principalId,
     tenantId,
