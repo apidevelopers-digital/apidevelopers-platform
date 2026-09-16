@@ -11,7 +11,6 @@ const UNCLASSIFIED_ASSISTED_PROVISIONING = "preview_assisted_provisioning_respon
 function text(value) {
   return String(value ?? "").trim();
 }
-
 async function readJson(response) {
   const raw = await response.text();
   if (!raw) return {};
@@ -74,43 +73,53 @@ const SAFE_ASSISTED_PROVISIONING_ERRORS = new Set([
 ]);
 
 function assistedProvisioningErrorFromBody(provisionBody) {
+  const binding = provisionBody?.expectedBinding && typeof provisionBody.expectedBinding === "object" && !Array.isArray(provisionBody.expectedBinding)
+    ? provisionBody.expectedBinding
+    : provisionBody;
   const code = text(provisionBody?.reason || provisionBody?.error || provisionBody?.diagnosticStage);
   if (SAFE_ASSISTED_PROVISIONING_ERRORS.has(code)) return code;
   if (provisionBody?.ok !== true || provisionBody?.provisioned !== true) return "uni_co_provisioning_not_complete";
   if (provisionBody?.accountReady !== true) return "uni_co_customer_account_not_ready";
   if (!text(provisionBody?.tenantId)) return "uni_co_tenantId_required";
-  if (!text(provisionBody?.workspaceId)) return "uni_co_workspaceId_required";
+  if (!text(binding?.workspaceId)) return "uni_co_workspaceId_required";
   if (!text(provisionBody?.principalId)) return "uni_co_principalId_required";
-  if (!text(provisionBody?.accessGrantId)) return "uni_co_accessGrantId_required";
+  if (!text(binding?.accessGrantId)) return "uni_co_accessGrantId_required";
   return UNCLASSIFIED_ASSISTED_PROVISIONING;
 }
 
 function provisioningDiagnosticFromBody(provisionBody) {
   const body = provisionBody && typeof provisionBody === "object" && !Array.isArray(provisionBody) ? provisionBody : null;
+  const binding = body?.expectedBinding && typeof body.expectedBinding === "object" && !Array.isArray(body.expectedBinding)
+    ? body.expectedBinding
+    : body;
   return Object.freeze({
     diagnosticStage: body ? assistedProvisioningErrorFromBody(body) : UNCLASSIFIED_ASSISTED_PROVISIONING,
     provisioningBodyPresent: Boolean(body),
     provisioningOk: body?.ok === true,
     provisioned: body?.provisioned === true,
     accountReady: body?.accountReady === true,
-    productIdPresent: Boolean(text(body?.productId)),
+    productIdPresent: Boolean(text(binding?.productId)),
     tenantIdPresent: Boolean(text(body?.tenantId)),
-    workspaceIdPresent: Boolean(text(body?.workspaceId)),
+    workspaceIdPresent: Boolean(text(binding?.workspaceId)),
     principalIdPresent: Boolean(text(body?.principalId)),
-    accessGrantIdPresent: Boolean(text(body?.accessGrantId)),
+    accessGrantIdPresent: Boolean(text(binding?.accessGrantId)),
     reasonPresent: Boolean(text(body?.reason || body?.error)),
     diagnosticStagePresent: Boolean(text(body?.diagnosticStage)),
+    expectedBindingPresent: Boolean(body?.expectedBinding && typeof body.expectedBinding === "object" && !Array.isArray(body.expectedBinding)),
     secretsExposed: false,
   });
 }
 
 function normalizeProvisionedBinding({ loginBody, normalizedEmail, provisionBody, productId }) {
   const expectedProductId = text(productId) || "product:uni-co";
+  const binding = provisionBody?.expectedBinding && typeof provisionBody.expectedBinding === "object" && !Array.isArray(provisionBody.expectedBinding)
+    ? provisionBody.expectedBinding
+    : provisionBody;
   const principalId = text(provisionBody?.principalId);
   const tenantId = text(provisionBody?.tenantId);
-  const workspaceId = text(provisionBody?.workspaceId);
-  const accessGrantId = text(provisionBody?.accessGrantId);
-  const resolvedProductId = text(provisionBody?.productId);
+  const workspaceId = text(binding?.workspaceId);
+  const accessGrantId = text(binding?.accessGrantId);
+  const resolvedProductId = text(binding?.productId);
   if (
     provisionBody?.ok !== true ||
     provisionBody?.provisioned !== true ||
