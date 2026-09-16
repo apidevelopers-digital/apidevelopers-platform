@@ -29,7 +29,7 @@ function safeFailureDetails(details) {
   if (!details || typeof details !== "object" || Array.isArray(details)) return null;
   const allowed = {};
   for (const [key, value] of Object.entries(details)) {
-    if (!/^(diagnosticStage|provisioning[A-Z][A-Za-z0-9]*|accountReady|productIdPresent|tenantIdPresent|workspaceIdPresent|principalIdPresent|accessGrantIdPresent|reasonPresent|diagnosticStagePresent|secretsExposed)$/.test(key)) {
+    if (!/^(diagnosticStage|provisioning[A-Z][A-Za-z0-9]*|accountReady|productIdPresent|tenantIdPresent|workspaceIdPresent|principalIdPresent|accessGrantIdPresent|reasonPresent|reasonMapped|reasonSafePattern|diagnosticStagePresent|expectedBindingPresent|secretsExposed)$/.test(key)) {
       continue;
     }
     if (typeof value === "boolean") allowed[key] = value;
