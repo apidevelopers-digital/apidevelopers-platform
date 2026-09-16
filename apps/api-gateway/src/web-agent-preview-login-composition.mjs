@@ -17,13 +17,11 @@ import {
   mitraPrimaryLoginHost,
   mitraPreviewAgentId,
 } from "./web-agent-preview-session-bootstrap.mjs";
-
 export const defaultPreviewLoginSurfaces = Object.freeze([
   Object.freeze({ host: uniCoPreviewLoginHost, productId: uniCoPreviewProductId, agentId: uniCoPreviewAgentId }),
   Object.freeze({ host: mitraPreviewLoginHost, productId: mitraPreviewProductId, agentId: mitraPreviewAgentId }),
   Object.freeze({ host: mitraPrimaryLoginHost, productId: mitraPreviewProductId, agentId: mitraPreviewAgentId }),
 ]);
-
 const UNCLASSIFIED = "preview_assisted_provisioning_response_unclassified";
 const REASON_UNMAPPED = "preview_assisted_provisioning_reason_unmapped";
 const SAFE_REASON_PATTERN = /^[a-z][a-z0-9_]{2,96}$/;
@@ -42,7 +40,6 @@ const SAFE_PROVISIONING_REASONS = new Set([
   UNCLASSIFIED,
   REASON_UNMAPPED,
 ]);
-
 function primarySurface(loginSurfaces) {
   return Array.isArray(loginSurfaces) && loginSurfaces.length > 0 ? loginSurfaces[0] : defaultPreviewLoginSurfaces[0];
 }
@@ -58,7 +55,6 @@ function slug(value, fallback) {
   }
   return out;
 }
-
 function sha256(value) {
   return createHash("sha256").update(String(value)).digest("hex");
 }
@@ -74,7 +70,6 @@ function readJsonBody(response) {
 function safeObject(value) {
   return value && typeof value === "object" && !Array.isArray(value) ? value : null;
 }
-
 function bindingBody(body) {
   const objectBody = safeObject(body);
   const expectedBinding = safeObject(objectBody?.expectedBinding);
@@ -92,7 +87,6 @@ function createPreviewProvisioningActor() {
     }),
   });
 }
-
 function assistedProvisioningError(reason, status = 503, diagnostic = null) {
   const safeReason = text(reason);
   const code = SAFE_PROVISIONING_REASONS.has(safeReason) ? safeReason : UNCLASSIFIED;
@@ -103,7 +97,6 @@ function assistedProvisioningError(reason, status = 503, diagnostic = null) {
   }
   return error;
 }
-
 function provisioningReasonMetadata(body, fallbackReason = UNCLASSIFIED) {
   const objectBody = safeObject(body);
   const rawReason = text(objectBody?.reason ?? objectBody?.error ?? objectBody?.diagnosticStage);
@@ -113,7 +106,6 @@ function provisioningReasonMetadata(body, fallbackReason = UNCLASSIFIED) {
   const diagnosticStage = reasonMapped ? rawReason : rawReason ? REASON_UNMAPPED : fallback;
   return Object.freeze({ objectBody, rawReason, reasonSafePattern, reasonMapped, diagnosticStage });
 }
-
 function provisioningDiagnosticFromBody(body, reason = UNCLASSIFIED) {
   const { objectBody, rawReason, reasonSafePattern, reasonMapped, diagnosticStage } =
     provisioningReasonMetadata(body, reason);
@@ -137,7 +129,6 @@ function provisioningDiagnosticFromBody(body, reason = UNCLASSIFIED) {
     secretsExposed: false,
   });
 }
-
 function provisioningReasonForNormalizedBody({
   body,
   principalId,
@@ -146,19 +137,19 @@ function provisioningReasonForNormalizedBody({
   accessGrantId,
   productId,
   requestedProductId,
+  bindingComplete,
+  wrapperComplete,
 }) {
   const explicit = provisioningReasonMetadata(body).diagnosticStage;
   if (SAFE_PROVISIONING_REASONS.has(explicit)) return explicit;
-  if (body?.ok !== true || body?.provisioned !== true) return "uni_co_provisioning_not_complete";
   if (productId !== requestedProductId) return "uni_co_product_mismatch";
-  if (body?.accountReady !== true) return "uni_co_customer_account_not_ready";
   if (!tenantId) return "uni_co_tenantId_required";
   if (!workspaceId) return "uni_co_workspaceId_required";
   if (!principalId) return "uni_co_principalId_required";
   if (!accessGrantId) return "uni_co_accessGrantId_required";
+  if (!bindingComplete || !wrapperComplete) return "uni_co_provisioning_not_complete";
   return UNCLASSIFIED;
 }
-
 function normalizeProvisionedAccess({ loginBody, normalizedEmail, body, expectedProductId }) {
   const binding = bindingBody(body);
   const principalId = text(body?.principalId);
@@ -167,17 +158,16 @@ function normalizeProvisionedAccess({ loginBody, normalizedEmail, body, expected
   const accessGrantId = text(binding?.accessGrantId ?? body?.accessGrantId);
   const productId = text(binding?.productId ?? body?.productId);
   const requestedProductId = text(expectedProductId) || uniCoPreviewProductId;
-
-  if (
-    body?.ok !== true ||
-    body?.provisioned !== true ||
-    body?.accountReady !== true ||
-    !principalId ||
-    !tenantId ||
-    !workspaceId ||
-    !accessGrantId ||
-    productId !== requestedProductId
-  ) {
+  const expectedBindingPresent = Boolean(safeObject(safeObject(body)?.expectedBinding));
+  const bindingComplete = Boolean(
+    principalId &&
+      tenantId &&
+      workspaceId &&
+      accessGrantId &&
+      productId === requestedProductId,
+  );
+  const wrapperComplete = body?.ok === true && body?.provisioned === true && body?.accountReady === true;
+  if (!bindingComplete || (!wrapperComplete && !expectedBindingPresent)) {
     const reason = provisioningReasonForNormalizedBody({
       body,
       principalId,
@@ -186,10 +176,11 @@ function normalizeProvisionedAccess({ loginBody, normalizedEmail, body, expected
       accessGrantId,
       productId,
       requestedProductId,
+      bindingComplete,
+      wrapperComplete,
     });
     throw assistedProvisioningError(reason, 409, provisioningDiagnosticFromBody(body, reason));
   }
-
   return Object.freeze({
     principalId,
     tenantId,
@@ -198,7 +189,6 @@ function normalizeProvisionedAccess({ loginBody, normalizedEmail, body, expected
     expectedBinding: Object.freeze({ workspaceId, accessGrantId, productId }),
   });
 }
-
 function createAssistedProvisionAccess({
   saasRuntime,
   saasAccess,
@@ -227,7 +217,6 @@ function createAssistedProvisionAccess({
     membershipRuntime,
     ...(clock ? { clock: () => clock().toISOString() } : {}),
   });
-
   const effectiveTenantSlug = slug(tenantSlug, "institution-preview");
   const effectiveWorkspaceSlug = slug(workspaceSlug, "uni-co-main");
   const effectiveDisplayName = text(displayName) || "Institution Preview";
@@ -236,7 +225,6 @@ function createAssistedProvisionAccess({
     const normalizedEmail = text(email).toLowerCase();
     const requestedProductId = text(productId) || uniCoPreviewProductId;
     if (!normalizedEmail) return null;
-
     const response = await customerProvisioningApp.handleRequest({
       method: "POST",
       url: "/v1/saas/uni-co/provision",
@@ -250,7 +238,6 @@ function createAssistedProvisionAccess({
       }),
     });
     const body = readJsonBody(response);
-
     if (response.status < 200 || response.status >= 300) {
       const reason = provisioningReasonMetadata(body).diagnosticStage;
       throw assistedProvisioningError(reason, response.status, provisioningDiagnosticFromBody(body, reason));
@@ -259,7 +246,6 @@ function createAssistedProvisionAccess({
     return normalizeProvisionedAccess({ loginBody, normalizedEmail, body, expectedProductId: requestedProductId });
   };
 }
-
 function bindingFromVerifiedIdentity({ identity, productId }) {
   const binding = identity?.expectedBinding;
   if (!binding || typeof binding !== "object") return null;
@@ -269,11 +255,9 @@ function bindingFromVerifiedIdentity({ identity, productId }) {
   const tenantId = text(identity.tenantId);
   const workspaceId = text(binding.workspaceId);
   const accessGrantId = text(binding.accessGrantId);
-
   if (!principalId || !tenantId || !workspaceId || !accessGrantId) return null;
   return Object.freeze({ principalId, tenantId, workspaceId, accessGrantId, productId });
 }
-
 export function createUniCoPreviewLoginComposition({
   app,
   store,
@@ -296,7 +280,6 @@ export function createUniCoPreviewLoginComposition({
   if (!store || typeof store.read !== "function" || typeof store.transaction !== "function") {
     throw new TypeError("store must provide read and transaction");
   }
-
   let effectiveVerifier = verifyCredentials;
   const identityBackendConfigured =
     typeof identityBackendBaseUrl === "string" && identityBackendBaseUrl.trim().length > 0;
@@ -312,12 +295,10 @@ export function createUniCoPreviewLoginComposition({
       }),
     });
   }
-
   const { saasRuntime, saasAccess, membershipRuntime, federatedPrincipal } = createSaasAccessComposition({
     store,
     ...(clock ? { clock: () => clock().toISOString() } : {}),
   });
-
   const assistedProvisioningAccess =
     assistedProvisioning === true
       ? createAssistedProvisionAccess({
@@ -331,7 +312,6 @@ export function createUniCoPreviewLoginComposition({
           displayName: assistedProvisioningDisplayName,
         })
       : undefined;
-
   if (typeof effectiveVerifier !== "function" && identityBackendConfigured) {
     effectiveVerifier = createUniCoPreviewBackendIdentityVerifier({
       baseUrl: identityBackendBaseUrl,
@@ -340,7 +320,6 @@ export function createUniCoPreviewLoginComposition({
       ...(assistedProvisioningAccess ? { provisionAccess: assistedProvisioningAccess } : {}),
     });
   }
-
   if (typeof effectiveVerifier !== "function") {
     return Object.freeze({
       enabled: false,
@@ -357,7 +336,6 @@ export function createUniCoPreviewLoginComposition({
     accessRuntime: saasAccess,
     allowedProductIds: loginSurfaces.map((surface) => surface.productId),
   });
-
   const resolveAccess = async (input = {}) => {
     const fromIdentity = bindingFromVerifiedIdentity({
       identity: input.identity,
@@ -366,7 +344,6 @@ export function createUniCoPreviewLoginComposition({
     if (fromIdentity) return fromIdentity;
     return baseResolveAccess(input);
   };
-
   const bootstrap = createUniCoPreviewBrowserSessionBootstrap({
     store,
     verifyCredentials: effectiveVerifier,
@@ -378,7 +355,6 @@ export function createUniCoPreviewLoginComposition({
   });
   const http = createUniCoPreviewLoginHttpApp({ app, bootstrap });
   const primary = primarySurface(loginSurfaces);
-
   return Object.freeze({
     enabled: true,
     app: http.app,
@@ -409,6 +385,7 @@ export function createUniCoPreviewLoginComposition({
       classifiedProvisioningNormalizeFallback: true,
       unclassifiedProvisioningResponseDiagnostic: true,
       expectedBindingProvisioningShape: true,
+      acceptedExpectedBindingWithoutWrapperFlags: true,
       rawSessionSecretPersisted: false,
       transientOperatorSessionReturnedToBrowser: false,
     }),
