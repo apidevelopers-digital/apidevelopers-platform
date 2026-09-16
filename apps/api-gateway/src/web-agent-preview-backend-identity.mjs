@@ -6,11 +6,13 @@ const ACCESS_PATHS_BY_PRODUCT = Object.freeze({
   "product:mitra": "/operator/v1/mitra/preview/saas/access",
 });
 
-const UNCLASSIFIED_ASSISTED_PROVISIONING = "preview_assisted_provisioning_response_unclassified";
+const UNCLASSIFIED_ASSISTED_PROVISIONING =
+  "preview_assisted_provisioning_response_unclassified";
 
 function text(value) {
   return String(value ?? "").trim();
 }
+
 async function readJson(response) {
   const raw = await response.text();
   if (!raw) return {};
@@ -28,6 +30,16 @@ function upstreamError(code, status = 503, diagnostic = null) {
     error.diagnostic = Object.freeze({ ...diagnostic, secretsExposed: false });
   }
   return error;
+}
+
+function safeObject(value) {
+  return value && typeof value === "object" && !Array.isArray(value) ? value : null;
+}
+
+function bindingBody(body) {
+  const objectBody = safeObject(body);
+  const expectedBinding = safeObject(objectBody?.expectedBinding);
+  return expectedBinding ?? objectBody;
 }
 
 function resolveProductAccessPath(productId) {
@@ -73,69 +85,80 @@ const SAFE_ASSISTED_PROVISIONING_ERRORS = new Set([
 ]);
 
 function assistedProvisioningErrorFromBody(provisionBody) {
-  const binding = provisionBody?.expectedBinding && typeof provisionBody.expectedBinding === "object" && !Array.isArray(provisionBody.expectedBinding)
-    ? provisionBody.expectedBinding
-    : provisionBody;
+  const binding = bindingBody(provisionBody);
   const code = text(provisionBody?.reason || provisionBody?.error || provisionBody?.diagnosticStage);
   if (SAFE_ASSISTED_PROVISIONING_ERRORS.has(code)) return code;
-  if (provisionBody?.ok !== true || provisionBody?.provisioned !== true) return "uni_co_provisioning_not_complete";
-  if (provisionBody?.accountReady !== true) return "uni_co_customer_account_not_ready";
-  if (!text(provisionBody?.tenantId)) return "uni_co_tenantId_required";
-  if (!text(binding?.workspaceId)) return "uni_co_workspaceId_required";
-  if (!text(provisionBody?.principalId)) return "uni_co_principalId_required";
-  if (!text(binding?.accessGrantId)) return "uni_co_accessGrantId_required";
+
+  const bindingComplete = Boolean(
+    text(provisionBody?.tenantId) &&
+      text(provisionBody?.principalId) &&
+      text(binding?.workspaceId) &&
+      text(binding?.accessGrantId) &&
+      text(binding?.productId),
+  );
+  const expectedBindingPresent = Boolean(safeObject(provisionBody?.expectedBinding));
+  const wrapperComplete =
+    provisionBody?.ok === true &&
+    provisionBody?.provisioned === true &&
+    provisionBody?.accountReady === true;
+
+  if (!bindingComplete || (!wrapperComplete && !expectedBindingPresent)) {
+    return "uni_co_provisioning_not_complete";
+  }
   return UNCLASSIFIED_ASSISTED_PROVISIONING;
 }
 
 function provisioningDiagnosticFromBody(provisionBody) {
-  const body = provisionBody && typeof provisionBody === "object" && !Array.isArray(provisionBody) ? provisionBody : null;
-  const binding = body?.expectedBinding && typeof body.expectedBinding === "object" && !Array.isArray(body.expectedBinding)
-    ? body.expectedBinding
-    : body;
+  const body = safeObject(provisionBody);
+  const binding = bindingBody(body);
   return Object.freeze({
     diagnosticStage: body ? assistedProvisioningErrorFromBody(body) : UNCLASSIFIED_ASSISTED_PROVISIONING,
     provisioningBodyPresent: Boolean(body),
     provisioningOk: body?.ok === true,
     provisioned: body?.provisioned === true,
     accountReady: body?.accountReady === true,
-    productIdPresent: Boolean(text(binding?.productId)),
+    productIdPresent: Boolean(text(binding?.productId ?? body?.productId)),
     tenantIdPresent: Boolean(text(body?.tenantId)),
-    workspaceIdPresent: Boolean(text(binding?.workspaceId)),
+    workspaceIdPresent: Boolean(text(binding?.workspaceId ?? body?.workspaceId)),
     principalIdPresent: Boolean(text(body?.principalId)),
-    accessGrantIdPresent: Boolean(text(binding?.accessGrantId)),
+    accessGrantIdPresent: Boolean(text(binding?.accessGrantId ?? body?.accessGrantId)),
     reasonPresent: Boolean(text(body?.reason || body?.error)),
     diagnosticStagePresent: Boolean(text(body?.diagnosticStage)),
-    expectedBindingPresent: Boolean(body?.expectedBinding && typeof body.expectedBinding === "object" && !Array.isArray(body.expectedBinding)),
+    expectedBindingPresent: Boolean(safeObject(body?.expectedBinding)),
     secretsExposed: false,
   });
 }
 
 function normalizeProvisionedBinding({ loginBody, normalizedEmail, provisionBody, productId }) {
   const expectedProductId = text(productId) || "product:uni-co";
-  const binding = provisionBody?.expectedBinding && typeof provisionBody.expectedBinding === "object" && !Array.isArray(provisionBody.expectedBinding)
-    ? provisionBody.expectedBinding
-    : provisionBody;
+  const binding = bindingBody(provisionBody);
   const principalId = text(provisionBody?.principalId);
   const tenantId = text(provisionBody?.tenantId);
-  const workspaceId = text(binding?.workspaceId);
-  const accessGrantId = text(binding?.accessGrantId);
-  const resolvedProductId = text(binding?.productId);
-  if (
-    provisionBody?.ok !== true ||
-    provisionBody?.provisioned !== true ||
-    provisionBody?.accountReady !== true ||
-    !principalId ||
-    !tenantId ||
-    !workspaceId ||
-    !accessGrantId ||
-    resolvedProductId !== expectedProductId
-  ) {
+  const workspaceId = text(binding?.workspaceId ?? provisionBody?.workspaceId);
+  const accessGrantId = text(binding?.accessGrantId ?? provisionBody?.accessGrantId);
+  const resolvedProductId = text(binding?.productId ?? provisionBody?.productId);
+  const expectedBindingPresent = Boolean(safeObject(provisionBody?.expectedBinding));
+  const bindingComplete = Boolean(
+    principalId &&
+      tenantId &&
+      workspaceId &&
+      accessGrantId &&
+      resolvedProductId === expectedProductId,
+  );
+  const wrapperComplete =
+    provisionBody?.ok === true &&
+    provisionBody?.provisioned === true &&
+    provisionBody?.accountReady === true;
+
+  if (!bindingComplete || (!wrapperComplete && !expectedBindingPresent)) {
     const diagnostic = provisioningDiagnosticFromBody(provisionBody);
-    const code = resolvedProductId && resolvedProductId !== expectedProductId
-      ? "uni_co_product_mismatch"
-      : diagnostic.diagnosticStage;
+    const code =
+      resolvedProductId && resolvedProductId !== expectedProductId
+        ? "uni_co_product_mismatch"
+        : diagnostic.diagnosticStage;
     throw upstreamError(code, 409, { ...diagnostic, diagnosticStage: code });
   }
+
   return Object.freeze({
     principalId,
     tenantId,
@@ -165,14 +188,22 @@ export function createUniCoPreviewBackendIdentityVerifier({
   const base = new URL(text(baseUrl));
   if (base.protocol !== "https:") throw new TypeError("preview_identity_backend_https_required");
   if (typeof fetchImpl !== "function") throw new TypeError("fetchImpl must be a function");
-  if (!Number.isInteger(timeoutMs) || timeoutMs < 1000 || timeoutMs > 30000) throw new TypeError("invalid timeoutMs");
-  if (provisionAccess !== undefined && typeof provisionAccess !== "function") throw new TypeError("provisionAccess must be a function");
+  if (!Number.isInteger(timeoutMs) || timeoutMs < 1000 || timeoutMs > 30000) {
+    throw new TypeError("invalid timeoutMs");
+  }
+  if (provisionAccess !== undefined && typeof provisionAccess !== "function") {
+    throw new TypeError("provisionAccess must be a function");
+  }
 
   async function request(path, options = {}) {
     const controller = new AbortController();
     const timer = setTimeout(() => controller.abort(), timeoutMs);
     try {
-      return await fetchImpl(new URL(path, base), { redirect: "error", ...options, signal: controller.signal });
+      return await fetchImpl(new URL(path, base), {
+        redirect: "error",
+        ...options,
+        signal: controller.signal,
+      });
     } finally {
       clearTimeout(timer);
     }
@@ -182,7 +213,10 @@ export function createUniCoPreviewBackendIdentityVerifier({
     const accessPath = resolveProductAccessPath(productId);
     const accessResponse = await request(accessPath.path, {
       method: "GET",
-      headers: { accept: "application/json", authorization: `Bearer ${sessionToken}` },
+      headers: {
+        accept: "application/json",
+        authorization: `Bearer ${sessionToken}`,
+      },
     });
     const accessBody = await readJson(accessResponse);
     return Object.freeze({ response: accessResponse, body: accessBody, productId: accessPath.productId });
@@ -192,7 +226,11 @@ export function createUniCoPreviewBackendIdentityVerifier({
     try {
       await request(LOGOUT_PATH, {
         method: "POST",
-        headers: { "content-type": "application/json", accept: "application/json", authorization: `Bearer ${sessionToken}` },
+        headers: {
+          "content-type": "application/json",
+          accept: "application/json",
+          authorization: `Bearer ${sessionToken}`,
+        },
         body: "{}",
       });
     } catch {
@@ -208,12 +246,21 @@ export function createUniCoPreviewBackendIdentityVerifier({
 
     const loginResponse = await request(LOGIN_PATH, {
       method: "POST",
-      headers: { "content-type": "application/json", accept: "application/json" },
-      body: JSON.stringify({ email: normalizedEmail, password: suppliedPassword }),
+      headers: {
+        "content-type": "application/json",
+        accept: "application/json",
+      },
+      body: JSON.stringify({
+        email: normalizedEmail,
+        password: suppliedPassword,
+      }),
     });
     const loginBody = await readJson(loginResponse);
     if (loginResponse.status === 401 || loginResponse.status === 429) {
-      throw upstreamError(loginResponse.status === 429 ? "too_many_login_attempts" : "invalid_credentials", loginResponse.status);
+      throw upstreamError(
+        loginResponse.status === 429 ? "too_many_login_attempts" : "invalid_credentials",
+        loginResponse.status,
+      );
     }
     if (!loginResponse.ok) throw upstreamError("preview_identity_backend_unavailable", 503);
 
@@ -224,7 +271,10 @@ export function createUniCoPreviewBackendIdentityVerifier({
       let { response: accessResponse, body: accessBody } = await requestAccess(sessionToken, requestedProduct);
       if (!accessResponse.ok || accessBody?.allowed !== true || !accessBody?.binding) {
         const code = text(accessBody?.error) || "access_grant_not_found";
-        if (typeof provisionAccess === "function" && shouldAttemptAssistedProvisioning({ status: accessResponse.status, code })) {
+        if (
+          typeof provisionAccess === "function" &&
+          shouldAttemptAssistedProvisioning({ status: accessResponse.status, code })
+        ) {
           const provisionBody = await provisionAccess({
             email: normalizedEmail,
             productId: requestedProduct,
