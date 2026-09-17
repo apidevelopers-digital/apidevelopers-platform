@@ -48,7 +48,7 @@ export function createUniCoPreviewSaasAccessResolver({
     const workspaceId = String(grant.workspaceId ?? "").trim();
     const accessGrantId = String(grant.accessGrantId ?? "").trim();
     if (!workspaceId || !accessGrantId) {
-      const error = new Error("active_access_grant_incomplete");
+      const error = new Error("uni_co_customer_access_grant_not_resolved");
       error.status = 403;
       throw error;
     }
