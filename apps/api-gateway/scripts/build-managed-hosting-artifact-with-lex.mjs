@@ -10,6 +10,7 @@ import {
 import { dirname, join, relative, resolve, sep } from "node:path";
 import { fileURLToPath, pathToFileURL } from "node:url";
 import { buildManagedHostingArtifact } from "./build-managed-hosting-artifact.mjs";
+
 const SCRIPT_DIRECTORY = dirname(fileURLToPath(import.meta.url));
 const APP_DIRECTORY = resolve(SCRIPT_DIRECTORY, "..");
 const REPOSITORY_ROOT = resolve(APP_DIRECTORY, "../..");
@@ -19,6 +20,7 @@ const LEX_VENDOR_DIRECTORY = "vendor/lex-legal-runtime";
 const EMBEDDED_FACADE = "src/mitra-embedded-professional-facade.mjs";
 const PACKAGE_IMPORT = '"@apidevelopers/lex-legal-runtime"';
 const ARTIFACT_IMPORT = '"../vendor/lex-legal-runtime/src/index.js"';
+
 function portablePath(value) {
   return value.split(sep).join("/");
 }
@@ -44,6 +46,7 @@ async function listFiles(root) {
   await visit(root);
   return files;
 }
+
 async function describeFile(root, path) {
   const content = await readFile(path);
   return Object.freeze({
@@ -56,6 +59,7 @@ async function describeFile(root, path) {
 async function writeJson(path, value) {
   await writeFile(path, `${JSON.stringify(value, null, 2)}\n`, "utf8");
 }
+
 async function readLexSourceSha() {
   const provenance = await readFile(
     join(LEX_PACKAGE_DIRECTORY, "src", "provenance.js"),
@@ -76,6 +80,7 @@ async function readLexSourceSha() {
   }
   return match[1];
 }
+
 async function vendorLexRuntime(outputDirectory) {
   const destination = join(outputDirectory, ...LEX_VENDOR_DIRECTORY.split("/"));
   const metadata = JSON.parse(
@@ -117,6 +122,7 @@ async function vendorLexRuntime(outputDirectory) {
     sourceRevision: await readLexSourceSha(),
   });
 }
+
 async function refreshManifest(outputDirectory, lexDependency) {
   const manifestPath = join(outputDirectory, "release-manifest.json");
   const manifest = JSON.parse(await readFile(manifestPath, "utf8"));
@@ -141,6 +147,7 @@ async function refreshManifest(outputDirectory, lexDependency) {
   await writeJson(manifestPath, updated);
   return updated;
 }
+
 export async function buildManagedHostingArtifactWithLex(options = {}) {
   const result = await buildManagedHostingArtifact(options);
   const lexDependency = await vendorLexRuntime(result.outputDirectory);
@@ -150,6 +157,7 @@ export async function buildManagedHostingArtifactWithLex(options = {}) {
     manifest,
   });
 }
+
 async function main() {
   const result = await buildManagedHostingArtifactWithLex();
   console.log(
