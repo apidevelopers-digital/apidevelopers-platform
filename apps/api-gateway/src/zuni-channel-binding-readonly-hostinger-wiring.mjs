@@ -35,9 +35,12 @@ export function attachZuniChannelBindingReadonlyHostingerComposition({
   if (
     !gateway.store ||
     typeof gateway.store.read !== "function" ||
-    typeof gateway.store.transaction !== "function"
+    typeof gateway.store.transaction !== "function" ||
+    typeof gateway.store.executeIdempotent !== "function"
   ) {
-    throw new TypeError("gateway.store must provide read and transaction");
+    throw new TypeError(
+      "gateway.store must provide read, transaction, and executeIdempotent",
+    );
   }
 
   const consumerAuthorization = text(
