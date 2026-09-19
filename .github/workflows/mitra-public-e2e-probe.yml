@@ -29,23 +29,62 @@ jobs:
           const origin = process.env.MITRA_BROWSER_ORIGIN;
           let currentStage = "startup";
 
+          function safeSnippet(value, limit = 900) {
+            try {
+              return String(value ?? "")
+                .replace(/\r?\n/g, " ")
+                .replace(/%/g, "%25")
+                .replace(/\n/g, "%0A")
+                .replace(/\r/g, "%0D")
+                .slice(0, limit);
+            } catch {
+              return "unserializable";
+            }
+          }
+
+          function safeJson(value, limit = 900) {
+            try {
+              return safeSnippet(JSON.stringify(value ?? null), limit);
+            } catch {
+              return "unserializable";
+            }
+          }
+
           function beginStage(stage) {
             currentStage = stage;
             console.log(JSON.stringify({ event: "mitra_e2e_stage_start", stage }));
           }
 
           function emitFailure(stage, result, message = null) {
-            console.error(`::error title=Mitra E2E failed::${stage} status=${result?.status ?? "unknown"} ok=${result?.payload?.ok === true} message=${message ?? result?.payload?.message ?? result?.payload?.error ?? "unknown"}`);
+            const payload = result?.payload ?? {};
+            const nested = payload?.result ?? payload?.upstream ?? payload?.error_cause ?? null;
+            console.error(`::error title=Mitra E2E failed::${stage} status=${result?.status ?? "unknown"} ok=${payload?.ok === true} message=${message ?? payload?.message ?? payload?.error ?? "unknown"} content_type=${safeSnippet(result?.contentType ?? "")} body=${safeSnippet(result?.bodyText ?? "")} payload=${safeJson({
+              error: payload?.error ?? null,
+              message: payload?.message ?? null,
+              status: payload?.status ?? null,
+              capability: payload?.capability ?? null,
+              service: payload?.service ?? null,
+              result_status: nested?.status ?? null,
+              result_error: nested?.error ?? null,
+              result_message: nested?.message ?? null,
+              result_payload_status: nested?.payload?.status ?? null,
+              result_payload_error: nested?.payload?.error ?? null,
+              result_payload_message: nested?.payload?.message ?? null,
+              error_cause: payload?.error_cause ?? nested?.error_cause ?? null,
+            })}`);
             console.log(JSON.stringify({
               event: "mitra_e2e_stage_failure",
               stage,
               status: result?.status ?? null,
-              ok: result?.payload?.ok === true,
-              error: result?.payload?.error ?? null,
-              message: message ?? result?.payload?.message ?? null,
-              payload_status: result?.payload?.status ?? null,
-              capability: result?.payload?.capability ?? null,
-              service: result?.payload?.service ?? null,
+              ok: payload?.ok === true,
+              content_type: result?.contentType ?? null,
+              body_snippet: safeSnippet(result?.bodyText ?? "", 500),
+              error: payload?.error ?? null,
+              message: message ?? payload?.message ?? null,
+              payload_status: payload?.status ?? null,
+              capability: payload?.capability ?? null,
+              service: payload?.service ?? null,
+              nested,
             }));
           }
 
@@ -62,7 +101,14 @@ jobs:
               cache: "no-store",
               redirect: "error",
             });
-            const payload = await response.json().catch(() => ({}));
+            const bodyText = await response.text().catch(() => "");
+            let payload = {};
+            try {
+              payload = bodyText ? JSON.parse(bodyText) : {};
+            } catch {
+              payload = {};
+            }
+            const contentType = response.headers.get("content-type") ?? "";
             console.log(JSON.stringify({
               event: "mitra_e2e_response",
               stage: currentStage,
@@ -70,11 +116,19 @@ jobs:
               path,
               status: response.status,
               ok: payload?.ok === true,
+              content_type: contentType,
+              body_snippet: response.status >= 400 ? safeSnippet(bodyText, 500) : undefined,
               payload_status: payload?.status ?? null,
+              payload_error: payload?.error ?? null,
+              payload_message: payload?.message ?? null,
               capability: payload?.capability ?? null,
               service: payload?.service ?? null,
+              result_status: payload?.result?.status ?? null,
+              result_error: payload?.result?.error ?? null,
+              result_payload_status: payload?.result?.payload?.status ?? null,
+              error_cause: payload?.error_cause ?? payload?.result?.error_cause ?? null,
             }));
-            return { status: response.status, payload };
+            return { status: response.status, payload, bodyText, contentType };
           }
 
           function requireOk(stage, result) {
@@ -94,134 +148,134 @@ jobs:
 
           try {
             beginStage("public_health");
-          const publicHealth = await request("/v1/mitra/public/health");
-          requireOk("public_health", publicHealth);
+            const publicHealth = await request("/v1/mitra/public/health");
+            requireOk("public_health", publicHealth);
 
-          beginStage("public_search");
-          const search = await request("/v1/mitra/public/search", {
-            method: "POST",
-            body: { query: "responsabilidade civil", limit: 3 },
-          });
-          requireOk("public_search", search);
-          if (search.payload?.source !== "Câmara dos Deputados — Dados Abertos") {
-            throw new Error("public_search returned unexpected source");
-          }
-          if (!Array.isArray(search.payload?.results) || search.payload.results.length < 1) {
-            throw new Error("public_search returned no results");
-          }
-          const first = search.payload.results[0];
-          if (first?.raw !== undefined || search.payload?.raw !== undefined) {
-            throw new Error("public_search leaked raw upstream payload");
-          }
-
-          beginStage("professional_health");
-          const professionalHealth = await request("/v1/mitra/professional/health");
-          requireOk("professional_health", professionalHealth);
-          for (const capability of ["assistant", "jurimetrics", "veritas"]) {
-            if (professionalHealth.payload?.capabilities?.[capability] !== true) {
-              throw new Error(`professional_health missing ${capability}`);
+            beginStage("public_search");
+            const search = await request("/v1/mitra/public/search", {
+              method: "POST",
+              body: { query: "responsabilidade civil", limit: 3 },
+            });
+            requireOk("public_search", search);
+            if (search.payload?.source !== "Câmara dos Deputados — Dados Abertos") {
+              throw new Error("public_search returned unexpected source");
             }
-          }
-          if (professionalHealth.payload?.capabilities?.documents !== "ephemeral_structured_preview") {
-            throw new Error("professional_health documents capability mismatch");
-          }
+            if (!Array.isArray(search.payload?.results) || search.payload.results.length < 1) {
+              throw new Error("public_search returned no results");
+            }
+            const first = search.payload.results[0];
+            if (first?.raw !== undefined || search.payload?.raw !== undefined) {
+              throw new Error("public_search leaked raw upstream payload");
+            }
 
-          beginStage("assistant");
-          const analyze = await request("/v1/mitra/professional/analyze", {
-            method: "POST",
-            body: {
-              question: "Quais pontos jurídicos devem ser revisados em responsabilidade civil por serviço de saúde?",
-              facts: [
-                "Houve prestação de serviço de saúde.",
-                "A relação causal precisa ser verificada com evidências.",
-              ],
-              tribunal: "STJ",
-              limit: 8,
-            },
-          });
-          requireOk("assistant", analyze);
-          requireEphemeral("assistant", analyze.payload);
-          if (analyze.payload?.capability !== "assistant") {
-            throw new Error("assistant capability mismatch");
-          }
+            beginStage("professional_health");
+            const professionalHealth = await request("/v1/mitra/professional/health");
+            requireOk("professional_health", professionalHealth);
+            for (const capability of ["assistant", "jurimetrics", "veritas"]) {
+              if (professionalHealth.payload?.capabilities?.[capability] !== true) {
+                throw new Error(`professional_health missing ${capability}`);
+              }
+            }
+            if (professionalHealth.payload?.capabilities?.documents !== "ephemeral_structured_preview") {
+              throw new Error("professional_health documents capability mismatch");
+            }
 
-          beginStage("jurimetrics");
-          const jurimetrics = await request("/v1/mitra/professional/jurimetrics", {
-            method: "POST",
-            body: {
-              tribunal: "TJSP",
-              query: "responsabilidade civil",
-              limit: 20,
-            },
-          });
-          requireOk("jurimetrics", jurimetrics);
-          requireEphemeral("jurimetrics", jurimetrics.payload);
-          if (jurimetrics.payload?.capability !== "jurimetrics") {
-            throw new Error("jurimetrics capability mismatch");
-          }
-
-          beginStage("documents");
-          const document = await request("/v1/mitra/professional/document/preview", {
-            method: "POST",
-            body: {
-              documentType: "legal_brief",
-              objective: "Organizar argumentos jurídicos sobre responsabilidade civil para revisão profissional.",
-              facts: [
-                "Houve prestação de serviço.",
-                "Os fatos e o nexo causal exigem validação documental.",
-              ],
-              instructions: "Separar fatos, fundamentos a validar e fontes oficiais.",
-              citations: [{
-                title: first?.title ?? "Fonte pública",
-                source: first?.source ?? "Câmara dos Deputados — Dados Abertos",
-                source_url: first?.source_url ?? "",
-                citation: first?.citation ?? "",
-              }],
-            },
-          });
-          requireOk("documents", document);
-          requireEphemeral("documents", document.payload);
-          if (document.payload?.status !== "draft_preview" ||
-              document.payload?.human_review_required !== true ||
-              document.payload?.final_legal_conclusion_disabled !== true) {
-            throw new Error("document governance mismatch");
-          }
-
-          beginStage("veritas");
-          const veritas = await request("/v1/mitra/professional/veritas", {
-            method: "POST",
-            body: {
-              mode: "claim_precheck",
-              claim: "A referência pública usada nesta análise deve ser conferida antes de uso profissional.",
-              evidence: {
-                source: first?.source ?? "Câmara dos Deputados — Dados Abertos",
-                citation: first?.citation ?? "",
-                source_url: first?.source_url ?? "",
+            beginStage("assistant");
+            const analyze = await request("/v1/mitra/professional/analyze", {
+              method: "POST",
+              body: {
+                question: "Quais pontos jurídicos devem ser revisados em responsabilidade civil por serviço de saúde?",
+                facts: [
+                  "Houve prestação de serviço de saúde.",
+                  "A relação causal precisa ser verificada com evidências.",
+                ],
+                tribunal: "STJ",
+                limit: 8,
               },
-            },
-          });
-          requireOk("veritas", veritas);
-          requireEphemeral("veritas", veritas.payload);
-          if (veritas.payload?.capability !== "veritas") {
-            throw new Error("veritas capability mismatch");
-          }
+            });
+            requireOk("assistant", analyze);
+            requireEphemeral("assistant", analyze.payload);
+            if (analyze.payload?.capability !== "assistant") {
+              throw new Error("assistant capability mismatch");
+            }
 
-          console.log(JSON.stringify({
-            ok: true,
-            publicResearch: {
-              source: search.payload.source,
-              resultCount: search.payload.results.length,
-              firstTitle: first?.title ?? null,
-            },
-            professional: {
-              health: professionalHealth.status,
-              assistant: analyze.status,
-              jurimetrics: jurimetrics.status,
-              documents: document.status,
-              veritas: veritas.status,
-            },
-            write_executed: false,
-          }));
+            beginStage("jurimetrics");
+            const jurimetrics = await request("/v1/mitra/professional/jurimetrics", {
+              method: "POST",
+              body: {
+                tribunal: "TJSP",
+                query: "responsabilidade civil",
+                limit: 20,
+              },
+            });
+            requireOk("jurimetrics", jurimetrics);
+            requireEphemeral("jurimetrics", jurimetrics.payload);
+            if (jurimetrics.payload?.capability !== "jurimetrics") {
+              throw new Error("jurimetrics capability mismatch");
+            }
+
+            beginStage("documents");
+            const document = await request("/v1/mitra/professional/document/preview", {
+              method: "POST",
+              body: {
+                documentType: "legal_brief",
+                objective: "Organizar argumentos jurídicos sobre responsabilidade civil para revisão profissional.",
+                facts: [
+                  "Houve prestação de serviço.",
+                  "Os fatos e o nexo causal exigem validahção documental.",
+                ],
+                instructions: "Separar fatos, fundamentos a validar e fontes oficiais.",
+                citations: [{
+                  title: first?.title ?? "Fonte pública",
+                  source: first?.source ?? "Câmara dos Deputados — Dados Abertos",
+                  source_url: first?.source_url ?? "",
+                  citation: first?.citation ?? "",
+                }],
+              },
+            });
+            requireOk("documents", document);
+            requireEphemeral("documents", document.payload);
+            if (document.payload?.status !== "draft_preview" ||
+                document.payload?.human_review_required !== true ||
+                document.payload?.final_legal_conclusion_disabled !== true) {
+              throw new Error("document governance mismatch");
+            }
+
+            beginStage("veritas");
+            const veritas = await request("/v1/mitra/professional/veritas", {
+              method: "POST",
+              body: {
+                mode: "claim_precheck",
+                claim: "A referência pública usada nesta análise deve ser conferida antes de uso profissional.",
+                evidence: {
+                  source: first?.source ?? "Câmara dos Deputados — Dados Abertos",
+                  citation: first?.citation ?? "",
+                  source_url: first?.source_url ?? "",
+                },
+              },
+            });
+            requireOk("veritas", veritas);
+            requireEphemeral("veritas", veritas.payload);
+            if (veritas.payload?.capability !== "veritas") {
+              throw new Error("veritas capability mismatch");
+            }
+
+            console.log(JSON.stringify({
+              ok: true,
+              publicResearch: {
+                source: search.payload.source,
+                resultCount: search.payload.results.length,
+                firstTitle: first?.title ?? null,
+              },
+              professional: {
+                health: professionalHealth.status,
+                assistant: analyze.status,
+                jurimetrics: jurimetrics.status,
+                documents: document.status,
+                veritas: veritas.status,
+              },
+              write_executed: false,
+            }));
           } catch (error) {
             console.error(`::error title=Mitra E2E failed::stage=${currentStage} message=${error instanceof Error ? error.message : String(error)}`);
             console.log(JSON.stringify({
