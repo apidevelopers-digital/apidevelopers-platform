@@ -156,6 +156,7 @@ export function createUniCoProvisioningApp({
         const workspaceId = createWorkspaceId(tenantSlug, workspaceSlug);
         const subscriptionId = createSubscriptionId(tenantSlug, productSlug);
         const provisioningJobId = createProvisioningJobId(tenantSlug, workspaceSlug, productSlug);
+        const entitlementCapability = productId === MITRA_PROVISIONING_PRODUCT_ID ? "web-chat-mitra" : "web-chat";
 
         provisioningStage = "tenant_workspace";
         await saasRuntime.registerTenantWorkspace({
@@ -203,7 +204,7 @@ export function createUniCoProvisioningApp({
           sub = await saasRuntime.activateSubscription({ subscriptionId, activatedAt: at });
         }
 
-        const entitlementId = createEntitlementId(tenantSlug, workspaceSlug, "web-chat");
+        const entitlementId = createEntitlementId(tenantSlug, workspaceSlug, entitlementCapability);
         provisioningStage = "entitlement_get";
         let ent = await saasRuntime.getEntitlement(entitlementId);
         if (!ent) {
@@ -214,7 +215,7 @@ export function createUniCoProvisioningApp({
             tenantId,
             workspaceId,
             productId,
-            capability: "web-chat",
+            capability: entitlementCapability,
             status: "active",
             sourcePlanId: PLAN_ID,
             createdAt: at,
