@@ -24,6 +24,18 @@ const WEB_SCOPE = "web:chat";
 const HEX64 = /^[a-f0-9]{64}$/;
 const SLUG = /^[a-z0-9]+(?:-[a-z0-9]+)*$/;
 const IDEM = /^[A-Za-z0-9_.:-]{8,200}$/;
+
+const PROVISIONING_STAGE_REASONS = Object.freeze({
+  request: "uni_co_provisioning_not_complete",
+  tenant_workspace: "uni_co_customer_account_not_ready",
+  subscription: "uni_co_customer_account_not_ready",
+  entitlement: "uni_co_customer_account_not_ready",
+  provisioning_job: "uni_co_provisioning_not_complete",
+  federated_principal: "uni_co_principalId_required",
+  access_grant: "uni_co_customer_access_grant_not_resolved",
+  onboarding: "uni_co_customer_account_not_ready",
+});
+
 const reply = (status, payload) => Object.freeze({
   status,
   headers: Object.freeze({
@@ -69,6 +81,11 @@ function resolveProduct(inputProductId) {
   if (!productSlug) throw new TypeError("productId_invalid");
   return Object.freeze({ productId, productSlug });
 }
+
+function provisioningReasonForStage(stage) {
+  return PROVISIONING_STAGE_REASONS[stage] ?? "uni_co_provisioning_not_complete";
+}
+
 export function createUniCoProvisioningApp({
   authenticator,
   saasRuntime,
@@ -96,18 +113,17 @@ export function createUniCoProvisioningApp({
   })) {
     if (typeof fn !== "function") throw new TypeError(`${name}_function_required`);
   }
-
   return Object.freeze({
     async handleRequest({ method = "GET", url = "/", headers = {}, body = "" } = {}) {
       const path = new URL(String(url), "http://gateway.local").pathname;
       if (String(method).toUpperCase() !== "POST" || path !== "/v1/saas/uni-co/provision") return null;
-
       const actor = await authenticator.authenticate(headers);
       if (!actor) return reply(401, { ok: false, reason: "unauthorized" });
       const authz = authorize(actor, { scopes: [SCOPE] });
       if (!authz.allowed) {
         return reply(403, { ok: false, reason: "provision_scope_forbidden", missingScopes: authz.missingScopes });
       }
+      let provisioningStage = "request";
       try {
         const input = bodyOf(body);
         const tenantSlug = reqSlug(input.tenantSlug, "tenantSlug");
@@ -124,6 +140,7 @@ export function createUniCoProvisioningApp({
         const subscriptionId = createSubscriptionId(tenantSlug, productSlug);
         const entitlementId = createEntitlementId(tenantSlug, workspaceSlug, "web-chat");
         const provisioningJobId = createProvisioningJobId(tenantSlug, workspaceSlug, productSlug);
+        provisioningStage = "tenant_workspace";
         await saasRuntime.registerTenantWorkspace({
           tenant: {
             tenantId,
@@ -143,6 +160,7 @@ export function createUniCoProvisioningApp({
             createdAt: at,
           },
         });
+        provisioningStage = "subscription";
         let sub = await saasRuntime.getSubscription(subscriptionId);
         if (!sub) {
           sub = await saasRuntime.startSubscription({
@@ -165,6 +183,7 @@ export function createUniCoProvisioningApp({
           if (!["assisted_activation", "trial"].includes(sub.status)) throw new Error("subscription_not_activatable");
           sub = await saasRuntime.activateSubscription({ subscriptionId, activatedAt: at });
         }
+        provisioningStage = "entitlement";
         let ent = await saasRuntime.getEntitlement(entitlementId);
         if (!ent) {
           ent = await saasRuntime.grantEntitlement({
@@ -185,7 +204,7 @@ export function createUniCoProvisioningApp({
           same(ent.subscriptionId, subscriptionId, "entitlement_binding_mismatch");
           if (ent.status !== "active") throw new Error("entitlement_not_active");
         }
-
+        provisioningStage = "provisioning_job";
         let job = await saasRuntime.getProvisioningJob(provisioningJobId);
         if (!job) {
           job = (await saasRuntime.enqueueProvisioning({
@@ -214,15 +233,16 @@ export function createUniCoProvisioningApp({
           });
         }
         if (job.status !== "succeeded") throw new Error("provisioning_not_ready");
+        provisioningStage = "federated_principal";
         const principal = await federatedPrincipal.resolveFederatedPrincipal({
           tenantId,
           provider: PROVIDER,
           externalSubject: subjectRef,
           subjectType: "delegated_subject_ref",
         });
+        provisioningStage = "access_grant";
         const accessGrantId = createAccessGrantId(tenantSlug, workspaceSlug, productSlug, pkey(principal.principalId));
         let resolved = await saasAccess.resolveActiveGrant({ tenantId, principalId: principal.principalId, productId });
-
         if (!resolved.resolved) {
           const pending = await saasAccess.grantAccess({
             accessGrantId,
@@ -243,11 +263,11 @@ export function createUniCoProvisioningApp({
             grant: await saasAccess.activateAccess({ accessGrantId, provisioningJobId, at }),
           };
         }
-
         const grant = resolved.grant;
         same(grant.workspaceId, workspaceId, "access_binding_mismatch");
         same(grant.productId, productId, "access_binding_mismatch");
         same(grant.principalId, principal.principalId, "access_binding_mismatch");
+        provisioningStage = "onboarding";
         await saasAccess.setOnboarding({
           tenantId,
           workspaceId,
@@ -275,7 +295,7 @@ export function createUniCoProvisioningApp({
         const invalid = /required|invalid|JSON|idempotency/i.test(message);
         return reply(invalid ? 400 : 409, {
           ok: false,
-          reason: invalid ? "invalid_uni_co_provision_request" : "uni_co_provisioning_not_complete",
+          reason: invalid ? "invalid_uni_co_provision_request" : provisioningReasonForStage(provisioningStage),
           secretsExposed: false,
         });
       }
