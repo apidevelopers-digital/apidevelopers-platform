@@ -27,13 +27,13 @@ const IDEM = /^[A-Za-z0-9_.:-]{8,200}$/;
 
 const PROVISIONING_STAGE_REASONS = Object.freeze({
   request: "uni_co_provisioning_not_complete",
-  tenant_workspace: "uni_co_customer_account_not_ready",
+  tenant_workspace: "uni_co_customer_tenant_not_active",
   subscription: "uni_co_customer_account_not_ready",
-  entitlement: "uni_co_customer_account_not_ready",
+  entitlement: "uni_co_customer_membership_failed",
   provisioning_job: "uni_co_provisioning_not_complete",
   federated_principal: "uni_co_principalId_required",
   access_grant: "uni_co_customer_access_grant_not_resolved",
-  onboarding: "uni_co_customer_account_not_ready",
+  onboarding: "uni_co_customer_workspace_not_active",
 });
 
 const reply = (status, payload) => Object.freeze({
@@ -50,11 +50,13 @@ function req(value, name) {
   if (!out) throw new TypeError(`${name}_required`);
   return out;
 }
+
 function reqSlug(value, name) {
   const out = req(value, name).toLowerCase();
   if (!SLUG.test(out)) throw new TypeError(`${name}_invalid`);
   return out;
 }
+
 function bodyOf(value) {
   if (value && typeof value === "object" && !Array.isArray(value)) return value;
   const raw = String(value ?? "").trim();
@@ -69,6 +71,7 @@ function bodyOf(value) {
 function same(actual, expected, code) {
   if (actual !== expected) throw new Error(code);
 }
+
 function pkey(id) {
   const out = req(id, "principalId").split(".").at(-1);
   if (!SLUG.test(out)) throw new Error("principal_key_invalid");
@@ -113,6 +116,7 @@ export function createUniCoProvisioningApp({
   })) {
     if (typeof fn !== "function") throw new TypeError(`${name}_function_required`);
   }
+
   return Object.freeze({
     async handleRequest({ method = "GET", url = "/", headers = {}, body = "" } = {}) {
       const path = new URL(String(url), "http://gateway.local").pathname;
@@ -123,6 +127,7 @@ export function createUniCoProvisioningApp({
       if (!authz.allowed) {
         return reply(403, { ok: false, reason: "provision_scope_forbidden", missingScopes: authz.missingScopes });
       }
+
       let provisioningStage = "request";
       try {
         const input = bodyOf(body);
@@ -134,12 +139,14 @@ export function createUniCoProvisioningApp({
         const { productId, productSlug } = resolveProduct(input.productId);
         if (!HEX64.test(subjectRef)) throw new TypeError("subjectRef_invalid");
         if (!IDEM.test(idempotencyKey)) throw new TypeError("idempotencyKey_invalid");
+
         const at = clock();
         const tenantId = createTenantId(tenantSlug);
         const workspaceId = createWorkspaceId(tenantSlug, workspaceSlug);
         const subscriptionId = createSubscriptionId(tenantSlug, productSlug);
         const entitlementId = createEntitlementId(tenantSlug, workspaceSlug, "web-chat");
         const provisioningJobId = createProvisioningJobId(tenantSlug, workspaceSlug, productSlug);
+
         provisioningStage = "tenant_workspace";
         await saasRuntime.registerTenantWorkspace({
           tenant: {
@@ -160,6 +167,7 @@ export function createUniCoProvisioningApp({
             createdAt: at,
           },
         });
+
         provisioningStage = "subscription";
         let sub = await saasRuntime.getSubscription(subscriptionId);
         if (!sub) {
@@ -183,6 +191,7 @@ export function createUniCoProvisioningApp({
           if (!["assisted_activation", "trial"].includes(sub.status)) throw new Error("subscription_not_activatable");
           sub = await saasRuntime.activateSubscription({ subscriptionId, activatedAt: at });
         }
+
         provisioningStage = "entitlement";
         let ent = await saasRuntime.getEntitlement(entitlementId);
         if (!ent) {
@@ -204,6 +213,7 @@ export function createUniCoProvisioningApp({
           same(ent.subscriptionId, subscriptionId, "entitlement_binding_mismatch");
           if (ent.status !== "active") throw new Error("entitlement_not_active");
         }
+
         provisioningStage = "provisioning_job";
         let job = await saasRuntime.getProvisioningJob(provisioningJobId);
         if (!job) {
@@ -233,6 +243,7 @@ export function createUniCoProvisioningApp({
           });
         }
         if (job.status !== "succeeded") throw new Error("provisioning_not_ready");
+
         provisioningStage = "federated_principal";
         const principal = await federatedPrincipal.resolveFederatedPrincipal({
           tenantId,
@@ -240,6 +251,7 @@ export function createUniCoProvisioningApp({
           externalSubject: subjectRef,
           subjectType: "delegated_subject_ref",
         });
+
         provisioningStage = "access_grant";
         const accessGrantId = createAccessGrantId(tenantSlug, workspaceSlug, productSlug, pkey(principal.principalId));
         let resolved = await saasAccess.resolveActiveGrant({ tenantId, principalId: principal.principalId, productId });
@@ -263,10 +275,12 @@ export function createUniCoProvisioningApp({
             grant: await saasAccess.activateAccess({ accessGrantId, provisioningJobId, at }),
           };
         }
+
         const grant = resolved.grant;
         same(grant.workspaceId, workspaceId, "access_binding_mismatch");
         same(grant.productId, productId, "access_binding_mismatch");
         same(grant.principalId, principal.principalId, "access_binding_mismatch");
+
         provisioningStage = "onboarding";
         await saasAccess.setOnboarding({
           tenantId,
@@ -291,7 +305,7 @@ export function createUniCoProvisioningApp({
           secretsExposed: false,
         });
       } catch (error) {
-        const message = String(error?.message ?? "");
+        const message = String(error?.message ? "");
         const invalid = /required|invalid|JSON|idempotency/i.test(message);
         return reply(invalid ? 400 : 409, {
           ok: false,
@@ -302,10 +316,11 @@ export function createUniCoProvisioningApp({
     },
   });
 }
+
 export const uniCoProvisioningContract = Object.freeze({
   path: "/v1/saas/uni-co/provision",
   productId: DEFAULT_PRODUCT_ID,
-  supportedProductIds: Object.freeze(Object.keys(PRODUCT_SLUGS)),
+  supportedProductIds: Object.freeze(Object.keys(PRODUCT_SLUGS))),
   provider: PROVIDER,
   requiredScope: SCOPE,
   grantedProductScopes: Object.freeze([WEB_SCOPE]),
