@@ -1,0 +1,47 @@
+name: Zuni Channel Binding Hostinger Wiring CI
+
+on:
+  push:
+    paths:
+      - "apps/api-gateway/src/hostinger-entry.mjs"
+      - "apps/api-gateway/src/zuni-channel-binding-write-composition.mjs"
+      - "apps/api-gateway/src/zuni-channel-binding-write-hostinger-wiring.mjs"
+      - "apps/api-gateway/test/zuni-channel-binding-write-hostinger-wiring.test.mjs"
+      - ".github/workflows/zuni-channel-binding-hostinger-wiring-ci.yml"
+  pull_request:
+    paths:
+      - "apps/api-gateway/src/hostinger-entry.mjs"
+      - "apps/api-gateway/src/zuni-channel-binding-write-composition.mjs"
+      - "apps/api-gateway/src/zuni-channel-binding-write-hostinger-wiring.mjs"
+      - "apps/api-gateway/test/zuni-channel-binding-write-hostinger-wiring.test.mjs"
+      - ".github/workflows/zuni-channel-binding-hostinger-wiring-ci.yml"
+
+permissions:
+  contents: read
+
+jobs:
+  validate:
+    runs-on:
+      - self-hosted
+      - macOS
+      - X64
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          persist-credentials: false
+
+      - name: Link local workspace dependencies
+        run: node apps/api-gateway/scripts/link-local-dependencies.mjs
+
+      - name: Validate syntax
+        run: |
+          set -euo pipefail
+          node --check apps/api-gateway/src/hostinger-entry.mjs
+          node --check apps/api-gateway/src/zuni-channel-binding-write-hostinger-wiring.mjs
+          node --check apps/api-gateway/test/zuni-channel-binding-write-hostinger-wiring.test.mjs
+
+      - name: Validate Hostinger wiring contract
+        run: |
+          set -euo pipefail
+          node --test apps/api-gateway/test/zuni-channel-binding-write-hostinger-wiring.test.mjs
