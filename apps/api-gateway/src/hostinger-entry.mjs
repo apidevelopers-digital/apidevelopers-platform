@@ -8,6 +8,7 @@ import { createOperatorBootstrapHttpApp } from "./operator-bootstrap-http.mjs";
 import { attachMitraPublicResearchToGateway } from "./mitra-public-operational-wrapper.mjs";
 import { attachUniJuriProductionHandoffToGateway } from "./unijuri-production-handoff-operational-wrapper.mjs";
 import { attachZuniChannelBindingWriteHostingerComposition } from "./zuni-channel-binding-write-hostinger-wiring.mjs";
+import { attachZuniChannelBindingReadonlyHostingerComposition } from "./zuni-channel-binding-readonly-hostinger-wiring.mjs";
 
 function attachOperatorBootstrap({ gateway }) {
   const app = createOperatorBootstrapHttpApp({
@@ -30,8 +31,12 @@ function attachHostingerCompositions({ gateway, env }) {
     gateway: mitraGateway,
     env,
   });
-  return attachZuniChannelBindingWriteHostingerComposition({
+  const zuniWriteGateway = attachZuniChannelBindingWriteHostingerComposition({
     gateway: uniJuriGateway,
+    env,
+  });
+  return attachZuniChannelBindingReadonlyHostingerComposition({
+    gateway: zuniWriteGateway,
     env,
   });
 }
