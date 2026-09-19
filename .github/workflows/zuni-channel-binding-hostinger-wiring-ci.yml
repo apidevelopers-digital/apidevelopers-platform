@@ -21,10 +21,7 @@ permissions:
 
 jobs:
   syntax:
-    runs-on:
-      - self-hosted
-      - macOS
-      - X64
+    runs-on: [self-hosted, macOS, X64]
     timeout-minutes: 10
     steps:
       - uses: actions/checkout@v5
@@ -37,11 +34,8 @@ jobs:
           node --check apps/api-gateway/src/zuni-channel-binding-write-hostinger-wiring.mjs
           node --check apps/api-gateway/test/zuni-channel-binding-write-hostinger-wiring.test.mjs
 
-  wiring-contract:
-    runs-on:
-      - self-hosted
-      - macOS
-      - X64
+  default-off:
+    runs-on: [self-hosted, macOS, X64]
     timeout-minutes: 10
     steps:
       - uses: actions/checkout@v5
@@ -49,16 +43,35 @@ jobs:
           persist-credentials: false
       - name: Link local workspace dependencies
         run: node apps/api-gateway/scripts/link-local-dependencies.mjs
-      - name: Validate wiring behavior
-        run: |
-          set -euo pipefail
-          node --test --test-name-pattern="Hostinger Channel Binding write wiring is disabled|enabling Hostinger wiring|enabled Hostinger wiring" apps/api-gateway/test/zuni-channel-binding-write-hostinger-wiring.test.mjs
+      - name: Validate default-off contract
+        run: node --test --test-name-pattern="Hostinger Channel Binding write wiring is disabled by default" apps/api-gateway/test/zuni-channel-binding-write-hostinger-wiring.test.mjs
+
+  guardrails:
+    runs-on: [self-hosted, macOS, X64]
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          persist-credentials: false
+      - name: Link local workspace dependencies
+        run: node apps/api-gateway/scripts/link-local-dependencies.mjs
+      - name: Validate store and S2S guardrails
+        run: node --test --test-name-pattern="enabling Hostinger wiring requires" apps/api-gateway/test/zuni-channel-binding-write-hostinger-wiring.test.mjs
+
+  enabled-wiring:
+    runs-on: [self-hosted, macOS, X64]
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          persist-credentials: false
+      - name: Link local workspace dependencies
+        run: node apps/api-gateway/scripts/link-local-dependencies.mjs
+      - name: Validate enabled wiring behavior
+        run: node --test --test-name-pattern="enabled Hostinger wiring mounts" apps/api-gateway/test/zuni-channel-binding-write-hostinger-wiring.test.mjs
 
   entrypoint-contract:
-    runs-on:
-      - self-hosted
-      - macOS
-      - X64
+    runs-on: [self-hosted, macOS, X64]
     timeout-minutes: 10
     steps:
       - uses: actions/checkout@v5
@@ -67,6 +80,4 @@ jobs:
       - name: Link local workspace dependencies
         run: node apps/api-gateway/scripts/link-local-dependencies.mjs
       - name: Validate Hostinger entrypoint attachment
-        run: |
-          set -euo pipefail
-          node --test --test-name-pattern="Hostinger entry attaches" apps/api-gateway/test/zuni-channel-binding-write-hostinger-wiring.test.mjs
+        run: node --test --test-name-pattern="Hostinger entry attaches" apps/api-gateway/test/zuni-channel-binding-write-hostinger-wiring.test.mjs
