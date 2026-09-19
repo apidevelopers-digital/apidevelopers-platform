@@ -6,9 +6,9 @@ const NOW="2026-08-20T16:30:00.000Z", SUBJECT="a".repeat(64);
 function actor(scopes=["saas:provision"]){return Object.freeze({role:"service",principal:Object.freeze({id:"provisioner",status:"active",scopes:Object.freeze(scopes)})});}
 
 function harness({auth=actor()}={}){
-  const state={subscription:null,entitlement:null,job:null,grant:null,onboarding:null,registrations:0,jobs:0,grants:0,principalInput:null};
+  const state={subscription:null,entitlement:null,job:null,grant:null,onboarding:null,registrations:0,jobs:0,grants:0,principalInput:null,lastRegistration:null};
   const saasRuntime={
-    async registerTenantWorkspace(){state.registrations+=1;},
+    async registerTenantWorkspace(input){state.registrations+=1;state.lastRegistration=Object.freeze({...input});},
     async getSubscription(){return state.subscription;},
     async startSubscription(input){state.subscription=Object.freeze({...input});return state.subscription;},
     async activateSubscription({activatedAt}){state.subscription=Object.freeze({...state.subscription,status:"active",activatedAt});return state.subscription;},
@@ -71,6 +71,7 @@ test("governed uni.co bootstrap creates one active binding and is idempotent", a
   assert.equal(body.billing.monthlyAmount,0);
   assert.equal(state.subscription.productId,"product:uni-co");
   assert.equal(state.subscription.monthlyAmount,0);
+  assert.equal(state.lastRegistration.workspace.slug,"uni-co-main");
   assert.equal(state.entitlement.capability,"web-chat");
   assert.deepEqual(state.grant.requiredScopes,["web:chat"]);
   assert.deepEqual(state.grant.grantedScopes,["web:chat"]);
@@ -85,6 +86,32 @@ test("governed uni.co bootstrap creates one active binding and is idempotent", a
   assert.equal(second.status,201);
   assert.equal(state.jobs,1);
   assert.equal(state.grants,1);
+});
+
+test("mitra bootstrap uses product-scoped workspace and entitlement", async () => {
+  const {app,state}=harness();
+  const response=await provision(app,payload({
+    productId:"product:mitra",
+    idempotencyKey:"mitra-bootstrap-20260820",
+  }));
+
+  assert.equal(response.status,201);
+  const body=JSON.parse(response.body);
+  assert.equal(body.ok,true);
+  assert.equal(body.productId,"product:mitra");
+  assert.match(body.workspaceId,/uni-co-main-mitra/);
+  assert.equal(state.subscription.productId,"product:mitra");
+  assert.equal(state.lastRegistration.workspace.slug,"uni-co-main-mitra");
+  assert.equal(state.lastRegistration.workspace.productId,"product:mitra");
+  assert.equal(state.entitlement.capability,"web-chat-mitra");
+  assert.equal(state.entitlement.productId,"product:mitra");
+  assert.equal(state.entitlement.workspaceId,body.workspaceId);
+  assert.equal(state.job.productId,"product:mitra");
+  assert.equal(state.job.workspaceId,body.workspaceId);
+  assert.equal(state.grant.productId,"product:mitra");
+  assert.equal(state.grant.workspaceId,body.workspaceId);
+  assert.equal(state.onboarding.productId,"product:mitra");
+  assert.equal(state.onboarding.workspaceId,body.workspaceId);
 });
 
 test("uni.co bootstrap rejects unhashed subject and missing provision scope before state mutation", async () => {
