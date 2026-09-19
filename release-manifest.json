@@ -3,7 +3,7 @@
   "format": "managed-node-zip",
   "service": "api-gateway",
   "version": "0.8.0",
-  "sourceRevision": "026395d70ca41efd17974cf08e0e0b573b58dcdf",
+  "sourceRevision": "23a23ee9ac6f20e8fcad6c2de60851007fc3d74d",
   "runtime": {
     "node": ">=22",
     "entrypoint": "src/hostinger-entry.mjs",
@@ -569,8 +569,8 @@
     },
     {
       "path": "src/hostinger-entry.mjs",
-      "bytes": 1839,
-      "sha256": "01bdd03080d1dec19a303a1fa3be4084edebbb25e5507b82fa2a9984eebe9ded"
+      "bytes": 2079,
+      "sha256": "a4505e022ad9c51b1363c6aa4d7b2590935c8b169d01cf8cc7ee6bbd44211760"
     },
     {
       "path": "src/hostinger-runtime-env.mjs",
@@ -1024,8 +1024,8 @@
     },
     {
       "path": "src/saas-uni-co-provisioning.mjs",
-      "bytes": 11558,
-      "sha256": "96695b665fedfa7b5819facb63f7898f43d312fc1e12e67ca98d057777112c3b"
+      "bytes": 12544,
+      "sha256": "9f21aa5072046cd7112b845278e50240e9e07c2fe3f115fb8fd2dd60be72e2d1"
     },
     {
       "path": "src/saas-unijuri-access-grant-writer.mjs",
@@ -1278,6 +1278,21 @@
       "sha256": "5245b95a4470d3a1d7093024ccf36246ffa1074e9cd865dd6858f075e27bcc90"
     },
     {
+      "path": "src/zuni-channel-binding-readonly-composition.mjs",
+      "bytes": 8490,
+      "sha256": "fcf245a6b40f0d4d2577c77f6bd71980f9fc323dfbec715b8082f001ea5fec94"
+    },
+    {
+      "path": "src/zuni-channel-binding-write-composition.mjs",
+      "bytes": 5589,
+      "sha256": "0e0f41a8984e59e98d8121b0363ddbd05b3b9d3f8b5b4f0a3069ae97836d73d6"
+    },
+    {
+      "path": "src/zuni-channel-binding-write-hostinger-wiring.mjs",
+      "bytes": 2555,
+      "sha256": "79ff978eab726cb06ea28bd4543174403141d5bcbc5dad4cbe7ab6e763dfb0e9"
+    },
+    {
       "path": "vendor/apikey-core/package.json",
       "bytes": 513,
       "sha256": "881703383bfce77fdfb7297344b7a446c12095dc6bc37e3e0232d088d26519ad"
@@ -1424,8 +1439,8 @@
     },
     {
       "path": "vendor/contracts/src/index.mjs",
-      "bytes": 2073,
-      "sha256": "4d8191d7ed57da8ae11ff3205226e6c0a2886f67a38c1ca32520d04996976632"
+      "bytes": 2117,
+      "sha256": "82e2046eecce536af88426a4a891cbf85cf304c25d676095fff982b915bd5d6d"
     },
     {
       "path": "vendor/contracts/src/multi-agent-orchestration.mjs",
@@ -1496,6 +1511,11 @@
       "path": "vendor/contracts/src/saas-access.mjs",
       "bytes": 4541,
       "sha256": "010bb620d9c9f30e3ac8ad97706f850327e682347b7dab55b879c71bddc148b7"
+    },
+    {
+      "path": "vendor/contracts/src/saas-channel-binding.mjs",
+      "bytes": 3769,
+      "sha256": "91e8b64143f4290cb2f1b9e8cdefcfefb21a46b48c925e2aae8cea9b44616bff"
     },
     {
       "path": "vendor/contracts/src/saas-commercial.mjs",
@@ -1784,8 +1804,8 @@
     },
     {
       "path": "vendor/saas-runtime/src/index.mjs",
-      "bytes": 303,
-      "sha256": "4ba6b28d5fd590c539fb0ba27b2e86d05baa31001fa4732f0b22db0f730630c4"
+      "bytes": 355,
+      "sha256": "48a300ad66b050aaba5d75480aa5b2c4ee8525ae55dedbf2608a0153f3c71add"
     },
     {
       "path": "vendor/saas-runtime/src/membership.mjs",
@@ -1801,6 +1821,11 @@
       "path": "vendor/saas-runtime/src/trust-biometric-login-decision-v1.mjs",
       "bytes": 12811,
       "sha256": "d4df38fd735bde7dd71310aa43d6de57d6f6f9648f6b7cc956edb949805a46d4"
+    },
+    {
+      "path": "vendor/saas-runtime/src/zuni-channel-binding-runtime.mjs",
+      "bytes": 4864,
+      "sha256": "2c6cd74503ba27dda4c36f403c3f400e213a861acbf6e3fc8b67c445d6966ad8"
     },
     {
       "path": "vendor/saas-runtime/src/zuni-commercial-activation-runtime.mjs",

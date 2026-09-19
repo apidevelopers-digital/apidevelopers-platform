@@ -7,6 +7,7 @@ import { startWebAgentOperationalGateway } from "./web-agent-operational-startup
 import { createOperatorBootstrapHttpApp } from "./operator-bootstrap-http.mjs";
 import { attachMitraPublicResearchToGateway } from "./mitra-public-operational-wrapper.mjs";
 import { attachUniJuriProductionHandoffToGateway } from "./unijuri-production-handoff-operational-wrapper.mjs";
+import { attachZuniChannelBindingWriteHostingerComposition } from "./zuni-channel-binding-write-hostinger-wiring.mjs";
 
 function attachOperatorBootstrap({ gateway }) {
   const app = createOperatorBootstrapHttpApp({
@@ -25,8 +26,12 @@ function attachHostingerCompositions({ gateway, env }) {
     gateway: operatorGateway,
     env,
   });
-  return attachUniJuriProductionHandoffToGateway({
+  const uniJuriGateway = attachUniJuriProductionHandoffToGateway({
     gateway: mitraGateway,
+    env,
+  });
+  return attachZuniChannelBindingWriteHostingerComposition({
+    gateway: uniJuriGateway,
     env,
   });
 }
