@@ -93,6 +93,16 @@ function resolveProduct(inputProductId) {
   return Object.freeze({ productId, productSlug });
 }
 
+function resolveProductWorkspaceSlug(workspaceSlug, { productId, productSlug }) {
+  if (productId !== MITRA_PROVISIONING_PRODUCT_ID) return workspaceSlug;
+  const suffix = `-${productSlug}`;
+  return workspaceSlug.endsWith(suffix) ? workspaceSlug : `${workspaceSlug}${suffix}`;
+}
+
+function resolveEntitlementCapability({ productId }) {
+  return productId === MITRA_PROVISIONING_PRODUCT_ID ? "web-chat-mitra" : "web-chat";
+}
+
 function provisioningReasonForStage(stage) {
   return PROVISIONING_STAGE_REASONS[stage] ?? "uni_co_provisioning_not_complete";
 }
@@ -142,11 +152,14 @@ export function createUniCoProvisioningApp({
       try {
         const input = bodyOf(body);
         const tenantSlug = reqSlug(input.tenantSlug, "tenantSlug");
-        const workspaceSlug = reqSlug(input.workspaceSlug, "workspaceSlug");
+        const requestedWorkspaceSlug = reqSlug(input.workspaceSlug, "workspaceSlug");
         const displayName = req(input.displayName, "displayName");
         const subjectRef = req(input.subjectRef, "subjectRef").toLowerCase();
         const idempotencyKey = req(input.idempotencyKey, "idempotencyKey");
-        const { productId, productSlug } = resolveProduct(input.productId);
+        const product = resolveProduct(input.productId);
+        const { productId, productSlug } = product;
+        const workspaceSlug = resolveProductWorkspaceSlug(requestedWorkspaceSlug, product);
+        const entitlementCapability = resolveEntitlementCapability(product);
 
         if (!HEX64.test(subjectRef)) throw new TypeError("subjectRef_invalid");
         if (!IDEM.test(idempotencyKey)) throw new TypeError("idempotencyKey_invalid");
@@ -156,7 +169,6 @@ export function createUniCoProvisioningApp({
         const workspaceId = createWorkspaceId(tenantSlug, workspaceSlug);
         const subscriptionId = createSubscriptionId(tenantSlug, productSlug);
         const provisioningJobId = createProvisioningJobId(tenantSlug, workspaceSlug, productSlug);
-        const entitlementCapability = productId === MITRA_PROVISIONING_PRODUCT_ID ? "web-chat-mitra" : "web-chat";
 
         provisioningStage = "tenant_workspace";
         await saasRuntime.registerTenantWorkspace({
