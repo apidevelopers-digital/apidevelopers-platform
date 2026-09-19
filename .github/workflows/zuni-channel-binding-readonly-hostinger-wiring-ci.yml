@@ -1,0 +1,49 @@
+name: Zuni Channel Binding Readonly Hostinger Wiring CI
+
+on:
+  push:
+    paths:
+      - "apps/api-gateway/src/hostinger-entry.mjs"
+      - "apps/api-gateway/src/zuni-channel-binding-readonly-composition.mjs"
+      - "apps/api-gateway/src/zuni-channel-binding-readonly-hostinger-wiring.mjs"
+      - "apps/api-gateway/test/zuni-channel-binding-readonly-hostinger-wiring.test.mjs"
+      - ".github/workflows/zuni-channel-binding-readonly-hostinger-wiring-ci.yml"
+  pull_request:
+    paths:
+      - "apps/api-gateway/src/hostinger-entry.mjs"
+      - "apps/api-gateway/src/zuni-channel-binding-readonly-composition.mjs"
+      - "apps/api-gateway/src/zuni-channel-binding-readonly-hostinger-wiring.mjs"
+      - "apps/api-gateway/test/zuni-channel-binding-readonly-hostinger-wiring.test.mjs"
+      - ".github/workflows/zuni-channel-binding-readonly-hostinger-wiring-ci.yml"
+
+permissions:
+  contents: read
+
+jobs:
+  validate:
+    runs-on: [self-hosted, macOS, X64]
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          persist-credentials: false
+
+      - name: Link local workspace dependencies
+        run: node apps/api-gateway/scripts/link-local-dependencies.mjs
+
+      - name: Validate syntax and focused readonly Hostinger wiring
+        run: |
+          set -euo pipefail
+          node --check apps/api-gateway/src/hostinger-entry.mjs
+          node --check apps/api-gateway/src/zuni-channel-binding-readonly-hostinger-wiring.mjs
+          node --check apps/api-gateway/test/zuni-channel-binding-readonly-hostinger-wiring.test.mjs
+          node --test apps/api-gateway/test/zuni-channel-binding-readonly-composition.test.mjs
+          node --test apps/api-gateway/test/zuni-channel-binding-readonly-hostinger-wiring.test.mjs
+
+      - name: Guard default-off and secret boundaries
+        run: |
+          set -euo pipefail
+          grep -Fq 'ZUNI_CHANNEL_BINDING_READONLY_API_ENABLED' apps/api-gateway/src/zuni-channel-binding-readonly-hostinger-wiring.mjs
+          grep -Fq 'ZUNI_SAAS_CHANNEL_BINDING_READ_AUTHORIZATION' apps/api-gateway/src/zuni-channel-binding-readonly-hostinger-wiring.mjs
+          grep -Fq 'writesEnabled: false' apps/api-gateway/src/zuni-channel-binding-readonly-hostinger-wiring.mjs
+          grep -Fq 'secretsReturned: false' apps/api-gateway/src/zuni-channel-binding-readonly-hostinger-wiring.mjs
