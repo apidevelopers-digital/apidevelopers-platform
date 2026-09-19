@@ -27,6 +27,9 @@ const store = Object.freeze({
   async transaction(work) {
     return typeof work === "function" ? work({}) : undefined;
   },
+  async executeIdempotent(_key, work) {
+    return typeof work === "function" ? work({}) : undefined;
+  },
 });
 
 test("Hostinger Channel Binding readonly wiring is disabled by default", () => {
@@ -52,7 +55,7 @@ test("enabling readonly Hostinger wiring requires durable store and high-entropy
         gateway: { app },
         env: { [ZUNI_CHANNEL_BINDING_READONLY_API_ENABLED_ENV]: "true" },
       }),
-    /gateway\.store must provide read and transaction/,
+    /gateway\.store must provide read, transaction, and executeIdempotent/,
   );
 
   assert.throws(
