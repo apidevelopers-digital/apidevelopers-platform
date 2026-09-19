@@ -1,0 +1,51 @@
+name: SaaS Channel Binding v1 CI
+
+on:
+  push:
+    paths:
+      - "packages/contracts/src/saas-channel-binding.mjs"
+      - "packages/saas-runtime/src/channel-binding.mjs"
+      - "packages/saas-runtime/test/channel-binding*.test.mjs"
+      - ".github/workflows/saas-channel-binding-v1-ci.yml"
+  pull_request:
+    paths:
+      - "packages/contracts/src/saas-channel-binding.mjs"
+      - "packages/saas-runtime/src/channel-binding.mjs"
+      - "packages/saas-runtime/test/channel-binding*.test.mjs"
+      - ".github/workflows/saas-channel-binding-v1-ci.yml"
+
+permissions:
+  contents: read
+
+jobs:
+  validate:
+    runs-on:
+      - self-hosted
+      - macOS
+      - X64
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+      - name: Check syntax
+        run: |
+          node --check packages/contracts/src/saas-channel-binding.mjs
+          node --check packages/saas-runtime/src/channel-binding.mjs
+      - name: Upsert only
+        run: node --test packages/saas-runtime/test/channel-binding.upsert.test.mjs
+      - name: Get only
+        run: node --test packages/saas-runtime/test/channel-binding.get.test.mjs
+      - name: List argument contract
+        run: node --test packages/saas-runtime/test/channel-binding.list-args.test.mjs
+      - name: List scope validation
+        run: node --test packages/saas-runtime/test/channel-binding.list-scope.test.mjs
+      - name: List only
+        run: node --test packages/saas-runtime/test/channel-binding.list.test.mjs
+      - name: Basic upsert get list
+        run: node --test packages/saas-runtime/test/channel-binding.basic.test.mjs
+      - name: Cross-tenant guard
+        run: node --test packages/saas-runtime/test/channel-binding.cross-tenant.test.mjs
+      - name: Secret rejection
+        run: node --test packages/saas-runtime/test/channel-binding.secret.test.mjs
