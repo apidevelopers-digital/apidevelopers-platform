@@ -27,6 +27,13 @@ const store = Object.freeze({
   async transaction(work) {
     return typeof work === "function" ? work({}) : undefined;
   },
+  async executeIdempotent(key, work) {
+    if (typeof work !== "function") return undefined;
+    return {
+      executed: true,
+      value: await work({}),
+    };
+  },
 });
 
 test("Hostinger Channel Binding write wiring is disabled by default", async () => {
@@ -50,7 +57,7 @@ test("enabling Hostinger wiring requires the durable store and high-entropy S2S 
         gateway: { app },
         env: { [ZUNI_CHANNEL_BINDING_WRITE_API_ENABLED_ENV]: "true" },
       }),
-    /gateway\.store must provide read and transaction/,
+    /gateway\.store must provide read, transaction and executeIdempotent/,
   );
 
   assert.throws(
