@@ -9,6 +9,10 @@ request:"uni_co_provisioning_not_complete",
 tenant_workspace:"uni_co_customer_tenant_not_active",
 subscription:"uni_co_customer_account_not_ready",
 entitlement:"uni_co_customer_membership_failed",
+entitlement_get:"uni_co_customer_account_not_ready",
+entitlement_grant:"uni_co_customer_membership_failed",
+entitlement_binding:"uni_co_product_mismatch",
+entitlement_status:"uni_co_customer_workspace_not_active",
 provisioning_job:"uni_co_provisioning_not_complete",
 federated_principal:"uni_co_principalId_required",
 access_grant:"uni_co_customer_access_grant_not_resolved",
@@ -73,10 +77,10 @@ let sub=await saasRuntime.getSubscription(subscriptionId);
 if(!sub)sub=await saasRuntime.startSubscription({subscriptionId,tenantId,productId,planId:PLAN_ID,status:"assisted_activation",currency:"BRL",monthlyAmount:0,createdAt:at});
 else{same(sub.tenantId,tenantId,"subscription_binding_mismatch");same(sub.productId,productId,"subscription_binding_mismatch");same(sub.planId,PLAN_ID,"subscription_binding_mismatch");same(sub.monthlyAmount,0,"subscription_binding_mismatch")}
 if(sub.status!=="active"){if(!["assisted_activation","trial"].includes(sub.status))throw new Error("subscription_not_activatable");sub=await saasRuntime.activateSubscription({subscriptionId,activatedAt:at})}
-provisioningStage="entitlement";
+provisioningStage="entitlement_get";
 let ent=await saasRuntime.getEntitlement(entitlementId);
-if(!ent)ent=await saasRuntime.grantEntitlement({entitlementId,subscriptionId,tenantId,workspaceId,productId,capability:"web-chat",status:"active",sourcePlanId:PLAN_ID,createdAt:at});
-else{same(ent.tenantId,tenantId,"entitlement_binding_mismatch");same(ent.workspaceId,workspaceId,"entitlement_binding_mismatch");same(ent.productId,productId,"entitlement_binding_mismatch");same(ent.subscriptionId,subscriptionId,"entitlement_binding_mismatch");if(ent.status!=="active")throw new Error("entitlement_not_active")}
+if(!ent){provisioningStage="entitlement_grant";ent=await saasRuntime.grantEntitlement({entitlementId,subscriptionId,tenantId,workspaceId,productId,capability:"web-chat",status:"active",sourcePlanId:PLAN_ID,createdAt:at})}
+else{provisioningStage="entitlement_binding";same(ent.tenantId,tenantId,"entitlement_binding_mismatch");same(ent.workspaceId,workspaceId,"entitlement_binding_mismatch");same(ent.productId,productId,"entitlement_binding_mismatch");same(ent.subscriptionId,subscriptionId,"entitlement_binding_mismatch");provisioningStage="entitlement_status";if(ent.status!=="active")throw new Error("entitlement_not_active")}
 provisioningStage="provisioning_job";
 let job=await saasRuntime.getProvisioningJob(provisioningJobId);
 if(!job)job=(await saasRuntime.enqueueProvisioning({provisioningJobId,subscriptionId,tenantId,workspaceId,productId,entitlementIds:[entitlementId],idempotencyKey,requestedAt:at})).job;
