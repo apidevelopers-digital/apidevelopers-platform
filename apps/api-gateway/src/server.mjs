@@ -11,6 +11,8 @@ import {
   parseAndValidateRadarSignalEvent,
 } from "./radar-signal-event.mjs";
 import { createReadinessService } from "./readiness.mjs";
+import { createTrustFaceAccessService } from "./trust-face-access-passkeys.mjs";
+import { createTrustFaceAccessServerBindings } from "./trust-face-access-server-bindings.mjs";
 
 const JSON_HEADERS = Object.freeze({
   "content-type": "application/json; charset=utf-8",
@@ -37,7 +39,6 @@ function jsonResponse(status, payload, headers = JSON_HEADERS) {
 function healthHeaders(origin) {
   const normalizedOrigin = String(origin ?? "").trim();
   if (!RADAR_HEALTH_ORIGINS.has(normalizedOrigin)) return JSON_HEADERS;
-
   return Object.freeze({
     ...JSON_HEADERS,
     "access-control-allow-origin": normalizedOrigin,
@@ -78,6 +79,20 @@ function hasScope(identity, scope) {
   return Array.isArray(scopes) && scopes.includes(scope);
 }
 
+function parseJsonObjectBody(body) {
+  if (body === undefined || String(body).trim() === "") return {};
+  let parsed;
+  try {
+    parsed = JSON.parse(body);
+  } catch {
+    throw new RequestTransportError(400, "invalid_json_body");
+  }
+  if (!parsed || typeof parsed !== "object" || Array.isArray(parsed)) {
+    throw new RequestTransportError(400, "json_object_body_required");
+  }
+  return parsed;
+}
+
 async function readBody(request, maxBytes = MAX_BODY_BYTES) {
   const method = String(request.method ?? "GET").toUpperCase();
   if (!["POST", "PUT", "PATCH"].includes(method)) return undefined;
@@ -110,6 +125,7 @@ export function createApp({
   saasAccess,
   radarEvents,
   adaMitraBridge = createAdaMitraBridgeReadOnly({ authenticator }),
+  trustFaceAccess = createTrustFaceAccessService(),
 } = {}) {
   if (
     authenticator !== undefined &&
@@ -141,6 +157,21 @@ export function createApp({
   if (typeof readiness?.check !== "function") {
     throw new TypeError("readiness.check must be a function");
   }
+  if (
+    trustFaceAccess !== undefined &&
+    (
+      typeof trustFaceAccess?.status !== "function" ||
+      typeof trustFaceAccess?.createRegistrationOptions !== "function" ||
+      typeof trustFaceAccess?.createAuthenticationOptions !== "function"
+    )
+  ) {
+    throw new TypeError("trustFaceAccess must expose status, createRegistrationOptions and createAuthenticationOptions functions");
+  }
+
+  const trustFaceAccessBindings = createTrustFaceAccessServerBindings({
+    trustFaceAccess,
+    parseJsonBody: parseJsonObjectBody,
+  });
 
   return {
     async handleRequest({
@@ -180,6 +211,53 @@ export function createApp({
         return jsonResponse(200, getOpenApiDocument());
       }
 
+      if (normalizedMethod === "GET" && pathname === "/v1/trust/face-access/status") {
+        if (!trustFaceAccess) {
+          return jsonResponse(503, {
+            service: "trust-face-access",
+            status: "unavailable",
+            reason: "trust_face_access_unavailable",
+          });
+        }
+        return jsonResponse(200, trustFaceAccess.status());
+      }
+
+      if (
+        normalizedMethod === "POST" &&
+        pathname === "/v1/trust/face-access/register/options"
+      ) {
+        if (!trustFaceAccess) return jsonResponse(503, { error: "trust_face_access_unavailable" });
+        const payload = parseJsonObjectBody(body);
+        return jsonResponse(200, trustFaceAccess.createRegistrationOptions({
+          userId: payload.userId,
+          userName: payload.userName,
+          displayName: payload.displayName,
+        }));
+      }
+
+      if (
+        normalizedMethod === "POST" &&
+        pathname === "/v1/trust/face-access/authenticate/options"
+      ) {
+        if (!trustFaceAccess) return jsonResponse(503, { error: "trust_face_access_unavailable" });
+        const payload = parseJsonObjectBody(body);
+        return jsonResponse(200, trustFaceAccess.createAuthenticationOptions({
+          userId: payload.userId,
+        }));
+      }
+
+      const trustFaceAccessVerifyResponse = trustFaceAccessBindings.handle({
+        method: normalizedMethod,
+        pathname,
+        body,
+      });
+      if (trustFaceAccessVerifyResponse) {
+        return jsonResponse(
+          trustFaceAccessVerifyResponse.status,
+          trustFaceAccessVerifyResponse.payload,
+        );
+      }
+
       if (normalizedMethod === "POST" && pathname === "/v1/radar/events") {
         if (!authenticator) {
           return jsonResponse(503, { accepted: false, reason: "authentication_unavailable" });
@@ -189,9 +267,7 @@ export function createApp({
         }
 
         const identity = await authenticator.authenticate(headers);
-        if (!identity) {
-          return jsonResponse(401, { accepted: false, reason: "unauthorized" });
-        }
+        if (!identity) return jsonResponse(401, { accepted: false, reason: "unauthorized" });
 
         const tenantId = identity?.principal?.tenantId;
         if (!tenantId) {
@@ -199,10 +275,7 @@ export function createApp({
         }
 
         if (!hasScope(identity, "radar:events:write")) {
-          return jsonResponse(403, {
-            accepted: false,
-            reason: "insufficient_scope",
-          });
+          return jsonResponse(403, { accepted: false, reason: "insufficient_scope" });
         }
 
         try {
@@ -224,41 +297,27 @@ export function createApp({
             });
           }
           if (error instanceof RadarSignalConflictError) {
-            return jsonResponse(409, {
-              accepted: false,
-              reason: error.code,
-            });
+            return jsonResponse(409, { accepted: false, reason: error.code });
           }
           throw error;
         }
       }
 
       if (normalizedMethod === "GET" && pathname === "/v1/saas/access") {
-        if (!authenticator) {
-          return jsonResponse(503, { allowed: false, reason: "authentication_unavailable" });
-        }
-        if (!saasAccess) {
-          return jsonResponse(503, { allowed: false, reason: "saas_access_unavailable" });
-        }
+        if (!authenticator) return jsonResponse(503, { allowed: false, reason: "authentication_unavailable" });
+        if (!saasAccess) return jsonResponse(503, { allowed: false, reason: "saas_access_unavailable" });
 
         const identity = await authenticator.authenticate(headers);
-        if (!identity) {
-          return jsonResponse(401, { allowed: false, reason: "unauthorized" });
-        }
+        if (!identity) return jsonResponse(401, { allowed: false, reason: "unauthorized" });
 
         const tenantId = identity?.principal?.tenantId;
-        if (!tenantId) {
-          return jsonResponse(403, { allowed: false, reason: "tenant_context_unavailable" });
-        }
+        if (!tenantId) return jsonResponse(403, { allowed: false, reason: "tenant_context_unavailable" });
 
         const accessGrantId = requestUrl.searchParams.get("accessGrantId")?.trim();
         const workspaceId = requestUrl.searchParams.get("workspaceId")?.trim();
         const productId = requestUrl.searchParams.get("productId")?.trim();
         if (!accessGrantId || !workspaceId || !productId) {
-          return jsonResponse(400, {
-            allowed: false,
-            reason: "access_context_required",
-          });
+          return jsonResponse(400, { allowed: false, reason: "access_context_required" });
         }
 
         const decision = await saasAccess.evaluateAccess({
@@ -273,19 +332,13 @@ export function createApp({
       }
 
       if (normalizedMethod === "GET" && pathname === "/v1/whoami") {
-        if (!authenticator) {
-          return jsonResponse(503, { error: "authentication_unavailable" });
-        }
+        if (!authenticator) return jsonResponse(503, { error: "authentication_unavailable" });
 
         const identity = await authenticator.authenticate(headers);
-        if (!identity) {
-          return jsonResponse(401, { error: "unauthorized" });
-        }
+        if (!identity) return jsonResponse(401, { error: "unauthorized" });
 
         const tenantContext = toGatewayTenantContext(identity, headers);
-        if (!tenantContext) {
-          return jsonResponse(403, { error: "tenant_context_unavailable" });
-        }
+        if (!tenantContext) return jsonResponse(403, { error: "tenant_context_unavailable" });
 
         await audit.recordTenantContextIssued({
           identity,
@@ -330,24 +383,21 @@ export function createHttpServer({
       }
 
       response.writeHead(500, JSON_HEADERS);
-      response.end(
-        JSON.stringify({
-          error: "internal_error",
-          message: error instanceof Error ? error.message : "Unknown error",
-        }),
-      );
+      response.end(JSON.stringify({
+        error: "internal_error",
+        message: error instanceof Error ? error.message : "Unknown error",
+      }));
     }
   });
 }
 
 export async function startServer({
   port = Number(process.env.PORT ?? 3000),
-  host = process.env.HOST ?? "127.0.0.1",
+  host = process.env.HOST?? "127.0.0.1",
   app,
   maxBodyBytes,
 } = {}) {
   const server = createHttpServer({ app, maxBodyBytes });
-
   await new Promise((resolve, reject) => {
     server.once("error", reject);
     server.listen(port, host, resolve);
@@ -360,13 +410,11 @@ async function main() {
   const server = await startServer();
   const address = server.address();
 
-  console.log(
-    JSON.stringify({
-      event: "api_gateway_started",
-      host: address.address,
-      port: address.port,
-    }),
-  );
+  console.log(JSON.stringify({
+    event: "api_gateway_started",
+    host: address.address,
+    port: address.port,
+  }));
 
   const shutdown = (signal) => {
     server.close(() => {
@@ -384,12 +432,10 @@ if (
   import.meta.url === pathToFileURL(process.argv[1]).href
 ) {
   main().catch((error) => {
-    console.error(
-      JSON.stringify({
-        event: "api_gateway_failed",
-        message: error instanceof Error ? error.message : "Unknown error",
-      }),
-    );
+    console.error(JSON.stringify({
+      event: "api_gateway_failed",
+      message: error instanceof Error ? error.message : "Unknown error",
+    }));
     process.exitCode = 1;
   });
 }
