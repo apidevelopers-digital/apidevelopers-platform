@@ -76,6 +76,78 @@ test("registration preview consumes challenges once and stores credential descri
   ]);
 });
 
+test("verifyRegistrationPreview aliases the registration preview verifier", () => {
+  const service = createTrustFaceAccessService();
+  const options = service.createRegistrationOptions({
+    userId: "igor",
+    userName: "igor@apidevelopers.digital",
+  });
+
+  const result = service.verifyRegistrationPreview({
+    userId: "igor",
+    challenge: options.publicKey.challenge,
+    credentialId: "credential-1",
+    transports: ["internal"],
+  });
+
+  assert.deepEqual(result, {
+    registered: true,
+    credentialId: "credential-1",
+    mode: "preview_without_attestation_verification",
+  });
+});
+
+test("verifyAuthenticationPreview consumes auth challenge and rejects unknown credentials", () => {
+  const service = createTrustFaceAccessService();
+
+  const registration = service.createRegistrationOptions({
+    userId: "igor",
+    userName: "igor@apidevelopers.digital",
+  });
+
+  service.verifyRegistrationPreview({
+    userId: "igor",
+    challenge: registration.publicKey.challenge,
+    credentialId: "credential-1",
+  });
+
+  const auth = service.createAuthenticationOptions({ userId: "igor" });
+
+  assert.throws(
+    () =>
+      service.verifyAuthenticationPreview({
+        userId: "igor",
+        challenge: auth.publicKey.challenge,
+        credentialId: "credential-404",
+      }),
+    /credential_not_found/u,
+  );
+
+  const auth2 = service.createAuthenticationOptions({ userId: "igor" });
+  const result = service.verifyAuthenticationPreview({
+    userId: "igor",
+    challenge: auth2.publicKey.challenge,
+    credentialId: "credential-1",
+  });
+
+  assert.deepEqual(result, {
+    authenticated: true,
+    userId: "igor",
+    credentialId: "credential-1",
+    mode: "preview_without_assertion_signature_verification",
+  });
+
+  assert.throws(
+    () =>
+      service.verifyAuthenticationPreview({
+        userId: "igor",
+        challenge: auth2.publicKey.challenge,
+        credentialId: "credential-1",
+      }),
+    /challenge_not_found/u,
+  );
+});
+
 test("expired challenges are rejected", () => {
   let currentTime = 0;
   const store = createInMemoryTrustFaceAccessStore({ now: () => currentTime });
