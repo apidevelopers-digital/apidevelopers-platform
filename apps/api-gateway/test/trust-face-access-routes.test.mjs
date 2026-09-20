@@ -121,17 +121,18 @@ test("POST /v1/trust/face-access/authenticate/options forwards authentication pa
   assert.equal(parse(response).publicKey.challenge, "challenge-2");
 });
 
-test("Trust Face Access routes reject invalid JSON payloads", async () => {
+test("Trust Face Access routes reject invalid JSON payloads at transport boundary", async () => {
   const app = createApp();
 
-  const response = await app.handleRequest({
-    method: "POST",
-    url: "/v1/trust/face-access/register/options",
-    body: "{",
-  });
-
-  assert.equal(response.status, 400);
-  assert.deepEqual(parse(response), { error: "invalid_json_body" });
+  await assert.rejects(
+    () =>
+      app.handleRequest({
+        method: "POST",
+        url: "/v1/trust/face-access/register/options",
+        body: "{",
+      }),
+    /invalid_json_body/u,
+  );
 });
 
 test("createApp rejects incomplete Trust Face Access composition", () => {
