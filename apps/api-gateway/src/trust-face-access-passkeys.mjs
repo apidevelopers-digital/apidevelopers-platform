@@ -203,5 +203,35 @@ export function createTrustFaceAccessService({
         mode: "preview_without_attestation_verification",
       });
     },
+
+    verifyRegistrationPreview(payload = {}) {
+      return this.registerCredentialPreview(payload);
+    },
+
+    verifyAuthenticationPreview({ userId, challenge, credentialId } = {}) {
+      const normalizedUserId = assertNonEmptyString(userId, "user_id");
+      const normalizedChallenge = assertNonEmptyString(challenge, "challenge");
+      const normalizedCredentialId = assertNonEmptyString(credentialId, "credential_id");
+
+      store.consumeChallenge({
+        type: "authentication",
+        challenge: normalizedChallenge,
+        userId: normalizedUserId,
+      });
+
+      const credential = store.getCredential({
+        userId: normalizedUserId,
+        credentialId: normalizedCredentialId,
+      });
+
+      if (!credential) throw new TrustFaceAccessError("credential_not_found");
+
+      return Object.freeze({
+        authenticated: true,
+        userId: normalizedUserId,
+        credentialId: normalizedCredentialId,
+        mode: "preview_without_assertion_signature_verification",
+      });
+    },
   });
 }
