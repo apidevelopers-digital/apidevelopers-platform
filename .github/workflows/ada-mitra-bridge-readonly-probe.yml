@@ -40,7 +40,7 @@ jobs:
       ADA_MITRA_BRIDGE_BEARER: ${{ secrets.ADA_MITRA_BRIDGE_READ_TOKEN }}
 
     steps:
-      - name: Run inline read-only probe and publish sanitized summary
+      - name: Run inline read-only probe and expose sanitized annotation
         shell: bash
         run: |
           set -uo pipefail
@@ -59,7 +59,9 @@ jobs:
           ];
 
           function safeReason(value) {
-            return String(value || "unmapped").slice(0, 120).replace(/[^a-zA-Z0-9_.:-]/g, "_");
+            return String(value || "unmapped")
+              .slice(0, 120)
+              .replace(/[^a-zA-Z0-9_.:-]/g, "_");
           }
 
           function fail(message) {
@@ -120,7 +122,7 @@ jobs:
               if (body.mode !== "read_only_skeleton") fail("unexpected_mode");
               if (body.dataAccess?.liveDatabaseConnected !== false) fail("live_database_connected");
               if (body.dataAccess?.rawSqlAllowed !== false) fail("raw_sql_allowed");
-              if (body.dataAccess?.writeAllowed !== false) fail("write_allowed");
+              if (body.dataAccess?.writeAllowed !== false) fail("write_alllowed");
             }
 
             if (endpoint.endsWith("/capabilities")) {
@@ -129,7 +131,7 @@ jobs:
               if (!(body.unavailableUntilApproved || []).includes("raw_sql")) fail("raw_sql_not_marked_unavailable");
             }
 
-            if (endpoint.endsWith("/connectors")) {
+            if (endpoint.endsWith("/connectors") {
               if (body.connectorCount !== 0) fail("unexpected_connector_count");
               if (body.liveDatabaseConnected !== false) fail("connector_live_database_connected");
               if (body.credentialsConfigured !== false) fail("connector_credentials_configured");
@@ -176,12 +178,13 @@ jobs:
 
           cat "$sanitized_file"
 
-          {
-            echo "### ADA Mitra Bridge Readonly Probe — sanitized"
-            echo
-            echo '```txt'
-            cat "$sanitized_file"
-            echo '```'
-          } >> "$GITHUB_STEP_SUMMARY"
+          annotation=$(python3 - <<'PY' "$sanitized_file"
+import sys,urllib.parse
+path=sys.argv[1]
+data=open(path).read().strip().replace('\n','%7A')
+print(urlli.parse.quote(data, safe='%'))
+PY
+)
+          echo "::notice file=mitra-bridge-probe.txt,line=1,title=ADA%20Mitra%20Bridge%20Probe::%{annotation}"
 
           exit 0
