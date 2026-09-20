@@ -38,26 +38,155 @@ jobs:
       GATEWAY_ORIGIN: ${{ github.event.inputs.gateway_origin }}
       EXPECTED_SOURCE_SHA: ${{ github.event.inputs.expected_source_sha }}
       ADA_MITRA_BRIDGE_BEARER: ${{ secrets.ADA_MITRA_BRIDGE_READ_TOKEN }}
+      GH_TOKEN: ${{ github.token }}
+      RESULT_PATH: docs/ops/ada-mitra-bridge-readonly-probe.latest.txt
 
     steps:
-      - name: Checkout
-        uses: actions/checkout@v4
-        with:
-          ref: ${{ github.ref_name }}
-
-      - name: Run read-only probe and persist sanitized result
+      - name: Run inline read-only probe and persist sanitized result
         shell: bash
         run: |
           set -uo pipefail
           test "$EXPECTED_SOURCE_SHA" = "27093700631cc21423d2ce561a1dd99ad78e68b7"
           test "$GATEWAY_ORIGIN" = "https://gateway.apidevelopers.digital"
 
-          mkdir -p docs/ops
           raw_log="$(mktemp)"
-          sanitized_file="docs/ops/ada-mitra-bridge-readonly-probe.latest.txt"
+          sanitized_file="$(mktemp)"
+
+          cat > /tmp/ada-mitra-bridge-readonly-probe.mjs <<'NODE'
+          const GATEWAY_ORIGIN = process.env.GATEWAY_ORIGIN || "";
+          const EXPECTED_SOURCE_SHA = process.env.EXPECTED_SOURCE_SHA || "";
+          const TOKEN = process.env.ADA_MITRA_BRIDGE_BEARER || "";
+
+          const endpoints = [
+            "/v1/ada/mitra/status",
+            "/v1/ada/mitra/capabilities",
+            "/v1/ada/mitra/connectors",
+          ];
+
+          function safeReason(value) {
+            return String(value || "unmapped")
+              .slice(0, 120)
+              .replace(/[^a-zA-Z0-9_.:-]/g, "_");
+          }
+
+          function fail(message) {
+            console.log(`ADA_MITRA_BRIDGE_PROBE_FAILURE=${safeReason(message)}`);
+            process.exit(1);
+          }
+
+          if (!TOKEN) {
+            console.log("ADA_MITRA_BRIDGE_PROBE_SECRET_PRESENT=false");
+            fail("missing_secret_ADA_MITRA_BRIDGE_READ_TOKEN");
+          }
+
+          console.log("ADA_MITRA_BRIDGE_PROBE_SECRET_PRESENT=true");
+
+          if (EXPECTED_SOURCE_SHA !== "27093700631cc21423d2ce561a1dd99ad78e68b7") {
+            fail("unexpected_expected_source_sha");
+          }
+
+          if (GATEWAY_ORIGIN !== "https://gateway.apidevelopers.digital") {
+            fail("unexpected_gateway_origin");
+          }
+
+          async function request(path, accept = "application/json") {
+            const url = `${GATEWAY_ORIGIN}${path}`;
+            const response = await fetch(url, {
+              method: "GET",
+              headers: {
+                accept,
+                authorization: `Bearer ${TOKEN}`,
+                "user-agent": "apidevelopers-platform/ada-mitra-bridge-readonly-probe",
+              },
+            });
+
+            const text = await response.text();
+            return { status: response.status, text };
+          }
+
+          function assertNoSecretLikeText(endpoint, text) {
+            const lower = text.toLowerCase();
+            for (const forbidden of [
+              "bearer ",
+              "password",
+              "access_token",
+              "refresh_token",
+              "cookie",
+              "database_url",
+              "private_key",
+            ]) {
+              if (lower.includes(forbidden)) {
+                fail(`secret_like_field_exposed:${endpoint}:${forbidden.trim()}`);
+              }
+            }
+          }
+
+          function parseJson(endpoint, status, text) {
+            try {
+              return JSON.parse(text);
+            } catch {
+              console.log(`ADA_MITRA_BRIDGE_PROBE_ENDPOINT=${endpoint}`);
+              console.log(`ADA_MITRA_BRIDGE_PROBE_HTTP_STATUS=${status}`);
+              fail(`${endpoint}:http_${status}:unparseable_response`);
+            }
+          }
+
+          for (const endpoint of endpoints) {
+            const { status, text } = await request(endpoint);
+            console.log(`ADA_MITRA_BRIDGE_PROBE_ENDPOINT=${endpoint}`);
+            console.log(`ADA_MITRA_BRIDGE_PROBE_HTTP_STATUS=${status}`);
+
+            assertNoSecretLikeText(endpoint, text);
+
+            const body = parseJson(endpoint, status, text);
+            if (status !== 200) {
+              const reason = safeReason(body.reason || body.error || body.code || body.message || "unmapped");
+              fail(`${endpoint}:http_${status}:${reason}`);
+            }
+
+            if (body.ok !== true) fail(`${endpoint}:not_ok`);
+            if (body.service !== "ada-mitra-bridge") fail(`${endpoint}:unexpected_service`);
+
+            if (endpoint.endsWith("/status")) {
+              if (body.status !== "ready") fail("status_not_ready");
+              if (body.mode !== "read_only_skeleton") fail("unexpected_mode");
+              if (body.dataAccess?.liveDatabaseConnected !== false) fail("live_database_connected");
+              if (body.dataAccess?.rawSqlAllowed !== false) fail("raw_sql_allowed");
+              if (body.dataAccess?.writeAllowed !== false) fail("write_allowed");
+            }
+
+            if (endpoint.endsWith("/capabilities")) {
+              const paths = new Set((body.capabilities || []).map((cap) => cap.path));
+              for (const required of endpoints) {
+                if (!paths.has(required)) fail(`missing_capability:${required}`);
+              }
+              if (!(body.unavailableUntilApproved || []).includes("raw_sql")) {
+                fail("raw_sql_not_marked_unavailable");
+              }
+            }
+
+            if (endpoint.endsWith("/connectors")) {
+              if (body.connectorCount !== 0) fail("unexpected_connector_count");
+              if (body.liveDatabaseConnected !== false) fail("connector_live_database_connected");
+              if (body.credentialsConfigured !== false) fail("connector_credentials_configured");
+              if (body.rawSqlAllowed !== false) fail("connector_raw_sql_allowed");
+              if (body.writeAllowed !== false) fail("connector_write_allowed");
+            }
+
+            console.log(`ADA_MITRA_BRIDGE_PROBE_OK ${endpoint}`);
+          }
+
+          const source = await request("/SOURCE_SHA", "text/plain");
+          if (source.status === 200) {
+            if (!source.text.includes(EXPECTED_SOURCE_SHA)) fail("source_sha_mismatch");
+            console.log("ADA_MITRA_BRIDGE_SOURCE_SHA_CONFIRMED");
+          } else {
+            console.log(`ADA_MITRA_BRIDGE_SOURCE_SHA_ENDPOINT_UNAVAILABLE_STATUS_${source.status}`);
+          }
+          NODE
 
           set +e
-          node scripts/ops/ada-mitra-bridge-readonly-probe.mjs > "$raw_log" 2>&1
+          node /tmp/ada-mitra-bridge-readonly-probe.mjs > "$raw_log" 2>&1
           probe_exit="$?"
           set -e
 
@@ -70,18 +199,64 @@ jobs:
             grep '^ADA_MITRA_BRIDGE_' "$raw_log" || true
           } > "$sanitized_file"
 
-          if grep -Eiq '(authorization|bearer |token|cookie|secret=[^[:space:]]|password|database_url|private_key)' "$sanitized_file"; then
-            echo "ADA_MITRA_BRIDGE_AUDIT_SANITIZER_BLOCKED=true" > "$sanitized_file"
-            echo "Sanitizer blocked diagnostic output"
-            exit 1
+          if grep -Eiq '(authorization|bearer |token=|cookie|secret=[^[:space:]]|password|database_url|private_key)' "$sanitized_file"; then
+            {
+              echo "ADA_MITRA_BRIDGE_AUDIT_RUN=${GITHUB_RUN_NUMBER}"
+              echo "ADA_MITRA_BRIDGE_AUDIT_RUN_ID=${GITHUB_RUN_ID}"
+              echo "ADA_MITRA_BRIDGE_AUDIT_REF=${GITHUB_REF_NAME}"
+              echo "ADA_MITRA_BRIDGE_AUDIT_SHA=${GITHUB_SHA}"
+              echo "ADA_MITRA_BRIDGE_AUDIT_PROBE_EXIT=${probe_exit}"
+              echo "ADA_MITRA_BRIDGE_AUDIT_SANITIZER_BLOCKED=true"
+            } > "$sanitized_file"
           fi
 
           cat "$sanitized_file"
 
-          git config user.name "sitedauni-bot"
-          git config user.email "actions@users.noreply.github.com"
-          git add "$sanitized_file"
-          git commit -m "chore: record sanitized Mitra bridge probe result" || true
-          git push origin "HEAD:${GITHUB_REF_NAME}"
+          SANITIZED_FILE="$sanitized_file" node <<'NODE'
+          const fs = require("fs");
+          const ownerRepo = process.env.GITHUB_REPOSITORY;
+          const branch = process.env.GITHUB_REF_NAME;
+          const path = process.env.RESULT_PATH;
+          const token = process.env.GH_TOKEN;
+          const content = fs.readFileSync(process.env.SANITIZED_FILE, "utf8");
+          const apiPath = path.split("/").map(encodeURIComponent).join("/");
+          const url = `https://api.github.com/repos/${ownerRepo}/contents/${apiPath}`;
+
+          async function request(method, target, body) {
+            const res = await fetch(target, {
+              method,
+              headers: {
+                authorization: `Bearer ${token}`,
+                accept: "application/vnd.github+json",
+                "x-github-api-version": "2022-11-28",
+                "user-agent": "apidevelopers-platform/ada-mitra-bridge-probe-persist",
+                ...(body ? { "content-type": "application/json" } : {}),
+              },
+              ...(body ? { body: JSON.stringify(body) } : {}),
+            });
+            const text = await res.text();
+            let parsed = null;
+            try { parsed = text ? JSON.parse(text) : null; } catch {}
+            return { status: res.status, parsed, text };
+          }
+
+          let sha;
+          const current = await request("GET", `${url}?ref=${encodeURIComponent(branch)}`);
+          if (current.status === 200) sha = current.parsed.sha;
+          else if (current.status !== 404) {
+            console.log(`ADA_MITRA_BRIDGE_AUDIT_PERSIST_LOOKUP_STATUS=${current.status}`);
+            process.exit(1);
+          }
+
+          const body = {
+            message: "chore: record sanitized Mitra bridge probe result",
+            content: Buffer.from(content, "utf8").toString("base64"),
+            branch,
+            ...(sha ? { sha } : {}),
+          };
+          const saved = await request("PUT", url, body);
+          console.log(`ADA_MITRA_BRIDGE_AUDIT_PERSIST_STATUS=${saved.status}`);
+          if (saved.status < 200 || saved.status > 299) process.exit(1);
+          NODE
 
           exit "$probe_exit"
