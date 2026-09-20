@@ -68,7 +68,7 @@ test("POST /v1/trust/face-access/register/options forwards registration payload"
   const response = await app.handleRequest({
     method: "POST",
     url: "/v1/trust/face-access/register/options",
-    body: JSON.stringify {
+    body: JSON.stringify({
       userId: "igor",
       userName: "igor@apidevelopers.digital",
       displayName: "Igor",
@@ -110,7 +110,7 @@ test("POST /v1/trust/face-access/authenticate/options forwards authentication pa
     },
   });
 
-  const response = await app.handleRequest {
+  const response = await app.handleRequest({
     method: "POST",
     url: "/v1/trust/face-access/authenticate/options",
     body: JSON.stringify({ userId: "igor" }),
