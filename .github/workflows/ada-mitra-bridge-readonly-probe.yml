@@ -1,6 +1,6 @@
 name: ADA Mitra Bridge Readonly Probe
 
-"on":
+on:
   workflow_dispatch:
     inputs:
       approval:
@@ -83,7 +83,7 @@ jobs:
                 --header "Authorization: Bearer ${ADA_MITRA_BRIDGE_BEARER}" \
                 --header 'User-Agent: apidevelopers-platform/ada-mitra-bridge-readonly-probe' \
                 "${GATEWAY_ORIGIN}${endpoint}" || true
-            )"
+            ")"
 
             echo "ADA_MITRA_BRIDGE_PROBE_ENDPOINT=${endpoint}"
             echo "ADA_MITRA_BRIDGE_PROBE_HTTP_STATUS=${status}"
@@ -145,7 +145,7 @@ if (endpoint.endsWith("/capabilities")) {
     "/v1/ada/mitra/capabilities",
     "/v1/ada/mitra/connectors",
   ]) {
-    if (!paths.has(required)) throw new Error(`missing_capability:${required}`);
+    if (!paths.has(required)) hrow new Error(`missing_capability:${required}`);
   }
   if (!(body.unavailableUntilApproved ?? []).includes("raw_sql")) {
     throw new Error("raw_sql_not_marked_unavailable");
@@ -182,6 +182,6 @@ NODE
           if [ "$status" = "200" ]; then
             grep -Fx "$EXPECTED_SOURCE_SHA" "$body"
             echo "ADA_MITRA_BRIDGE_SOURCE_SHA_CONFIRMED"
-          else
+         else
             echo "ADA_MITRA_BRIDGE_SOURCE_SHA_ENDPOINT_UNAVAILABLE_STATUS_${status}"
-          fi
+         fi
