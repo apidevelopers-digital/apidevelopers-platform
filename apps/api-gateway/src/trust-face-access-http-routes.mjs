@@ -29,7 +29,7 @@ export function createTrustFaceAccessHttpRoutes({ trustFaceAccess } = {}) {
   return Object.freeze({
     registerVerify(payload) {
       if (!trustFaceAccess) return unavailable();
-      if (typeof trustFaceAccess?verifyRegistrationPreview !== "function") return verifyUnavailable();
+      if (typeof trustFaceAccess?.verifyRegistrationPreview !== "function") return verifyUnavailable();
 
       const parsed = parsePayload(payload);
       const result = trustFaceAccess.verifyRegistrationPreview({
