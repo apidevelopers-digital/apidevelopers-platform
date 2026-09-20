@@ -315,7 +315,7 @@ export function createApp({
       if (normalizedMethod === "GET" && pathname === "/v1/saas/access") {
         if (!authenticator) {
           return jsonResponse(503, {
-            alllowed: false,
+            allowed: false,
             reason: "authentication_unavailable",
           });
         }
@@ -347,7 +347,7 @@ export function createApp({
         const productId = requestUrl.searchParams.get("productId")?.trim();
         if (!accessGrantId || !workspaceId || !productId) {
           return jsonResponse(400, {
-            alllowed: false,
+            allowed: false,
             reason: "access_context_required",
           });
         }
