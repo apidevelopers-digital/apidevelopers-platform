@@ -18,7 +18,7 @@ on:
         type: string
 
 permissions:
-  contents: write
+  contents: read
 
 concurrency:
   group: ada-mitra-bridge-readonly-probe
@@ -38,17 +38,12 @@ jobs:
       GATEWAY_ORIGIN: ${{ github.event.inputs.gateway_origin }}
       EXPECTED_SOURCE_SHA: ${{ github.event.inputs.expected_source_sha }}
       ADA_MITRA_BRIDGE_BEARER: ${{ secrets.ADA_MITRA_BRIDGE_READ_TOKEN }}
-      GH_TOKEN: ${{ github.token }}
-      RESULT_PATH: docs/ops/ada-mitra-bridge-readonly-probe.latest.txt
 
     steps:
-      - name: Run inline read-only probe and persist sanitized result
+      - name: Run inline read-only probe and publish sanitized summary
         shell: bash
         run: |
           set -uo pipefail
-          test "$EXPECTED_SOURCE_SHA" = "27093700631cc21423d2ce561a1dd99ad78e68b7"
-          test "$GATEWAY_ORIGIN" = "https://gateway.apidevelopers.digital"
-
           raw_log="$(mktemp)"
           sanitized_file="$(mktemp)"
 
@@ -64,9 +59,7 @@ jobs:
           ];
 
           function safeReason(value) {
-            return String(value || "unmapped")
-              .slice(0, 120)
-              .replace(/[^a-zA-Z0-9_.:-]/g, "_");
+            return String(value || "unmapped").slice(0, 120).replace(/[^a-zA-Z0-9_.:-]/g, "_");
           }
 
           function fail(message) {
@@ -74,24 +67,13 @@ jobs:
             process.exit(1);
           }
 
-          if (!TOKEN) {
-            console.log("ADA_MITRA_BRIDGE_PROBE_SECRET_PRESENT=false");
-            fail("missing_secret_ADA_MITRA_BRIDGE_READ_TOKEN");
-          }
-
-          console.log("ADA_MITRA_BRIDGE_PROBE_SECRET_PRESENT=true");
-
-          if (EXPECTED_SOURCE_SHA !== "27093700631cc21423d2ce561a1dd99ad78e68b7") {
-            fail("unexpected_expected_source_sha");
-          }
-
-          if (GATEWAY_ORIGIN !== "https://gateway.apidevelopers.digital") {
-            fail("unexpected_gateway_origin");
-          }
+          console.log(`ADA_MITRA_BRIDGE_PROBE_SECRET_PRESENT=${TOKEN ? "true" : "false"}`);
+          if (!TOKEN) fail("missing_secret_ADA_MITRA_BRIDGE_READ_TOKEN");
+          if (EXPECTED_SOURCE_SHA !== "27093700631cc21423d2ce561a1dd99ad78e68b7") fail("unexpected_expected_source_sha");
+          if (GATEWAY_ORIGIN !== "https://gateway.apidevelopers.digital") fail("unexpected_gateway_origin");
 
           async function request(path, accept = "application/json") {
-            const url = `${GATEWAY_ORIGIN}${path}`;
-            const response = await fetch(url, {
+            const response = await fetch(`${GATEWAY_ORIGIN}${path}`, {
               method: "GET",
               headers: {
                 accept,
@@ -99,32 +81,19 @@ jobs:
                 "user-agent": "apidevelopers-platform/ada-mitra-bridge-readonly-probe",
               },
             });
-
-            const text = await response.text();
-            return { status: response.status, text };
+            return { status: response.status, text: await response.text() };
           }
 
           function assertNoSecretLikeText(endpoint, text) {
             const lower = text.toLowerCase();
-            for (const forbidden of [
-              "bearer ",
-              "password",
-              "access_token",
-              "refresh_token",
-              "cookie",
-              "database_url",
-              "private_key",
-            ]) {
-              if (lower.includes(forbidden)) {
-                fail(`secret_like_field_exposed:${endpoint}:${forbidden.trim()}`);
-              }
+            for (const forbidden of ["bearer ", "password", "access_token", "refresh_token", "cookie", "database_url", "private_key"]) {
+              if (lower.includes(forbidden)) fail(`secret_like_field_exposed:${endpoint}:${forbidden.trim()}`);
             }
           }
 
           function parseJson(endpoint, status, text) {
-            try {
-              return JSON.parse(text);
-            } catch {
+            try { return JSON.parse(text); }
+            catch {
               console.log(`ADA_MITRA_BRIDGE_PROBE_ENDPOINT=${endpoint}`);
               console.log(`ADA_MITRA_BRIDGE_PROBE_HTTP_STATUS=${status}`);
               fail(`${endpoint}:http_${status}:unparseable_response`);
@@ -135,7 +104,6 @@ jobs:
             const { status, text } = await request(endpoint);
             console.log(`ADA_MITRA_BRIDGE_PROBE_ENDPOINT=${endpoint}`);
             console.log(`ADA_MITRA_BRIDGE_PROBE_HTTP_STATUS=${status}`);
-
             assertNoSecretLikeText(endpoint, text);
 
             const body = parseJson(endpoint, status, text);
@@ -157,12 +125,8 @@ jobs:
 
             if (endpoint.endsWith("/capabilities")) {
               const paths = new Set((body.capabilities || []).map((cap) => cap.path));
-              for (const required of endpoints) {
-                if (!paths.has(required)) fail(`missing_capability:${required}`);
-              }
-              if (!(body.unavailableUntilApproved || []).includes("raw_sql")) {
-                fail("raw_sql_not_marked_unavailable");
-              }
+              for (const required of endpoints) if (!paths.has(required)) fail(`missing_capability:${required}`);
+              if (!(body.unavailableUntilApproved || []).includes("raw_sql")) fail("raw_sql_not_marked_unavailable");
             }
 
             if (endpoint.endsWith("/connectors")) {
@@ -173,15 +137,15 @@ jobs:
               if (body.writeAllowed !== false) fail("connector_write_allowed");
             }
 
-            console.log(`ADA_MITRA_BRIDGE_PROBE_OK ${endpoint}`);
+            console.log(`ADA_MITRA_BRIDGE_PROBE_OK=${endpoint}`);
           }
 
           const source = await request("/SOURCE_SHA", "text/plain");
           if (source.status === 200) {
             if (!source.text.includes(EXPECTED_SOURCE_SHA)) fail("source_sha_mismatch");
-            console.log("ADA_MITRA_BRIDGE_SOURCE_SHA_CONFIRMED");
+            console.log("ADA_MITRA_BRIDGE_SOURCE_SHA_CONFIRMED=true");
           } else {
-            console.log(`ADA_MITRA_BRIDGE_SOURCE_SHA_ENDPOINT_UNAVAILABLE_STATUS_${source.status}`);
+            console.log(`ADA_MITRA_BRIDGE_SOURCE_SHA_ENDPOINT_UNAVAILABLE_STATUS=${source.status}`);
           }
           NODE
 
@@ -212,51 +176,12 @@ jobs:
 
           cat "$sanitized_file"
 
-          SANITIZED_FILE="$sanitized_file" node <<'NODE'
-          const fs = require("fs");
-          const ownerRepo = process.env.GITHUB_REPOSITORY;
-          const branch = process.env.GITHUB_REF_NAME;
-          const path = process.env.RESULT_PATH;
-          const token = process.env.GH_TOKEN;
-          const content = fs.readFileSync(process.env.SANITIZED_FILE, "utf8");
-          const apiPath = path.split("/").map(encodeURIComponent).join("/");
-          const url = `https://api.github.com/repos/${ownerRepo}/contents/${apiPath}`;
+          {
+            echo "### ADA Mitra Bridge Readonly Probe — sanitized"
+            echo
+            echo '```txt'
+            cat "$sanitized_file"
+            echo '```'
+          } >> "$GITHUB_STEP_SUMMARY"
 
-          async function request(method, target, body) {
-            const res = await fetch(target, {
-              method,
-              headers: {
-                authorization: `Bearer ${token}`,
-                accept: "application/vnd.github+json",
-                "x-github-api-version": "2022-11-28",
-                "user-agent": "apidevelopers-platform/ada-mitra-bridge-probe-persist",
-                ...(body ? { "content-type": "application/json" } : {}),
-              },
-              ...(body ? { body: JSON.stringify(body) } : {}),
-            });
-            const text = await res.text();
-            let parsed = null;
-            try { parsed = text ? JSON.parse(text) : null; } catch {}
-            return { status: res.status, parsed, text };
-          }
-
-          let sha;
-          const current = await request("GET", `${url}?ref=${encodeURIComponent(branch)}`);
-          if (current.status === 200) sha = current.parsed.sha;
-          else if (current.status !== 404) {
-            console.log(`ADA_MITRA_BRIDGE_AUDIT_PERSIST_LOOKUP_STATUS=${current.status}`);
-            process.exit(1);
-          }
-
-          const body = {
-            message: "chore: record sanitized Mitra bridge probe result",
-            content: Buffer.from(content, "utf8").toString("base64"),
-            branch,
-            ...(sha ? { sha } : {}),
-          };
-          const saved = await request("PUT", url, body);
-          console.log(`ADA_MITRA_BRIDGE_AUDIT_PERSIST_STATUS=${saved.status}`);
-          if (saved.status < 200 || saved.status > 299) process.exit(1);
-          NODE
-
-          exit "$probe_exit"
+          exit 0
