@@ -384,7 +384,7 @@ export function createApp({
           });
         }
 
-        await audit.recordTenantContextIssued {
+        await audit.recordTenantContextIssued({
           identity,
           tenantContext,
           method: normalizedMethod,
