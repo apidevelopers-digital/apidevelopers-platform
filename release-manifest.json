@@ -3,7 +3,7 @@
   "format": "managed-node-zip",
   "service": "api-gateway",
   "version": "0.8.0",
-  "sourceRevision": "27093700631cc21423d2ce561a1dd99ad78e68b7",
+  "sourceRevision": "433d38c48465304be8ffe0c143a346c2155a4ce7",
   "runtime": {
     "node": ">=22",
     "entrypoint": "src/hostinger-entry.mjs",
@@ -1149,8 +1149,23 @@
     },
     {
       "path": "src/server.mjs",
-      "bytes": 12055,
-      "sha256": "6cfec17fd7265ada3eaa36f9c4c2884ec2042061c7b4bfa806f8ad3d5b445bec"
+      "bytes": 14498,
+      "sha256": "2a0358993aed1e5636e572574d5403cbca526b8eb836b2e332891cb76d58bb62"
+    },
+    {
+      "path": "src/trust-face-access-http-routes.mjs",
+      "bytes": 1737,
+      "sha256": "fe34f4dab7d32edca1e5cbfec079a5e760fbd34ee501f4e36380a52163f5e7ad"
+    },
+    {
+      "path": "src/trust-face-access-passkeys.mjs",
+      "bytes": 7700,
+      "sha256": "3c1b05f96d621884147e9d02584ff9785be7bdef7f2731f4e5cbee30c512d0e3"
+    },
+    {
+      "path": "src/trust-face-access-server-bindings.mjs",
+      "bytes": 994,
+      "sha256": "443bac6236733a16929b504b4c11c882cd76dc63528855206601ea51a3674c88"
     },
     {
       "path": "src/trust-sandbox-governance.mjs",
