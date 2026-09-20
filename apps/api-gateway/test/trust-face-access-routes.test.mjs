@@ -113,7 +113,7 @@ test("POST /v1/trust/face-access/authenticate/options forwards authentication pa
   const response = await app.handleRequest({
     method: "POST",
     url: "/v1/trust/face-access/authenticate/options",
-    body: JSON.stringify { userId: "igor" }),
+    body: JSON.stringify({ userId: "igor" }),
   });
 
   assert.equal(response.status, 200);
