@@ -10,6 +10,7 @@ import {
   parseAndValidateRadarSignalEvent,
 } from "./radar-signal-event.mjs";
 import { createReadinessService } from "./readiness.mjs";
+import { createTrustFaceAccessService } from "./trust-face-access-passkeys.mjs";
 
 const JSON_HEADERS = Object.freeze({
   "content-type": "application/json; charset=utf-8",
@@ -81,6 +82,21 @@ function hasScope(identity, scope) {
   return Array.isArray(scopes) && scopes.includes(scope);
 }
 
+
+function parseJsonObjectBody(body) {
+  if (body === undefined || String(body).trim() === "") return {};
+  let parsed;
+  try {
+    parsed = JSON.parse(body);
+  } catch {
+    throw new RequestTransportError(400, "invalid_json_body");
+  }
+  if (!parsed || typeof parsed !== "object" || Array.isArray(parsed)) {
+    throw new RequestTransportError(400, "json_object_body_required");
+  }
+  return parsed;
+}
+
 async function readBody(request, maxBytes = MAX_BODY_BYTES) {
   const method = String(request.method ?? "GET").toUpperCase();
   if (!["POST", "PUT", "PATCH"].includes(method)) return undefined;
@@ -112,6 +128,7 @@ export function createApp({
   readiness = createReadinessService(),
   saasAccess,
   radarEvents,
+  trustFaceAccess = createTrustFaceAccessService(),
 } = {}) {
   if (
     authenticator !== undefined &&
@@ -136,6 +153,16 @@ export function createApp({
   }
   if (typeof readiness?.check !== "function") {
     throw new TypeError("readiness.check must be a function");
+  }
+  if (
+    trustFaceAccess !== undefined &&
+    (
+      typeof trustFaceAccess?.status !== "function" ||
+      typeof trustFaceAccess?.createRegistrationOptions !== "function" ||
+      typeof trustFaceAccess?.createAuthenticationOptions !== "function"
+    )
+  ) {
+    throw new TypeError("trustFaceAccess must expose status, createRegistrationOptions and createAuthenticationOptions functions");
   }
 
   return {
@@ -167,6 +194,57 @@ export function createApp({
 
       if (normalizedMethod === "GET" && pathname === "/openapi.json") {
         return jsonResponse(200, getOpenApiDocument());
+      }
+
+
+      if (normalizedMethod === "GET" && pathname === "/v1/trust/face-access/status") {
+        if (!trustFaceAccess) {
+          return jsonResponse(503, {
+            service: "trust-face-access",
+            status: "unavailable",
+            reason: "trust_face_access_unavailable",
+          });
+        }
+
+        return jsonResponse(200, trustFaceAccess.status());
+      }
+
+      if (
+        normalizedMethod === "POST" &&
+        pathname === "/v1/trust/face-access/register/options"
+      ) {
+        if (!trustFaceAccess) {
+          return jsonResponse(503, {
+            error: "trust_face_access_unavailable",
+          });
+        }
+
+        const payload = parseJsonObjectBody(body);
+        const options = trustFaceAccess.createRegistrationOptions({
+          userId: payload.userId,
+          userName: payload.userName,
+          displayName: payload.displayName,
+        });
+
+        return jsonResponse(200, options);
+      }
+
+      if (
+        normalizedMethod === "POST" &&
+        pathname === "/v1/trust/face-access/authenticate/options"
+      ) {
+        if (!trustFaceAccess) {
+          return jsonResponse(503, {
+            error: "trust_face_access_unavailable",
+          });
+        }
+
+        const payload = parseJsonObjectBody(body);
+        const options = trustFaceAccess.createAuthenticationOptions({
+          userId: payload.userId,
+        });
+
+        return jsonResponse(200, options);
       }
 
       if (normalizedMethod === "POST" && pathname === "/v1/radar/events") {
@@ -237,7 +315,7 @@ export function createApp({
       if (normalizedMethod === "GET" && pathname === "/v1/saas/access") {
         if (!authenticator) {
           return jsonResponse(503, {
-            allowed: false,
+            alllowed: false,
             reason: "authentication_unavailable",
           });
         }
@@ -269,7 +347,7 @@ export function createApp({
         const productId = requestUrl.searchParams.get("productId")?.trim();
         if (!accessGrantId || !workspaceId || !productId) {
           return jsonResponse(400, {
-            allowed: false,
+            alllowed: false,
             reason: "access_context_required",
           });
         }
@@ -306,7 +384,7 @@ export function createApp({
           });
         }
 
-        await audit.recordTenantContextIssued({
+        await audit.recordTenantContextIssued {
           identity,
           tenantContext,
           method: normalizedMethod,
