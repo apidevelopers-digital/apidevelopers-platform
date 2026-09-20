@@ -1,6 +1,7 @@
 import http from "node:http";
 import { pathToFileURL } from "node:url";
 
+import { createAdaMitraBridgeReadOnly } from "./ada-mitra-bridge-readonly.mjs";
 import { createGatewayGlobalTrustAudit } from "./global-trust-audit.mjs";
 import { createGatewayGlobalTrustTenantContext } from "./global-trust-context.mjs";
 import { getOpenApiDocument } from "./openapi.mjs";
@@ -30,11 +31,7 @@ class RequestTransportError extends Error {
 }
 
 function jsonResponse(status, payload, headers = JSON_HEADERS) {
-  return {
-    status,
-    headers,
-    body: JSON.stringify(payload),
-  };
+  return { status, headers, body: JSON.stringify(payload) };
 }
 
 function healthHeaders(origin) {
@@ -112,6 +109,7 @@ export function createApp({
   readiness = createReadinessService(),
   saasAccess,
   radarEvents,
+  adaMitraBridge = createAdaMitraBridgeReadOnly({ authenticator }),
 } = {}) {
   if (
     authenticator !== undefined &&
@@ -131,6 +129,12 @@ export function createApp({
   ) {
     throw new TypeError("radarEvents.ingest must be a function");
   }
+  if (
+    adaMitraBridge !== undefined &&
+    typeof adaMitraBridge?.handleRequest !== "function"
+  ) {
+    throw new TypeError("adaMitraBridge.handleRequest must be a function");
+  }
   if (typeof audit?.recordTenantContextIssued !== "function") {
     throw new TypeError("audit.recordTenantContextIssued must be a function");
   }
@@ -149,13 +153,20 @@ export function createApp({
       const requestUrl = new URL(String(url), "http://api-gateway.local");
       const pathname = requestUrl.pathname;
 
+      if (adaMitraBridge && pathname.startsWith("/v1/ada/mitra/")) {
+        const result = await adaMitraBridge.handleRequest({
+          method: normalizedMethod,
+          url,
+          headers,
+          body,
+        });
+        if (result) return result;
+      }
+
       if (normalizedMethod === "GET" && pathname === "/health") {
         return jsonResponse(
           200,
-          {
-            service: "api-gateway",
-            status: "ok",
-          },
+          { service: "api-gateway", status: "ok" },
           healthHeaders(headers.origin),
         );
       }
@@ -171,32 +182,20 @@ export function createApp({
 
       if (normalizedMethod === "POST" && pathname === "/v1/radar/events") {
         if (!authenticator) {
-          return jsonResponse(503, {
-            accepted: false,
-            reason: "authentication_unavailable",
-          });
+          return jsonResponse(503, { accepted: false, reason: "authentication_unavailable" });
         }
         if (!radarEvents) {
-          return jsonResponse(503, {
-            accepted: false,
-            reason: "radar_ingestion_unavailable",
-          });
+          return jsonResponse(503, { accepted: false, reason: "radar_ingestion_unavailable" });
         }
 
         const identity = await authenticator.authenticate(headers);
         if (!identity) {
-          return jsonResponse(401, {
-            accepted: false,
-            reason: "unauthorized",
-          });
+          return jsonResponse(401, { accepted: false, reason: "unauthorized" });
         }
 
         const tenantId = identity?.principal?.tenantId;
         if (!tenantId) {
-          return jsonResponse(403, {
-            accepted: false,
-            reason: "tenant_context_unavailable",
-          });
+          return jsonResponse(403, { accepted: false, reason: "tenant_context_unavailable" });
         }
 
         if (!hasScope(identity, "radar:events:write")) {
@@ -236,32 +235,20 @@ export function createApp({
 
       if (normalizedMethod === "GET" && pathname === "/v1/saas/access") {
         if (!authenticator) {
-          return jsonResponse(503, {
-            allowed: false,
-            reason: "authentication_unavailable",
-          });
+          return jsonResponse(503, { allowed: false, reason: "authentication_unavailable" });
         }
         if (!saasAccess) {
-          return jsonResponse(503, {
-            allowed: false,
-            reason: "saas_access_unavailable",
-          });
+          return jsonResponse(503, { allowed: false, reason: "saas_access_unavailable" });
         }
 
         const identity = await authenticator.authenticate(headers);
         if (!identity) {
-          return jsonResponse(401, {
-            allowed: false,
-            reason: "unauthorized",
-          });
+          return jsonResponse(401, { allowed: false, reason: "unauthorized" });
         }
 
         const tenantId = identity?.principal?.tenantId;
         if (!tenantId) {
-          return jsonResponse(403, {
-            allowed: false,
-            reason: "tenant_context_unavailable",
-          });
+          return jsonResponse(403, { allowed: false, reason: "tenant_context_unavailable" });
         }
 
         const accessGrantId = requestUrl.searchParams.get("accessGrantId")?.trim();
@@ -287,23 +274,17 @@ export function createApp({
 
       if (normalizedMethod === "GET" && pathname === "/v1/whoami") {
         if (!authenticator) {
-          return jsonResponse(503, {
-            error: "authentication_unavailable",
-          });
+          return jsonResponse(503, { error: "authentication_unavailable" });
         }
 
         const identity = await authenticator.authenticate(headers);
         if (!identity) {
-          return jsonResponse(401, {
-            error: "unauthorized",
-          });
+          return jsonResponse(401, { error: "unauthorized" });
         }
 
         const tenantContext = toGatewayTenantContext(identity, headers);
         if (!tenantContext) {
-          return jsonResponse(403, {
-            error: "tenant_context_unavailable",
-          });
+          return jsonResponse(403, { error: "tenant_context_unavailable" });
         }
 
         await audit.recordTenantContextIssued({
@@ -311,8 +292,7 @@ export function createApp({
           tenantContext,
           method: normalizedMethod,
           url,
-          correlationId:
-            headers["x-correlation-id"] ?? headers["x-request-id"],
+          correlationId: headers["x-correlation-id"] ?? headers["x-request-id"],
         });
 
         return jsonResponse(200, {
@@ -321,9 +301,7 @@ export function createApp({
         });
       }
 
-      return jsonResponse(404, {
-        error: "not_found",
-      });
+      return jsonResponse(404, { error: "not_found" });
     },
   };
 }

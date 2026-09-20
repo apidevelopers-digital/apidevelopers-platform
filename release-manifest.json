@@ -3,7 +3,7 @@
   "format": "managed-node-zip",
   "service": "api-gateway",
   "version": "0.8.0",
-  "sourceRevision": "64fe412b75962f6a0f07c1423cd0b6f11dd64540",
+  "sourceRevision": "27093700631cc21423d2ce561a1dd99ad78e68b7",
   "runtime": {
     "node": ">=22",
     "entrypoint": "src/hostinger-entry.mjs",
@@ -116,6 +116,11 @@
       "path": "src/account-access-context-preview.mjs",
       "bytes": 4844,
       "sha256": "05e36e103e07d581da2d5c78f9972569aabf2c0d0fcdbfd10550973d87f386fd"
+    },
+    {
+      "path": "src/ada-mitra-bridge-readonly.mjs",
+      "bytes": 5366,
+      "sha256": "892e01c215c6e4dc8eb65821763f371970b885eb354a045b754df59fdfa3f57c"
     },
     {
       "path": "src/audit-query-http.mjs",
@@ -1144,8 +1149,8 @@
     },
     {
       "path": "src/server.mjs",
-      "bytes": 11877,
-      "sha256": "a6ecb3103fc2f2315fb7cf8fbd6de95640e26b3d312a0b8ec085249e7d219e24"
+      "bytes": 12055,
+      "sha256": "6cfec17fd7265ada3eaa36f9c4c2884ec2042061c7b4bfa806f8ad3d5b445bec"
     },
     {
       "path": "src/trust-sandbox-governance.mjs",
