@@ -1,6 +1,5 @@
 import http from "node:http";
 import { pathToFileURL } from "node:url";
-
 import { createGatewayGlobalTrustAudit } from "./global-trust-audit.mjs";
 import { createGatewayGlobalTrustTenantContext } from "./global-trust-context.mjs";
 import { getOpenApiDocument } from "./openapi.mjs";
@@ -10,7 +9,8 @@ import {
   parseAndValidateRadarSignalEvent,
 } from "./radar-signal-event.mjs";
 import { createReadinessService } from "./readiness.mjs";
-
+import { createTrustFaceAccessService } from "./trust-face-access-passkeys.mjs";
+import { createTrustFaceAccessServerBindings } from "./trust-face-access-server-bindings.mjs";
 const JSON_HEADERS = Object.freeze({
   "content-type": "application/json; charset=utf-8",
 });
@@ -28,7 +28,6 @@ class RequestTransportError extends Error {
     this.code = code;
   }
 }
-
 function jsonResponse(status, payload, headers = JSON_HEADERS) {
   return {
     status,
@@ -47,10 +46,8 @@ function healthHeaders(origin) {
     vary: "Origin",
   });
 }
-
 function toPublicIdentity(identity) {
   if (!identity || typeof identity !== "object") return null;
-
   const principal = identity.principal ?? {};
   return Object.freeze({
     role: identity.role,
@@ -64,7 +61,6 @@ function toPublicIdentity(identity) {
     }),
   });
 }
-
 function toGatewayTenantContext(identity, headers) {
   const principal = identity?.principal;
   if (!principal?.tenantId) return null;
@@ -81,6 +77,19 @@ function hasScope(identity, scope) {
   return Array.isArray(scopes) && scopes.includes(scope);
 }
 
+function parseJsonObjectBody(body) {
+  if (body === undefined || String(body).trim() === "") return {};
+  let parsed;
+  try {
+    parsed = JSON.parse(body);
+  } catch {
+    throw new RequestTransportError(400, "invalid_json_body");
+  }
+  if (!parsed || typeof parsed !== "object" || Array.isArray(parsed)) {
+    throw new RequestTransportError(400, "json_object_body_required");
+  }
+  return parsed;
+}
 async function readBody(request, maxBytes = MAX_BODY_BYTES) {
   const method = String(request.method ?? "GET").toUpperCase();
   if (!["POST", "PUT", "PATCH"].includes(method)) return undefined;
@@ -92,7 +101,6 @@ async function readBody(request, maxBytes = MAX_BODY_BYTES) {
 
   const chunks = [];
   let total = 0;
-
   for await (const chunk of request) {
     const buffer = Buffer.isBuffer(chunk) ? chunk : Buffer.from(chunk);
     total += buffer.length;
@@ -105,13 +113,13 @@ async function readBody(request, maxBytes = MAX_BODY_BYTES) {
   if (chunks.length === 0) return undefined;
   return Buffer.concat(chunks).toString("utf8");
 }
-
 export function createApp({
   authenticator,
   audit = createGatewayGlobalTrustAudit(),
   readiness = createReadinessService(),
   saasAccess,
   radarEvents,
+  trustFaceAccess = createTrustFaceAccessService(),
 } = {}) {
   if (
     authenticator !== undefined &&
@@ -137,6 +145,21 @@ export function createApp({
   if (typeof readiness?.check !== "function") {
     throw new TypeError("readiness.check must be a function");
   }
+  if (
+    trustFaceAccess !== undefined &&
+    (
+      typeof trustFaceAccess?.status !== "function" ||
+      typeof trustFaceAccess?.createRegistrationOptions !== "function" ||
+      typeof trustFaceAccess?.createAuthenticationOptions !== "function"
+    )
+  ) {
+    throw new TypeError("trustFaceAccess must expose status, createRegistrationOptions and createAuthenticationOptions functions");
+  }
+
+  const trustFaceAccessBindings = createTrustFaceAccessServerBindings({
+    trustFaceAccess,
+    parseJsonBody: parseJsonObjectBody,
+  });
 
   return {
     async handleRequest({
@@ -148,7 +171,6 @@ export function createApp({
       const normalizedMethod = String(method).toUpperCase();
       const requestUrl = new URL(String(url), "http://api-gateway.local");
       const pathname = requestUrl.pathname;
-
       if (normalizedMethod === "GET" && pathname === "/health") {
         return jsonResponse(
           200,
@@ -164,9 +186,68 @@ export function createApp({
         const report = await readiness.check();
         return jsonResponse(report.status === "ready" ? 200 : 503, report);
       }
-
       if (normalizedMethod === "GET" && pathname === "/openapi.json") {
         return jsonResponse(200, getOpenApiDocument());
+      }
+
+
+      if (normalizedMethod === "GET" && pathname === "/v1/trust/face-access/status") {
+        if (!trustFaceAccess) {
+          return jsonResponse(503, {
+            service: "trust-face-access",
+            status: "unavailable",
+            reason: "trust_face_access_unavailable",
+          });
+        }
+        return jsonResponse(200, trustFaceAccess.status());
+      }
+
+      if (
+        normalizedMethod === "POST" &&
+        pathname === "/v1/trust/face-access/register/options"
+      ) {
+        if (!trustFaceAccess) {
+          return jsonResponse(503, {
+            error: "trust_face_access_unavailable",
+          });
+        }
+        const payload = parseJsonObjectBody(body);
+        const options = trustFaceAccess.createRegistrationOptions({
+          userId: payload.userId,
+          userName: payload.userName,
+          displayName: payload.displayName,
+        });
+
+        return jsonResponse(200, options);
+      }
+      if (
+        normalizedMethod === "POST" &&
+        pathname === "/v1/trust/face-access/authenticate/options"
+      ) {
+        if (!trustFaceAccess) {
+          return jsonResponse(503, {
+            error: "trust_face_access_unavailable",
+          });
+        }
+
+        const payload = parseJsonObjectBody(body);
+        const options = trustFaceAccess.createAuthenticationOptions({
+          userId: payload.userId,
+        });
+
+        return jsonResponse(200, options);
+      }
+
+      const trustFaceAccessVerifyResponse = trustFaceAccessBindings.handle({
+        method: normalizedMethod,
+        pathname,
+        body,
+      });
+      if (trustFaceAccessVerifyResponse) {
+        return jsonResponse(
+          trustFaceAccessVerifyResponse.status,
+          trustFaceAccessVerifyResponse.payload,
+        );
       }
 
       if (normalizedMethod === "POST" && pathname === "/v1/radar/events") {
@@ -182,7 +263,6 @@ export function createApp({
             reason: "radar_ingestion_unavailable",
           });
         }
-
         const identity = await authenticator.authenticate(headers);
         if (!identity) {
           return jsonResponse(401, {
@@ -198,7 +278,6 @@ export function createApp({
             reason: "tenant_context_unavailable",
           });
         }
-
         if (!hasScope(identity, "radar:events:write")) {
           return jsonResponse(403, {
             accepted: false,
@@ -209,7 +288,6 @@ export function createApp({
         try {
           const event = parseAndValidateRadarSignalEvent(body, { tenantId });
           const result = await radarEvents.ingest(event);
-
           return jsonResponse(result.duplicate ? 200 : 202, {
             ...result,
             mode: "shadow",
@@ -233,7 +311,6 @@ export function createApp({
           throw error;
         }
       }
-
       if (normalizedMethod === "GET" && pathname === "/v1/saas/access") {
         if (!authenticator) {
           return jsonResponse(503, {
@@ -247,7 +324,6 @@ export function createApp({
             reason: "saas_access_unavailable",
           });
         }
-
         const identity = await authenticator.authenticate(headers);
         if (!identity) {
           return jsonResponse(401, {
@@ -263,7 +339,6 @@ export function createApp({
             reason: "tenant_context_unavailable",
           });
         }
-
         const accessGrantId = requestUrl.searchParams.get("accessGrantId")?.trim();
         const workspaceId = requestUrl.searchParams.get("workspaceId")?.trim();
         const productId = requestUrl.searchParams.get("productId")?.trim();
@@ -273,7 +348,6 @@ export function createApp({
             reason: "access_context_required",
           });
         }
-
         const decision = await saasAccess.evaluateAccess({
           identity,
           accessGrantId,
@@ -291,7 +365,6 @@ export function createApp({
             error: "authentication_unavailable",
           });
         }
-
         const identity = await authenticator.authenticate(headers);
         if (!identity) {
           return jsonResponse(401, {
@@ -305,7 +378,6 @@ export function createApp({
             error: "tenant_context_unavailable",
           });
         }
-
         await audit.recordTenantContextIssued({
           identity,
           tenantContext,
@@ -327,7 +399,6 @@ export function createApp({
     },
   };
 }
-
 export function createHttpServer({
   app = createApp(),
   maxBodyBytes = MAX_BODY_BYTES,
@@ -341,7 +412,6 @@ export function createHttpServer({
         headers: request.headers,
         body,
       });
-
       response.writeHead(result.status, result.headers);
       response.end(result.body);
     } catch (error) {
@@ -350,7 +420,6 @@ export function createHttpServer({
         response.end(JSON.stringify({ error: error.code }));
         return;
       }
-
       response.writeHead(500, JSON_HEADERS);
       response.end(
         JSON.stringify({
@@ -369,7 +438,6 @@ export async function startServer({
   maxBodyBytes,
 } = {}) {
   const server = createHttpServer({ app, maxBodyBytes });
-
   await new Promise((resolve, reject) => {
     server.once("error", reject);
     server.listen(port, host, resolve);
@@ -389,7 +457,6 @@ async function main() {
       port: address.port,
     }),
   );
-
   const shutdown = (signal) => {
     server.close(() => {
       console.log(JSON.stringify({ event: "api_gateway_stopped", signal }));
@@ -400,7 +467,6 @@ async function main() {
   process.once("SIGINT", shutdown);
   process.once("SIGTERM", shutdown);
 }
-
 if (
   process.argv[1] &&
   import.meta.url === pathToFileURL(process.argv[1]).href
