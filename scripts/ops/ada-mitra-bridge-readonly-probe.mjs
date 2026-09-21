@@ -36,13 +36,24 @@ if (GATEWAY_ORIGIN !== "https://gateway.apidevelopers.digital") {
   fail("unexpected_gateway_origin");
 }
 
-async function request(path, accept = "application/json") {
+const authStrategies = [
+  {
+    name: "authorization_bearer",
+    headers: () => ({ authorization: `Bearer ${TOKEN}` }),
+  },
+  {
+    name: "x_api_key",
+    headers: () => ({ "x-api-key": TOKEN }),
+  },
+];
+
+async function request(path, strategy, accept = "application/json") {
   const url = `${GATEWAY_ORIGIN}${path}`;
   const response = await fetch(url, {
     method: "GET",
     headers: {
       accept,
-      authorization: `Bearer ${TOKEN}`,
+      ...strategy.headers(),
       "user-agent": "apidevelopers-platform/ada-mitra-bridge-readonly-probe",
     },
   });
@@ -78,17 +89,36 @@ function parseJson(endpoint, status, text) {
   }
 }
 
+async function authenticatedRequest(endpoint, accept = "application/json") {
+  const attempts = [];
+  for (const strategy of authStrategies) {
+    const { status, text } = await request(endpoint, strategy, accept);
+    attempts.push({ strategy: strategy.name, status, text });
+
+    console.log(`ADA_MITRA_BRIDGE_PROBE_AUTH_STRATEGY=${strategy.name}`);
+    console.log(`ADA_MITRA_BRIDGE_PROBE_ENDPOINT=${endpoint}`);
+    console.log(`ADA_MITRA_BRIDGE_PROBE_HTTP_STATUS=${status}`);
+
+    if (status !== 401) {
+      return { strategy: strategy.name, status, text };
+    }
+  }
+
+  const last = attempts[attempts.length - 1];
+  const body = parseJson(endpoint, last.status, last.text);
+  const reason = safeReason(body.reason || body.error || body.code || body.message || "unauthorized");
+  fail(`${endpoint}:all_auth_strategies_http_401:${reason}`);
+}
+
 for (const endpoint of endpoints) {
-  const { status, text } = await request(endpoint);
-  console.log(`ADA_MITRA_BRIDGE_PROBE_ENDPOINT=${endpoint}`);
-  console.log(`ADA_MITRA_BRIDGE_PROBE_HTTP_STATUS=${status}`);
+  const { strategy, status, text } = await authenticatedRequest(endpoint);
 
   assertNoSecretLikeText(endpoint, text);
 
   const body = parseJson(endpoint, status, text);
   if (status !== 200) {
     const reason = safeReason(body.reason || body.error || body.code || body.message || "unmapped");
-    fail(`${endpoint}:http_${status}:${reason}`);
+    fail(`${endpoint}:${strategy}:http_${status}:${reason}`);
   }
 
   if (body.ok !== true) fail(`${endpoint}:not_ok`);
@@ -120,13 +150,15 @@ for (const endpoint of endpoints) {
     if (body.writeAllowed !== false) fail("connector_write_allowed");
   }
 
-  console.log(`ADA_MITRA_BRIDGE_PROBE_OK ${endpoint}`);
+  console.log(`ADA_MITRA_BRIDGE_PROBE_OK=${endpoint}`);
+  console.log(`ADA_MITRA_BRIDGE_PROBE_AUTH_CONFIRMED=${strategy}`);
 }
 
-const source = await request("/SOURCE_SHA", "text/plain");
+const source = await authenticatedRequest("/SOURCE_SHA", "text/plain");
 if (source.status === 200) {
   if (!source.text.includes(EXPECTED_SOURCE_SHA)) fail("source_sha_mismatch");
   console.log("ADA_MITRA_BRIDGE_SOURCE_SHA_CONFIRMED");
+  console.log(`ADA_MITRA_BRIDGE_SOURCE_SHA_AUTH_CONFIRMED=${source.strategy}`);
 } else {
-  console.log(`ADA_MITRA_BRIDGE_SOURCE_SHA_ENDPOINT_UNAVAILABLE_STATUS_${source.status}`);
+  console.logT`AQ_MITRA_BRIDGE_SOURCE_SHA_ENDPOINT_UNAVAILABLE_STATUS_${source.status}`);
 }
