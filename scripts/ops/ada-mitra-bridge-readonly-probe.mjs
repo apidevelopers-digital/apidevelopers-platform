@@ -10,29 +10,35 @@ const endpoints = [
   "/v1/ada/mitra/connectors",
 ];
 
-function safeReason(value) {
-  return String(value || "unmapped")
-    .slice(0, 120)
-    .replace(/[^a-zA-Z0-9_.:-]/g, "_");
+const lines = [];
+function emit(line) {
+  lines.push(line);
+  console.log(line);
 }
-
+function safeReason(value) {
+  return String(value || "unmapped").slice(0, 120).replace(/[^a-zA-Z0-9_.:-]/g, "_");
+}
+function commandEscape(value) {
+  return String(value).replace(/%/g, "%25").replace(/\r/g, "%0D").replace(/\n/g, "%0A");
+}
+function annotate() {
+  const safe = lines.join("\n");
+  console.log(`::warning file=mitra-bridge-probe.txt,line=1,title=ADA Mitra Bridge Probe::${commandEscape(safe)}`);
+}
 function fail(message) {
-  console.log(`ADA_MITRA_BRIDGE_PROBE_FAILURE=${safeReason(message)}`);
+  emit(`ADA_MITRA_BRIDGE_PROBE_FAILURE=${safeReason(message)}`);
+  annotate();
   process.exit(1);
 }
 
-if (!TOKEN) {
-  console.log("ADA_MITRA_BRIDGE_PROBE_SECRET_PRESENT=false");
-  fail("missing_secret_ADA_MITRA_BRIDGE_READ_TOKEN");
-}
-
-console.log("ADA_MITRA_BRIDGE_PROBE_SECRET_PRESENT=true");
+emit(`ADA_MITRA_BRIDGE_PROBE_SECRET_PRESENT=${TOKEN ? "true" : "false"}`);
+if (!TOKEN) fail("missing_secret_ADA_MITRA_BRIDGE_READ_TOKEN");
 
 if (EXPECTED_SOURCE_SHA !== "27093700631cc21423d2ce561a1dd99ad78e68b7") {
   fail("unexpected_expected_source_sha");
 }
 
-if (GATEWAY_ORIGIN !== "https://gateway.apidevelopers.digital") {
+if (GATEUY_ORIGIN !== "https://gateway.apidevelopers.digital") {
   fail("unexpected_gateway_origin");
 }
 
@@ -48,8 +54,7 @@ const authStrategies = [
 ];
 
 async function request(path, strategy, accept = "application/json") {
-  const url = `${GATEWAY_ORIGIN}${path}`;
-  const response = await fetch(url, {
+  const response = await fetch(`${GATEWAY_ORIGIN}${path}`, {
     method: "GET",
     headers: {
       accept,
@@ -57,7 +62,6 @@ async function request(path, strategy, accept = "application/json") {
       "user-agent": "apidevelopers-platform/ada-mitra-bridge-readonly-probe",
     },
   });
-
   const text = await response.text();
   return { status: response.status, text };
 }
@@ -83,8 +87,8 @@ function parseJson(endpoint, status, text) {
   try {
     return JSON.parse(text);
   } catch {
-    console.log(`ADA_MITRA_BRIDGE_PROBE_ENDPOINT=${endpoint}`);
-    console.log(`ADA_MITRA_BRIDGE_PROBE_HTTP_STATUS=${status}`);
+    emit(`ADA_MITRA_BRIDGE_PROBE_ENDPOINT=${endpoint}`);
+    emit(`ADA_MITRA_BRIDGE_PROBE_HTTP_STATUS=${status}`);
     fail(`${endpoint}:http_${status}:unparseable_response`);
   }
 }
@@ -95,9 +99,9 @@ async function authenticatedRequest(endpoint, accept = "application/json") {
     const { status, text } = await request(endpoint, strategy, accept);
     attempts.push({ strategy: strategy.name, status, text });
 
-    console.log(`ADA_MITRA_BRIDGE_PROBE_AUTH_STRATEGY=${strategy.name}`);
-    console.log(`ADA_MITRA_BRIDGE_PROBE_ENDPOINT=${endpoint}`);
-    console.log(`ADA_MITRA_BRIDGE_PROBE_HTTP_STATUS=${status}`);
+    emit(`ADA_MITRA_BRIDGE_PROBE_AUTH_STRATEGY=${strategy.name}`);
+    emit(`ADA_MITRA_BRIDGE_PROBE_ENDPOINT=${endpoint}`);
+    emit(`ADA_MITRA_BRIDGE_PROBE_HTTP_STATUS=${status}`);
 
     if (status !== 401) {
       return { strategy: strategy.name, status, text };
@@ -112,7 +116,6 @@ async function authenticatedRequest(endpoint, accept = "application/json") {
 
 for (const endpoint of endpoints) {
   const { strategy, status, text } = await authenticatedRequest(endpoint);
-
   assertNoSecretLikeText(endpoint, text);
 
   const body = parseJson(endpoint, status, text);
@@ -150,15 +153,17 @@ for (const endpoint of endpoints) {
     if (body.writeAllowed !== false) fail("connector_write_allowed");
   }
 
-  console.log(`ADA_MITRA_BRIDGE_PROBE_OK=${endpoint}`);
-  console.log(`ADA_MITRA_BRIDGE_PROBE_AUTH_CONFIRMED=${strategy}`);
+  emit(`ADA_MITRA_BRIDGE_PROBE_OK=${endpoint}`);
+  emit(`ADA_MITRA_BRIDGE_PROBE_AUTH_CONFIRMED=${strategy}`);
 }
 
 const source = await authenticatedRequest("/SOURCE_SHA", "text/plain");
 if (source.status === 200) {
   if (!source.text.includes(EXPECTED_SOURCE_SHA)) fail("source_sha_mismatch");
-  console.log("ADA_MITRA_BRIDGE_SOURCE_SHA_CONFIRMED");
-  console.log(`ADA_MITRA_BRIDGE_SOURCE_SHA_AUTH_CONFIRMED=${source.strategy}`);
+  emit("ADA_MITRA_BRIDGE_SOURCE_SHA_CONFIRMED=true");
+  emit(`ADA_MITRA_BRIDGE_SOURCE_SHA_AUTH_CONFIRMED=${source.strategy}`);
 } else {
-  console.log(`ADA_MITRA_BRIDGE_SOURCE_SHA_ENDPOINT_UNAVAILABLE_STATUS_${source.status}`);
+  emit(`ADA_MITRA_BRIDGE_SOURCE_SHA_ENDPOINT_UNAVAILABLE_STATUS_${source.status}`);
 }
+
+annotate();
