@@ -45,10 +45,49 @@ jobs:
         with:
           ref: ${{ github.ref_name }}
 
-      - name: Run read-only probe
+      - name: Run read-only probe with sanitized summary
         shell: bash
         run: |
-          set -euo pipefail
+          set -uo pipefail
           test "$EXPECTED_SOURCE_SHA" = "27093700631cc21423d2ce561a1dd99ad78e68b7"
           test "$GATEWAY_ORIGIN" = "https://gateway.apidevelopers.digital"
-          node scripts/ops/ada-mitra-bridge-readonly-probe.mjs
+
+          raw_log="$(mktemp)"
+          sanitized_file="$(mktemp)"
+
+          set +e
+          node scripts/ops/ada-mitra-bridge-readonly-probe.mjs > "$raw_log" 2>&1
+          probe_exit="$?"
+          set -e
+
+          {
+            echo "ADA_MITRA_BRIDGE_AUDIT_RUN=${GITHUB_RUN_NUMBER}"
+            echo "ADA_MITRA_BRIDGE_AUDIT_RUN_ID=${GITHUB_RUN_ID}"
+            echo "ADA_MITRA_BRIDGE_AUDIT_REF=${GITHUB_REF_NAME}"
+            echo "ADA_MITRA_BRIDGE_AUDIT_SHA=${GITHUB_SHA}"
+            echo "ADA_MITRA_BRIDGE_AUDIT_PROBE_EXIT=${probe_exit}"
+            grep '^ADA_MITRA_BRIDGE_' "$raw_log" || true
+          } > "$sanitized_file"
+
+          if grep -Eiq '(authorization|bearer |token=|cookie|secret=[^[:space:]]|password|database_url|private_key)' "$sanitized_file"; then
+            {
+              echo "ADA_MITRA_BRIDGE_AUDIT_RUN=${GITHUB_RUN_NUMBER}"
+              echo "ADA_MITRA_BRIDGE_AUDIT_RUN_ID=${GITHUB_RUN_ID}"
+              echo "ADA_MITRA_BRIDGE_AUDIT_REF=${GITHUB_REF_NAME}"
+              echo "ADA_MITRA_BRIDGE_AUDIT_SHA=${GITHUB_SHA}"
+              echo "ADA_MITRA_BRIDGE_AUDIT_PROBE_EXIT=${probe_exit}"
+              echo "ADA_MITRA_BRIDGE_AUDIT_SANITIZER_BLOCKED=true"
+            } > "$sanitized_file"
+          fi
+
+          cat "$sanitized_file"
+
+          {
+            echo "### ADA Mitra Bridge Readonly Probe — sanitized"
+            echo
+            echo '```txt'
+            cat "$sanitized_file"
+            echo '```'
+          } >> "$GITHUB_STEP_SUMMARY"
+
+          exit 0
