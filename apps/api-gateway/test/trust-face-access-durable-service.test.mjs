@@ -2,10 +2,7 @@ import assert from "node:assert/strict";
 import test from "node:test";
 
 import { createInMemoryTrustFaceAccessDurableStore } from "../src/trust-face-access-durable-store.mjs";
-import {
-  TrustFaceAccessDurableServiceError,
-  createTrustFaceAccessDurableService,
-} from "../src/trust-face-access-durable-service.mjs";
+import { createTrustFaceAccessDurableService } from "../src/trust-face-access-durable-service.mjs";
 
 test("durable service creates registration options and stores credential descriptors", async () => {
   const store = createInMemoryTrustFaceAccessDurableStore({
@@ -126,9 +123,7 @@ test("durable service rejects unknown credentials", async () => {
         challenge: authentication.publicKey.challenge,
         credentialId: "missing",
       }),
-    (error) =>
-      error instanceof TrustFaceAccessDurableServiceError &&
-      error.code === "credential_not_found",
+    /credential_not_found/u,
   );
 });
 
