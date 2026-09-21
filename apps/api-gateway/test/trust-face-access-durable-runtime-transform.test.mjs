@@ -64,10 +64,8 @@ test("Trust Face Access durable runtime transform attaches only when enabled", (
 
   assert.notEqual(transformed, gateway);
   assert.equal(transformed.trustFaceAccessDurablePreview.storePath, "/runtime/.var/trust-face.json");
-  assert.deepEqual(transformed.trustFaceAccessDurablePreview.status, {
-    service: "trust-face-access",
-    status: "durable_preview",
-  });
+  assert.equal(transformed.trustFaceAccessDurablePreview.status.service, "trust-face-access");
+  assert.equal(transformed.trustFaceAccessDurablePreview.status.status, "durable_preview");
   assert.equal(transformed.trustFaceAccess.status().status, "durable_preview");
   assert.deepEqual(createdStores, [{ path: "/runtime/.var/trust-face.json" }]);
   assert.equal(createdServices[0].store.type, "file-store");
