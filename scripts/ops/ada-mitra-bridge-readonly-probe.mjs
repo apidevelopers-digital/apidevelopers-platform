@@ -160,5 +160,5 @@ if (source.status === 200) {
   console.log("ADA_MITRA_BRIDGE_SOURCE_SHA_CONFIRMED");
   console.log(`ADA_MITRA_BRIDGE_SOURCE_SHA_AUTH_CONFIRMED=${source.strategy}`);
 } else {
-  console.logT`AQ_MITRA_BRIDGE_SOURCE_SHA_ENDPOINT_UNAVAILABLE_STATUS_${source.status}`);
+  console.log(`ADA_MITRA_BRIDGE_SOURCE_SHA_ENDPOINT_UNAVAILABLE_STATUS_${source.status}`);
 }
