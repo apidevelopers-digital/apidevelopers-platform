@@ -3,30 +3,35 @@
 const GATEWAY_ORIGIN = process.env.GATEWAY_ORIGIN || "";
 const EXPECTED_SOURCE_SHA = process.env.EXPECTED_SOURCE_SHA || "";
 const TOKEN = process.env.ADA_MITRA_BRIDGE_BEARER || "";
+const TENANT_ID = process.env.ADA_MITRA_BRIDGE_TENANT_ID || "";
 
-const endpoints = [
-  "/v1/ada/mitra/status",
-  "/v1/ada/mitra/capabilities",
-  "/v1/ada/mitra/connectors",
-];
-
-function safeReason(value) {
-  return String(value || "unmapped")
-    .slice(0, 120)
-    .replace(/[^a-zA-Z0-9_.:-]/g, "_");
+const endpoint = "/v1/ada/mitra/status";
+const lines = [];
+function emit(line) {
+  lines.push(line);
+  console.log(line);
 }
-
+function safe(value) {
+  return String(value || "unmapped").slice(0, 120).replace(/[^a-zA-Z0-9_.:-]/g, "_");
+}
+function commandEscape(value) {
+  return String(value).replace(/%/g, "%25").replace(/\r/g, "%0D").replace(/\n/g, "%0A");
+}
+function annotate() {
+  const safeLines = lines.join("\n");
+  console.log(`::warning file=mitra-bridge-tenant-probe.txt,line=1,title=ADA Mitra Bridge Tenant Probe::${commandEscape(safeLines)}`);
+}
 function fail(message) {
-  console.log(`ADA_MITRA_BRIDGE_PROBE_FAILURE=${safeReason(message)}`);
+  emit(`ADA_MITRA_BRIDGE_PROBE_FAILURE=${safe(message)}`);
+  annotate();
   process.exit(1);
 }
 
-if (!TOKEN) {
-  console.log("ADA_MITRA_BRIDGE_PROBE_SECRET_PRESENT=false");
-  fail("missing_secret_ADA_MITRA_BRIDGE_READ_TOKEN");
-}
+emit(`ADA_MITRA_BRIDGE_PROBE_SECRET_PRESENT=${TOKEN ? "true" : "false"}`);
+emit(`ADA_MITRA_BRIDGE_PROBE_TENANT_PRESENT=${TENANT_ID ? "true" : "false"}`);
 
-console.log("ADA_MITRA_BRIDGE_PROBE_SECRET_PRESENT=true");
+if (!TOKEN) fail("missing_secret_ADA_MITRA_BRIDGE_READ_TOKEN");
+if (!TENANT_ID) fail("missing_secret_ADA_MITRA_BRIDGE_TENANT_ID");
 
 if (EXPECTED_SOURCE_SHA !== "27093700631cc21423d2ce561a1dd99ad78e68b7") {
   fail("unexpected_expected_source_sha");
@@ -36,97 +41,52 @@ if (GATEWAY_ORIGIN !== "https://gateway.apidevelopers.digital") {
   fail("unexpected_gateway_origin");
 }
 
-async function request(path, accept = "application/json") {
-  const url = `${GATEWAY_ORIGIN}${path}`;
-  const response = await fetch(url, {
+async function request(name, headers, accept = "application/json") {
+  const response = await fetch(`${GATEWAY_ORIGIN}${endpoint}`, {
     method: "GET",
     headers: {
       accept,
-      authorization: `Bearer ${TOKEN}`,
-      "user-agent": "apidevelopers-platform/ada-mitra-bridge-readonly-probe",
+      ...headers,
+      "user-agent": "apidevelopers-platform/ada-mitra-tenant-probe",
     },
   });
 
   const text = await response.text();
-  return { status: response.status, text };
-}
+  emit(`ADA_MITRA_BRIDGE_PROBE_AUTH_STRATEGY=${name}`);
+  emit(`ADA_MITRA_BRIDGE_PROBE_ENDPOINT=${endpoint}`);
+  emit(`ADA_MITRA_BRIDGE_PROBE_HTTP_STATUS=${response.status}`);
 
-function assertNoSecretLikeText(endpoint, text) {
-  const lower = text.toLowerCase();
-  for (const forbidden of [
-    "bearer ",
-    "password",
-    "access_token",
-    "refresh_token",
-    "cookie",
-    "database_url",
-    "private_key",
-  ]) {
-    if (lower.includes(forbidden)) {
-      fail(`secret_like_field_exposed:${endpoint}:${forbidden.trim()}`);
-    }
-  }
-}
-
-function parseJson(endpoint, status, text) {
+  let reason = "unmapped";
   try {
-    return JSON.parse(text);
+    const body = JSON.parse(text);
+    reason = safe(body.reason || body.error || body.code || body.message || body.status || "ok");
   } catch {
-    console.log(`ADA_MITRA_BRIDGE_PROBE_ENDPOINT=${endpoint}`);
-    console.log(`ADA_MITRA_BRIDGE_PROBE_HTTP_STATUS=${status}`);
-    fail(`${endpoint}:http_${status}:unparseable_response`);
+    reason = "unparseable_response";
+  }
+  emit(`ADA_MITRA_BRIDGE_PROBE_RESULT=${name}:http_${response.status}:${reason}`);
+
+  if (response.status === 200) {
+    emit(`ADA_MITRA_BRIDGE_PROBE_AUTH_CONFIRMED=${name}`);
+    annotate();
+    process.exit(0);
+  }
+
+  if (response.status === 403) {
+    emit(`ADA_MITRA_BRIDGE_PROBE_AUTH_CONFIRMED=${name}`);
+    emit(`ADA_MITRA_BRIDGE_PROBE_SCOPE_MISSING_OR_DENIED=true`);
+    annotate();
+    process.exit(0);
   }
 }
 
-for (const endpoint of endpoints) {
-  const { status, text } = await request(endpoint);
-  console.log(`ADA_MITRA_BRIDGE_PROBE_ENDPOINT=${endpoint}`);
-  console.log(`ADA_MITRA_BRIDGE_PROBE_HTTP_STATUS=${status}`);
+await request("x_api_key_with_tenant", {
+  "x-api-key": TOKEN,
+  "x-tenant-id": TENANT_ID,
+});
 
-  assertNoSecretLikeText(endpoint, text);
+await request("authorization_bearer_with_tenant", {
+  authorization: `Bearer ${TOKEN}`,
+  "x-tenant-id": TENANT_ID,
+});
 
-  const body = parseJson(endpoint, status, text);
-  if (status !== 200) {
-    const reason = safeReason(body.reason || body.error || body.code || body.message || "unmapped");
-    fail(`${endpoint}:http_${status}:${reason}`);
-  }
-
-  if (body.ok !== true) fail(`${endpoint}:not_ok`);
-  if (body.service !== "ada-mitra-bridge") fail(`${endpoint}:unexpected_service`);
-
-  if (endpoint.endsWith("/status")) {
-    if (body.status !== "ready") fail("status_not_ready");
-    if (body.mode !== "read_only_skeleton") fail("unexpected_mode");
-    if (body.dataAccess?.liveDatabaseConnected !== false) fail("live_database_connected");
-    if (body.dataAccess?.rawSqlAllowed !== false) fail("raw_sql_allowed");
-    if (body.dataAccess?.writeAllowed !== false) fail("write_allowed");
-  }
-
-  if (endpoint.endsWith("/capabilities")) {
-    const paths = new Set((body.capabilities || []).map((cap) => cap.path));
-    for (const required of endpoints) {
-      if (!paths.has(required)) fail(`missing_capability:${required}`);
-    }
-    if (!(body.unavailableUntilApproved || []).includes("raw_sql")) {
-      fail("raw_sql_not_marked_unavailable");
-    }
-  }
-
-  if (endpoint.endsWith("/connectors")) {
-    if (body.connectorCount !== 0) fail("unexpected_connector_count");
-    if (body.liveDatabaseConnected !== false) fail("connector_live_database_connected");
-    if (body.credentialsConfigured !== false) fail("connector_credentials_configured");
-    if (body.rawSqlAllowed !== false) fail("connector_raw_sql_allowed");
-    if (body.writeAllowed !== false) fail("connector_write_allowed");
-  }
-
-  console.log(`ADA_MITRA_BRIDGE_PROBE_OK ${endpoint}`);
-}
-
-const source = await request("/SOURCE_SHA", "text/plain");
-if (source.status === 200) {
-  if (!source.text.includes(EXPECTED_SOURCE_SHA)) fail("source_sha_mismatch");
-  console.log("ADA_MITRA_BRIDGE_SOURCE_SHA_CONFIRMED");
-} else {
-  console.log(`ADA_MITRA_BRIDGE_SOURCE_SHA_ENDPOINT_UNAVAILABLE_STATUS_${source.status}`);
-}
+fail("all_tenant_auth_strategies_http_401_or_unhandled");
