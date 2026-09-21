@@ -45,7 +45,7 @@ jobs:
         with:
           ref: ${{ github.ref_name }}
 
-      - name: Run read-only probe with sanitized summary
+      - name: Run read-only probe with sanitized annotation
         shell: bash
         run: |
           set -uo pipefail
@@ -81,6 +81,15 @@ jobs:
           fi
 
           cat "$sanitized_file"
+
+          encoded="$(python3 - "$sanitized_file" <<'PY'
+import sys, urllib.parse
+data=open(sys.argv[1]).read().strip()
+data=data.replace('\r','')
+print(urllib.parse.quote(data.replace('\n','%0A'), safe='%'))
+PY
+)"
+          echo "::warning file=mitra-bridge-probe.txt,line=1,title=ADA Mitra Bridge Probe::${encoded}"
 
           {
             echo "### ADA Mitra Bridge Readonly Probe — sanitized"
