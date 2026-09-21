@@ -110,7 +110,11 @@ test("durable service authenticates registered credentials with one-time challen
 });
 
 test("durable service rejects unknown credentials", async () => {
+  const store = createInMemoryTrustFaceAccessDurableStore({
+    now: () => "2026-09-20T23:55:00.000Z",
+  });
   const service = createTrustFaceAccessDurableService({
+    store,
     nowMs: () => Date.parse("2026-09-20T23:55:00.000Z"),
   });
 
