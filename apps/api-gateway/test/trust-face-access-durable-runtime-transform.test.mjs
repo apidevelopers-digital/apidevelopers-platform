@@ -35,8 +35,7 @@ test("Trust Face Access durable runtime transform attaches only when enabled", (
   const createdStores = [];
   const createdServices = [];
 
-  const transformed = attachTrustFaceAccessDurablePreviewToGateway({
-    gateway,
+  const runtime = createTrustFaceAccessDurableRuntimeTransform({
     env: {
       TRUST_FACE_ACCESS_DURABLE_PREVIEW: "1",
       TRUST_FACE_ACCESS_DURABLE_STORE_FILE: ".var/trust-face.json",
@@ -60,6 +59,11 @@ test("Trust Face Access durable runtime transform attaches only when enabled", (
         },
       });
     },
+  });
+
+  const transformed = attachTrustFaceAccessDurablePreviewToGateway({
+    gateway,
+    runtime,
   });
 
   assert.notEqual(transformed, gateway);
