@@ -38,6 +38,18 @@ function wipe(buffer) {
   if (Buffer.isBuffer(buffer)) buffer.fill(0);
 }
 
+function secretBytes(value) {
+  if (typeof value === "string") {
+    if (value.length === 0) return null;
+    return Buffer.from(value, "utf8");
+  }
+  if (value instanceof Uint8Array) {
+    if (value.byteLength === 0) return null;
+    return Buffer.from(value);
+  }
+  return null;
+}
+
 export function createSecretHandoffService({
   ttlMs = DEFAULT_TTL_MS,
   maxSecretBytes = MAX_SECRET_BYTES,
@@ -119,16 +131,16 @@ export function createSecretHandoffService({
         return Object.freeze({ ok: false, code: "secret_handoff_token_invalid" });
       }
 
-      if (typeof secret !== "string" || secret.length === 0) {
+      const bytes = secretBytes(secret);
+      if (!bytes) {
         return Object.freeze({ ok: false, code: "secret_handoff_secret_required" });
       }
-
-      const bytes = Buffer.byteLength(secret, "utf8");
-      if (bytes > maxSecretBytes) {
+      if (bytes.byteLength > maxSecretBytes) {
+        wipe(bytes);
         return Object.freeze({ ok: false, code: "secret_handoff_secret_too_large" });
       }
 
-      record.secretBuffer = Buffer.from(secret, "utf8");
+      record.secretBuffer = bytes;
       record.state = "secret_received";
 
       return Object.freeze({
