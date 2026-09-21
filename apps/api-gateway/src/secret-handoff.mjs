@@ -158,27 +158,27 @@ export function createSecretHandoffService({
       record.state = "consuming";
 
       try {
-        const result = await consumer(secretBuffer.toString("utf8"), Object.freeze({
-          sessionId: record.sessionId,
-          purpose: record.purpose,
-          metadata: record.metadata,
-        }));
+        const leaseBytes = Buffer.from(secretBuffer);
+        try {
+          const result = await consumer(leaseBytes, Object.freeze({
+            sessionId: record.sessionId,
+            purpose: record.purpose,
+            metadata: record.metadata,
+          }));
 
+          return Object.freeze({
+            ok: true,
+            sessionId: record.sessionId,
+            state: "consumed",
+            result,
+          });
+        } finally {
+          wipe(leaseBytes);
+        }
+      } finally {
         wipe(secretBuffer);
         record.state = "consumed";
         record.consumedAtMs = nowMs(clock);
-
-        return Object.freeze({
-          ok: true,
-          sessionId: record.sessionId,
-          state: "consumed",
-          result,
-        });
-      } catch (error) {
-        wipe(secretBuffer);
-        record.state = "consumed";
-        record.consumedAtMs = nowMs(clock);
-        throw error;
       }
     },
 
