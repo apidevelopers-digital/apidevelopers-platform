@@ -5,11 +5,9 @@ import {
 const REF_PREFIX = "secret://handoff/";
 
 function sessionIdFromRef(secretRef) {
-  if (!secretRef.startsWith(REF_PREFIX)) {
-    throw new Error("secret_handoff_ref_unsupported");
-  }
+  if (!secretRef.startsWith(REF_PREFIX)) throw new Error("secret_handoff_ref_unsupported");
   const sessionId = secretRef.slice(REF_PREFIX.length).trim();
-  if (!sessionId || !/^[A-Za-z0-9._:-]{3,128}$/.test(sessionId)) {
+  if (!sessionId || !/^[A-Za-z0-9][A-Za-z0-9._:-]{3,128}$/.test(sessionId)) {
     throw new Error("secret_handoff_ref_invalid");
   }
   return sessionId;
@@ -30,7 +28,7 @@ export function createOperatorSecretHandoffProvider({ handoffService } = {}) {
     }),
 
     async withSecret(rawAccess, consumer) {
-      const access = normalizeOperatorSecretCaccess(rawAccess);
+      const access = normalizeOperatorSecretAccess(rawAccess);
       if (typeof consumer !== "function") throw new TypeError("consumer must be a function");
 
       const sessionId = sessionIdFromRef(access.secretRef);
