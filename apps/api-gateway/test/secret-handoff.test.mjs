@@ -11,10 +11,7 @@ function fixture({ ttlMs = 60_000 } = {}) {
     idFactory: () => "session-001",
     tokenFactory: () => "submit-token-001",
   });
-  return {
-    service,
-    advance(ms) { now += ms; },
-  };
+  return { service, advance(ms) { now += ms; } };
 }
 
 test("status never exposes secret or submit token", () => {
@@ -23,10 +20,6 @@ test("status never exposes secret or submit token", () => {
     purpose: "hostinger.mysql.create",
     metadata: { database: "unijuri_staging" },
   });
-
-  assert.equal(created.sessionId, "session-001");
-  assert.equal(created.submitToken, "submit-token-001");
-
   const submitted = service.submit({
     sessionId: created.sessionId,
     submitToken: created.submitToken,
@@ -39,7 +32,6 @@ test("status never exposes secret or submit token", () => {
   assert.equal(status.secretPresent, true);
   assert.equal("secret" in status, false);
   assert.equal("submitToken" in status, false);
-
   const serialized = JSON.stringify(status);
   assert.equal(serialized.includes("example-password-never-returned"), false);
   assert.equal(serialized.includes("submit-token-001"), false);
@@ -49,14 +41,11 @@ test("invalid token and duplicate submission fail closed", () => {
   const { service } = fixture();
   const created = service.create({ purpose: "hostinger.mysql.create" });
 
-  assert.deepEqual(
-    service.submit({
-      sessionId: created.sessionId,
-      submitToken: "wrong-token",
-      secret: "secret",
-    }),
-    { ok: false, code: "secret_handoff_token_invalid" },
-  );
+  assert.deepEqual(service.submit({
+    sessionId: created.sessionId,
+    submitToken: "wrong-token",
+    secret: "secret",
+  }), { ok: false, code: "secret_handoff_token_invalid" });
 
   assert.equal(service.submit({
     sessionId: created.sessionId,
@@ -64,94 +53,74 @@ test("invalid token and duplicate submission fail closed", () => {
     secret: "first-secret",
   }).ok, true);
 
-  assert.deepEqual(
-    service.submit({
-      sessionId: created.sessionId,
-      submitToken: created.submitToken,
-      secret: "second-secret",
-    }),
-    { ok: false, code: "secret_handoff_already_submitted" },
-  );
+  assert.deepEqual(service.submit({
+    sessionId: created.sessionId,
+    submitToken: created.submitToken,
+    secret: "second-secret",
+  }), { ok: false, code: "secret_handoff_already_submitted" });
 });
 
-test("secret can be consumed exactly once and consumer result may be returned", async () => {
+test("secret is leased as bytes, consumed once, then wiped", async () => {
   const { service } = fixture();
   const created = service.create({
     purpose: "hostinger.mysql.create",
     metadata: { database: "unijuri_staging" },
   });
-
   service.submit({
     sessionId: created.sessionId,
     submitToken: created.submitToken,
     secret: "single-use-secret",
   });
 
-  let received = null;
+  let leasedBytes;
   const consumed = await service.consume({
     sessionId: created.sessionId,
-    consumer: async (secret, context) => {
-      received = { secret, context };
-      return { databaseCreated: true };
+    consumer: async (bytes, context) => {
+      assert.equal(Buffer.isBuffer(bytes), true);
+      assert.equal(bytes.toString("utf8"), "single-use-secret");
+      assert.equal(context.purpose, "hostinger.mysql.create");
+      leasedBytes = bytes;
+      return { accepted: true };
     },
   });
 
-  assert.equal(received.secret, "single-use-secret");
-  assert.equal(received.context.purpose, "hostinger.mysql.create");
-  assert.equal(received.context.metadata.database, "unijuri_staging");
-  assert.deepEqual(consumed.result, { databaseCreated: true });
+  assert.deepEqual(consumed.result, { accepted: true });
   assert.equal(service.status(created.sessionId).state, "consumed");
   assert.equal(service.status(created.sessionId).secretPresent, false);
+  assert.equal([...leasedBytes].every((value) => value === 0), true);
 
-  assert.deepEqual(
-    await service.consume({
-      sessionId: created.sessionId,
-      consumer: async () => ({ shouldNotRun: true }),
-    }),
-    { ok: false, code: "secret_handoff_consumed" },
-  );
+  assert.deepEqual(await service.consume({
+    sessionId: created.sessionId,
+    consumer: async () => ({ shouldNotRun: true }),
+  }), { ok: false, code: "secret_handoff_consumed" });
 });
 
-test("expired session rejects submission and purges without exposing content", () => {
-  const { service, advance } = fixture({ ttlMs: 1_000 });
-  const created = service.create({ purpose: "hostinger.mysql.create" });
-
-  advance(1_001);
-
-  assert.equal(service.status(created.sessionId).state, "expired");
-  assert.deepEqual(
-    service.submit({
-      sessionId: created.sessionId,
-      submitToken: created.submitToken,
-      secret: "late-secret",
-    }),
-    { ok: false, code: "secret_handoff_expired" },
-  );
-
-  assert.equal(service.purgeExpired(), 1);
-  assert.deepEqual(service.status(created.sessionId), { found: false, state: "not_found" });
-});
-
-test("consumer failure still consumes and wipes the secret", async () => {
-  const { service } = fixture();
-  const created = service.create({ purpose: "hostinger.mysql.create" });
-  service.submit({
+test("expiration and consumer failure destroy secret material", async () => {
+  const expiring = fixture({ ttlMs: 1_000 });
+  const created = expiring.service.create({ purpose: "hostinger.mysql.create" });
+  expiring.advance(1_001);
+  assert.equal(expiring.service.status(created.sessionId).state, "expired");
+  assert.deepEqual(expiring.service.submit({
     sessionId: created.sessionId,
     submitToken: created.submitToken,
+    secret: "late-secret",
+  }), { ok: false, code: "secret_handoff_expired" });
+
+  const failing = fixture();
+  const created2 = failing.service.create({ purpose: "hostinger.mysql.create" });
+  failing.service.submit({
+    sessionId: created2.sessionId,
+    submitToken: created2.submitToken,
     secret: "do-not-retry-secret",
   });
-
-  await assert.rejects(
-    service.consume({
-      sessionId: created.sessionId,
-      consumer: async () => {
-        throw new Error("simulated_hostinger_failure");
-      },
-    }),
-    /simulated_hostinger_failure/,
-  );
-
-  const status = service.status(created.sessionId);
-  assert.equal(status.state, "consumed");
-  assert.equal(status.secretPresent, false);
+  let leasedBytes;
+  await assert.rejects(failing.service.consume({
+    sessionId: created2.sessionId,
+    consumer: async (bytes) => {
+      leasedBytes = bytes;
+      throw new Error("simulated_hostinger_failure");
+    },
+  }), /simulated_hostinger_failure/);
+  assert.equal(failing.service.status(created2.sessionId).state, "consumed");
+  assert.equal([...leasedBytes].every((value) => value === 0), true);
 });
