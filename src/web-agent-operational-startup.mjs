@@ -2,6 +2,7 @@ import { startOperationalGateway } from "./operational-server-runtime.mjs";
 import { createOperationalRuntime } from "./operational-runtime.mjs";
 import { startOperationalHttpServer } from "./operational-http-transport.mjs";
 import { createWebAgentOperationalComposition } from "./web-agent-operational-composition.mjs";
+import { attachTrustFaceAccessDurablePreviewToGateway } from "./trust-face-access-durable-runtime-transform.mjs";
 
 function composeGatewayTransforms(starterTransform, externalTransform) {
   if (!starterTransform) return externalTransform;
@@ -24,7 +25,7 @@ export async function startWebAgentOperationalGateway({
   runtimeFactory = createOperationalRuntime,
   serverFactory = startOperationalHttpServer,
   webAgentFactory = createWebAgentOperationalComposition,
-  gatewayTransform,
+  gatewayTransform = attachTrustFaceAccessDurablePreviewToGateway,
   ...gatewayOptions
 } = {}) {
   if (typeof gatewayStarter !== "function") {
