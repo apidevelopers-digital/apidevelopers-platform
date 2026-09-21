@@ -1,14 +1,21 @@
 import {
   normalizeOperatorSecretAccess,
+  OperatorSecretContractError,
 } from "./operator-secret-provider-contract.mjs";
 
 const REF_PREFIX = "secret://handoff/";
 
+function fail(code, message = code) {
+  throw new OperatorSecretContractError(code, message);
+}
+
 function sessionIdFromRef(secretRef) {
-  if (!secretRef.startsWith(REF_PREFIX)) throw new Error("secret_handoff_ref_unsupported");
+  if (!secretRef.startsWith(REF_PREFIX)) {
+    fail("secret_handoff_ref_unsupported");
+  }
   const sessionId = secretRef.slice(REF_PREFIX.length).trim();
-  if (!sessionId || !/^[A-Za-z0-9][A-Za-z0-9._:-]{3,128}$/.test(sessionId)) {
-    throw new Error("secret_handoff_ref_invalid");
+  if (!sessionId || !/^[A-Za-z0-9._:-]{3,128}$/.test(sessionId)) {
+    fail("secret_handoff_ref_invalid");
   }
   return sessionId;
 }
@@ -33,13 +40,13 @@ export function createOperatorSecretHandoffProvider({ handoffService } = {}) {
 
       const sessionId = sessionIdFromRef(access.secretRef);
       const status = handoffService.status(sessionId);
-      if (!status.found) throw new Error("secret_handoff_not_found");
-      if (status.purpose !== access.purpose) throw new Error("secret_handoff_purpose_mismatch");
+      if (!status.found) fail("secret_handoff_not_found");
+      if (status.purpose !== access.purpose) fail("secret_handoff_purpose_mismatch");
 
       const consumed = await handoffService.consume({
         sessionId,
         consumer: async (secretBytes, context) => {
-          if (context.purpose !== access.purpose) throw new Error("secret_handoff_purpose_mismatch");
+          if (context.purpose !== access.purpose) fail("secret_handoff_purpose_mismatch");
           return consumer(Object.freeze({
             bytes: secretBytes,
             version: "handoff-v1",
@@ -48,7 +55,7 @@ export function createOperatorSecretHandoffProvider({ handoffService } = {}) {
         },
       });
 
-      if (!consumed.ok) throw new Error(consumed.code || "secret_handoff_unavailable");
+      if (!consumed.ok) fail(consumed.code || "secret_handoff_unavailble");
       return consumed.result;
     },
   });
