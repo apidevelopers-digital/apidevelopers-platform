@@ -3,7 +3,7 @@
   "format": "managed-node-zip",
   "service": "api-gateway",
   "version": "0.8.0",
-  "sourceRevision": "0d7064c6f824d8f0f3fc829674492a35039ab790",
+  "sourceRevision": "1b09e127d70cde0fa18d08d2ef50bb9164fdc2ad",
   "runtime": {
     "node": ">=22",
     "entrypoint": "src/hostinger-entry.mjs",
@@ -738,6 +738,16 @@
       "sha256": "9b44aa8d6cc3731fc3359f7ae28d696d15873d6906a7905f82b7c71e6fd99662"
     },
     {
+      "path": "src/operator-api-key-provisioning-http.mjs",
+      "bytes": 4879,
+      "sha256": "effbe1396ac2414f61c694b95a18a3383652cd7e8c1641ac66db20165da96be0"
+    },
+    {
+      "path": "src/operator-api-key-provisioning.mjs",
+      "bytes": 3224,
+      "sha256": "1fda95f9211350fa91eee69281183a741e5c6905a9ad7674663a0b5e308454ac"
+    },
+    {
       "path": "src/operator-bootstrap-http.mjs",
       "bytes": 7686,
       "sha256": "adf68ecf39a2ad62443efab2b89e0229f6ea7fdf4be9f9abbfd5076fd0ab46f6"
@@ -1154,8 +1164,8 @@
     },
     {
       "path": "src/trust-face-access-durable-runtime-transform.mjs",
-      "bytes": 2481,
-      "sha256": "8b581d53f98a0420edbd847ae3aa96dbddd54f7672e252e927d813dcd9799554"
+      "bytes": 4793,
+      "sha256": "d5fb1a77574090a08fc1d76922383a0d9d329d3c49009693b5dadef2df9255d2"
     },
     {
       "path": "src/trust-face-access-durable-service.mjs",
