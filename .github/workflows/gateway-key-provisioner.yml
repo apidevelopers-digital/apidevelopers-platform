@@ -14,10 +14,6 @@ on:
         type: choice
         options:
           - dry-run
-      tenant_id:
-        description: "Tenant ID that will own the API key. Do not use a production secret value here unless explicitly approved."
-        required: true
-        type: string
       key_name:
         description: "Name of the API key to plan"
         required: true
@@ -54,7 +50,7 @@ jobs:
     timeout-minutes: 10
     env:
       GATEWAY_KEY_PROVISIONER_MODE: ${{ github.event.inputs.mode }}
-      GATEWAY_KEY_PROVISIONER_TENANT_ID: ${{ github.event.inputs.tenant_id }}
+      GATEWAY_KEY_PROVISIONER_TENANT_ID: ${{ secrets.ADA_MITRA_BRIDGE_TENANT_ID }}
       GATEWAY_KEY_PROVISIONER_KEY_NAME: ${{ github.event.inputs.key_name }}
       GATEWAY_KEY_PROVISIONER_SCOPES: ${{ github.event.inputs.scopes }}
       GATEWAY_KEY_PROVISIONER_REQUESTED_BY: Igor
