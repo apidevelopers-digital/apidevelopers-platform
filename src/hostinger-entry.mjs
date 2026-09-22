@@ -10,6 +10,7 @@ import { createOperatorSecretHandoffOperationalComposition } from "./operator-se
 import { attachMitraPublicResearchToGateway } from "./mitra-public-operational-wrapper.mjs";
 import { attachUniJuriProductionHandoffToGateway } from "./unijuri-production-handoff-operational-wrapper.mjs";
 import { attachZuniChannelBindingWriteHostingerComposition } from "./zuni-channel-binding-write-hostinger-wiring.mjs";
+import { attachTrustFaceAccessDurablePreviewToGateway } from "./trust-face-access-durable-runtime-transform.mjs";
 
 function configured(value) {
   return Boolean(String(value ?? "").trim());
@@ -71,6 +72,14 @@ function attachHostingerCompositions({ gateway, env }) {
   });
 }
 
+function attachTrustAndHostingerCompositions(context = {}) {
+  const trustGateway = attachTrustFaceAccessDurablePreviewToGateway(context);
+  return attachHostingerCompositions({
+    ...context,
+    gateway: trustGateway,
+  });
+}
+
 // Preserve the managed-hosting startup contract while routing the implementation
 // through the Web Agent operational composition.
 async function startOperationalGateway(options = {}) {
@@ -89,7 +98,7 @@ async function startOperationalGateway(options = {}) {
 const env = resolveHostingerRuntimeEnv(process.env, { readFileFn: readFileSync });
 const { server, runtime } = await startOperationalGateway({
   env,
-  gatewayTransform: attachHostingerCompositions,
+  gatewayTransform: attachTrustAndHostingerCompositions,
 });
 await runUniCoPreviewBootstrap({ app: runtime.app, env });
 
