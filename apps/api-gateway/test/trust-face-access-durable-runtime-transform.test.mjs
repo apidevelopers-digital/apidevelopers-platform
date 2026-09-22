@@ -1,4 +1,3 @@
-
 import assert from "node:assert/strict";
 import test from "node:test";
 
@@ -45,7 +44,7 @@ test("Trust Face Access durable runtime transform reports diagnostics when durab
   assert.equal(status.diagnostics.durableRuntimeEnabled, false);
   assert.equal(status.diagnostics.envFlagEnabled, false);
   assert.equal(status.diagnostics.cwd, "/runtime");
-  assert.equal(status.diagnostics.fileFlagPath, "/.trust-face-access-durable-preview");
+  assert.equal(status.diagnostics.fileFlagPath, "/public_html/.trust-face-access-durable-preview");
 });
 
 test("Trust Face Access durable runtime transform attaches durable service when enabled", async () => {
@@ -79,13 +78,14 @@ test("Trust Face Access durable runtime transform attaches durable service when 
     },
   });
 
+  assert.equal(runtime.storePath, "/runtime/.var/trust-face.json");
+
   const transformed = attachTrustFaceAccessDurablePreviewToGateway({
     gateway,
     runtime,
   });
 
   assert.notEqual(transformed, gateway);
-  assert.equal(transformed.trustFaceAccessDurablePreview.storePath, "/runtime/.var/trust-face.json");
   assert.equal(transformed.trustFaceAccessDurablePreview.status.service, "trust-face-access");
   assert.equal(transformed.trustFaceAccessDurablePreview.status.status, "durable_preview");
   assert.equal(transformed.trustFaceAccess.status().status, "durable_preview");
@@ -97,6 +97,8 @@ test("Trust Face Access durable runtime transform attaches durable service when 
   const status = await readStatus(transformed);
   assert.equal(status.status, "durable_preview");
   assert.equal(status.diagnostics.transformAttached, true);
+  assert.equal(status.diagnostics.durableRuntimeEnabled, true);
+  assert.ok(status.diagnostics.storePath.endsWith("/public_html/.trust-face-access-durable-store.json"));
 });
 
 test("Trust Face Access durable runtime uses gateway state file as default path", () => {
