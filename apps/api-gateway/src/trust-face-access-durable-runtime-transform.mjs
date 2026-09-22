@@ -64,7 +64,7 @@ function resolveStorePath({ env = process.env, cwd = process.cwd(), config } = {
   if (explicitPath) return resolve(cwd, explicitPath);
 
   const stateFilePath = optionalText(config?.stateFilePath);
-  if (stateFilePath) return `${stateFilePath}.trust-face.json`;
+  if (stateFilePath) return `${stateFilePath}.trust-face-access.json`;
 
   return defaultStorePath({ cwd });
 }
@@ -100,7 +100,7 @@ function normalizeThisResponse(response) {
   return response;
 }
 
-async function handleTrustFaceAccessRequest({request, trustFaceAccess }) {
+async function handleTrustFaceAccessRequest({ request, trustFaceAccess }) {
   const method = String(request.method ?? "GET").toUpperCase();
   const path = trustPath(request);
 
@@ -169,7 +169,7 @@ export function attachTrustFaceAccessDurablePreviewToGateway({
     app: Object.freeze({
       ...gateway.app,
       async handleRequest(request) {
-        const durableResponse = await handleTrustFaceAccessRequest {
+        const durableResponse = await handleTrustFaceAccessRequest({
           request,
           trustFaceAccess: runtime.trustFaceAccess,
         });
