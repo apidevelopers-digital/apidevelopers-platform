@@ -1,4 +1,4 @@
-const SECRET_ROUTE_PATTERN = /^\\/v1\\/operator\\/secret-handoff\\/[A-Za-z0-9._:-]{3,128}\\/submit$/;
+const SECRET_ROUTE_PATTERN = /^\/v1\/operator\/secret-handoff\/[A-Za-z0-9._:-]{3,128}\/submit$/;
 const DEFAULT_MAX_BYTES = 16 * 1024;
 
 class SecretHandoffTransportError extends Error {
@@ -27,7 +27,7 @@ async function readBytes(request, maxBytes) {
   let total = 0;
   try {
     for await (const chunk of request) {
-      const buffer = Buffer.isBuffer(chunk) ? Buffer.from(chunk) : Buffer.from(chunk);
+      const buffer = Buffer.from(chunk);
       total += buffer.length;
       if (total > maxBytes) {
         buffer.fill(0);
@@ -35,7 +35,6 @@ async function readBytes(request, maxBytes) {
       }
       chunks.push(buffer);
     }
-
     if (chunks.length === 0) return Buffer.alloc(0);
     return Buffer.concat(chunks, total);
   } finally {
