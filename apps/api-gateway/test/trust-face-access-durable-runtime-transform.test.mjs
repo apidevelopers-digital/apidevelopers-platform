@@ -1,3 +1,4 @@
+
 import assert from "node:assert/strict";
 import test from "node:test";
 
@@ -18,7 +19,16 @@ function createGateway() {
   });
 }
 
-test("Trust Face Access durable runtime transform is disabled by default", () => {
+async function readStatus(gateway) {
+  const response = await gateway.app.handleRequest({
+    method: "GET",
+    url: "https://gateway.apidevelopers.digital/v1/trust/face-access/status",
+  });
+  assert.equal(response.status, 200);
+  return JSON.parse(response.body);
+}
+
+test("Trust Face Access durable runtime transform reports diagnostics when durable mode is disabled", async () => {
   const gateway = createGateway();
   const transformed = attachTrustFaceAccessDurablePreviewToGateway({
     gateway,
@@ -27,10 +37,18 @@ test("Trust Face Access durable runtime transform is disabled by default", () =>
     config: { stateFilePath: "/runtime/state.json" },
   });
 
-  assert.equal(transformed, gateway);
+  assert.notEqual(transformed, gateway);
+  const status = await readStatus(transformed);
+
+  assert.equal(status.status, "preview");
+  assert.equal(status.diagnostics.transformAttached, true);
+  assert.equal(status.diagnostics.durableRuntimeEnabled, false);
+  assert.equal(status.diagnostics.envFlagEnabled, false);
+  assert.equal(status.diagnostics.cwd, "/runtime");
+  assert.equal(status.diagnostics.fileFlagPath, "/.trust-face-access-durable-preview");
 });
 
-test("Trust Face Access durable runtime transform attaches only when enabled", async () => {
+test("Trust Face Access durable runtime transform attaches durable service when enabled", async () => {
   const gateway = createGateway();
   const createdStores = [];
   const createdServices = [];
@@ -76,13 +94,9 @@ test("Trust Face Access durable runtime transform attaches only when enabled", a
   assert.equal(createdServices.length, 1);
   assert.equal(createdServices[0].store.type, "file-store");
 
-  const response = await transformed.app.handleRequest({
-    method: "GET",
-    url: "https://gateway.apidevelopers.digital/v1/trust/face-access/status",
-  });
-
-  assert.equal(response.status, 200);
-  assert.equal(JSON.parse(response.body).status, "durable_preview");
+  const status = await readStatus(transformed);
+  assert.equal(status.status, "durable_preview");
+  assert.equal(status.diagnostics.transformAttached, true);
 });
 
 test("Trust Face Access durable runtime uses gateway state file as default path", () => {
@@ -99,4 +113,35 @@ test("Trust Face Access durable runtime uses gateway state file as default path"
   });
 
   assert.equal(runtime.storePath, "/runtime/state.json.trust-face-access.json");
+});
+
+test("Trust Face Access durable runtime resolves domain root from Hostinger hbuilds cwd", async () => {
+  const runtime = createTrustFaceAccessDurableRuntimeTransform({
+    env: { TRUST_FACE_ACCESS_DURABLE_PREVIEW: "1" },
+    cwd: "/home/u242521810/domains/gateway.apidevelopers.digital/hbuilds/current/nodejs",
+    createStore(options) {
+      return { path: options.path };
+    },
+    createService(options) {
+      return { store: options.store, status() { return { status: "durable_preview" }; } };
+    },
+  });
+
+  assert.equal(
+    runtime.storePath,
+    "/home/u242521810/domains/gateway.apidevelopers.digital/public_html/.trust-face-access-durable-store.json",
+  );
+
+  const transformed = attachTrustFaceAccessDurablePreviewToGateway({
+    gateway: createGateway(),
+    runtime,
+    env: { TRUST_FACE_ACCESS_DURABLE_PREVIEW: "1" },
+    cwd: "/home/u242521810/domains/gateway.apidevelopers.digital/hbuilds/current/nodejs",
+  });
+
+  const status = await readStatus(transformed);
+  assert.equal(
+    status.diagnostics.fileFlagPath,
+    "/home/u242521810/domains/gateway.apidevelopers.digital/public_html/.trust-face-access-durable-preview",
+  );
 });
