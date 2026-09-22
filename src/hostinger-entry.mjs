@@ -1,13 +1,19 @@
 import { readFileSync } from "node:fs";
 
+import { startOperationalHttpServer } from "./operational-http-transport.mjs";
 import { registerOperationalShutdown } from "./operational-server-runtime.mjs";
 import { resolveHostingerRuntimeEnv } from "./hostinger-runtime-env.mjs";
 import { runUniCoPreviewBootstrap } from "./uni-co-preview-bootstrap.mjs";
 import { startWebAgentOperationalGateway } from "./web-agent-operational-startup.mjs";
 import { createOperatorBootstrapHttpApp } from "./operator-bootstrap-http.mjs";
+import { createOperatorSecretHandoffOperationalComposition } from "./operator-secret-handoff-operational-composition.mjs";
 import { attachMitraPublicResearchToGateway } from "./mitra-public-operational-wrapper.mjs";
 import { attachUniJuriProductionHandoffToGateway } from "./unijuri-production-handoff-operational-wrapper.mjs";
 import { attachZuniChannelBindingWriteHostingerComposition } from "./zuni-channel-binding-write-hostinger-wiring.mjs";
+
+function configured(value) {
+  return Boolean(String(value ?? "").trim());
+}
 
 function attachOperatorBootstrap({ gateway }) {
   const app = createOperatorBootstrapHttpApp({
@@ -20,10 +26,39 @@ function attachOperatorBootstrap({ gateway }) {
   return Object.freeze({ ...gateway, app });
 }
 
+let secretHandoffHttpApp;
+
+function attachOperatorSecretHandoff({ gateway, env }) {
+  const composition = createOperatorSecretHandoffOperationalComposition({
+    app: gateway.app,
+    authenticator: gateway.authenticator,
+    authorization: gateway.authorization,
+    runtimeDescriptor: Object.freeze({
+      adminKeyConfigured: configured(env.API_GATEWAY_ADMIN_KEY),
+    }),
+    env,
+  });
+
+  secretHandoffHttpApp = composition.enabled ? composition.httpApp : undefined;
+
+  return Object.freeze({
+    ...gateway,
+    ...(composition.enabled
+      ? {
+          secretHandoff: Object.freeze({
+            enabled: true,
+            descriptor: composition.descriptor,
+          }),
+        }
+      : {}),
+  });
+}
+
 function attachHostingerCompositions({ gateway, env }) {
   const operatorGateway = attachOperatorBootstrap({ gateway });
+  const secretHandoffGateway = attachOperatorSecretHandoff({ gateway: operatorGateway, env });
   const mitraGateway = attachMitraPublicResearchToGateway({
-    gateway: operatorGateway,
+    gateway: secretHandoffGateway,
     env,
   });
   const uniJuriGateway = attachUniJuriProductionHandoffToGateway({
@@ -39,7 +74,16 @@ function attachHostingerCompositions({ gateway, env }) {
 // Preserve the managed-hosting startup contract while routing the implementation
 // through the Web Agent operational composition.
 async function startOperationalGateway(options = {}) {
-  return startWebAgentOperationalGateway(options);
+  secretHandoffHttpApp = undefined;
+  return startWebAgentOperationalGateway({
+    ...options,
+    serverFactory(serverOptions = {}) {
+      return startOperationalHttpServer({
+        ...serverOptions,
+        ...(secretHandoffHttpApp ? { secretHandoffHttpApp } : {}),
+      });
+    },
+  });
 }
 
 const env = resolveHostingerRuntimeEnv(process.env, { readFileFn: readFileSync });
