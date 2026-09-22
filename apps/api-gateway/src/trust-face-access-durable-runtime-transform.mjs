@@ -221,7 +221,7 @@ export function attachTrustFaceAccessDurablePreviewToGateway({
     }),
     trustFaceAccessDurablePreview: Object.freeze({
       storePath: diagnostics.storePath,
-      status: runtime?.trustFaceAccess?.status/.(),
+      status: runtime?.trustFaceAccess?.status?.(),
       diagnostics,
     }),
     ...(runtime?.trustFaceAccess ? { trustFaceAccess: runtime.trustFaceAccess } : {}),
