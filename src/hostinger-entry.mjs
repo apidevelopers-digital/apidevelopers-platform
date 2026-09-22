@@ -1,21 +1,16 @@
 import { readFileSync } from "node:fs";
 
-import { startOperationalHttpServer } from "./operational-http-transport.mjs";
 import { registerOperationalShutdown } from "./operational-server-runtime.mjs";
 import { resolveHostingerRuntimeEnv } from "./hostinger-runtime-env.mjs";
 import { runUniCoPreviewBootstrap } from "./uni-co-preview-bootstrap.mjs";
 import { startWebAgentOperationalGateway } from "./web-agent-operational-startup.mjs";
 import { createOperatorBootstrapHttpApp } from "./operator-bootstrap-http.mjs";
-import { createOperatorSecretHandoffOperationalComposition } from "./operator-secret-handoff-operational-composition.mjs";
-import { createOperatorHostingerMysqlStagingHandoffHttpApp } from "./operator-hostinger-mysql-staging-handoff-http.mjs";
 import { attachMitraPublicResearchToGateway } from "./mitra-public-operational-wrapper.mjs";
 import { attachUniJuriProductionHandoffToGateway } from "./unijuri-production-handoff-operational-wrapper.mjs";
 import { attachZuniChannelBindingWriteHostingerComposition } from "./zuni-channel-binding-write-hostinger-wiring.mjs";
 import { attachTrustFaceAccessDurablePreviewToGateway } from "./trust-face-access-durable-runtime-transform.mjs";
-
-function configured(value) {
-  return Boolean(String(value ?? "").trim());
-}
+import { createOperatorApiKeyProvisioningRuntimeApp } from "./operator-api-key-provisioning-composition.mjs";
+import { createOperatorApiKeyProvisioningWrapper } from "./operator-api-key-provisioning-wrapper.mjs";
 
 function attachOperatorBootstrap({ gateway }) {
   const app = createOperatorBootstrapHttpApp({
@@ -28,50 +23,31 @@ function attachOperatorBootstrap({ gateway }) {
   return Object.freeze({ ...gateway, app });
 }
 
-let secretHandoffHttpApp;
-
-function attachOperatorSecretHandoff({ gateway, env }) {
-  const composition = createOperatorSecretHandoffOperationalComposition({
-    app: gateway.app,
-    authenticator: gateway.authenticator,
-    authorization: gateway.authorization,
-    runtimeDescriptor: Object.freeze({
-      adminKeyConfigured: configured(env.API_GATEWAY_ADMIN_KEY),
-    }),
-    env,
-  });
-
-  if (composition.enabled) {
-    secretHandoffHttpApp = createOperatorHostingerMysqlStagingHandoffHttpApp({
-      app: composition.httpApp,
+function attachOperatorApiKeyProvisioning({ gateway }) {
+  const operatorApiKeyProvisioningApp =
+    createOperatorApiKeyProvisioningRuntimeApp({
       authenticator: gateway.authenticator,
-      authorization: gateway.authorization,
-      handoffService: composition.handoffService,
-      secretProvider: composition.secretProvider,
-      env,
+      apiKeyLifecycle: gateway.apiKeyLifecycle,
     });
-  } else {
-    secretHandoffHttpApp = undefined;
-  }
+  const app = createOperatorApiKeyProvisioningWrapper({
+    app: gateway.app,
+    operatorApiKeyProvisioningApp,
+  });
 
   return Object.freeze({
     ...gateway,
-    ...(composition.enabled
-      ? {
-          secretHandoff: Object.freeze({
-            enabled: true,
-            descriptor: composition.descriptor,
-          }),
-        }
-      : {}),
+    operatorApiKeyProvisioningApp,
+    app,
   });
 }
 
 function attachHostingerCompositions({ gateway, env }) {
   const operatorGateway = attachOperatorBootstrap({ gateway });
-  const secretHandoffGateway = attachOperatorSecretHandoff({ gateway: operatorGateway, env });
+  const keyProvisionerGateway = attachOperatorApiKeyProvisioning({
+    gateway: operatorGateway,
+  });
   const mitraGateway = attachMitraPublicResearchToGateway({
-    gateway: secretHandoffGateway,
+    gateway: keyProvisionerGateway,
     env,
   });
   const uniJuriGateway = attachUniJuriProductionHandoffToGateway({
@@ -95,16 +71,7 @@ function attachTrustAndHostingerCompositions(context = {}) {
 // Preserve the managed-hosting startup contract while routing the implementation
 // through the Web Agent operational composition.
 async function startOperationalGateway(options = {}) {
-  secretHandoffHttpApp = undefined;
-  return startWebAgentOperationalGateway({
-    ...options,
-    serverFactory(serverOptions = {}) {
-      return startOperationalHttpServer({
-        ...serverOptions,
-        ...(secretHandoffHttpApp ? { secretHandoffHttpApp } : {}),
-      });
-    },
-  });
+  return startWebAgentOperationalGateway(options);
 }
 
 const env = resolveHostingerRuntimeEnv(process.env, { readFileFn: readFileSync });
