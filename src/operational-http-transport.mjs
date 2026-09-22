@@ -1,5 +1,6 @@
 import http from "node:http";
 import { maybeHandleGatewayPublicLanding } from "./node-public-landing.mjs";
+import { createOperatorSecretHandoffNodeHandler } from "./operator-secret-handoff-node-http.mjs";
 
 const DEFAULT_MAX_BODY_BYTES = 64 * 1024;
 const WEB_AGENT_CONVERSATION_PATH = "/v1/web-agent/conversations";
@@ -87,12 +88,16 @@ export function createOperationalHttpServer({
   app,
   maxBodyBytes = DEFAULT_MAX_BODY_BYTES,
   logger = console,
+  secretHandoffHttpApp,
 } = {}) {
   if (typeof app?.handleRequest !== "function") {
     throw new TypeError("app.handleRequest must be a function");
   }
 
   const bodyLimit = validateMaxBodyBytes(maxBodyBytes);
+  const secretHandoffNodeHandler = secretHandoffHttpApp === undefined
+    ? null
+    : createOperatorSecretHandoffNodeHandler({ httpApp: secretHandoffHttpApp });
 
   return http.createServer(async (request, response) => {
     const path = requestPath(request.url);
@@ -101,6 +106,13 @@ export function createOperationalHttpServer({
     if (maybeHandleGatewayPublicLanding(request, response)) return;
 
     try {
+      if (
+        secretHandoffNodeHandler &&
+        await secretHandoffNodeHandler.handle(request, response)
+      ) {
+        return;
+      }
+
       const body = await readRequestBody(request, bodyLimit);
       const result = await app.handleRequest({
         method: request.method,
@@ -178,8 +190,14 @@ export async function startOperationalHttpServer({
   host = "127.0.0.1",
   maxBodyBytes = DEFAULT_MAX_BODY_BYTES,
   logger = console,
+  secretHandoffHttpApp,
 } = {}) {
-  const server = createOperationalHttpServer({ app, maxBodyBytes, logger });
+  const server = createOperationalHttpServer({
+    app,
+    maxBodyBytes,
+    logger,
+    ...(secretHandoffHttpApp !== undefined ? { secretHandoffHttpApp } : {}),
+  });
 
   await new Promise((resolve, reject) => {
     server.once("error", reject);

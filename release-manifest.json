@@ -3,7 +3,7 @@
   "format": "managed-node-zip",
   "service": "api-gateway",
   "version": "0.8.0",
-  "sourceRevision": "9c819c7090a22f6e8732676a3e5c34eddc682f43",
+  "sourceRevision": "2e21d58321045261f461211e1ca4ab56fdf33767",
   "runtime": {
     "node": ">=22",
     "entrypoint": "src/hostinger-entry.mjs",
@@ -649,8 +649,8 @@
     },
     {
       "path": "src/operational-composition.mjs",
-      "bytes": 7690,
-      "sha256": "d1f2de0418af17ee7a118788af99b943a804e8cc121b9ccd52b34372f5367ae9"
+      "bytes": 8203,
+      "sha256": "5e8d5f4bd3bd821f09b460933d4cc88b5dd07d33aff422fe33a86714d1d1bcc9"
     },
     {
       "path": "src/operational-data-policy-registry-composition.mjs",
@@ -664,8 +664,8 @@
     },
     {
       "path": "src/operational-http-transport.mjs",
-      "bytes": 5209,
-      "sha256": "103755bb82ac4d4733edfc2e5e8f9ee8d64f784c6580f6f3f2d8aea28cd0fa9c"
+      "bytes": 5756,
+      "sha256": "8079711cedf5f714deedcd76c249bb2fee626c8f018106058fb95d33c06e4eef"
     },
     {
       "path": "src/operational-http.mjs",
@@ -708,6 +708,11 @@
       "sha256": "4fa95dc556520f5167da4e691481a24ae0aa85438d45d765ad4d845fbc059e9f"
     },
     {
+      "path": "src/operational-secret-handoff-server.mjs",
+      "bytes": 4123,
+      "sha256": "0a1fbea38ddaa870e468f00fbf983d26e175f8dff1e20e8d93c86e2432b1d695"
+    },
+    {
       "path": "src/operational-server-runtime.mjs",
       "bytes": 9229,
       "sha256": "52bcee09c33f2b78fe10c479f496f9d1638f0c0accc6d51b75b6f941cc59da68"
@@ -746,6 +751,11 @@
       "path": "src/operator-api-key-provisioning-http.mjs",
       "bytes": 4879,
       "sha256": "effbe1396ac2414f61c694b95a18a3383652cd7e8c1641ac66db20165da96be0"
+    },
+    {
+      "path": "src/operator-api-key-provisioning-wrapper.mjs",
+      "bytes": 664,
+      "sha256": "2f619aa1b3952291025f7c42bb0d56886e990e62dea15ab6f320abcdc8a33c59"
     },
     {
       "path": "src/operator-api-key-provisioning.mjs",
@@ -916,6 +926,26 @@
       "path": "src/operator-readonly-sanitizers.mjs",
       "bytes": 6743,
       "sha256": "a06cc64df972a9e98e5f962a6a58cf34bf5d7d64a5fad36e7a07a2f25491c540"
+    },
+    {
+      "path": "src/operator-secret-handoff-http.mjs",
+      "bytes": 4279,
+      "sha256": "fc1456d13335a246d5d93c2fbd056f82f613b418e5cad830434131bb5a080feb"
+    },
+    {
+      "path": "src/operator-secret-handoff-node-http.mjs",
+      "bytes": 3739,
+      "sha256": "f5c0961c8f5531e47dc5b76730e11f2904df63d2ebfa1205cddf720c360be948"
+    },
+    {
+      "path": "src/operator-secret-handoff-operational-composition.mjs",
+      "bytes": 2700,
+      "sha256": "d33992d8f091032118c069d5adb152a5ae3739007e100a11d9717ddb5aefd9c4"
+    },
+    {
+      "path": "src/operator-secret-handoff-provider.mjs",
+      "bytes": 3814,
+      "sha256": "7d05c7bb1bea4e2bbf7d6215e92d1ebfae155ae52ed990299dfd0ba3d10d5cda"
     },
     {
       "path": "src/operator-secret-provider-contract.mjs",
@@ -1161,6 +1191,11 @@
       "path": "src/saas-zuni-public-readiness-probe.mjs",
       "bytes": 3134,
       "sha256": "0f6d40beec753be6616f1e6bbd7e49fde40abec9caa237bd116d20531667a593"
+    },
+    {
+      "path": "src/secret-handoff.mjs",
+      "bytes": 6703,
+      "sha256": "bcbe6d1a2d912fb99fc99100b3d220a81dfdc792886a732812a03de6c5e4fd90"
     },
     {
       "path": "src/server.mjs",

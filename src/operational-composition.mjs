@@ -22,6 +22,8 @@ import { createGlobalTrustObservabilityHttpApp } from "./global-trust-observabil
 import { createGlobalTrustObservabilityService } from "./global-trust-observability.mjs";
 import { createGatewayRiskService } from "./global-trust-risk.mjs";
 import { createOperationalProtection } from "./operational-protection.mjs";
+import { createOperatorApiKeyProvisioningRuntimeApp } from "./operator-api-key-provisioning-composition.mjs";
+import { createOperatorApiKeyProvisioningWrapper } from "./operator-api-key-provisioning-wrapper.mjs";
 import { createApp } from "./server.mjs";
 
 function requireText(value, name) {
@@ -203,9 +205,17 @@ export function createOperationalGateway({
     authorization,
     killSwitch,
   });
+  const operatorApiKeyProvisioningApp = createOperatorApiKeyProvisioningRuntimeApp({
+    authenticator,
+    apiKeyLifecycle,
+  });
+  const provisionerApp = createOperatorApiKeyProvisioningWrapper({
+    app: killSwitchApp,
+    operatorApiKeyProvisioningApp,
+  });
   const app = protection
-    ? createOperationalProtection({ app: killSwitchApp, ...protection })
-    : killSwitchApp;
+    ? createOperationalProtection({ app: provisionerApp, ...protection })
+    : provisionerApp;
 
   return Object.freeze({
     store,
@@ -222,6 +232,7 @@ export function createOperationalGateway({
     globalTrustObservability,
     integrity,
     integrityBackfill,
+    operatorApiKeyProvisioningApp,
     app,
     ...(protection ? { metrics: app.metrics } : {}),
   });
