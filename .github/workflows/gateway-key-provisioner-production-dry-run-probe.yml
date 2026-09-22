@@ -54,13 +54,23 @@ jobs:
           const operatorKey = process.env.API_GATEWAY_OPERATOR_KEY || "";
           const tenantId = process.env.ADA_MITRA_BRIDGE_TENANT_ID || "";
           const emit = (key, value) => console.log(`GATEWAY_KEY_PROVISIONER_PROD_PROBE_${key}=${String(value)}`);
+          const safe = (value) => String(value ?? "unmapped").slice(0, 180).replace(/[^a-zA-Z0-9_.:-]/g, "_");
           const fail = (message) => {
-            emit("FAILURE", String(message).slice(0, 140).replace(/[^a-zA-Z0-9_.:-]/g, "_"));
+            emit("FAILURE", safe(message));
             process.exit(1);
           };
           const assertNoSecretLikeText = (text) => {
             const lower = String(text).toLowerCase();
-            for (const forbidden of ["api_gateway_operator_key", "authorization", "bearer ", "cookie", "password", "private_key"]) {
+            for (const forbidden of [
+              "api_gateway_operator_key",
+              "authorization",
+              "bearer ",
+              "cookie",
+              "password",
+              "private_key",
+              "access_token",
+              "refresh_token",
+            ]) {
               if (lower.includes(forbidden)) fail(`secret_like_text_detected:${forbidden.trim()}`);
             }
           };
@@ -102,14 +112,22 @@ jobs:
           assertNoSecretLikeText(text);
           emit("HTTP_STATUS", response.status);
           let body;
-          try { body = JSON.parse(text); } catch { fail(`unparseable_response_http_${response.status}`); }
+          try {
+            body = JSON.parse(text);
+          } catch {
+            fail(`unparseable_response_http_${response.status}`);
+          }
+
           emit("OK", body.ok === true ? "true" : "false");
+          emit("ERROR", safe(body.error || "none"));
+          emit("MESSAGE", safe(body.message || "none"));
           emit("MODE", body.mode || "missing");
           emit("NAME", body.name || "missing");
           emit("SECRET_RETURNED", body.secretReturned === true ? "true" : "false");
           emit("REQUIRES_APPROVAL", body.requiresApproval === true ? "true" : "false");
           emit("SCOPES", Array.isArray(body.scopes) ? body.scopes.join(",") : "missing");
-          if (response.status !== 200) fail(`http_${response.status}:${body.error || "unmapped"}`);
+
+          if (response.status !== 200) fail(`http_${response.status}:${body.error || "unmapped"}:${body.message || "no_message"}`);
           if (body.ok !== true) fail("not_ok");
           if (body.mode !== "dry-run") fail("unexpected_mode");
           if (body.name !== "ada-mitra-bridge-read") fail("unexpected_name");
