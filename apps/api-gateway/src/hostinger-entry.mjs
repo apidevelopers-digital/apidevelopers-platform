@@ -9,6 +9,8 @@ import { attachMitraPublicResearchToGateway } from "./mitra-public-operational-w
 import { attachUniJuriProductionHandoffToGateway } from "./unijuri-production-handoff-operational-wrapper.mjs";
 import { attachZuniChannelBindingWriteHostingerComposition } from "./zuni-channel-binding-write-hostinger-wiring.mjs";
 import { attachTrustFaceAccessDurablePreviewToGateway } from "./trust-face-access-durable-runtime-transform.mjs";
+import { createOperatorApiKeyProvisioningRuntimeApp } from "./operator-api-key-provisioning-composition.mjs";
+import { createOperatorApiKeyProvisioningWrapper } from "./operator-api-key-provisioning-wrapper.mjs";
 
 function attachOperatorBootstrap({ gateway }) {
   const app = createOperatorBootstrapHttpApp({
@@ -21,10 +23,31 @@ function attachOperatorBootstrap({ gateway }) {
   return Object.freeze({ ...gateway, app });
 }
 
+function attachOperatorApiKeyProvisioning({ gateway }) {
+  const operatorApiKeyProvisioningApp =
+    createOperatorApiKeyProvisioningRuntimeApp({
+      authenticator: gateway.authenticator,
+      apiKeyLifecycle: gateway.apiKeyLifecycle,
+    });
+  const app = createOperatorApiKeyProvisioningWrapper({
+    app: gateway.app,
+    operatorApiKeyProvisioningApp,
+  });
+
+  return Object.freeze({
+    ...gateway,
+    operatorApiKeyProvisioningApp,
+    app,
+  });
+}
+
 function attachHostingerCompositions({ gateway, env }) {
   const operatorGateway = attachOperatorBootstrap({ gateway });
-  const mitraGateway = attachMitraPublicResearchToGateway({
+  const keyProvisionerGateway = attachOperatorApiKeyProvisioning({
     gateway: operatorGateway,
+  });
+  const mitraGateway = attachMitraPublicResearchToGateway({
+    gateway: keyProvisionerGateway,
     env,
   });
   const uniJuriGateway = attachUniJuriProductionHandoffToGateway({
