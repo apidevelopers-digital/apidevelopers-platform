@@ -7,6 +7,7 @@ import { runUniCoPreviewBootstrap } from "./uni-co-preview-bootstrap.mjs";
 import { startWebAgentOperationalGateway } from "./web-agent-operational-startup.mjs";
 import { createOperatorBootstrapHttpApp } from "./operator-bootstrap-http.mjs";
 import { createOperatorSecretHandoffOperationalComposition } from "./operator-secret-handoff-operational-composition.mjs";
+import { createOperatorHostingerMysqlStagingHandoffHttpApp } from "./operator-hostinger-mysql-staging-handoff-http.mjs";
 import { attachMitraPublicResearchToGateway } from "./mitra-public-operational-wrapper.mjs";
 import { attachUniJuriProductionHandoffToGateway } from "./unijuri-production-handoff-operational-wrapper.mjs";
 import { attachZuniChannelBindingWriteHostingerComposition } from "./zuni-channel-binding-write-hostinger-wiring.mjs";
@@ -40,7 +41,18 @@ function attachOperatorSecretHandoff({ gateway, env }) {
     env,
   });
 
-  secretHandoffHttpApp = composition.enabled ? composition.httpApp : undefined;
+  if (composition.enabled) {
+    secretHandoffHttpApp = createOperatorHostingerMysqlStagingHandoffHttpApp({
+      app: composition.httpApp,
+      authenticator: gateway.authenticator,
+      authorization: gateway.authorization,
+      handoffService: composition.handoffService,
+      secretProvider: composition.secretProvider,
+      env,
+    });
+  } else {
+    secretHandoffHttpApp = undefined;
+  }
 
   return Object.freeze({
     ...gateway,
