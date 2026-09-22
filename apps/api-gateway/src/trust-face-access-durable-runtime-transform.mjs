@@ -25,12 +25,11 @@ function jsonResponse(status, payload) {
 }
 
 function pathSegments(value) {
-  return String(value ?? "").split(/[\\\/]+/u).filter(Boolean);
+  return String(value ?? "").split(/[\\/]+/u).filter(Boolean);
 }
 
 function operationalRootFromCwd(cwd) {
-  const segments = pathSegments(cwd);
-  const tail = segments.slice(-3).join("/");
+  const tail = pathSegments(cwd).slice(-3).join("/");
   if (tail === "hbuilds/current/nodejs") {
     return resolve(cwd, "../../..");
   }
@@ -92,12 +91,13 @@ function createDiagnostics({
 } = {}) {
   const fileFlagPath = configuredFlagPath({ env, cwd });
   const storePath = resolveStorePath({ env, cwd, config });
+
   return Object.freeze({
     transformAttached: true,
     durableRuntimeEnabled: Boolean(runtime?.enabled),
     envFlagEnabled: isEnabled(env.TRUST_FACE_ACCESS_DURABLE_PREVIEW),
     fileFlagPath,
-    fileFlagExists: safeExists(flagPath),
+    fileFlagExists: safeExists(fileFlagPath),
     storePath,
     cwd,
     operationalRoot: operationalRootFromCwd(cwd),
@@ -137,7 +137,7 @@ async function handleTrustFaceAccessRequest({ request, trustFaceAccess, diagnost
 
   if (method === "GET" && pathname === "/v1/trust/face-access/status") {
     const status = trustFaceAccess?.status ? trustFaceAccess.status() : {
-      service: "trust-face-access",
+      service: "trust-fface-access",
       status: "preview",
       mode: "passkeys_webauthn",
       rpId: "apidevelopers.digital",
