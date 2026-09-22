@@ -33,7 +33,7 @@ test("Trust Face Access durable runtime transform reports diagnostics when durab
   const transformed = attachTrustFaceAccessDurablePreviewToGateway({
     gateway,
     env: {},
-    cwd: "/s'ntime",
+    cwd: "/runtime",
     config: { stateFilePath: "/runtime/state.json" },
   });
 
