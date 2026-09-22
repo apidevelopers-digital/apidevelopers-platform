@@ -30,7 +30,7 @@ test("Trust Face Access durable runtime transform is disabled by default", () =>
   assert.equal(transformed, gateway);
 });
 
-test("Trust Face Access durable runtime transform attaches only when enabled", () => {
+test("Trust Face Access durable runtime transform attaches only when enabled", async () => {
   const gateway = createGateway();
   const createdStores = [];
   const createdServices = [];
@@ -75,6 +75,14 @@ test("Trust Face Access durable runtime transform attaches only when enabled", (
   assert.equal(createdStores[0].path, "/runtime/.var/trust-face.json");
   assert.equal(createdServices.length, 1);
   assert.equal(createdServices[0].store.type, "file-store");
+
+  const response = await transformed.app.handleRequest({
+    method: "GET",
+    url: "https://gateway.apidevelopers.digital/v1/trust/face-access/status",
+  });
+
+  assert.equal(response.status, 200);
+  assert.equal(JSON.parse(response.body).status, "durable_preview");
 });
 
 test("Trust Face Access durable runtime uses gateway state file as default path", () => {
