@@ -1,0 +1,113 @@
+name: Gateway Key Provisioner Production Dry-run Probe
+
+on:
+  workflow_dispatch:
+    inputs:
+      approval:
+        description: "Exact Igor approval token"
+        required: true
+        type: string
+      expected_source_sha:
+        description: "Expected deployed gateway SOURCE_SHA"
+        required: true
+        type: string
+        default: "2e21d58321045261f461211e1ca4ab56fdf33767"
+      gateway_origin:
+        description: "Gateway origin"
+        required: true
+        default: "https://gateway.apidevelopers.digital"
+        type: string
+
+permissions:
+  contents: read
+
+concurrency:
+  group: gateway-key-provisioner-production-dry-run-probe
+  cancel-in-progress: false
+
+jobs:
+  probe:
+    if: >-
+      github.event_name == 'workflow_dispatch' &&
+      github.ref == 'refs/heads/main' &&
+      github.event.inputs.approval == 'IGOR_APROVA_GATEWAY_KEY_PROVISIONER_PROD_DRY_RUN_PROBE'
+    runs-on:
+      - self-hosted
+      - macOS
+      - X64
+    timeout-minutes: 10
+    env:
+      GATEWAY_ORIGIN: ${{ github.event.inputs.gateway_origin }}
+      EXPECTED_SOURCE_SHA: ${{ github.event.inputs.expected_source_sha }}
+      API_GATEWAY_OPERATOR_KEY: ${{ secrets.API_GATEWAY_OPERATOR_KEY }}
+      ADA_MITRA_BRIDGE_TENANT_ID: ${{ secrets.ADA_MITRA_BRIDGE_TENANT_ID }}
+
+    steps:
+      - name: Run production dry-run probe
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$GATEWAY_ORIGIN" = "https://gateway.apidevelopers.digital"
+          test "$EXPECTED_SOURCE_SHA" = "2e21d58321045261f461211e1ca4ab56fdf33767"
+          node --input-type=module <<'NODE'
+          const origin = process.env.GATEWAY_ORIGIN;
+          const expectedSourceSha = process.env.EXPECTED_SOURCE_SHA;
+          const operatorKey = process.env.API_GATEWAY_OPERATOR_KEY || "";
+          const tenantId = process.env.ADA_MITRA_BRIDGE_TENANT_ID || "";
+          const emit = (key, value) => console.log(`GATEWAY_KEY_PROVISIONER_PROD_PROBE_${key}=${String(value)}`);
+          const fail = (message) => {
+            emit("FAILURE", String(message).slice(0, 140).replace(/[^a-zA-Z0-9_.:-]/g, "_"));
+            process.exit(1);
+          };
+          const assertNoSecretLikeText = (text) => {
+            const lower = String(text).toLowerCase();
+            for (const forbidden of ["api_gateway_operator_key", "authorization", "bearer ", "cookie", "password", "private_key"]) {
+              if (lower.includes(forbidden)) fail(`secret_like_text_detected:${forbidden.trim()}`);
+            }
+          };
+          emit("OPERATOR_KEY_PRESENT", operatorKey ? "true" : "false");
+          emit("TENANT_PRESENT", tenantId ? "true" : "false");
+          if (!operatorKey) fail("missing_secret_API_GATEWAY_OPERATOR_KEY");
+          if (!tenantId) fail("missing_secret_ADA_MITRA_BRIDGE_TENANT_ID");
+          const sourceResponse = await fetch(`${origin}/SOURCE_SHA`, { headers: { accept: "text/plain" } });
+          const sourceText = await sourceResponse.text();
+          emit("SOURCE_SHA_HTTP_STATUS", sourceResponse.status);
+          if (sourceResponse.status !== 200) fail(`source_sha_http_${sourceResponse.status}`);
+          if (!sourceText.includes(expectedSourceSha)) fail("source_sha_mismatch");
+          emit("SOURCE_SHA_CONFIRMED", "true");
+          const response = await fetch(`${origin}/v1/operator/api-keys/issue`, {
+            method: "POST",
+            headers: {
+              accept: "application/json",
+              "content-type": "application/json",
+              "x-api-key": operatorKey,
+              "user-agent": "apidevelopers-platform/gateway-key-provisioner-production-dry-run-probe"
+            },
+            body: JSON.stringify({
+              mode: "dry-run",
+              tenantId,
+              name: "ada-mitra-bridge-read",
+              scopes: ["ada:mitra:read"],
+              reason: "ADA Mitra Bridge read-only key dry-run verification"
+            })
+          });
+          const text = await response.text();
+          assertNoSecretLikeText(text);
+          emit("HTTP_STATUS", response.status);
+          let body;
+          try { body = JSON.parse(text); } catch { fail(`unparseable_response_http_${response.status}`); }
+          emit("OK", body.ok === true ? "true" : "false");
+          emit("MODE", body.mode || "missing");
+          emit("NAME", body.name || "missing");
+          emit("SECRET_RETURNED", body.secretReturned === true ? "true" : "false");
+          emit("REQUIRES_APPROVAL", body.requiresApproval === true ? "true" : "false");
+          emit("SCOPES", Array.isArray(body.scopes) ? body.scopes.join(",") : "missing");
+          if (response.status !== 200) fail(`http_${response.status}:${body.error || "unmapped"}`);
+          if (body.ok !== true) fail("not_ok");
+          if (body.mode !== "dry-run") fail("unexpected_mode");
+          if (body.name !== "ada-mitra-bridge-read") fail("unexpected_name");
+          if (!Array.isArray(body.scopes) || !body.scopes.includes("ada:mitra:read")) fail("missing_scope");
+          if (body.secretReturned !== false) fail("dry_run_returned_secret");
+          if (body.requiresApproval !== true) fail("dry_run_missing_approval_flag");
+          emit("RESULT", "production_dry_run_ready");
+          NODE
