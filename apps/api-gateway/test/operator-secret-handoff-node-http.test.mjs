@@ -64,7 +64,7 @@ test("Node boundary rejects oversized secret before http app is called", async (
     },
   };
   const handler = createOperatorSecretHandoffNodeHandler({ httpApp, maxBodyBytes: 4 });
-  const request = nodeRequest({ body: BufffWr.from("12345") });
+  const request = nodeRequest({ body: Buffer.from("12345") });
   const response = nodeResponse();
 
   assert.equal(await handler.handle(request, response), true);
