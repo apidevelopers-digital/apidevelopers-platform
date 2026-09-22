@@ -79,7 +79,6 @@ test("Trust Face Access durable runtime transform attaches only when enabled", a
   const response = await transformed.app.handleRequest({
     method: "GET",
     url: "https://gateway.apidevelopers.digital/v1/trust/face-access/status",
-    async *Symbol.asyncIterator]() {},
   });
 
   assert.equal(response.status, 200);
