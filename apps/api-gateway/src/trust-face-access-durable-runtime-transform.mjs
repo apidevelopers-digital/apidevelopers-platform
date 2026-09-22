@@ -1,3 +1,4 @@
+import { existsSync } from "node:fs";
 import { resolve } from "node:path";
 
 import { createFileTrustFaceAccessDurableStore } from "./trust-face-access-durable-store.mjs";
@@ -23,18 +24,53 @@ function jsonResponse(status, payload) {
   };
 }
 
+function operationalRootFromCwd(cwd) {
+  return resolve(cwd, "../../..");
+}
+
+function defaultFileFlagPath({ cwd = process.cwd() } = {}) {
+  return resolve(
+    operationalRootFromCwd(cwd),
+    "public_html",
+    ".trust-face-access-durable-preview",
+  );
+}
+
+function defaultStorePath({ cwd = process.cwd() } = {}) {
+  return resolve(
+    operationalRootFromCwd(cwd),
+    "public_html",
+    ".trust-face-access-durable-store.json",
+  );
+}
+
+function isFileFlagEnabled({ env = process.env, cwd = process.cwd() } = {}) {
+  const explicitPath = optionalText(env.TRUST_FACE_ACCESS_DURABLE_FLAG_FILE);
+  const flagPath = explicitPath ? resolve(cwd, explicitPath) : defaultFileFlagPath({ cwd });
+
+  try {
+    return existsSync(flagPath);
+  } catch {
+    return false;
+  }
+}
+
+function isDurablePreviewEnabled({ env = process.env, cwd = process.cwd() } = {}) {
+  return isEnabled(env.TRUST_FACE_ACCESS_DURABLE_PREVIEW) || isFileFlagEnabled({ env, cwd });
+}
+
 function resolveStorePath({ env = process.env, cwd = process.cwd(), config } = {}) {
   const explicitPath = optionalText(env.TRUST_FACE_ACCESS_DURABLE_STORE_FILE);
   if (explicitPath) return resolve(cwd, explicitPath);
 
   const stateFilePath = optionalText(config?.stateFilePath);
-  if (stateFilePath) return `${stateFilePath}.trust-face-access.json`;
+  if (stateFilePath) return `${stateFilePath}.trust-face.json`;
 
-  return resolve(cwd, ".trust-face-access.json");
+  return defaultStorePath({ cwd });
 }
 
 async function readBody(request) {
-  if (!{"POST": true, "PUT": true, "PATCH": true }[String(request.method ?? "GET").toUpperCase()]) {
+  if (!{ POST: true, PUT: true, PATCH: true }[String(request.method ?? "GET").toUpperCase()]) {
     return undefined;
   }
 
@@ -99,7 +135,7 @@ export function createTrustFaceAccessDurableRuntimeTransform({
   createStore = createFileTrustFaceAccessDurableStore,
   createService = createTrustFaceAccessDurableService,
 } = {}) {
-  if (!isEnabled(env.TRUST_FACE_ACCESS_DURABLE_PREVIEW)) return undefined;
+  if (!isDurablePreviewEnabled({ env, cwd })) return undefined;
 
   const storePath = resolveStorePath({ env, cwd, config });
   const store = createStore({ path: storePath });
@@ -133,7 +169,7 @@ export function attachTrustFaceAccessDurablePreviewToGateway({
     app: Object.freeze({
       ...gateway.app,
       async handleRequest(request) {
-        const durableResponse = await handleTrustFaceAccessRequest({
+        const durableResponse = await handleTrustFaceAccessRequest {
           request,
           trustFaceAccess: runtime.trustFaceAccess,
         });
