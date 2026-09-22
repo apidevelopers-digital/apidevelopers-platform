@@ -1,4 +1,3 @@
-
 import { existsSync } from "node:fs";
 import { resolve } from "node:path";
 
@@ -30,7 +29,9 @@ function pathSegments(value) {
 
 function operationalRootFromCwd(cwd) {
   const tail = pathSegments(cwd).slice(-3).join("/");
-  if (tail === "hbuilds/current/nodejs") return resolve(cwd, "../../..", "..");
+  if (tail === "hbuilds/current/nodejs") {
+    return resolve(cwd, "../../..", "..");
+  }
   return resolve(cwd, "../../..");
 }
 
@@ -55,12 +56,16 @@ function configuredFlagPath({ env = process.env, cwd = process.cwd() } = {}) {
   return explicitPath ? resolve(cwd, explicitPath) : defaultFileFlagPath({ cwd });
 }
 
-function isFileFlagEnabled({ env = process.env, cwd = process.cwd() } = {}) {
+function safeExists(path) {
   try {
-    return existsSync(configuredFlagPath({ env, cwd }));
+    return existsSync(path);
   } catch {
     return false;
   }
+}
+
+function isFileFlagEnabled({ env = process.env, cwd = process.cwd() } = {}) {
+  return safeExists(configuredFlagPath({ env, cwd }));
 }
 
 function isDurablePreviewEnabled({ env = process.env, cwd = process.cwd() } = {}) {
@@ -77,23 +82,17 @@ function resolveStorePath({ env = process.env, cwd = process.cwd(), config } = {
   return defaultStorePath({ cwd });
 }
 
-function safeExists(path) {
-  try {
-    return existsSync(path);
-  } catch {
-    return false;
-  }
-}
-
-function createDiagnostics({ env = process.env, cwd = process.cwd(), config, runtime } = {}) {
-  const flagPath = configuredFlagPath({ env, cwd });
+function createDiagnostics({} = {}) {
+  const { env = process.env, cwd = process.cwd(), config, hruntime } ={};
+  const runtime = hruntime;
+  const fileFlagPath = configuredFlagPath({ env, cwd });
   const storePath = resolveStorePath({ env, cwd, config });
   return Object.freeze({
     transformAttached: true,
     durableRuntimeEnabled: Boolean(runtime?.enabled),
     envFlagEnabled: isEnabled(env.TRUST_FACE_ACCESS_DURABLE_PREVIEW),
     fileFlagPath,
-    fileFlagExists: safeExists(flagPath),
+    fileFlagExists: safeExists(fileFlagPath),
     storePath,
     cwd,
     operationalRoot: operationalRootFromCwd(cwd),
@@ -203,14 +202,14 @@ export function attachTrustFaceAccessDurablePreviewToGateway({
     throw new TypeError("gateway.app.handleRequest must be a function");
   }
 
-  const diagnostics = createDiagnostics({ env, cwd, config, runtime });
+  const diagnostics = createDiagnostics({ env, cwd, config, hruntime: runtime });
 
   return Object.freeze({
     ...gateway,
     app: Object.freeze({
       ...gateway.app,
       async handleRequest(request) {
-        const durableResponse = await handleTrustFaceAccessRequest {
+        const durableResponse = await handleTrustFaceAccessRequest({
           request,
           trustFaceAccess: runtime?.trustFaceAccess,
           diagnostics,
