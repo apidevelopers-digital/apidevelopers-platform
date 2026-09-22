@@ -1,0 +1,72 @@
+name: Gateway Key Provisioner
+
+on:
+  workflow_dispatch:
+    inputs:
+      approval:
+        description: "Exact Igor approval token for this controlled operator workflow"
+        required: true
+        type: string
+      mode:
+        description: "Execution mode. Only dry-run is enabled in this workflow version."
+        required: true
+        default: "dry-run"
+        type: choice
+        options:
+          - dry-run
+      tenant_id:
+        description: "Tenant ID that will own the API key. Do not use a production secret value here unless explicitly approved."
+        required: true
+        type: string
+      key_name:
+        description: "Name of the API key to plan"
+        required: true
+        default: "ada-mitra-bridge-read"
+        type: string
+      scopes:
+        description: "Comma-separated scopes. Initial allowlist is ada:mitra:read."
+        required: true
+        default: "ada:mitra:read"
+        type: string
+      reason:
+        description: "Operational reason"
+        required: true
+        default: "ADA Mitra Bridge read-only probe"
+        type: string
+
+permissions:
+  contents: read
+
+concurrency:
+  group: gateway-key-provisioner
+  cancel-in-progress: false
+
+jobs:
+  plan:
+    if: >-
+      github.event_name == 'workflow_dispatch' &&
+      github.ref == 'refs/heads/main' &&
+      github.event.inputs.approval == 'IGOR_APROVA_GATEWAY_KEY_PROVISIONER_DRY_RUN'
+    runs-on:
+      - self-hosted
+      - macOS
+      - X64
+    timeout-minutes: 10
+    env:
+      GATEWAY_KEY_PROVISIONER_MODE: ${{ github.event.inputs.mode }}
+      GATEWAY_KEY_PROVISIONER_TENANT_ID: ${{ github.event.inputs.tenant_id }}
+      GATEWAY_KEY_PROVISIONER_KEY_NAME: ${{ github.event.inputs.key_name }}
+      GATEWAY_KEY_PROVISIONER_SCOPES: ${{ github.event.inputs.scopes }}
+      GATEWAY_KEY_PROVISIONER_REQUESTED_BY: Igor
+      GATEWAY_KEY_PROVISIONER_REASON: ${{ github.event.inputs.reason }}
+      GATEWAY_KEY_PROVISIONER_CONFIRMATION: ${{ github.event.inputs.approval }}
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Run governed dry-run plan
+        shell: bash
+        run: |
+          set -euo pipefail
+          node scripts/ops/gateway-key-provisioner.mjs

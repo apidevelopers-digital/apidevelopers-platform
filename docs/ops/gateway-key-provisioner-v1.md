@@ -1,6 +1,6 @@
 # Gateway Key Provisioner v1
 
-Status: proposed  
+Status: implemented core + dry-run operator workflow  
 Repository: `apidevelopers-digital/apidevelopers-platform`  
 Initial use case: ADA Mitra Bridge read-only key
 
@@ -34,6 +34,28 @@ scopes:
 6. The secret is never committed, logged, or repeated.
 7. Verification is performed by a read-only probe.
 
+## Operator workflow
+
+Workflow:
+
+```txt
+.github/workflows/gateway-key-provisioner.yml
+```
+
+Current mode:
+
+```txt
+dry-run only
+```
+
+Approval phrase for dry-run:
+
+```txt
+IGOR_APROVA_GATEWAY_KEY_PROVISIONER_DRY_RUN
+```
+
+The dry-run workflow emits only sanitized `GATEWAY_KEY_PROVISIONER_*` lines.
+
 ## Secret destinations for the Mitra Bridge
 
 ```txt
@@ -59,4 +81,6 @@ Repository secret: ADA_MITRA_BRIDGE_TENANT_ID
 
 `apps/api-gateway/src/operator-api-key-provisioning.mjs` introduces the governed provisioner core around the existing `apikey-core` lifecycle service.
 
-This PR does not deploy a public key-issuing endpoint. The HTTP/control-plane wiring should be added only after the core contract and tests are reviewed.
+`scripts/ops/gateway-key-provisioner.mjs` and `.github/workflows/gateway-key-provisioner.yml` provide a dry-run operator surface.
+
+This version intentionally does **not** issue a real key. Real issuance must be wired to the runtime lifecycle service in a follow-up change with separate approval.
