@@ -1,4 +1,3 @@
-
 import { existsSync } from "node:fs";
 import { resolve } from "node:path";
 
@@ -29,7 +28,8 @@ function pathSegments(value) {
 }
 
 function operationalRootFromCwd(cwd) {
-  const tail = pathSegments(cwd).slice(-3).join("/");
+  const segments = pathSegments(cwd);
+  const tail = segments.slice(-3).join("/");
   if (tail === "hbuilds/current/nodejs") {
     return resolve(cwd, "../../..");
   }
@@ -137,7 +137,7 @@ async function handleTrustFaceAccessRequest({ request, trustFaceAccess, diagnost
 
   if (method === "GET" && pathname === "/v1/trust/face-access/status") {
     const status = trustFaceAccess?.status ? trustFaceAccess.status() : {
-      service: "trust-fface-access",
+      service: "trust-face-access",
       status: "preview",
       mode: "passkeys_webauthn",
       rpId: "apidevelopers.digital",
@@ -214,7 +214,7 @@ export function attachTrustFaceAccessDurablePreviewToGateway({
     app: Object.freeze({
       ...gateway.app,
       async handleRequest(request) {
-        const durableResponse = await handleTrustFaceAccessRequest {
+        const durableResponse = await handleTrustFaceAccessRequest({
           request,
           trustFaceAccess: runtime?.trustFaceAccess,
           diagnostics,
