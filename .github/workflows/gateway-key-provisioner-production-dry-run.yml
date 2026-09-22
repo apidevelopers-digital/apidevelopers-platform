@@ -1,0 +1,125 @@
+name: Gateway Key Provisioner Production Dry-Run Probe
+
+on:
+  workflow_dispatch:
+    inputs:
+      approval:
+        description: "Exact Igor approval token"
+        required: true
+        type: string
+      gateway_origin:
+        description: "Production gateway origin"
+        required: true
+        default: "https://gateway.apidevelopers.digital"
+        type: string
+      key_name:
+        description: "API key name to dry-run"
+        required: true
+        default: "ada-mitra-bridge-read"
+        type: string
+      scopes:
+        description: "Comma-separated scopes to dry-run"
+        required: true
+        default: "ada:mitra:read"
+        type: string
+      reason:
+        description: "Operational reason"
+        required: true
+        default: "ADA Mitra Bridge read-only probe"
+        type: string
+
+permissions:
+  contents: read
+
+concurrency:
+  group: gateway-key-provisioner-production-dry-run
+  cancel-in-progress: false
+
+jobs:
+  probe:
+    if: >-
+      github.event_name == 'workflow_dispatch' &&
+      github.ref == 'refs/heads/main' &&
+      github.event.inputs.approval == 'IGOR_APROVA_GATEWAY_KEY_PROVISIONER_PROD_DRY_RUN'
+    runs-on:
+      - self-hosted
+      - macOS
+      - X64
+    timeout-minutes: 10
+    env:
+      GATEWAY_ORIGIN: ${{ github.event.inputs.gateway_origin }}
+      GATEWAY_OPERATOR_KEY: ${{ secrets.API_GATEWAY_OPERATOR_KEY }}
+      ADA_MITRA_BRIDGE_TENANT_ID: ${{ secrets.ADA_MITRA_BRIDGE_TENANT_ID }}
+      KEY_NAME: ${{ github.event.inputs.key_name }}
+      SCOPES: ${{ github.event.inputs.scopes }}
+      REASON: ${{ github.event.inputs.reason }}
+
+    steps:
+      - name: Run production dry-run probe
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          test "$GATEWAY_ORIGIN" = "https://gateway.apidevelopers.digital"
+
+          if [ -z "$GATEWAY_OPERATOR_KEY" ]; then
+            echo "GATEWAY_KEY_PROVISIONER_PROD_DRY_RUN_FAILURE=missing_operator_key"
+            exit 1
+          fi
+
+          if [ -z "$ADA_MITRA_BRIDGE_TENANT_ID" ]; then
+            echo "GATEWAY_KEY_PROVISIONER_PROD_DRY_RUN_FAILURE=missing_mitra_tenant"
+            exit 1
+          fi
+
+          raw_log="$(mktemp)"
+          node - > "$raw_log" 2>&1 <<'JS'
+            const origin = process.env.GATEWAY_ORIGIN;
+            const response = await fetch(`${origin}/v1/operator/api-keys/issue`, {
+              method: "POST",
+              headers: {
+                "accept": "application/json",
+                "content-type": "application/json",
+                "x-api-key": process.env.GATEWAY_OPERATOR_KEY,
+                "user-agent": "apidevelopers-platform/gateway-key-provisioner-prod-dry-run",
+              },
+              body: JSON.stringify({
+                mode: "dry-run",
+                tenantId: process.env.ADA_MITRA_BRIDGE_TENANT_ID,
+                name: process.env.KEY_NAME,
+                scopes: process.env.SCOPES.split(",").map((s) => s.trim()).filter(Boolean),
+                reason: process.env.REASON,
+              }),
+            });
+
+            const text = await response.text();
+            let payload = {};
+            try {
+              payload = JSON.parse(text);
+            } catch {
+              payload = { error: "unparseable_response" };
+            }
+
+            function safe(value) {
+              return String(value ?? "unmapped").slice(0, 120).replace(/[^a-zA-Z0-9_.:-]/g, "_");
+            }
+
+            console.log(`GATEWAY_KEY_PROVISIONER_PROD_DRY_RUN_HTTP_STATUS=${response.status}`);
+            console.log(`GATEWAY_KEY_PROVISIONER_PROD_DRY_RUN_OK=${payload.ok === true ? "true" : "false"}`);
+            console.log(`GATEWAY_KEY_PROVISIONER_PROD_DRY_RUN_MODE=${safe(payload.mode)}`);
+            console.log(`GATEWAY_KEY_PROVISIONER_PROD_DRY_RUN_TENANT_PRESENT=${payload.tenantId ? "true" : "false"}`);
+            console.log(`GATEWAY_KEY_PROVISIONER_PROD_DRY_RUN_SCOPES=${safe(Array.isArray(payload.scopes) ? payload.scopes.join(",") : "")}`);
+            console.log(`GATEWAY_KEY_PROVISIONER_PROD_DRY_RUN_RETURNS_VALUE=${payload.secretReturned === true ? "true" : "false"}`);
+            console.log(`GATEWAY_KEY_PROVISIONER_PROD_DRY_RUN_REASON=${safe(payload.error || payload.reason || payload.code || payload.message || (payload.ok ? "ok" : "unmapped"))}`);
+
+            if (response.status !== 200 || payload.ok !== true || payload.mode !== "dry-run" || payload.secretReturned !== false) {
+              process.exit(1);
+            }
+          JS
+
+          if grep -Eiq '(authorization|bearer |x-api-key|password|database_url|private_key|access_token|refresh_token)' "$raw_log"; then
+            echo "GATEWAY_KEY_PROVISIONER_PROD_DRY_RUN_SANITIZER_BLOCKED=true"
+            exit 1
+          fi
+
+          cat "$raw_log"
