@@ -37,6 +37,7 @@ test("plans an approved Mitra read key without returning a secret", () => {
 
   assert.equal(plan.mode, "dry-run");
   assert.equal(plan.secretReturned, false);
+  assert.equal(plan.requiresApproval, true);
   assert.deepEqual(plan.scopes, ["ada:mitra:read"]);
   assert.equal(lifecycle.calls.length, 0);
 });
