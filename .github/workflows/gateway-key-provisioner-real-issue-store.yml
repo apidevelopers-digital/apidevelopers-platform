@@ -1,0 +1,181 @@
+name: Gateway Key Provisioner Real Issue and Store
+
+on:
+  workflow_dispatch:
+    inputs:
+      approval:
+        description: "Exact Igor approval token for real key issuance"
+        required: true
+        type: string
+      expected_source_sha:
+        description: "Expected deployed gateway source SHA"
+        required: true
+        default: "6ff2abdea18729a83fc2ed6c19a941f0870bf251"
+        type: string
+      gateway_origin:
+        description: "Gateway origin"
+        required: true
+        default: "https://gateway.apidevelopers.digital"
+        type: string
+
+permissions:
+  contents: read
+  actions: write
+
+concurrency:
+  group: gateway-key-provisioner-real-issue-store
+  cancel-in-progress: false
+
+jobs:
+  issue-store-verify:
+    if: >-
+      github.event_name == 'workflow_dispatch' &&
+      github.ref == 'refs/heads/main' &&
+      github.event.inputs.approval == 'IGOR_APROVA_GATEWAY_KEY_PROVISIONER_REAL'
+    runs-on:
+      - self-hosted
+      - macOS
+      - X64
+    timeout-minutes: 10
+    env:
+      GATEWAY_ORIGIN: ${{ github.event.inputs.gateway_origin }}
+      EXPECTED_SOURCE_SHA: ${{ github.event.inputs.expected_source_sha }}
+      API_GATEWAY_OPERATOR_KEY: ${{ secrets.API_GATEWAY_OPERATOR_KEY }}
+      ADA_MITRA_BRIDGE_TENANT_ID: ${{ secrets.ADA_MITRA_BRIDGE_TENANT_ID }}
+      GH_TOKEN: ${{ github.token }}
+      REPOSITORY: ${{ github.repository }}
+
+    steps:
+      - name: Preflight secret writer before real issuance
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$GATEWAY_ORIGIN" = "https://gateway.apidevelopers.digital"
+          test "$EXPECTED_SOURCE_SHA" = "6ff2abdea18729a83fc2ed6c19a941f0870bf251"
+          command -v gh >/dev/null 2>&1
+          marker="preflight-$(date -u +%Y%m%dT%H%M%SZ)"
+          printf "%s" "$marker" | gh secret set GATEWAY_KEY_PROVISIONER_WRITE_PREFLIGHT --repo "$REPOSITORY" --body-file -
+          echo "GATEWAY_KEY_PROVISIONER_REAL_PREFLIGHT_SECRET_WRITER=true"
+
+      - name: Issue, store, and verify real key
+        shell: bash
+        run: |
+          set -euo pipefail
+          node --input-type=module <<'NODE'
+          import { spawnSync } from "node:child_process";
+
+          const origin = process.env.GATEWAY_ORIGIN;
+          const expectedSourceSha = process.env.EXPECTED_SOURCE_SHA;
+          const operatorKey = process.env.API_GATEWAY_OPERATOR_KEY || "";
+          const tenantId = process.env.ADA_MITRA_BRIDGE_TENANT_ID || "";
+          const repository = process.env.REPOSITORY || "";
+          const emit = (key, value) => console.log(`GATEWAY_KEY_PROVISIONER_REAL_${key}=${String(value)}`);
+          const safe = (value) => String(value ?? "unmapped").slice(0, 180).replace(/[^a-zA-Z0-9_.:-]/g, "_");
+          const fail = (message) => {
+            emit("FAILURE", safe(message));
+            process.exit(1);
+          };
+          const assertNoSecretLikeText = (text) => {
+            const lower = String(text).toLowerCase();
+            for (const forbidden of ["api_gateway_operator_key", "authorization", "bearer ", "cookie", "password", "private_key", "access_token", "refresh_token"]) {
+              if (lower.includes(forbidden)) fail(`secret_like_text_detected:${forbidden.trim()}`);
+            }
+          };
+          if (!operatorKey) fail("missing_secret_API_GATEWAY_OPERATOR_KEY");
+          if (!tenantId) fail("missing_secret_ADA_MITRA_BRIDGE_TENANT_ID");
+          if (!repository) fail("missing_repository_context");
+
+          emit("OPERATOR_KEY_PRESENT", "true");
+          emit("TENANT_PRESENT", "true");
+
+          const sourceResponse = await fetch(`${origin}/SOURCE_SHA`, { headers: { accept: "text/plain" } });
+          const sourceText = await sourceResponse.text();
+          emit("SOURCE_SHA_HTTP_STATUS", sourceResponse.status);
+          if (sourceResponse.status === 200) {
+            if (!sourceText.includes(expectedSourceSha)) fail("source_sha_mismatch");
+            emit("SOURCE_SHA_CONFIRMED", "true");
+          } else if (sourceResponse.status === 404) {
+            emit("SOURCE_SHA_CONFIRMED", "skipped_unavailable_404");
+          } else {
+            fail(`source_sha_http_${sourceResponse.status}`);
+          }
+
+          const issueResponse = await fetch(`${origin}/v1/operator/api-keys/issue`, {
+            method: "POST",
+            headers: {
+              accept: "application/json",
+              "content-type": "application/json",
+              "x-api-key": operatorKey,
+              "user-agent": "apidevelopers-platform/gateway-key-provisioner-real-issue-store",
+            },
+            body: JSON.stringify({
+              mode: "real",
+              tenantId,
+              name: "ada-mitra-bridge-read",
+              scopes: ["ada:mitra:read"],
+              reason: "ADA Mitra Bridge read-only key issuance",
+              confirmation: "IGOR_APROVA_GATEWAY_KEY_PROVISIONER_REAL",
+            }),
+          });
+          const issueText = await issueResponse.text();
+          assertNoSecretLikeText(issueText.replace(/"secret"\s*:\s*"[^"]+"/g, "\"secret\":\"***\""));
+          emit("ISSUE_HTTP_STATUS", issueResponse.status);
+
+          let issueBody;
+          try {
+            issueBody = JSON.parse(issueText);
+          } catch {
+            fail(`unparseable_issue_response_http_${issueResponse.status}`);
+          }
+
+          emit("ISSUE_OK", issueBody.ok === true ? "true" : "false");
+          emit("ISSUE_ERROR", safe(issueBody.error || "none"));
+          emit("ISSUE_MODE", issueBody.mode || "missing");
+          emit("ISSUE_NAME", issueBody.name || "missing");
+          emit("ISSUE_SECRET_RETURNED", issueBody.secretReturned === true ? "true" : "false");
+          emit("ISSUE_SCOPES", Array.isArray(issueBody.scopes) ? issueBody.scopes.join(",") : "missing");
+          emit("ISSUE_PREFIX", safe(issueBody.prefix || "missing"));
+          emit("ISSUE_STATUS", safe(issueBody.status || "missing"));
+
+          if (issueResponse.status !== 201) fail(`issue_http_${issueResponse.status}:${issueBody.error || "unmapped"}`);
+          if (issueBody.ok !== true) fail("issue_not_ok");
+          if (issueBody.mode !== "real") fail("issue_unexpected_mode");
+          if (issueBody.name !== "ada-mitra-bridge-read") fail("issue_unexpected_name");
+          if (!Array.isArray(issueBody.scopes) || !issueBody.scopes.includes("ada:mitra:read")) fail("issue_missing_scope");
+          if (issueBody.secretReturned !== true) fail("issue_secret_not_returned");
+          if (!issueBody.secret || typeof issueBody.secret !== "string") fail("issue_missing_secret_value");
+
+          console.log(`::add-mask::${issueBody.secret}`);
+
+          const gh = spawnSync("gh", ["secret", "set", "ADA_MITRA_BRIDGE_READ_TOKEN", "--repo", repository, "--body-file", "-"], {
+            input: issueBody.secret,
+            encoding: "utf8",
+          });
+          if (gh.status !== 0) {
+            fail(`github_secret_store_failed:${safe(gh.stderr || gh.stdout || "no_output")}`);
+          }
+          emit("SECRET_STORED", "true");
+
+          const verifyResponse = await fetch(`${origin}/v1/ada/mitra/status`, {
+            method: "GET",
+            headers: {
+              accept: "application/json",
+              "x-api-key": issueBody.secret,
+              "x-tenant-id": tenantId,
+              "user-agent": "apidevelopers-platform/gateway-key-provisioner-real-issue-store-verify",
+            },
+          });
+          const verifyText = await verifyResponse.text();
+          assertNoSecretLikeText(verifyText);
+          emit("MITRA_VERIFY_HTTP_STATUS", verifyResponse.status);
+          if (verifyResponse.status !== 200) {
+            let reason = "unmapped";
+            try {
+              const body = JSON.parse(verifyText);
+              reason = body.reason || body.error || body.message || reason;
+            } catch {}
+            fail(`mitra_verify_http_${verifyResponse.status}:${reason}`);
+          }
+
+          emit("RESULT", "real_key_issued_stored_and_verified");
+          NODE
