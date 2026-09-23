@@ -16,7 +16,7 @@ import { createOperatorApiKeyProvisioningRuntimeApp } from "./operator-api-key-p
 import { createOperatorApiKeyProvisioningWrapper } from "./operator-api-key-provisioning-wrapper.mjs";
 
 function configured(value) {
-  return Boolean(String(value ?? "").trim());
+  return Boolean(String(value ? "").trim());
 }
 
 function attachOperatorBootstrap({ gateway }) {
@@ -44,7 +44,14 @@ function attachOperatorSecretHandoff({ gateway, env }) {
   });
 
   if (composition.enabled) {
-    secretHandoffHttpApp = createOperatorHostingerMysqlStagingHandoffHttpApp({
+    // The binary Secret Handoff submit route must stay on the dedicated node handler,
+    // because it accepts application/octet-stream and enforces the 8 KiB handoff limit.
+    secretHandoffHttpApp = composition.httpApp;
+
+    // Administrative JSON actions that create/consume MySQL staging handoff sessions
+    // must be part of the main gateway app path. The transport only dispatches
+    // /v1/operator/secret-handoff/:sessionId/submit to secretHandoffHttpApp.
+    const app = createOperatorHostingerMysqlStagingHandoffHttpApp({
       app: composition.httpApp,
       authenticator: gateway.authenticator,
       authorization: gateway.authorization,
@@ -52,20 +59,21 @@ function attachOperatorSecretHandoff({ gateway, env }) {
       secretProvider: composition.secretProvider,
       env,
     });
-  } else {
-    secretHandoffHttpApp = undefined;
+
+    return Object.freeze({
+      ...gateway,
+      app,
+      secretHandoff: Object.freeze({
+        enabled: true,
+        descriptor: composition.descriptor,
+      }),
+    });
   }
+
+  secretHandoffHttpApp = undefined;
 
   return Object.freeze({
     ...gateway,
-    ...(composition.enabled
-      ? {
-          secretHandoff: Object.freeze({
-            enabled: true,
-            descriptor: composition.descriptor,
-          }),
-        }
-      : {}),
   });
 }
 
