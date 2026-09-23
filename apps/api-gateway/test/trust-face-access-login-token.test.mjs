@@ -18,7 +18,8 @@ function sign(input, secret) {
     .replace(/=+$/u, "");
 }
 
-async function createRegisteredService({ secret = "trust-secret" } = {}) {
+async function createRegisteredService(options = {}) {
+  const secret = Object.prototype.hasOwnProperty.call(options, "secret") ? options.secret : "trust-secret";
   const store = createInMemoryTrustFaceAccessDurableStore({
     now: () => "2026-09-20T23:55:00.000Z",
   });
@@ -75,15 +76,15 @@ test("durable service issues signed Trust login token for allowed audience", asy
   assert.equal(payload.email, "igor@apidevelopers.digital");
   assert.equal(payload.credentialId, "credential-1");
   assert.equal(payload.returnUrl, "https://zuni.sitedauni.com/trust-callback.php");
-  assert.equal(payload.iat, 1790015700);
-  assert.equal(payload.exp, 1790016000);
+  assert.equal(payload.iat, 1789948500);
+  assert.equal(payload.exp, 1789948800);
   assert.equal(typeof payload.nonce, "string");
 
   assert.equal(parts[2], sign(`${parts[0]}.${parts[1]}`, secret));
 });
 
 test("durable service rejects Trust login token issuance without configured secret", async () => {
-  const service = await createRegisteredService({ secret: undefined });
+  const service = await createRegisteredService({ secret: "" });
   const authentication = await service.createAuthenticationOptions({ userId: "igor" });
 
   await assert.rejects(
