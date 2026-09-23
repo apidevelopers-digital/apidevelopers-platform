@@ -16,7 +16,7 @@ import { createOperatorApiKeyProvisioningRuntimeApp } from "./operator-api-key-p
 import { createOperatorApiKeyProvisioningWrapper } from "./operator-api-key-provisioning-wrapper.mjs";
 
 function configured(value) {
-  return Boolean(String(value ? "").trim());
+  return Boolean(String(value ?? "").trim());
 }
 
 function attachOperatorBootstrap({ gateway }) {
@@ -43,37 +43,29 @@ function attachOperatorSecretHandoff({ gateway, env }) {
     env,
   });
 
-  if (composition.enabled) {
-    // The binary Secret Handoff submit route must stay on the dedicated node handler,
-    // because it accepts application/octet-stream and enforces the 8 KiB handoff limit.
-    secretHandoffHttpApp = composition.httpApp;
-
-    // Administrative JSON actions that create/consume MySQL staging handoff sessions
-    // must be part of the main gateway app path. The transport only dispatches
-    // /v1/operator/secret-handoff/:sessionId/submit to secretHandoffHttpApp.
-    const app = createOperatorHostingerMysqlStagingHandoffHttpApp({
-      app: composition.httpApp,
-      authenticator: gateway.authenticator,
-      authorization: gateway.authorization,
-      handoffService: composition.handoffService,
-      secretProvider: composition.secretProvider,
-      env,
-    });
-
-    return Object.freeze({
-      ...gateway,
-      app,
-      secretHandoff: Object.freeze({
-        enabled: true,
-        descriptor: composition.descriptor,
-      }),
-    });
+  if (!composition.enabled) {
+    secretHandoffHttpApp = undefined;
+    return Object.freeze({ ...gateway });
   }
 
-  secretHandoffHttpApp = undefined;
+  secretHandoffHttpApp = composition.httpApp;
+
+  const app = createOperatorHostingerMysqlStagingHandoffHttpApp({
+    app: composition.httpApp,
+    authenticator: gateway.authenticator,
+    authorization: gateway.authorization,
+    handoffService: composition.handoffService,
+    secretProvider: composition.secretProvider,
+    env,
+  });
 
   return Object.freeze({
     ...gateway,
+    app,
+    secretHandoff: Object.freeze({
+      enabled: true,
+      descriptor: composition.descriptor,
+    }),
   });
 }
 
@@ -83,6 +75,7 @@ function attachOperatorApiKeyProvisioning({ gateway }) {
       authenticator: gateway.authenticator,
       apiKeyLifecycle: gateway.apiKeyLifecycle,
     });
+
   const app = createOperatorApiKeyProvisioningWrapper({
     app: gateway.app,
     operatorApiKeyProvisioningApp,
