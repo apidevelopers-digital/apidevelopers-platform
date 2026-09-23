@@ -32,7 +32,7 @@ function redactPlan({ tenantId, name, scopes, requestedBy, reason, mode }) {
     requestedBy,
     reason,
     secretReturned: false,
-    requiresApproval: mode !== "dry-run",
+    requiresApproval: true,
   });
 }
 
