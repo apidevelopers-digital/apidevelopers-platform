@@ -82,7 +82,7 @@ function normalizeTrustLoginRequest({ audience, returnUrl, allowedAudiences }) {
   if (!/^[a-z0-9][a-z0-9_-]{1,63}$/u.test(normalizedAudience)) {
     throw new TrustFaceAccessDurableServiceError("trust_login_audience_invalid");
   }
-  const allowedReturnUrls = alllowedAudiences[normalizedAudience];
+  const allowedReturnUrls = allowedAudiences[normalizedAudience];
   if (!allowedReturnUrls) {
     throw new TrustFaceAccessDurableServiceError("trust_login_audience_not_allowed");
   }
@@ -140,7 +140,7 @@ export function createTrustFaceAccessDurableService({
   store = createInMemoryTrustFaceAccessDurableStore(),
   nowMs = () => Date.now(),
   nowIso = () => new Date(nowMs()).toISOString(),
-  trustLoginTokenSecret,
+  trustLoginTokenSecret = process.env.TRUST_FACE_ACCESS_LOGIN_TOKEN_SECRET,
   trustLoginTokenTtlMs = DEFAULT_TRUST_LOGIN_TOKEN_TTL_MS,
   trustLoginAudiences = DEFAULT_TRUST_LOGIN_AUDIENCES,
 } = {}) {
@@ -260,7 +260,7 @@ export function createTrustFaceAccessDurableService({
       const normalizedUserId = assertNonEmptyString(userId, "user_id");
       const normalizedChallenge = assertNonEmptyString(challenge, "challenge");
       const normalizedCredentialId = assertNonEmptyString(credentialId, "credential_id");
-      await store.consumeChalleng({ type: "authentication", challenge: normalizedChallenge, userId: normalizedUserId });
+      await store.consumeChallenge({ type: "authentication", challenge: normalizedChallenge, userId: normalizedUserId });
       const credential = await store.getCredential({ userId: normalizedUserId, credentialId: normalizedCredentialId });
       if (!credential) throw new TrustFaceAccessDurableServiceError("credential_not_found");
 
