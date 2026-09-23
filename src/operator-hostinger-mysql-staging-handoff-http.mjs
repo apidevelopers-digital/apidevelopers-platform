@@ -56,6 +56,12 @@ function requireText(value, field, pattern) {
   return normalized;
 }
 
+function publicError(error, fallback = "internal_error") {
+  const value = String(error?.publicCode ?? error?.code ?? error?.message ?? fallback).trim();
+  if (!value) return fallback;
+  return value.replace(/[^a-zA-Z0-9_.:-]/g, "_").slice(0, 160);
+}
+
 function sanitizeHostingerError(status, bodyText) {
   let code = "hostinger_api_error";
   try {
@@ -151,15 +157,25 @@ export function createOperatorHostingerMysqlStagingHandoffHttpApp({
   if (typeof fetchImpl !== "function") throw new TypeError("fetch implementation is required");
 
   async function authorize(request, action, resource) {
-    const identity = await authenticator.authenticate(request.headers ?? {});
+    let identity;
+    try {
+      identity = await authenticator.authenticate(request.headers ?? {});
+    } catch (error) {
+      return { response: jsonResponse(401, { ok: false, error: "unauthorized" }) };
+    }
     if (!identity) return { response: jsonResponse(401, { ok: false, error: "unauthorized" }) };
 
-    const authorizationDecision = authorization.decide({
-      identity,
-      action,
-      resource,
-      requiredScopes: [REQUIRED_SCOPE],
-    });
+    let authorizationDecision;
+    try {
+      authorizationDecision = authorization.decide({
+        identity,
+        action,
+        resource,
+        requiredScopes: [REQUIRED_SCOPE],
+      });
+    } catch (error) {
+      return { response: jsonResponse(403, { ok: false, error: "forbidden" }) };
+    }
 
     if (authorizationDecision?.effect !== "allow" || !hasAdminWildcard(identity)) {
       return { response: jsonResponse(403, { ok: false, error: "forbidden" }) };
@@ -192,29 +208,38 @@ export function createOperatorHostingerMysqlStagingHandoffHttpApp({
       if (auth.response) return auth.response;
 
       if (path === SESSION_ROUTE) {
-        const session = handoffService.create({
-          purpose: PURPOSE,
-          metadata: Object.freeze({
-            database: DATABASE_NAME,
-            user: DATABASE_USER,
-            websiteDomain: WEBSITE_DOMAIN,
-            operation: "operator.hostinger.database.create-with-secret-handoff",
-          }),
-        });
+        try {
+          const session = handoffService.create({
+            purpose: PURPOSE,
+            metadata: Object.freeze({
+              database: DATABASE_NAME,
+              user: DATABASE_USER,
+              websiteDomain: WEBSITE_DOMAIN,
+              operation: "operator.hostinger.database.create-with-secret-handoff",
+            }),
+          });
 
-        return jsonResponse(201, {
-          ok: true,
-          sessionId: session.sessionId,
-          submitUrl: `/v1/operator/secret-handoff/${session.sessionId}/submit`,
-          submitToken: session.submitToken,
-          secretRef: `secret://handoff/${session.sessionId}`,
-          purpose: PURPOSE,
-          expiresAt: session.expiresAt,
-          contentType: "application/octet-stream",
-          tokenHeader: "x-secret-handoff-token",
-          secretReturned: false,
-          productionChanged: false,
-        });
+          return jsonResponse(201, {
+            ok: true,
+            sessionId: session.sessionId,
+            submitUrl: `/v1/operator/secret-handoff/${session.sessionId}/submit`,
+            submitToken: session.submitToken,
+            secretRef: `secret://handoff/${session.sessionId}`,
+            purpose: PURPOSE,
+            expiresAt: session.expiresAt,
+            contentType: "application/octet-stream",
+            tokenHeader: "x-secret-handoff-token",
+            secretReturned: false,
+            productionChanged: false,
+          });
+        } catch (error) {
+          return jsonResponse(500, {
+            ok: false,
+            error: publicError(error, "secret_handoff_session_create_failed"),
+            productionChanged: false,
+            secretReturned: false,
+          });
+        }
       }
 
       let body;
@@ -239,7 +264,7 @@ export function createOperatorHostingerMysqlStagingHandoffHttpApp({
       try {
         const allowed = new Set(["secretRef", "confirmation", "correlationId"]);
         for (const key of Object.keys(body)) {
-          if (!allowed.has(key)) throw new TypeError("request contains an unsupported field");
+          if (!allowed.has(key) throw new TypeError("request contains an unsupported field");
         }
         secretRef = requireText(body.secretRef, "secretRef", /^secret:\/\/handoff\/[A-Za-z0-9._:-]{3,128}$/);
       } catch (error) {
@@ -278,7 +303,7 @@ export function createOperatorHostingerMysqlStagingHandoffHttpApp({
         const status = Number.isInteger(error?.status) ? error.status : 500;
         return jsonResponse(status, {
           ok: false,
-          error: error?.publicCode ?? error?.code ?? "hostinger_database_create_failed",
+          error: publicError(error, "hostinger_database_create_failed"),
           productionChanged: false,
           secretReturned: false,
         });
