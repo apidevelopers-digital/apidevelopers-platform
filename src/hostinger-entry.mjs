@@ -14,7 +14,6 @@ import { attachZuniChannelBindingWriteHostingerComposition } from "./zuni-channe
 import { attachTrustFaceAccessDurablePreviewToGateway } from "./trust-face-access-durable-runtime-transform.mjs";
 import { createOperatorApiKeyProvisioningRuntimeApp } from "./operator-api-key-provisioning-composition.mjs";
 import { createOperatorApiKeyProvisioningWrapper } from "./operator-api-key-provisioning-wrapper.mjs";
-
 function configured(value) {
   return Boolean(String(value ?? "").trim());
 }
@@ -27,12 +26,10 @@ function attachOperatorBootstrap({ gateway }) {
     apiKeyRepository: gateway.apiKeyRepository,
     audit: gateway.audit,
   });
-
   return Object.freeze({ ...gateway, app });
 }
 
 let secretHandoffHttpApp;
-
 function attachOperatorSecretHandoff({ gateway, env }) {
   const composition = createOperatorSecretHandoffOperationalComposition({
     app: gateway.app,
@@ -43,40 +40,38 @@ function attachOperatorSecretHandoff({ gateway, env }) {
     }),
     env,
   });
-
-  if (!composition.enabled) {
-    secretHandoffHttpApp = undefined;
-    return Object.freeze({ ...gateway });
+  if (composition.enabled) {
+    secretHandoffHttpApp = composition.httpApp;
+    const app = createOperatorHostingerMysqlStagingHandoffHttpApp({
+      app: gateway.app,
+      authenticator: gateway.authenticator,
+      authorization: gateway.authorization,
+      handoffService: composition.handoffService,
+      secretProvider: composition.secretProvider,
+      env,
+    });
+    return Object.freeze({
+      ...gateway,
+      app,
+      secretHandoff: Object.freeze({
+        enabled: true,
+        descriptor: composition.descriptor,
+      }),
+    });
   }
 
-  secretHandoffHttpApp = composition.httpApp;
-
-  const app = createOperatorHostingerMysqlStagingHandoffHttpApp({
-    app: composition.httpApp,
-    authenticator: gateway.authenticator,
-    authorization: gateway.authorization,
-    handoffService: composition.handoffService,
-    secretProvider: composition.secretProvider,
-    env,
-  });
+  secretHandoffHttpApp = undefined;
 
   return Object.freeze({
     ...gateway,
-    app,
-    secretHandoff: Object.freeze({
-      enabled: true,
-      descriptor: composition.descriptor,
-    }),
   });
 }
-
 function attachOperatorApiKeyProvisioning({ gateway }) {
   const operatorApiKeyProvisioningApp =
     createOperatorApiKeyProvisioningRuntimeApp({
       authenticator: gateway.authenticator,
       apiKeyLifecycle: gateway.apiKeyLifecycle,
     });
-
   const app = createOperatorApiKeyProvisioningWrapper({
     app: gateway.app,
     operatorApiKeyProvisioningApp,
@@ -88,13 +83,9 @@ function attachOperatorApiKeyProvisioning({ gateway }) {
     app,
   });
 }
-
 function attachHostingerCompositions({ gateway, env }) {
   const operatorGateway = attachOperatorBootstrap({ gateway });
-  const secretHandoffGateway = attachOperatorSecretHandoff({
-    gateway: operatorGateway,
-    env,
-  });
+  const secretHandoffGateway = attachOperatorSecretHandoff({ gateway: operatorGateway, env });
   const keyProvisionerGateway = attachOperatorApiKeyProvisioning({
     gateway: secretHandoffGateway,
   });
@@ -106,13 +97,11 @@ function attachHostingerCompositions({ gateway, env }) {
     gateway: mitraGateway,
     env,
   });
-
   return attachZuniChannelBindingWriteHostingerComposition({
     gateway: uniJuriGateway,
     env,
   });
 }
-
 function attachTrustAndHostingerCompositions(context = {}) {
   const trustGateway = attachTrustFaceAccessDurablePreviewToGateway(context);
   return attachHostingerCompositions({
@@ -120,10 +109,8 @@ function attachTrustAndHostingerCompositions(context = {}) {
     gateway: trustGateway,
   });
 }
-
 async function startOperationalGateway(options = {}) {
   secretHandoffHttpApp = undefined;
-
   return startWebAgentOperationalGateway({
     ...options,
     serverFactory(serverOptions = {}) {
@@ -134,13 +121,11 @@ async function startOperationalGateway(options = {}) {
     },
   });
 }
-
 const env = resolveHostingerRuntimeEnv(process.env, { readFileFn: readFileSync });
 const { server, runtime } = await startOperationalGateway({
   env,
   gatewayTransform: attachTrustAndHostingerCompositions,
 });
-
 await runUniCoPreviewBootstrap({ app: runtime.app, env });
 
 registerOperationalShutdown({ server });
