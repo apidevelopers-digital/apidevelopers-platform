@@ -27,6 +27,7 @@ function attachOperatorBootstrap({ gateway }) {
     apiKeyRepository: gateway.apiKeyRepository,
     audit: gateway.audit,
   });
+
   return Object.freeze({ ...gateway, app });
 }
 
@@ -90,7 +91,10 @@ function attachOperatorApiKeyProvisioning({ gateway }) {
 
 function attachHostingerCompositions({ gateway, env }) {
   const operatorGateway = attachOperatorBootstrap({ gateway });
-  const secretHandoffGateway = attachOperatorSecretHandoff({ gateway: operatorGateway, env });
+  const secretHandoffGateway = attachOperatorSecretHandoff({
+    gateway: operatorGateway,
+    env,
+  });
   const keyProvisionerGateway = attachOperatorApiKeyProvisioning({
     gateway: secretHandoffGateway,
   });
@@ -102,6 +106,7 @@ function attachHostingerCompositions({ gateway, env }) {
     gateway: mitraGateway,
     env,
   });
+
   return attachZuniChannelBindingWriteHostingerComposition({
     gateway: uniJuriGateway,
     env,
@@ -116,10 +121,9 @@ function attachTrustAndHostingerCompositions(context = {}) {
   });
 }
 
-// Preserve the managed-hosting startup contract while routing the implementation
-// through the Web Agent operational composition.
 async function startOperationalGateway(options = {}) {
   secretHandoffHttpApp = undefined;
+
   return startWebAgentOperationalGateway({
     ...options,
     serverFactory(serverOptions = {}) {
@@ -136,6 +140,7 @@ const { server, runtime } = await startOperationalGateway({
   env,
   gatewayTransform: attachTrustAndHostingerCompositions,
 });
+
 await runUniCoPreviewBootstrap({ app: runtime.app, env });
 
 registerOperationalShutdown({ server });
