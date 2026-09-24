@@ -2,8 +2,8 @@ const BOOTSTRAP_CREATE_ROUTE = "/v1/operator/hostinger/mysql/unijuri-staging/cre
 const REQUIRED_CONFIRMATION =
   "IGOR_APROVA_CRIAR_BANCO_MYSQL_UNIJURI_STAGING_20260922";
 
-const DATABASE_NAME = "unijuri_staging";
-const DATABASE_USER = "unijuri_staging";
+const DATABASE_NAME = "ujstg";
+const DATABASE_USER = "ujstg";
 const WEBSITE_DOMAIN = "gateway.apidevelopers.digital";
 const DEFAULT_USERNAME = "u242521810";
 const HOSTINGER_API_BASE = "https://developers.hostinger.com/api/hosting/v1";
@@ -184,6 +184,8 @@ export function createOperatorHostingerMysqlStagingHandoffHttpApp({
           operation: "operator.hostinger.database.create-bootstrap",
           database: DATABASE_NAME,
           user: DATABASE_USER,
+          databaseLogicalName: "unijuri_staging",
+          userLogicalName: "unijuri_staging",
           websiteDomain: WEBSITE_DOMAIN,
           hostingerStatus: result.hostingerStatus,
           providerId: result.providerId,
