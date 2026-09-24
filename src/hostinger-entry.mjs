@@ -1,6 +1,7 @@
 import { readFileSync } from "node:fs";
 import crypto from "node:crypto";
 
+import { createDurableApiKeyRepository } from "@apidevelopers/apikey-core";
 import { createJsonFileStore } from "@apidevelopers/persistence-core";
 import { startOperationalHttpServer } from "./operational-http-transport.mjs";
 import { createOperatorSecretHandoffOperationalComposition } from "./operator-secret-handoff-operational-composition.mjs";
@@ -8,6 +9,8 @@ import { createOperatorHostingerMysqlStagingHandoffHttpApp } from "./operator-ho
 import { resolveHostingerRuntimeEnv } from "./hostinger-runtime-env.mjs";
 import { createUniCoPreviewLoginComposition } from "./web-agent-preview-login-composition.mjs";
 import { createUniAccountPreviewRuntimeComposition } from "./uni-account-preview-runtime-composition.mjs";
+import { createGatewayAuthenticator } from "./auth-composition.mjs";
+import { createAdaMitraBridgeReadOnly } from "./ada-mitra-bridge-readonly.mjs";
 
 function now() { return new Date().toISOString(); }
 function configured(value) { return Boolean(String(value ?? "").trim()); }
@@ -79,6 +82,16 @@ function createAdminAuthorization() {
     },
   });
 }
+function createAdaMitraBridgeApp({ app, authenticator }) {
+  const bridge = createAdaMitraBridgeReadOnly({ authenticator });
+  return Object.freeze({
+    async handleRequest(request = {}) {
+      const bridgeResponse = await bridge.handleRequest(request);
+      if (bridgeResponse !== null) return bridgeResponse;
+      return app.handleRequest(request);
+    },
+  });
+}
 function parsePort(value) {
   const port = Number(String(value ?? "3000").trim());
   if (!Number.isSafeInteger(port) || port < 0 || port > 65535) {
@@ -103,6 +116,17 @@ function registerShutdown(server, processRef = process) {
 }
 
 const env = resolveHostingerRuntimeEnv(process.env, { readFileFn: readFileSync });
+const store = createJsonFileStore({ filePath: env.API_GATEWAY_STATE_FILE });
+const apiKeyRepository = createDurableApiKeyRepository({ store });
+const adaMitraAuthenticator = createGatewayAuthenticator({
+  apiKeyRepository,
+  adminKey: env.API_GATEWAY_ADMIN_KEY,
+  adminPrincipal: Object.freeze({
+    id: "hostinger-admin",
+    type: "operator",
+    scopes: Object.freeze(["admin:*"]),
+  }),
+});
 const authenticator = createAdminAuthenticator(env);
 const authorization = createAdminAuthorization();
 const terminalApp = createTerminalApp();
@@ -113,6 +137,7 @@ const secretHandoffComposition = createOperatorSecretHandoffOperationalCompositi
   authorization,
   runtimeDescriptor: Object.freeze({
     adminKeyConfigured: configured(env.API_GATEWAY_ADMIN_KEY),
+    adaMitraBridgeReadOnlyEnabled: true,
   }),
   env,
 });
@@ -127,7 +152,6 @@ const mysqlApp = createOperatorHostingerMysqlStagingHandoffHttpApp({
   env,
 });
 
-const store = createJsonFileStore({ filePath: env.API_GATEWAY_STATE_FILE });
 const login = createUniCoPreviewLoginComposition({
   app: mysqlApp,
   store,
@@ -144,8 +168,13 @@ const account = createUniAccountPreviewRuntimeComposition({
 });
 if (!account.enabled) throw new Error("uni_account_preview_runtime_disabled");
 
-const server = await startOperationalHttpServer({
+const app = createAdaMitraBridgeApp({
   app: account.app,
+  authenticator: adaMitraAuthenticator,
+});
+
+const server = await startOperationalHttpServer({
+  app,
   host: String(env.HOST ?? "127.0.0.1"),
   port: parsePort(env.PORT),
   secretHandoffHttpApp: secretHandoffComposition.httpApp,
@@ -159,6 +188,7 @@ console.log(JSON.stringify({
   secretHandoffEnabled: true,
   mysqlHandoffEnabled: true,
   uniAccountPreviewEnabled: true,
+  adaMitraBridgeReadOnlyEnabled: true,
   timestamp: now(),
 }));
 registerShutdown(server);
