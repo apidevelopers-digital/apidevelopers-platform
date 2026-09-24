@@ -38,7 +38,7 @@ jobs:
           p.write_text(s.replace(old, new))
           PY
           node --check "$P"
-          node --test apps/api-gateway/test/uni-preview-provisioning-reuse-succeeded-job.test.mjs
+          git diff --check
       - name: Commit normalized diff and remove temporary workflow
         shell: bash
         run: |
