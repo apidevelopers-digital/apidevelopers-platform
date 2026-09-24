@@ -2,9 +2,9 @@ import { readFileSync } from "node:fs";
 
 import { startOperationalHttpServer } from "./operational-http-transport.mjs";
 import { registerOperationalShutdown } from "./operational-server-runtime.mjs";
+import { startOperationalGateway } from "./operational-server-runtime.mjs";
 import { resolveHostingerRuntimeEnv } from "./hostinger-runtime-env.mjs";
 import { runUniCoPreviewBootstrap } from "./uni-co-preview-bootstrap.mjs";
-import { startWebAgentOperationalGateway } from "./web-agent-operational-startup.mjs";
 import { createOperatorBootstrapHttpApp } from "./operator-bootstrap-http.mjs";
 import { createOperatorSecretHandoffOperationalComposition } from "./operator-secret-handoff-operational-composition.mjs";
 import { createOperatorHostingerMysqlStagingHandoffHttpApp } from "./operator-hostinger-mysql-staging-handoff-http.mjs";
@@ -14,6 +14,7 @@ import { attachZuniChannelBindingWriteHostingerComposition } from "./zuni-channe
 import { attachTrustFaceAccessDurablePreviewToGateway } from "./trust-face-access-durable-runtime-transform.mjs";
 import { createOperatorApiKeyProvisioningRuntimeApp } from "./operator-api-key-provisioning-composition.mjs";
 import { createOperatorApiKeyProvisioningWrapper } from "./operator-api-key-provisioning-wrapper.mjs";
+
 function configured(value) {
   return Boolean(String(value ?? "").trim());
 }
@@ -26,10 +27,12 @@ function attachOperatorBootstrap({ gateway }) {
     apiKeyRepository: gateway.apiKeyRepository,
     audit: gateway.audit,
   });
+
   return Object.freeze({ ...gateway, app });
 }
 
 let secretHandoffHttpApp;
+
 function attachOperatorSecretHandoff({ gateway, env }) {
   const composition = createOperatorSecretHandoffOperationalComposition({
     app: gateway.app,
@@ -40,38 +43,40 @@ function attachOperatorSecretHandoff({ gateway, env }) {
     }),
     env,
   });
-  if (composition.enabled) {
-    secretHandoffHttpApp = composition.httpApp;
-    const app = createOperatorHostingerMysqlStagingHandoffHttpApp({
-      app: gateway.app,
-      authenticator: gateway.authenticator,
-      authorization: gateway.authorization,
-      handoffService: composition.handoffService,
-      secretProvider: composition.secretProvider,
-      env,
-    });
-    return Object.freeze({
-      ...gateway,
-      app,
-      secretHandoff: Object.freeze({
-        enabled: true,
-        descriptor: composition.descriptor,
-      }),
-    });
+
+  if (!composition.enabled) {
+    secretHandoffHttpApp = undefined;
+    return Object.freeze({ ...gateway });
   }
 
-  secretHandoffHttpApp = undefined;
+  secretHandoffHttpApp = composition.httpApp;
+
+  const app = createOperatorHostingerMysqlStagingHandoffHttpApp({
+    app: gateway.app,
+    authenticator: gateway.authenticator,
+    authorization: gateway.authorization,
+    handoffService: composition.handoffService,
+    secretProvider: composition.secretProvider,
+    env,
+  });
 
   return Object.freeze({
     ...gateway,
+    app,
+    secretHandoff: Object.freeze({
+      enabled: true,
+      descriptor: composition.descriptor,
+    }),
   });
 }
+
 function attachOperatorApiKeyProvisioning({ gateway }) {
   const operatorApiKeyProvisioningApp =
     createOperatorApiKeyProvisioningRuntimeApp({
       authenticator: gateway.authenticator,
       apiKeyLifecycle: gateway.apiKeyLifecycle,
     });
+
   const app = createOperatorApiKeyProvisioningWrapper({
     app: gateway.app,
     operatorApiKeyProvisioningApp,
@@ -83,9 +88,13 @@ function attachOperatorApiKeyProvisioning({ gateway }) {
     app,
   });
 }
+
 function attachHostingerCompositions({ gateway, env }) {
   const operatorGateway = attachOperatorBootstrap({ gateway });
-  const secretHandoffGateway = attachOperatorSecretHandoff({ gateway: operatorGateway, env });
+  const secretHandoffGateway = attachOperatorSecretHandoff({
+    gateway: operatorGateway,
+    env,
+  });
   const keyProvisionerGateway = attachOperatorApiKeyProvisioning({
     gateway: secretHandoffGateway,
   });
@@ -102,6 +111,7 @@ function attachHostingerCompositions({ gateway, env }) {
     env,
   });
 }
+
 function attachTrustAndHostingerCompositions(context = {}) {
   const trustGateway = attachTrustFaceAccessDurablePreviewToGateway(context);
   return attachHostingerCompositions({
@@ -109,9 +119,13 @@ function attachTrustAndHostingerCompositions(context = {}) {
     gateway: trustGateway,
   });
 }
-async function startOperationalGateway(options = {}) {
+
+// Keep the managed-hosting startup contract, but use the operational gateway starter directly.
+// This avoids importing the web-agent shadow/saas graph in the Hostinger gateway runtime while
+// preserving the same operational transform chain required by the gateway.
+async function startHostingerGateway(options = {}) {
   secretHandoffHttpApp = undefined;
-  return startWebAgentOperationalGateway({
+  return startOperationalGateway({
     ...options,
     serverFactory(serverOptions = {}) {
       return startOperationalHttpServer({
@@ -121,8 +135,9 @@ async function startOperationalGateway(options = {}) {
     },
   });
 }
+
 const env = resolveHostingerRuntimeEnv(process.env, { readFileFn: readFileSync });
-const { server, runtime } = await startOperationalGateway({
+const { server, runtime } = await startHostingerGateway({
   env,
   gatewayTransform: attachTrustAndHostingerCompositions,
 });
