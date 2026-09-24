@@ -11,7 +11,6 @@ import {
 
 export const UNI_CO_PROVISIONING_PRODUCT_ID = "product:uni-co";
 export const MITRA_PROVISIONING_PRODUCT_ID = "product:mitra";
-
 const PRODUCT_SLUGS = Object.freeze({
   [UNI_CO_PROVISIONING_PRODUCT_ID]: "uni-co",
   [MITRA_PROVISIONING_PRODUCT_ID]: "mitra",
@@ -25,7 +24,6 @@ const WEB_SCOPE = "web:chat";
 const HEX64 = /^[a-f0-9]{64}$/;
 const SLUG = /^[a-z0-9]+(?:-[a-z0-9]+)*$/;
 const IDEM = /^[A-Za-z0-9_.:-]{8,200}$/;
-
 const PROVISIONING_STAGE_REASONS = Object.freeze({
   request: "uni_co_provisioning_not_complete",
   tenant_workspace: "uni_co_customer_tenant_not_active",
@@ -43,7 +41,6 @@ const PROVISIONING_STAGE_REASONS = Object.freeze({
   access_grant: "uni_co_customer_access_grant_not_resolved",
   onboarding: "uni_co_customer_workspace_not_active",
 });
-
 const reply = (status, payload) => Object.freeze({
   status,
   headers: Object.freeze({
@@ -58,13 +55,11 @@ function req(value, name) {
   if (!out) throw new TypeError(`${name}_required`);
   return out;
 }
-
 function reqSlug(value, name) {
   const out = req(value, name).toLowerCase();
   if (!SLUG.test(out)) throw new TypeError(`${name}_invalid`);
   return out;
 }
-
 function bodyOf(value) {
   if (value && typeof value === "object" && !Array.isArray(value)) return value;
   const raw = String(value ?? "").trim();
@@ -79,7 +74,6 @@ function bodyOf(value) {
 function same(actual, expected, code) {
   if (actual !== expected) throw new Error(code);
 }
-
 function pkey(id) {
   const out = req(id, "principalId").split(".").at(-1);
   if (!SLUG.test(out)) throw new Error("principal_key_invalid");
@@ -92,7 +86,6 @@ function resolveProduct(inputProductId) {
   if (!productSlug) throw new TypeError("productId_invalid");
   return Object.freeze({ productId, productSlug });
 }
-
 function resolveProductWorkspaceSlug(workspaceSlug, { productId, productSlug }) {
   if (productId !== MITRA_PROVISIONING_PRODUCT_ID) return workspaceSlug;
   const suffix = `-${productSlug}`;
@@ -102,11 +95,9 @@ function resolveProductWorkspaceSlug(workspaceSlug, { productId, productSlug }) 
 function resolveEntitlementCapability({ productId }) {
   return productId === MITRA_PROVISIONING_PRODUCT_ID ? "web-chat-mitra" : "web-chat";
 }
-
 function provisioningReasonForStage(stage) {
   return PROVISIONING_STAGE_REASONS[stage] ?? "uni_co_provisioning_not_complete";
 }
-
 export function createUniCoProvisioningApp({
   authenticator,
   saasRuntime,
@@ -134,7 +125,6 @@ export function createUniCoProvisioningApp({
   })) {
     if (typeof fn !== "function") throw new TypeError(`${name}_function_required`);
   }
-
   return Object.freeze({
     async handleRequest({ method = "GET", url = "/", headers = {}, body = "" } = {}) {
       const path = new URL(String(url), "http://gateway.local").pathname;
@@ -142,12 +132,10 @@ export function createUniCoProvisioningApp({
 
       const actor = await authenticator.authenticate(headers);
       if (!actor) return reply(401, { ok: false, reason: "unauthorized" });
-
       const authz = authorize(actor, { scopes: [SCOPE] });
       if (!authz.allowed) {
         return reply(403, { ok: false, reason: "provision_scope_forbidden", missingScopes: authz.missingScopes });
       }
-
       let provisioningStage = "request";
       try {
         const input = bodyOf(body);
@@ -160,7 +148,6 @@ export function createUniCoProvisioningApp({
         const { productId, productSlug } = product;
         const workspaceSlug = resolveProductWorkspaceSlug(requestedWorkspaceSlug, product);
         const entitlementCapability = resolveEntitlementCapability(product);
-
         if (!HEX64.test(subjectRef)) throw new TypeError("subjectRef_invalid");
         if (!IDEM.test(idempotencyKey)) throw new TypeError("idempotencyKey_invalid");
 
@@ -169,7 +156,6 @@ export function createUniCoProvisioningApp({
         const workspaceId = createWorkspaceId(tenantSlug, workspaceSlug);
         const subscriptionId = createSubscriptionId(tenantSlug, productSlug);
         const provisioningJobId = createProvisioningJobId(tenantSlug, workspaceSlug, productSlug);
-
         provisioningStage = "tenant_workspace";
         await saasRuntime.registerTenantWorkspace({
           tenant: {
@@ -190,7 +176,6 @@ export function createUniCoProvisioningApp({
             createdAt: at,
           },
         });
-
         provisioningStage = "subscription";
         let sub = await saasRuntime.getSubscription(subscriptionId);
         if (!sub) {
@@ -210,12 +195,10 @@ export function createUniCoProvisioningApp({
           same(sub.planId, PLAN_ID, "subscription_binding_mismatch");
           same(sub.monthlyAmount, 0, "subscription_binding_mismatch");
         }
-
         if (sub.status !== "active") {
           if (!["assisted_activation", "trial"].includes(sub.status)) throw new Error("subscription_not_activatable");
           sub = await saasRuntime.activateSubscription({ subscriptionId, activatedAt: at });
         }
-
         const entitlementId = createEntitlementId(tenantSlug, workspaceSlug, entitlementCapability);
         provisioningStage = "entitlement_get";
         let ent = await saasRuntime.getEntitlement(entitlementId);
@@ -244,7 +227,6 @@ export function createUniCoProvisioningApp({
           provisioningStage = "entitlement_status";
           if (ent.status !== "active") throw new Error("entitlement_not_active");
         }
-
         provisioningStage = "provisioning_job";
         let job = await saasRuntime.getProvisioningJob(provisioningJobId);
         if (!job) {
@@ -259,8 +241,9 @@ export function createUniCoProvisioningApp({
             requestedAt: at,
           })).job;
         }
-
-        if (job.idempotencyKey !== idempotencyKey) throw new Error("provisioning_idempotency_mismatch");
+        if (job.idempotencyKey !== idempotencyKey && job.status !== "succeeded") {
+          throw new Error("provisioning_idempotency_mismatch");
+        }
         if (job.status === "queued") job = await saasRuntime.claimProvisioning({ provisioningJobId, at });
         if (job.status === "running") {
           job = await saasRuntime.completeProvisioning({
@@ -275,7 +258,6 @@ export function createUniCoProvisioningApp({
           });
         }
         if (job.status !== "succeeded") throw new Error("provisioning_not_ready");
-
         provisioningStage = "federated_principal";
         const principal = await federatedPrincipal.resolveFederatedPrincipal({
           tenantId,
@@ -283,11 +265,9 @@ export function createUniCoProvisioningApp({
           externalSubject: subjectRef,
           subjectType: "delegated_subject_ref",
         });
-
         provisioningStage = "access_grant";
         const accessGrantId = createAccessGrantId(tenantSlug, workspaceSlug, productSlug, pkey(principal.principalId));
         let resolved = await saasAccess.resolveActiveGrant({ tenantId, principalId: principal.principalId, productId });
-
         if (!resolved.resolved) {
           const pending = await saasAccess.grantAccess({
             accessGrantId,
@@ -308,12 +288,10 @@ export function createUniCoProvisioningApp({
             grant: await saasAccess.activateAccess({ accessGrantId, provisioningJobId, at }),
           };
         }
-
         const grant = resolved.grant;
         same(grant.workspaceId, workspaceId, "access_binding_mismatch");
         same(grant.productId, productId, "access_binding_mismatch");
         same(grant.principalId, principal.principalId, "access_binding_mismatch");
-
         provisioningStage = "onboarding";
         await saasAccess.setOnboarding({
           tenantId,
@@ -324,7 +302,6 @@ export function createUniCoProvisioningApp({
           completedSteps: ["provisioning_succeeded", "access_activated"],
           updatedAt: at,
         });
-
         return reply(201, {
           ok: true,
           provisioned: true,
@@ -349,7 +326,6 @@ export function createUniCoProvisioningApp({
     },
   });
 }
-
 export const uniCoProvisioningContract = Object.freeze({
   path: "/v1/saas/uni-co/provision",
   productId: DEFAULT_PRODUCT_ID,
