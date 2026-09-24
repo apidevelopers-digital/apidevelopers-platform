@@ -1,146 +1,166 @@
-import { readFileSync } from "node:fs";
+import crypto from "node:crypto";
 
 import { startOperationalHttpServer } from "./operational-http-transport.mjs";
-import { registerOperationalShutdown } from "./operational-server-runtime.mjs";
-import { startOperationalGateway } from "./operational-server-runtime.mjs";
-import { resolveHostingerRuntimeEnv } from "./hostinger-runtime-env.mjs";
-import { runUniCoPreviewBootstrap } from "./uni-co-preview-bootstrap.mjs";
-import { createOperatorBootstrapHttpApp } from "./operator-bootstrap-http.mjs";
 import { createOperatorSecretHandoffOperationalComposition } from "./operator-secret-handoff-operational-composition.mjs";
 import { createOperatorHostingerMysqlStagingHandoffHttpApp } from "./operator-hostinger-mysql-staging-handoff-http.mjs";
-import { attachMitraPublicResearchToGateway } from "./mitra-public-operational-wrapper.mjs";
-import { attachUniJuriProductionHandoffToGateway } from "./unijuri-production-handoff-operational-wrapper.mjs";
-import { attachZuniChannelBindingWriteHostingerComposition } from "./zuni-channel-binding-write-hostinger-wiring.mjs";
-import { attachTrustFaceAccessDurablePreviewToGateway } from "./trust-face-access-durable-runtime-transform.mjs";
-import { createOperatorApiKeyProvisioningRuntimeApp } from "./operator-api-key-provisioning-composition.mjs";
-import { createOperatorApiKeyProvisioningWrapper } from "./operator-api-key-provisioning-wrapper.mjs";
+
+function now() {
+  return new Date().toISOString();
+}
 
 function configured(value) {
   return Boolean(String(value ?? "").trim());
 }
 
-function attachOperatorBootstrap({ gateway }) {
-  const app = createOperatorBootstrapHttpApp({
-    app: gateway.app,
-    authenticator: gateway.authenticator,
-    authorization: gateway.authorization,
-    apiKeyRepository: gateway.apiKeyRepository,
-    audit: gateway.audit,
-  });
-
-  return Object.freeze({ ...gateway, app });
+function readBearer(headers = {}) {
+  const authorization = String(headers.authorization ?? headers.Authorization ?? "");
+  return authorization.replace(/^Bearer\s+/i, "").trim();
 }
 
-let secretHandoffHttpApp;
+function timingSafeEquals(left, right) {
+  const a = Buffer.from(String(left ?? ""));
+  const b = Buffer.from(String(right ?? ""));
+  return a.length === b.length && crypto.timingSafeEqual(a, b);
+}
 
-function attachOperatorSecretHandoff({ gateway, env }) {
-  const composition = createOperatorSecretHandoffOperationalComposition({
-    app: gateway.app,
-    authenticator: gateway.authenticator,
-    authorization: gateway.authorization,
-    runtimeDescriptor: Object.freeze({
-      adminKeyConfigured: configured(env.API_GATEWAY_ADMIN_KEY),
-    }),
-    env,
-  });
-
-  if (!composition.enabled) {
-    secretHandoffHttpApp = undefined;
-    return Object.freeze({ ...gateway });
-  }
-
-  secretHandoffHttpApp = composition.httpApp;
-
-  const app = createOperatorHostingerMysqlStagingHandoffHttpApp({
-    app: gateway.app,
-    authenticator: gateway.authenticator,
-    authorization: gateway.authorization,
-    handoffService: composition.handoffService,
-    secretProvider: composition.secretProvider,
-    env,
-  });
-
+function createJsonResponse(status, payload) {
   return Object.freeze({
-    ...gateway,
-    app,
-    secretHandoff: Object.freeze({
-      enabled: true,
-      descriptor: composition.descriptor,
+    status,
+    headers: Object.freeze({
+      "content-type": "application/json; charset=utf-8",
+      "cache-control": "no-store",
+      "x-content-type": "nosniff",
     }),
+    body: JSON.stringify(payload),
   });
 }
 
-function attachOperatorApiKeyProvisioning({ gateway }) {
-  const operatorApiKeyProvisioningApp =
-    createOperatorApiKeyProvisioningRuntimeApp({
-      authenticator: gateway.authenticator,
-      apiKeyLifecycle: gateway.apiKeyLifecycle,
-    });
-
-  const app = createOperatorApiKeyProvisioningWrapper({
-    app: gateway.app,
-    operatorApiKeyProvisioningApp,
-  });
-
+function createTerminalApp() {
   return Object.freeze({
-    ...gateway,
-    operatorApiKeyProvisioningApp,
-    app,
-  });
-}
+    async handleRequest(request = {}) {
+      const method = String(request.method ?? "GET").toUpperCase();
+      const path = new URL(String(request.url ?? "/"), "https://api-gateway.local").pathname;
 
-function attachHostingerCompositions({ gateway, env }) {
-  const operatorGateway = attachOperatorBootstrap({ gateway });
-  const secretHandoffGateway = attachOperatorSecretHandoff({
-    gateway: operatorGateway,
-    env,
-  });
-  const keyProvisionerGateway = attachOperatorApiKeyProvisioning({
-    gateway: secretHandoffGateway,
-  });
-  const mitraGateway = attachMitraPublicResearchToGateway({
-    gateway: keyProvisionerGateway,
-    env,
-  });
-  const uniJuriGateway = attachUniJuriProductionHandoffToGateway({
-    gateway: mitraGateway,
-    env,
-  });
-  return attachZuniChannelBindingWriteHostingerComposition({
-    gateway: uniJuriGateway,
-    env,
-  });
-}
+      if (method === "GET" && (path === "/" || path === "/health" || path === "/v1/health")) {
+        return createJsonResponse(200, {
+          ok: true,
+          release: "hostinger-minimal-secret-handoff-runtime-v1",
+          timestamp: now(),
+        });
+      }
 
-function attachTrustAndHostingerCompositions(context = {}) {
-  const trustGateway = attachTrustFaceAccessDurablePreviewToGateway(context);
-  return attachHostingerCompositions({
-    ...context,
-    gateway: trustGateway,
-  });
-}
-
-// Keep the managed-hosting startup contract, but use the operational gateway starter directly.
-// This avoids importing the web-agent shadow/saas graph in the Hostinger gateway runtime while
-// preserving the same operational transform chain required by the gateway.
-async function startHostingerGateway(options = {}) {
-  secretHandoffHttpApp = undefined;
-  return startOperationalGateway({
-    ...options,
-    serverFactory(serverOptions = {}) {
-      return startOperationalHttpServer({
-        ...serverOptions,
-        ...(secretHandoffHttpApp ? { secretHandoffHttpApp } : {}),
+      return createJsonResponse(404, {
+        ok: false,
+        error: "not_found",
+        release: "hostinger-minimal-secret-handoff-runtime-v1",
+        timestamp: now(),
       });
     },
   });
 }
 
-const env = resolveHostingerRuntimeEnv(process.env, { readFileFn: readFileSync });
-const { server, runtime } = await startHostingerGateway({
-  env,
-  gatewayTransform: attachTrustAndHostingerCompositions,
-});
-await runUniCoPreviewBootstrap({ app: runtime.app, env });
+function createAdminAuthenticator(env = process.env) {
+  return Object.freeze({
+    async authenticate(headers = {}) {
+      const expected = String(env.API_GATEWAY_ADMIN_KEY ?? "").trim();
+      if (!eppected) return null;
 
-registerOperationalShutdown({ server });
+      const token = readBearer(headers);
+      if (!token || !timingSafeEquals(token, expected)) return null;
+
+      return Object.freeze({
+        principal: Object.freeze({
+          id: "hostinger-admin",
+          type: "operator",
+          scopes: Object.freeze(["admin:*"]),
+        }),
+      });
+    },
+  });
+}
+
+function createAdminAuthorization() {
+  return Object.freeze({
+    decide({ identity, requiredScopes = [] } = {}) {
+      const scopes = identity?.principal?.scopes;
+      const hasAdmin = Array.isArray(scopes) && scopes.includes("admin:*");
+      const requiresAdmin = !Array.isArray(requiredScopes) || requiredScopes.length === 0 || requiredScopes.includes("admin:*");
+
+      return Object.freeze({
+        effect: hasAdmin && requiresAdmin ? "allow" : "deny",
+      });
+    },
+  });
+}
+
+function parsePort(value) {
+  const port = Number(String(value ?? "3000").trim());
+  if (!Number.isSafeInteger(port) || port < 0 || port > 65535) {
+    throw new TypeError("PORT must be an integer between 0 and 65535");
+  }
+  return port;
+}
+
+function registerShutdown(server, processRef = process) {
+  const shutdown = (signal) => {
+    server.close(() => {
+      console.log(JSON.stringify({
+        event: "api_gateway_hostinger_minimal_stopped",
+        signal,
+        timestamp: now(),
+      }));
+      processRef.exit(0);
+    });
+  };
+
+  processRef.once("SIGINT", shutdown);
+  processRef.once("SIGTERM", shutdown);
+  return shutdown;
+}
+
+const env = process.env;
+const authenticator = createAdminAuthenticator(env);
+const authorization = createAdminAuthorization();
+const terminalApp = createTerminalApp();
+
+const secretHandoffComposition = createOperatorSecretHandoffOperationalComposition({
+  app: terminalApp,
+  authenticator,
+  authorization,
+  runtimeDescriptor: Object.freeze({
+    adminKeyConfigured: configured(env.API_GATEWAY_ADMIN_KEY),
+  }),
+  env,
+});
+
+if (!secretHandoffComposition.enabled) {
+  throw new Error("secret_handoff_runtime_disabled");
+}
+
+const app = createOperatorHostingerMysqlStagingHandoffHttpApp({
+  app: terminalApp,
+  authenticator,
+  authorization,
+  handoffService: secretHandoffComposition.handoffService,
+  secretProvider: secretHandoffComposition.secretProvider,
+  env,
+});
+
+const server = await startOperationalHttpServer({
+  app,
+  host: String(env.HOST ?? "127.0.0.1"),
+  port: parsePort(env.PORT),
+  secretHandoffHttpApp: secretHandoffComposition.httpApp,
+});
+
+console.log(JSON.stringify({
+  event: "api_gateway_hostinger_minimal_started",
+  release: "hostinger-minimal-secret-handoff-runtime-v1",
+  host: server.address()?.address,
+  port: server.address()?.port,
+  secretHandoffEnabled: true,
+  mysqlHandoffEnabled: true,
+  timestamp: now(),
+}));
+
+registerShutdown(server);
