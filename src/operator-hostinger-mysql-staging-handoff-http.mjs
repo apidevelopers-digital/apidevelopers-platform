@@ -1,5 +1,6 @@
 const SESSION_ROUTE = "/v1/operator/hostinger/mysql/unijuri-staging/secret-handoff-session";
 const CREATE_ROUTE = "/v1/operator/hostinger/mysql/unijuri-staging/create";
+const DIRECT_CREATE_ROUTE = "/v1/operator/hostinger/mysql/unijuri-staging/create-direct";
 const REQUIRED_SCOPE = "admin:*";
 
 export const UNIJURI_MYSQL_STAGING_CREATE_CONFIRMATION =
@@ -45,6 +46,13 @@ function parseBody(body) {
     throw new TypeError("request body must be a JSON object");
   }
   return parsed;
+}
+
+function readPasswordBytes(body) {
+  if (body instanceof Uint8Array) return Buffer.from(body);
+  if (Buffer.isBuffer(body)) return Buffer.from(body);
+  if (typeof body === "string") return Buffer.from(body, "utf8");
+  throw new TypeError("password body must be an octet-stream or string");
 }
 
 function hasAdminWildcard(identity) {
@@ -186,13 +194,27 @@ export function createOperatorHostingerMysqlStagingHandoffHttpApp({
     return { identity, authorizationDecision };
   }
 
+  function requireConfirmation(request, body = {}) {
+    const confirmation = readHeader(request.headers, "x-operation-confirmation") ?? body.confirmation;
+    if (confirmation !== UNIJURI_MYSQL_STAGING_CREATE_CONFIRMATION) {
+      return jsonResponse(428, {
+        ok: false,
+        error: "explicit_confirmation_required",
+        requiredConfirmation: UNIJURI_MYSQL_STAGING_CREATE_CONFIRMATION,
+        productionChanged: false,
+        secretReturned: false,
+      });
+    }
+    return null;
+  }
+
   return Object.freeze({
     async handleRequest(request = {}) {
       const method = String(request.method ?? "GET").toUpperCase();
       const parsedUrl = new URL(request.url ?? "/", "https://api-gateway.local");
       const path = parsedUrl.pathname;
 
-      if (path !== SESSION_ROUTE && path !== CREATE_ROUTE) {
+      if (path !== SESSION_ROUTE && path !== CREATE_ROUTE && path !== DIRECT_CREATE_ROUTE) {
         return app.handleRequest(request);
       }
 
@@ -204,7 +226,9 @@ export function createOperatorHostingerMysqlStagingHandoffHttpApp({
         request,
         path === SESSION_ROUTE
           ? "operator.hostinger.database.create-with-secret-handoff.session"
-          : "operator.hostinger.database.create-with-secret-handoff",
+          : path === DIRECT_CREATE_ROUTE
+            ? "operator.hostinger.database.create-direct"
+            : "operator.hostinger.database.create-with-secret-handoff",
         "institution:hostinger:mysql:unijuri_staging",
       );
       if (auth.response) return auth.response;
@@ -244,6 +268,57 @@ export function createOperatorHostingerMysqlStagingHandoffHttpApp({
         }
       }
 
+      if (path === DIRECT_CREATE_ROUTE) {
+        const confirmationError = requireConfirmation(request);
+        if (confirmationError) return confirmationError;
+
+        let passwordBytes;
+        try {
+          passwordBytes = readPasswordBytes(request.body);
+          if (passwordBytes.length < 8 || passwordBytes.length > 256) {
+            throw new TypeError("password length is invalid");
+          }
+        } catch (error) {
+          return jsonResponse(400, {
+            ok: false,
+            error: "invalid_password_body",
+            message: error instanceof Error ? error.message : "invalid password body",
+            productionChanged: false,
+            secretReturned: false,
+          });
+        }
+
+        try {
+          const result = await callHostingerCreateDatabase({
+            env,
+            passwordBytes,
+            fetchImpl,
+          });
+
+          return jsonResponse(201, {
+            ok: true,
+            operation: "operator.hostinger.database.create-direct",
+            database: DATABASE_NAME,
+            user: DATABASE_USER,
+            websiteDomain: WEBSITE_DOMAIN,
+            hostingerStatus: result.hostingerStatus,
+            providerId: result.providerId,
+            productionChanged: true,
+            secretReturned: false,
+          });
+        } catch (error) {
+          const status = Number.isInteger(error?.status) ? error.status : 500;
+          return jsonResponse(status, {
+            ok: false,
+            error: publicError(error, "hostinger_database_create_failed"),
+            productionChanged: false,
+            secretReturned: false,
+          });
+        } finally {
+          if (passwordBytes) passwordBytes.fill(0);
+        }
+      }
+
       let body;
       try {
         body = parseBody(request.body);
@@ -251,16 +326,8 @@ export function createOperatorHostingerMysqlStagingHandoffHttpApp({
         return jsonResponse(400, { ok: false, error: "invalid_json_body" });
       }
 
-      const confirmation = readHeader(request.headers, "x-operation-confirmation") ?? body.confirmation;
-      if (confirmation !== UNIJURI_MYSQL_STAGING_CREATE_CONFIRMATION) {
-        return jsonResponse(428, {
-          ok: false,
-          error: "explicit_confirmation_required",
-          requiredConfirmation: UNIJURI_MYSQL_STAGING_CREATE_CONFIRMATION,
-          productionChanged: false,
-          secretReturned: false,
-        });
-      }
+      const confirmationError = requireConfirmation(request, body);
+      if (confirmationError) return confirmationError;
 
       let secretRef;
       try {
