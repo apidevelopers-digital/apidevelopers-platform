@@ -17,7 +17,7 @@ jobs:
       - macOS
       - X64
     steps:
-      - uses: actions/checkout@0v4
+      - uses: actions/checkout@v4
         with:
           ref: ada/uni-preview-provisioning-reuse-succeeded-job-v1
           fetch-depth: 0
@@ -34,7 +34,7 @@ jobs:
           old = 'if (job.idempotencyKey !== idempotencyKey) throw new Error("provisioning_idempotency_mismatch");'
           new = 'if (job.idempotencyKey !== idempotencyKey && job.status !== "succeeded") {\n          throw new Error("provisioning_idempotency_mismatch");\n        }'
           if s.count(old) != 1:
-            raise SystemExit("canonical idempotency guard not found exactly once")
+              raise SystemExit("canonical idempotency guard not found exactly once")
           p.write_text(s.replace(old, new))
           PY
           node --check "$P"
@@ -49,5 +49,3 @@ jobs:
           git add apps/api-gateway/src/saas-uni-co-provisioning.mjs
           git commit -m "chore(gateway): normalize provisioning diff"
           git push origin HEAD:ada/uni-preview-provisioning-reuse-succeeded-job-v1
-
-# trigger
