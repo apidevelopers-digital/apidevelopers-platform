@@ -1,0 +1,51 @@
+name: Temporary normalize PR 617
+
+on:
+  push:
+    branches:
+      - ada/uni-preview-provisioning-reuse-succeeded-job-v1
+    paths:
+      - ".github/workflows/tmp-normalize-pr617.yml"
+
+permissions:
+  contents: write
+
+jobs:
+  normalize:
+    runs-on:
+      - self-hosted
+      - macOS
+      - X64
+    steps:
+      - uses: actions/checkout@0v4
+        with:
+          ref: ada/uni-preview-provisioning-reuse-succeeded-job-v1
+          fetch-depth: 0
+      - name: Normalize source against main
+        shell: bash
+        run: |
+          set -euo pipefail
+          P="apps/api-gateway/src/saas-uni-co-provisioning.mjs"
+          git show origin/main:"$P" > "$P"
+          python3 - <<'PY'
+          from pathlib import Path
+          p = Path("apps/api-gateway/src/saas-uni-co-provisioning.mjs")
+          s = p.read_text()
+          old = 'if (job.idempotencyKey !== idempotencyKey) throw new Error("provisioning_idempotency_mismatch");'
+          new = 'if (job.idempotencyKey !== idempotencyKey && job.status !== "succeeded") {\n          throw new Error("provisioning_idempotency_mismatch");\n        }'
+          if s.count(old) != 1:
+            raise SystemExit("canonical idempotency guard not found exactly once")
+          p.write_text(s.replace(old, new))
+          PY
+          node --check "$P"
+          node --test apps/api-gateway/test/uni-preview-provisioning-reuse-succeeded-job.test.mjs
+      - name: Commit normalized diff and remove temporary workflow
+        shell: bash
+        run: |
+          set -euo pipefail
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git rm .github/workflows/tmp-normalize-pr617.yml
+          git add apps/api-gateway/src/saas-uni-co-provisioning.mjs
+          git commit -m "chore(gateway): normalize provisioning diff"
+          git push origin HEAD:ada/uni-preview-provisioning-reuse-succeeded-job-v1
