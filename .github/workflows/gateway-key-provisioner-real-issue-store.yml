@@ -20,7 +20,6 @@ on:
 
 permissions:
   contents: read
-  actions: write
 
 concurrency:
   group: gateway-key-provisioner-real-issue-store
@@ -42,22 +41,34 @@ jobs:
       EXPECTED_SOURCE_SHA: ${{ github.event.inputs.expected_source_sha }}
       API_GATEWAY_OPERATOR_KEY: ${{ secrets.API_GATEWAY_OPERATOR_KEY }}
       ADA_MITRA_BRIDGE_TENANT_ID: ${{ secrets.ADA_MITRA_BRIDGE_TENANT_ID }}
-      GH_TOKEN: ${{ github.token }}
+      GH_TOKEN: ${{ secrets.GH_SECRET_WRITER_TOKEN }}
+      ORG: apidevelopers-digital
+      REPO_NAME: apidevelopers-platform
       REPOSITORY: ${{ github.repository }}
 
     steps:
-      - name: Preflight secret writer before real issuance
+      - name: Preflight organization secret writer before real issuance
         shell: bash
         run: |
           set -euo pipefail
           test "$GATEWAY_ORIGIN" = "https://gateway.apidevelopers.digital"
           test "$EXPECTED_SOURCE_SHA" = "6ff2abdea18729a83fc2ed6c19a941f0870bf251"
           command -v gh >/dev/null 2>&1
-          marker="preflight-$(date -u +%Y%m%dT%H%M%SZ)"
-          printf "%s" "$marker" | gh secret set GATEWAY_KEY_PROVISIONER_WRITE_PREFLIGHT --repo "$REPOSITORY" --body-file -
-          echo "GATEWAY_KEY_PROVISIONER_REAL_PREFLIGHT_SECRET_WRITER=true"
+          test -n "${GH_TOKEN:-}"
 
-      - name: Issue, store, and verify real key
+          gh api user --jq '.login' >/tmp/gh-user-login.txt
+          gh api "orgs/${ORG}/actions/secrets/public-key" --jq '.key_id' >/tmp/gh-org-secret-public-key-id.txt
+
+          marker="preflight-$(date -u +%Y%m%dT%H%M%SZ)"
+          gh secret set GATEWAY_KEY_PROVISIONER_WRITE_PREFLIGHT \
+            --org "$ORG" \
+            --repos "$REPO_NAME" \
+            --body "$marker"
+
+          echo "GATEWAY_KEY_PROVISIONER_REAL_PREFLIGHT_SECRET_WRITER=true"
+          echo "GATEWAY_KEY_PROVISIONER_REAL_PREFLIGHT_TARGET=organization_secret"
+
+      - name: Issue, store as organization secret, and verify real key
         shell: bash
         run: |
           set -euo pipefail
@@ -68,7 +79,8 @@ jobs:
           const expectedSourceSha = process.env.EXPECTED_SOURCE_SHA;
           const operatorKey = process.env.API_GATEWAY_OPERATOR_KEY || "";
           const tenantId = process.env.ADA_MITRA_BRIDGE_TENANT_ID || "";
-          const repository = process.env.REPOSITORY || "";
+          const org = process.env.ORG || "";
+          const repoName = process.env.REPO_NAME || "";
           const emit = (key, value) => console.log(`GATEWAY_KEY_PROVISIONER_REAL_${key}=${String(value)}`);
           const safe = (value) => String(value ?? "unmapped").slice(0, 180).replace(/[^a-zA-Z0-9_.:-]/g, "_");
           const fail = (message) => {
@@ -81,12 +93,15 @@ jobs:
               if (lower.includes(forbidden)) fail(`secret_like_text_detected:${forbidden.trim()}`);
             }
           };
+
           if (!operatorKey) fail("missing_secret_API_GATEWAY_OPERATOR_KEY");
           if (!tenantId) fail("missing_secret_ADA_MITRA_BRIDGE_TENANT_ID");
-          if (!repository) fail("missing_repository_context");
+          if (!org) fail("missing_org_context");
+          if (!repoName) fail("missing_repo_name_context");
 
           emit("OPERATOR_KEY_PRESENT", "true");
           emit("TENANT_PRESENT", "true");
+          emit("SECRET_TARGET", "organization_secret");
 
           const sourceResponse = await fetch(`${origin}/SOURCE_SHA`, { headers: { accept: "text/plain" } });
           const sourceText = await sourceResponse.text();
@@ -147,14 +162,24 @@ jobs:
 
           console.log(`::add-mask::${issueBody.secret}`);
 
-          const gh = spawnSync("gh", ["secret", "set", "ADA_MITRA_BRIDGE_READ_TOKEN", "--repo", repository, "--body-file", "-"], {
-            input: issueBody.secret,
+          const gh = spawnSync("gh", [
+            "secret",
+            "set",
+            "ADA_MITRA_BRIDGE_READ_TOKEN",
+            "--org",
+            org,
+            "--repos",
+            repoName,
+            "--body",
+            issueBody.secret,
+          ], {
             encoding: "utf8",
           });
           if (gh.status !== 0) {
-            fail(`github_secret_store_failed:${safe(gh.stderr || gh.stdout || "no_output")}`);
+            fail(`github_org_secret_store_failed:${safe(gh.stderr || gh.stdout || "no_output")}`);
           }
           emit("SECRET_STORED", "true");
+          emit("SECRET_TARGET", "organization_secret");
 
           const verifyResponse = await fetch(`${origin}/v1/ada/mitra/status`, {
             method: "GET",
@@ -177,5 +202,5 @@ jobs:
             fail(`mitra_verify_http_${verifyResponse.status}:${reason}`);
           }
 
-          emit("RESULT", "real_key_issued_stored_and_verified");
+          emit("RESULT", "real_key_issued_stored_as_org_secret_and_verified");
           NODE
