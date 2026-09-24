@@ -55,6 +55,7 @@ function payload(subjectRef, idempotencyKey) {
   };
 }
 
+// Regression: a completed workspace job is reusable; access remains principal-specific.
 test("completed workspace provisioning can grant a second principal with a different idempotency key", async () => {
   const { app, state } = harness();
   const first = await app.handleRequest({
