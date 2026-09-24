@@ -1,0 +1,94 @@
+name: ADA Mitra Bridge Saved Token Verify
+
+on:
+  workflow_dispatch:
+    inputs:
+      approval:
+        description: "Exact Igor approval token for saved token verification"
+        required: true
+        type: string
+      gateway_origin:
+        description: "Gateway origin"
+        required: true
+        default: "https://gateway.apidevelopers.digital"
+        type: string
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ada-mitra-bridge-saved-token-verify
+  cancel-in-progress: false
+
+jobs:
+  verify:
+    if: >-
+      github.event_name == 'workflow_dispatch' &&
+      github.ref == 'refs/heads/main' &&
+      github.event.inputs.approval == 'IGOR_APROVA_ADA_MITRA_SAVED_TOKEN_VERIFY'
+    runs-on:
+      - self-hosted
+      - macOS
+      - X64
+    timeout-minutes: 10
+    env:
+      GATEWAY_ORIGIN: ${{ github.event.inputs.gateway_origin }}
+      ADA_MITRA_BRIDGE_TENANT_ID: ${{ secrets.ADA_MITRA_BRIDGE_TENANT_ID }}
+      ADA_MITRA_BRIDGE_READ_TOKEN: ${{ secrets.ADA_MITRA_BRIDGE_READ_TOKEN }}
+
+    steps:
+      - name: Verify saved ADA Mitra Bridge read token
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$GATEWAY_ORIGIN" = "https://gateway.apidevelopers.digital"
+          node --input-type=module <<'NODE'
+          const origin = process.env.GATEWAY_ORIGIN;
+          const tenantId = process.env.ADA_MITRA_BRIDGE_TENANT_ID || "";
+          const readToken = process.env.ADA_MITRA_BRIDGE_READ_TOKEN || "";
+          const emit = (key, value) => console.log(`ADA_MITRA_SAVED_TOKEN_VERIFY_${key}=${String(value)}`);
+          const safe = (value) => String(value ?? "unmapped").slice(0, 180).replace(/[^a-zA-Z0-9_.:-]/g, "_");
+          const fail = (message) => {
+            emit("FAILURE", safe(message));
+            process.exit(1);
+          };
+          const assertNoSecretLikeText = (text) => {
+            const lower = String(text).toLowerCase();
+            for (const forbidden of ["authorization", "bearer ", "cookie", "password", "private_key", "access_token", "refresh_token"]) {
+              if (lower.includes(forbidden)) fail(`secret_like_text_detected:${forbidden.trim()}`);
+            }
+          };
+
+          emit("TENANT_PRESENT", tenantId ? "true" : "false");
+          emit("READ_TOKEN_PRESENT", readToken ? "true" : "false");
+          if (!tenantId) fail("missing_secret_ADA_MITRA_BRIDGE_TENANT_ID");
+          if (!readToken) fail("missing_secret_ADA_MITRA_BRIDGE_READ_TOKEN");
+
+          const response = await fetch(`${origin}/v1/ada/mitra/status`, {
+            method: "GET",
+            headers: {
+              accept: "application/json",
+              "x-api-key": readToken,
+              "x-tenant-id": tenantId,
+              "user-agent": "apidevelopers-platform/ada-mitra-saved-token-verify",
+            },
+          });
+          const text = await response.text();
+          assertNoSecretLikeText(text);
+          emit("HTTP_STATUS", response.status);
+
+          let body = {};
+          try {
+            body = JSON.parse(text);
+          } catch {
+            fail(`unparseable_response_http_${response.status}`);
+          }
+
+          emit("OK", body.ok === true ? "true" : "false");
+          emit("ERROR", safe(body.error || body.reason || body.message || "none"));
+
+          if (response.status !== 200) fail(`http_${response.status}:${body.error || body.reason || body.message || "unmapped"}`);
+          if (body.ok !== true) fail("not_ok");
+
+          emit("RESULT", "saved_token_verified");
+          NODE
