@@ -63,7 +63,7 @@ function createAdminAuthenticator(env = process.env) {
   return Object.freeze({
     async authenticate(headers = {}) {
       const expected = String(env.API_GATEWAY_ADMIN_KEY ?? "").trim();
-      if (!eppected) return null;
+      if (!expected) return null;
 
       const token = readBearer(headers);
       if (!token || !timingSafeEquals(token, expected)) return null;
