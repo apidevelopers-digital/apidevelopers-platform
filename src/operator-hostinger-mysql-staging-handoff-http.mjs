@@ -1,8 +1,10 @@
 const SESSION_ROUTE = "/v1/operator/hostinger/mysql/unijuri-staging/secret-handoff-session";
 const CREATE_ROUTE = "/v1/operator/hostinger/mysql/unijuri-staging/create";
 const REQUIRED_SCOPE = "admin:*";
+
 export const UNIJURI_MYSQL_STAGING_CREATE_CONFIRMATION =
   "IGOR_APROVA_CRIAR_BANCO_MYSQL_UNIJURI_STAGING_20260922";
+
 const PURPOSE = "hostinger.mysql.unijuri_staging.password";
 const DATABASE_NAME = "unijuri_staging";
 const DATABASE_USER = "unijuri_staging";
@@ -160,7 +162,7 @@ export function createOperatorHostingerMysqlStagingHandoffHttpApp({
     let identity;
     try {
       identity = await authenticator.authenticate(request.headers ?? {});
-    } catch (error) {
+    } catch {
       return { response: jsonResponse(401, { ok: false, error: "unauthorized" }) };
     }
     if (!identity) return { response: jsonResponse(401, { ok: false, error: "unauthorized" }) };
@@ -173,7 +175,7 @@ export function createOperatorHostingerMysqlStagingHandoffHttpApp({
         resource,
         requiredScopes: [REQUIRED_SCOPE],
       });
-    } catch (error) {
+    } catch {
       return { response: jsonResponse(403, { ok: false, error: "forbidden" }) };
     }
 
@@ -264,7 +266,7 @@ export function createOperatorHostingerMysqlStagingHandoffHttpApp({
       try {
         const allowed = new Set(["secretRef", "confirmation", "correlationId"]);
         for (const key of Object.keys(body)) {
-          if (!allowed.has(key) throw new TypeError("request contains an unsupported field");
+          if (!allowed.has(key)) throw new TypeError("request contains an unsupported field");
         }
         secretRef = requireText(body.secretRef, "secretRef", /^secret:\/\/handoff\/[A-Za-z0-9._:-]{3,128}$/);
       } catch (error) {
