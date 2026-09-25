@@ -1,0 +1,44 @@
+name: Temporary promote provisioning fix to Gateway deploy line
+
+on:
+  push:
+    branches:
+      - ada/deploy-uni-preview-provisioning-reuse-succeeded-job-v1
+
+jobs:
+  promote:
+    if: github.actor != 'github-actions[bot]'
+    runs-on:
+      - self-hosted
+      - macOS
+      - X64
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ada/deploy-uni-preview-provisioning-reuse-succeeded-job-v1
+      - name: Apply audited provisioning guard
+        shell: bash
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+          p = Path("src/saas-uni-co-provisioning.mjs")
+          s = p.read_text()
+          old = '        if (job.idempotencyKey !== idempotencyKey) throw new Error("provisioning_idempotency_mismatch");'
+          new = '''        if (job.idempotencyKey !== idempotencyKey && job.status !== "succeeded") {
+          throw new Error("provisioning_idempotency_mismatch");
+        }'''
+          if s.count(old) != 1:
+              raise SystemExit("expected guard not found exactly once")
+          p.write_text(s.replace(old, new))
+          PY
+          node --check src/saas-uni-co-provisioning.mjs
+          git diff --check
+      - name: Commit audited patch and remove temporary workflow
+        shell: bash
+        run: |
+          rm -f .github/workflows/tmp-promote-pr617-gateway.yml
+          git add src/saas-uni-co-provisioning.mjs .github/workflows/tmp-promote-pr617-gateway.yml
+          git -c user.name="github-actions[bot]" -c user.email="41898282+github-actions[bot]@users.noreply.github.com" commit -m "fix(gateway): reuse completed provisioning job for new principal"
+          git push origin HEAD:ada/deploy-uni-preview-provisioning-reuse-succeeded-job-v1
