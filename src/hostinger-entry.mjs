@@ -12,6 +12,7 @@ import { createOperatorHostingerMysqlStagingHandoffHttpApp } from "./operator-ho
 import { resolveHostingerRuntimeEnv } from "./hostinger-runtime-env.mjs";
 import { createUniCoPreviewLoginComposition } from "./web-agent-preview-login-composition.mjs";
 import { createUniAccountPreviewRuntimeComposition } from "./uni-account-preview-runtime-composition.mjs";
+import { createUniAccountPreviewAccessContextRuntimeComposition } from "./uni-account-preview-access-context-runtime-composition.mjs";
 import { createGatewayAuthenticator } from "./auth-composition.mjs";
 import { createAdaMitraBridgeReadOnly } from "./ada-mitra-bridge-readonly.mjs";
 import { createOperatorApiKeyProvisioningRuntimeApp } from "./operator-api-key-provisioning-composition.mjs";
@@ -185,8 +186,16 @@ const account = createUniAccountPreviewRuntimeComposition({
 });
 if (!account.enabled) throw new Error("uni_account_preview_runtime_disabled");
 
-const provisionerApp = createGatewayKeyProvisionerApp({
+const accessContext = createUniAccountPreviewAccessContextRuntimeComposition({
   app: account.app,
+  store,
+  consumerAuthorization: env.UNI_CO_PREVIEW_ACCESS_CONTEXT_AUTHORIZATION,
+  enabled: true,
+});
+if (!accessContext.enabled) throw new Error("uni_account_preview_access_context_runtime_disabled");
+
+const provisionerApp = createGatewayKeyProvisionerApp({
+  app: accessContext.app,
   authenticator: adaMitraAuthenticator,
   apiKeyLifecycle,
 });
