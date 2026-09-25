@@ -45,10 +45,11 @@ jobs:
           if s.count(marker) != 1:
               raise SystemExit("account enabled marker not found exactly once")
           s = s.replace(marker, block, 1)
-          old = 'app: account.app,'
-          if s.count(old) != 1:
-              raise SystemExit(f"expected one downstream account.app, found {s.count(old)}")
-          s = s.replace(old, 'app: accessContext.app,', 1)
+          downstream = "const provisionerApp = createGatewayKeyProvisionerApp({\n  app: account.app,"
+          replacement = "const provisionerApp = createGatewayKeyProvisionerApp({\n  app: accessContext.app,"
+          if s.count(downstream) != 1:
+              raise SystemExit("downstream account app marker not found exactly once")
+          s = s.replace(downstream, replacement, 1)
           p.write_text(s)
           PY
           node --check src/hostinger-entry.mjs
