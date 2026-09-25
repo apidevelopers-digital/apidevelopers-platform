@@ -63,7 +63,6 @@ jobs:
         working-directory: apps/api-gateway
         run: |
           set -euo pipefail
-          npm ci --ignore-scripts
           node --test test/mitra-mcp-v1-contract.test.mjs test/mitra-mcp-v1-runtime.test.mjs test/mitra-mcp-v1-http.test.mjs test/mitra-mcp-v1-gateway-wrapper.test.mjs
 
       - name: Probe runtime inline without external calls
