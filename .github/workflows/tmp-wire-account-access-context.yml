@@ -1,0 +1,60 @@
+name: Temporary wire Conta uni access context
+
+on:
+  push:
+    branches:
+      - ada/gateway-wire-account-access-context-v1
+
+jobs:
+  patch:
+    if: github.actor != 'github-actions[bot]'
+    runs-on:
+      - self-hosted
+      - macOS
+      - X64
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ada/gateway-wire-account-access-context-v1
+      - name: Wire access-context runtime
+        shell: bash
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+          p = Path("src/hostinger-entry.mjs")
+          s = p.read_text()
+          old_import = 'import { createUniAccountPreviewRuntimeComposition } from "./uni-account-preview-runtime-composition.mjs";'
+          new_import = old_import + '\nimport { createUniAccountPreviewAccessContextRuntimeComposition } from "./uni-account-preview-access-context-runtime-composition.mjs";'
+          if s.count(old_import) != 1:
+              raise SystemExit("account runtime import not found exactly once")
+          s = s.replace(old_import, new_import, 1)
+          marker = 'if (!account.enabled) throw new Error("uni_account_preview_runtime_disabled");'
+          block = '''if (!account.enabled) throw new Error("uni_account_preview_runtime_disabled");
+
+const accessContext = createUniAccountPreviewAccessContextRuntimeComposition({
+  app: account.app,
+  store,
+  consumerAuthorization: env.UNI_CO_PREVIEW_ACCESS_CONTEXT_AUTHORIZATION,
+  enabled: true,
+});
+if (!accessContext.enabled) throw new Error("uni_account_preview_access_context_runtime_disabled");'''
+          if s.count(marker) != 1:
+              raise SystemExit("account enabled marker not found exactly once")
+          s = s.replace(marker, block, 1)
+          old = 'app: account.app,'
+          if s.count(old) != 1:
+              raise SystemExit(f"expected one downstream account.app, found {s.count(old)}")
+          s = s.replace(old, 'app: accessContext.app,', 1)
+          p.write_text(s)
+          PY
+          node --check src/hostinger-entry.mjs
+          git diff --check
+      - name: Commit audited patch and remove temporary workflow
+        shell: bash
+        run: |
+          rm -f .github/workflows/tmp-wire-account-access-context.yml
+          git add src/hostinger-entry.mjs .github/workflows/tmp-wire-account-access-context.yml
+          git -c user.name="github-actions[bot]" -c user.email="41898282+github-actions[bot]@users.noreply.github.com" commit -m "fix(gateway): wire Conta uni access-context runtime"
+          git push origin HEAD:ada/gateway-wire-account-access-context-v1
