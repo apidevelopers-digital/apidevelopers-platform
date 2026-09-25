@@ -1,6 +1,7 @@
 import { secureCompareSecrets } from "@apidevelopers/auth-core";
 import { createBrowserSessionAuthenticator } from "@apidevelopers/auth-core/browser-session-authenticator";
 import { createUniAccountPreviewHandoffComposition } from "./browser-session-handoff-preview-composition.mjs";
+import { createZuniPreviewHandoffComposition } from "./browser-session-handoff-zuni-preview-composition.mjs";
 import { createUniAccountPreviewAuthorizeHttpApp } from "./uni-account-preview-authorize-http.mjs";
 import { createWebAgentShadowPersistenceProviders } from "./web-agent-shadow-persistence-providers.mjs";
 
@@ -28,6 +29,9 @@ function header(headers, name) {
 export function createUniAccountPreviewRedeemerAuthenticator({
   authorization,
   compareSecrets = secureCompareSecrets,
+  principalId = "server.site-uni-preview",
+  principalName = "Site Uni Preview Handoff Redeemer",
+  scopes = ["account:handoff:redeem"],
 } = {}) {
   const expected = text(authorization);
   if (!expected) return Object.freeze({ configured: false, async authenticate() { return null; } });
@@ -44,10 +48,10 @@ export function createUniAccountPreviewRedeemerAuthenticator({
       return Object.freeze({
         role: "server",
         principal: Object.freeze({
-          id: "server.site-uni-preview",
-          name: "Site Uni Preview Handoff Redeemer",
+          id: principalId,
+          name: principalName,
           status: "active",
-          scopes: Object.freeze(["account:handoff:redeem"]),
+          scopes: Object.freeze(scopes),
         }),
       });
     },
@@ -59,6 +63,8 @@ export function createUniAccountPreviewRuntimeComposition({
   store,
   loginBootstrap,
   redeemerAuthorization,
+  zuniPreviewRedeemerAuthorization,
+  zuniPreviewEnabled = true,
   enabled = false,
   ttlSeconds = 60,
 } = {}) {
@@ -71,6 +77,7 @@ export function createUniAccountPreviewRuntimeComposition({
       productionEnabled: false,
       loginRequired: true,
       redeemerConfigured: false,
+      zuniPreviewEnabled: false,
       runtimeAutoWiring: false,
     }),
   });
@@ -85,10 +92,18 @@ export function createUniAccountPreviewRuntimeComposition({
   });
   if (redeemerAuthenticator.configured !== true) return disabled();
 
+  const zuniRedeemerAuthenticator = createUniAccountPreviewRedeemerAuthenticator({
+    authorization: zuniPreviewRedeemerAuthorization ?? redeemerAuthorization,
+    principalId: "server.site-zuni-preview",
+    principalName: "Site Zuni Preview Handoff Redeemer",
+    scopes: ["zuni:handoff:redeem"],
+  });
+
   const providers = createWebAgentShadowPersistenceProviders({ store: persistenceStore });
   const sourceAuthenticator = createBrowserSessionAuthenticator({
     resolveSessionByHash: providers.resolveSessionByHash,
   });
+
   const handoff = createUniAccountPreviewHandoffComposition({
     app: baseApp,
     persistenceStore,
@@ -97,8 +112,31 @@ export function createUniAccountPreviewRuntimeComposition({
     enabled: true,
     ttlSeconds,
   });
+
+  const zuniHandoff =
+    zuniPreviewEnabled === true && zuniRedeemerAuthenticator.configured === true
+      ? createZuniPreviewHandoffComposition({
+          app: handoff.app,
+          persistenceStore,
+          sourceAuthenticator,
+          redeemerAuthenticator: zuniRedeemerAuthenticator,
+          enabled: true,
+          ttlSeconds,
+        })
+      : Object.freeze({
+          enabled: false,
+          app: handoff.app,
+          descriptor: Object.freeze({
+            mode: "zuni-preview",
+            targetOrigin: "https://preview-zuni.sitedauni.com",
+            productionEnabled: false,
+            redeemerConfigured: zuniRedeemerAuthenticator.configured === true,
+            runtimeAutoWiring: true,
+          }),
+        });
+
   const authorize = createUniAccountPreviewAuthorizeHttpApp({
-    app: handoff.app,
+    app: zuniHandoff.app,
     loginBootstrap,
     handoffService: handoff.handoffService,
   });
@@ -107,8 +145,10 @@ export function createUniAccountPreviewRuntimeComposition({
     enabled: true,
     app: authorize,
     handoffService: handoff.handoffService,
+    zuniHandoffService: zuniHandoff.enabled ? zuniHandoff.handoffService : null,
     sourceAuthenticator,
     redeemerAuthenticator,
+    zuniRedeemerAuthenticator,
     descriptor: Object.freeze({
       mode: "preview-only",
       productionEnabled: false,
@@ -119,6 +159,8 @@ export function createUniAccountPreviewRuntimeComposition({
       oneTimeRedemptionRequired: handoff.descriptor.oneTimeRedemptionRequired,
       redeemerServerAuthenticationRequired: handoff.descriptor.redeemerServerAuthenticationRequired,
       redeemerConfigured: true,
+      zuniPreviewEnabled: zuniHandoff.enabled === true,
+      zuniPreview: zuniHandoff.descriptor,
       runtimeAutoWiring: true,
     }),
   });
