@@ -217,9 +217,9 @@ function createAssistedProvisionAccess({
     membershipRuntime,
     ...(clock ? { clock: () => clock().toISOString() } : {}),
   });
-  const effectiveTenantSlug = slug(tenantSlug, "institution-preview");
+  const effectiveTenantSlug = slug(tenantSlug, "apidevelopers-digital");
   const effectiveWorkspaceSlug = slug(workspaceSlug, "uni-co-main");
-  const effectiveDisplayName = text(displayName) || "Institution Preview";
+  const effectiveDisplayName = text(displayName) || "API Developers.digital Preview";
 
   return async function provisionAccess({ email, loginBody, productId } = {}) {
     const normalizedEmail = text(email).toLowerCase();
