@@ -1,0 +1,59 @@
+name: Temp patch existing grant
+on:
+  push:
+    branches: [ada/gateway-preserve-existing-access-grant-v1]
+jobs:
+  patch:
+    if: github.actor != 'github-actions[bot]'
+    runs-on: [self-hosted, macOS, X64]
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ada/gateway-preserve-existing-access-grant-v1
+      - shell: bash
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+          p=Path("src/saas-uni-co-provisioning.mjs")
+          s=p.read_text()
+          a='''        let resolved = await saasAccess.resolveActiveGrant({ tenantId, principalId: principal.principalId, productId });
+
+        if (!resolved.resolved) {'''
+          b='''        let resolved = await saasAccess.resolveActiveGrant({ tenantId, principalId: principal.principalId, productId });
+        let effectiveWorkspaceId = workspaceId;
+
+        if (!resolved.resolved && resolved.reason === "access_grant_ambiguous") {
+          throw new Error("acess_grant_ambiguous");
+        }
+
+        if (!resolved.resolved) {'''
+          c='''        const grant = resolved.grant;
+        same(grant.workspaceId, workspaceId, "access_binding_mismatch");
+        same(grant.productId, productId, "access_binding_mismatch");
+        same(grant.principalId, principal.principalId, "access_binding_mismatch");'''
+          d='''        const grant = resolved.grant;
+        same(grant.tenantId, tenantId, "access_binding_mismatch");
+        same(grant.productId, productId, "access_binding_mismatch");
+        same(grant.principalId, principal.principalId, "access_binding_mismatch");
+        if (grant.workspaceId !== workspaceId) effectiveWorkspaceId = grant.workspaceId;'''
+          e='''          workspaceId,
+          principalId: principal.principalId,
+          accessGrantId: grant.accessGrantId,'''
+          f='''          workspaceId: effectiveWorkspaceId,
+          principalId: principal.principalId,
+          accessGrantId: grant.accessGrantId,'''
+          for old,new in [(a,b),(c,d),(e,f)]:
+              if s.count(old)!=1: raise SystemExit("marker mismatch")
+              s=s.replace(old,new,1)
+          p.write_text(s)
+          PY
+          node --check src/saas-uni-co-provisioning.mjs
+          git diff --check
+      - shell: bash
+        run: |
+          rm -f .github/workflows/tmp-preserve-existing-access-grant.yml
+          git add -A
+          git -c user.name="github-actions[bot]" -c user.email="41898282+github-actions[bot]@users.noreply.github.com" commit -m "fix(gateway): preserve existing active Conta uni access grant"
+          git push origin HEAD:ada/gateway-preserve-existing-access-grant-v1
