@@ -1,7 +1,10 @@
 import { readFileSync } from "node:fs";
 import crypto from "node:crypto";
 
-import { createDurableApiKeyRepository } from "@apidevelopers/apikey-core";
+import {
+  createApiKeyLifecycleService,
+  createDurableApiKeyRepository,
+} from "@apidevelopers/apikey-core";
 import { createJsonFileStore } from "@apidevelopers/persistence-core";
 import { startOperationalHttpServer } from "./operational-http-transport.mjs";
 import { createOperatorSecretHandoffOperationalComposition } from "./operator-secret-handoff-operational-composition.mjs";
@@ -11,6 +14,8 @@ import { createUniCoPreviewLoginComposition } from "./web-agent-preview-login-co
 import { createUniAccountPreviewRuntimeComposition } from "./uni-account-preview-runtime-composition.mjs";
 import { createGatewayAuthenticator } from "./auth-composition.mjs";
 import { createAdaMitraBridgeReadOnly } from "./ada-mitra-bridge-readonly.mjs";
+import { createOperatorApiKeyProvisioningRuntimeApp } from "./operator-api-key-provisioning-composition.mjs";
+import { createOperatorApiKeyProvisioningWrapper } from "./operator-api-key-provisioning-wrapper.mjs";
 
 function now() { return new Date().toISOString(); }
 function configured(value) { return Boolean(String(value ?? "").trim()); }
@@ -92,6 +97,16 @@ function createAdaMitraBridgeApp({ app, authenticator }) {
     },
   });
 }
+function createGatewayKeyProvisionerApp({ app, authenticator, apiKeyLifecycle }) {
+  const operatorApiKeyProvisioningApp = createOperatorApiKeyProvisioningRuntimeApp({
+    authenticator,
+    apiKeyLifecycle,
+  });
+  return createOperatorApiKeyProvisioningWrapper({
+    app,
+    operatorApiKeyProvisioningApp,
+  });
+}
 function parsePort(value) {
   const port = Number(String(value ?? "3000").trim());
   if (!Number.isSafeInteger(port) || port < 0 || port > 65535) {
@@ -118,6 +133,7 @@ function registerShutdown(server, processRef = process) {
 const env = resolveHostingerRuntimeEnv(process.env, { readFileFn: readFileSync });
 const store = createJsonFileStore({ filePath: env.API_GATEWAY_STATE_FILE });
 const apiKeyRepository = createDurableApiKeyRepository({ store });
+const apiKeyLifecycle = createApiKeyLifecycleService({ repository: apiKeyRepository });
 const adaMitraAuthenticator = createGatewayAuthenticator({
   apiKeyRepository,
   adminKey: env.API_GATEWAY_ADMIN_KEY,
@@ -138,6 +154,7 @@ const secretHandoffComposition = createOperatorSecretHandoffOperationalCompositi
   runtimeDescriptor: Object.freeze({
     adminKeyConfigured: configured(env.API_GATEWAY_ADMIN_KEY),
     adaMitraBridgeReadOnlyEnabled: true,
+    gatewayKeyProvisionerEnabled: true,
   }),
   env,
 });
@@ -168,8 +185,14 @@ const account = createUniAccountPreviewRuntimeComposition({
 });
 if (!account.enabled) throw new Error("uni_account_preview_runtime_disabled");
 
-const app = createAdaMitraBridgeApp({
+const provisionerApp = createGatewayKeyProvisionerApp({
   app: account.app,
+  authenticator: adaMitraAuthenticator,
+  apiKeyLifecycle,
+});
+
+const app = createAdaMitraBridgeApp({
+  app: provisionerApp,
   authenticator: adaMitraAuthenticator,
 });
 
@@ -189,6 +212,7 @@ console.log(JSON.stringify({
   mysqlHandoffEnabled: true,
   uniAccountPreviewEnabled: true,
   adaMitraBridgeReadOnlyEnabled: true,
+  gatewayKeyProvisionerEnabled: true,
   timestamp: now(),
 }));
 registerShutdown(server);
