@@ -5,6 +5,7 @@ import { resolveHostingerRuntimeEnv } from "./hostinger-runtime-env.mjs";
 import { runUniCoPreviewBootstrap } from "./uni-co-preview-bootstrap.mjs";
 import { startWebAgentOperationalGateway } from "./web-agent-operational-startup.mjs";
 import { createOperatorBootstrapHttpApp } from "./operator-bootstrap-http.mjs";
+import { attachMitraMcpV1ToGateway } from "./mitra-mcp-v1-gateway-wrapper.mjs";
 import { attachMitraPublicResearchToGateway } from "./mitra-public-operational-wrapper.mjs";
 import { attachUniJuriProductionHandoffToGateway } from "./unijuri-production-handoff-operational-wrapper.mjs";
 import { attachZuniChannelBindingWriteHostingerComposition } from "./zuni-channel-binding-write-hostinger-wiring.mjs";
@@ -46,8 +47,11 @@ function attachHostingerCompositions({ gateway, env }) {
   const keyProvisionerGateway = attachOperatorApiKeyProvisioning({
     gateway: operatorGateway,
   });
-  const mitraGateway = attachMitraPublicResearchToGateway({
+  const mitraMcpGateway = attachMitraMcpV1ToGateway({
     gateway: keyProvisionerGateway,
+  });
+  const mitraGateway = attachMitraPublicResearchToGateway({
+    gateway: mitraMcpGateway,
     env,
   });
   const uniJuriGateway = attachUniJuriProductionHandoffToGateway({
