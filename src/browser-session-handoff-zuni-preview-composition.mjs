@@ -13,6 +13,12 @@ import {
 export const ZUNI_PREVIEW_HANDOFF_TARGET_ORIGIN =
   "https://preview-zuni.sitedauni.com";
 
+export const zuniPreviewBrowserSessionHandoffIssuePath =
+  "/v1/zuni/browser-session/handoff/issue";
+
+export const zuniPreviewBrowserSessionHandoffRedeemPath =
+  "/v1/zuni/browser-session/handoff/redeem";
+
 function requireFunction(value, name) {
   if (typeof value !== "function") {
     throw new TypeError(`${name} must be a function`);
@@ -44,11 +50,11 @@ export function createZuniPreviewHandoffComposition({
       enabled: false,
       app,
       descriptor: Object.freeze({
-        mode: "preview-zuni",
+        mode: "zuni-preview",
         targetOrigin: ZUNI_PREVIEW_HANDOFF_TARGET_ORIGIN,
         productionEnabled: false,
         persistence: "not-configured",
-        runtimeAutoWiring: false,
+        runtimeAutoWiring: true,
       }),
     });
   }
@@ -73,6 +79,8 @@ export function createZuniPreviewHandoffComposition({
     handoffService,
     redeemerAuthenticator,
     redeemTargetOrigin: ZUNI_PREVIEW_HANDOFF_TARGET_ORIGIN,
+    issuePath: zuniPreviewBrowserSessionHandoffIssuePath,
+    redeemPath: zuniPreviewBrowserSessionHandoffRedeemPath,
   });
 
   if (http.enabled !== true || typeof http.app?.handleRequest !== "function") {
@@ -85,14 +93,16 @@ export function createZuniPreviewHandoffComposition({
     handoffService,
     handoffStore,
     descriptor: Object.freeze({
-      mode: "preview-zuni",
+      mode: "zuni-preview",
       targetOrigin: ZUNI_PREVIEW_HANDOFF_TARGET_ORIGIN,
       productionEnabled: false,
       persistence: "persistence-core",
       browserBinding: "S256",
+      issuePath: zuniPreviewBrowserSessionHandoffIssuePath,
+      redeemPath: zuniPreviewBrowserSessionHandoffRedeemPath,
       oneTimeRedemptionRequired: true,
       redeemerServerAuthenticationRequired: true,
-      runtimeAutoWiring: false,
+      runtimeAutoWiring: true,
     }),
   });
 }
