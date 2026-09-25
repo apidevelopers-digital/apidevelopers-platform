@@ -289,6 +289,11 @@ export function createUniCoProvisioningApp({
         provisioningStage = "access_grant";
         const accessGrantId = createAccessGrantId(tenantSlug, workspaceSlug, productSlug, pkey(principal.principalId));
         let resolved = await saasAccess.resolveActiveGrant({ tenantId, principalId: principal.principalId, productId });
+        let effectiveWorkspaceId = workspaceId;
+
+        if (!resolved.resolved && resolved.reason === "access_grant_ambiguous") {
+          throw new Error("access_grant_ambiguous");
+        }
 
         if (!resolved.resolved) {
           const pending = await saasAccess.grantAccess({
@@ -312,14 +317,15 @@ export function createUniCoProvisioningApp({
         }
 
         const grant = resolved.grant;
-        same(grant.workspaceId, workspaceId, "access_binding_mismatch");
+        same(grant.tenantId, tenantId, "access_binding_mismatch");
         same(grant.productId, productId, "access_binding_mismatch");
         same(grant.principalId, principal.principalId, "access_binding_mismatch");
+        if (grant.workspaceId !== workspaceId) effectiveWorkspaceId = grant.workspaceId;
 
         provisioningStage = "onboarding";
         await saasAccess.setOnboarding({
           tenantId,
-          workspaceId,
+          workspaceId: effectiveWorkspaceId,
           productId,
           status: "completed",
           requiredSteps: ["provisioning_succeeded", "access_activated"],
@@ -331,7 +337,7 @@ export function createUniCoProvisioningApp({
           ok: true,
           provisioned: true,
           tenantId,
-          workspaceId,
+          workspaceId: effectiveWorkspaceId,
           principalId: principal.principalId,
           accessGrantId: grant.accessGrantId,
           productId,
