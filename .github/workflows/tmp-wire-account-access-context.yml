@@ -31,15 +31,17 @@ jobs:
               raise SystemExit("account runtime import not found exactly once")
           s = s.replace(old_import, new_import, 1)
           marker = 'if (!account.enabled) throw new Error("uni_account_preview_runtime_disabled");'
-          block = '''if (!account.enabled) throw new Error("uni_account_preview_runtime_disabled");
-
-const accessContext = createUniAccountPreviewAccessContextRuntimeComposition({
-  app: account.app,
-  store,
-  consumerAuthorization: env.UNI_CO_PREVIEW_ACCESS_CONTEXT_AUTHORIZATION,
-  enabled: true,
-});
-if (!accessContext.enabled) throw new Error("uni_account_preview_access_context_runtime_disabled");'''
+          block = "\n".join([
+              marker,
+              "",
+              "const accessContext = createUniAccountPreviewAccessContextRuntimeComposition({",
+              "  app: account.app,",
+              "  store,",
+              "  consumerAuthorization: env.UNI_CO_PREVIEW_ACCESS_CONTEXT_AUTHORIZATION,",
+              "  enabled: true,",
+              "});",
+              'if (!accessContext.enabled) throw new Error("uni_account_preview_access_context_runtime_disabled");',
+          ])
           if s.count(marker) != 1:
               raise SystemExit("account enabled marker not found exactly once")
           s = s.replace(marker, block, 1)
