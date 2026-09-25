@@ -260,7 +260,9 @@ export function createUniCoProvisioningApp({
           })).job;
         }
 
-        if (job.idempotencyKey !== idempotencyKey) throw new Error("provisioning_idempotency_mismatch");
+        if (job.idempotencyKey !== idempotencyKey && job.status !== "succeeded") {
+          throw new Error("provisioning_idempotency_mismatch");
+        }
         if (job.status === "queued") job = await saasRuntime.claimProvisioning({ provisioningJobId, at });
         if (job.status === "running") {
           job = await saasRuntime.completeProvisioning({
