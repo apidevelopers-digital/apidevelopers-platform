@@ -1,0 +1,48 @@
+name: Temporary bind institutional Conta uni preview
+
+on:
+  push:
+    branches:
+      - ada/gateway-bind-institutional-preview-v1
+
+jobs:
+  patch:
+    if: github.actor != 'github-actions[bot]'
+    runs-on:
+      - self-hosted
+      - macOS
+      - X64
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ada/gateway-bind-institutional-preview-v1
+      - name: Apply audited institutional binding
+        shell: bash
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+          p = Path("src/web-agent-preview-login-composition.mjs")
+          s = p.read_text()
+          old_tenant = 'tenantSlug: "institution-preview",'
+          new_tenant = 'tenantSlug: "apidevelopers-digital",'
+          old_display = 'displayName: "Institution Preview",'
+          new_display = 'displayName: "API Developers.digital Preview",'
+          if s.count(old_tenant) != 1:
+              raise SystemExit("tenant marker not found exactly once")
+          if s.count(old_display) != 1:
+              raise SystemExit("display marker not found exactly once")
+          s = s.replace(old_tenant, new_tenant, 1)
+          s = s.replace(old_display, new_display, 1)
+          p.write_text(s)
+          PY
+          node --check src/web-agent-preview-login-composition.mjs
+          git diff --check
+      - name: Commit audited patch and remove temporary workflow
+        shell: bash
+        run: |
+          rm -f .github/workflows/tmp-bind-institutional-preview.yml
+          git add src/web-agent-preview-login-composition.mjs .github/workflows/tmp-bind-institutional-preview.yml
+          git -c user.name="github-actions[bot]" -c user.email="41898282+github-actions[bot]@users.noreply.github.com" commit -m "fix(gateway): bind Conta uni preview to institutional tenant"
+          git push origin HEAD:ada/gateway-bind-institutional-preview-v1
