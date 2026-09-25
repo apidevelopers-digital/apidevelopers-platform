@@ -1,18 +1,25 @@
-name: Temp patch existing grant
+name: Temporary preserve existing Conta uni access grant
+
 on:
   push:
-    branches: [ada/gateway-preserve-existing-access-grant-v1]
+    branches:
+      - ada/gateway-preserve-existing-access-grant-v1
+
 jobs:
   patch:
     if: github.actor != 'github-actions[bot]'
-    runs-on: [self-hosted, macOS, X64]
+    runs-on:
+      - self-hosted
+      - macOS
+      - X64
     permissions:
       contents: write
     steps:
       - uses: actions/checkout@v4
         with:
           ref: ada/gateway-preserve-existing-access-grant-v1
-      - shell: bash
+      - name: Patch
+        shell: bash
         run: |
           python3 - <<'PY'
           from pathlib import Path
@@ -25,7 +32,7 @@ jobs:
         let effectiveWorkspaceId = workspaceId;
 
         if (!resolved.resolved && resolved.reason === "access_grant_ambiguous") {
-          throw new Error("acess_grant_ambiguous");
+          throw new Error("access_grant_ambiguous");
         }
 
         if (!resolved.resolved) {'''
@@ -51,7 +58,8 @@ jobs:
           PY
           node --check src/saas-uni-co-provisioning.mjs
           git diff --check
-      - shell: bash
+      - name: Commit
+        shell: bash
         run: |
           rm -f .github/workflows/tmp-preserve-existing-access-grant.yml
           git add -A
