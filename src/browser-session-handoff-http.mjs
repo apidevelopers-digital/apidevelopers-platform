@@ -18,6 +18,14 @@ function response(status, payload) {
   });
 }
 
+function normalizePath(value, fallback) {
+  const path = String(value ?? fallback ?? "").trim();
+  if (!path || !path.startsWith("/")) {
+    throw new TypeError("browser session handoff path must be absolute");
+  }
+  return path;
+}
+
 function parseJsonBody(body) {
   if (body && typeof body === "object" && !Array.isArray(body)) return body;
   if (typeof body !== "string" || body.trim() === "") {
@@ -80,10 +88,15 @@ export function createBrowserSessionHandoffHttpApp({
   handoffService,
   redeemerAuthenticator,
   redeemTargetOrigin,
+  issuePath = browserSessionHandoffIssuePath,
+  redeemPath = browserSessionHandoffRedeemPath,
 } = {}) {
   if (typeof app?.handleRequest !== "function") {
     throw new TypeError("app.handleRequest is required");
   }
+
+  const resolvedIssuePath = normalizePath(issuePath, browserSessionHandoffIssuePath);
+  const resolvedRedeemPath = normalizePath(redeemPath, browserSessionHandoffRedeemPath);
 
   const dependenciesReady =
     typeof handoffService?.issue === "function" &&
@@ -109,8 +122,7 @@ export function createBrowserSessionHandoffHttpApp({
 
       if (
         method !== "POST" ||
-        (pathname !== browserSessionHandoffIssuePath &&
-          pathname !== browserSessionHandoffRedeemPath)
+        (pathname !== resolvedIssuePath && pathname !== resolvedRedeemPath)
       ) {
         return app.handleRequest(request);
       }
@@ -118,7 +130,7 @@ export function createBrowserSessionHandoffHttpApp({
       try {
         const payload = parseJsonBody(request.body);
 
-        if (pathname === browserSessionHandoffIssuePath) {
+        if (pathname === resolvedIssuePath) {
           const issued = await handoffService.issue({
             headers: request.headers ?? {},
             targetOrigin: payload.targetOrigin,
