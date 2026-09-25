@@ -1,0 +1,98 @@
+name: Mitra MCP v1 Runtime Safe Probe
+
+on:
+  workflow_dispatch:
+    inputs:
+      approval:
+        description: "Exact Igor approval token"
+        required: true
+        type: string
+      expected_source_sha:
+        description: "Expected main commit SHA to probe"
+        required: true
+        type: string
+
+permissions:
+  contents: read
+
+concurrency:
+  group: mitra-mcp-v1-runtime-safe-probe
+  cancel-in-progress: false
+
+jobs:
+  probe:
+    if: >-
+      github.event_name == 'workflow_dispatch' &&
+      github.ref == 'refs/heads/main' &&
+      github.event.inputs.approval == 'IGOR_APROVA_MITRA_MCP_V1_RUNTIME_SAFE_PROBE'
+    runs-on:
+      - self-hosted
+      - macOS
+      - X64
+    timeout-minutes: 10
+    env:
+      EXPECTED_SOURCE_SHA: ${{ github.event.inputs.expected_source_sha }}
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          ref: main
+
+      - name: Validate probe target
+        shell: bash
+        run: |
+          set -euo pipefail
+          actual_sha="$(git rev-parse HEAD)"
+          echo "MITRA_MCP_V1_PROBE_SHA=${actual_sha}"
+          test "$actual_sha" = "$EXPECTED_SOURCE_SHA"
+
+      - name: Run static checks
+        shell: bash
+        working-directory: apps/api-gateway
+        run: |
+          set -euo pipefail
+          node --check src/mitra-mcp-v1-contract.mjs
+          node --check src/mitra-mcp-v1-runtime.mjs
+          node --check src/mitra-mcp-v1-http.mjs
+          node --check src/mitra-mcp-v1-gateway-wrapper.mjs
+          node --check src/hostinger-entry.mjs
+
+      - name: Run targeted Mitra MCP v1 tests
+        shell: bash
+        working-directory: apps/api-gateway
+        run: |
+          set -euo pipefail
+          npm ci --ignore-scripts
+          node --test test/mitra-mcp-v1-contract.test.mjs test/mitra-mcp-v1-runtime.test.mjs test/mitra-mcp-v1-http.test.mjs test/mitra-mcp-v1-gateway-wrapper.test.mjs
+
+      - name: Probe runtime inline without external calls
+        shell: bash
+        working-directory: apps/api-gateway
+        run: |
+          set -euo pipefail
+          node --input-type=module <<'NODE'
+          import { createMitraMcpV1HttpApp } from "./src/mitra-mcp-v1-http.mjs";
+          const authenticator = Object.freeze({
+            async authenticate() {
+              return Object.freeze({
+                principal: Object.freeze({
+                  tenantId: "tenant_safe_probe",
+                  scopes: Object.freeze(["mitra:status:read", "mitra:capabilities:read"]),
+                }),
+              });
+            },
+          });
+          const app = createMitraMcpV1HttpApp({ authenticator });
+          const probe = async (url) => {
+            const response = await app.handleRequest({ method: "GET", url });
+            const body = JSON.parse(response.body);
+            console.log("MITRA_MCP_V1_PROBE_ROUTE=" + url);
+            console.log("MITRA_MCP_V1_PROBE_HTTP_STATUS=" + response.status);
+            console.log("MITRA_MCP_V1_PROBE_OK=" + (body.ok === true ? "true" : "false"));
+            if (response.status !== 200 || body.ok !== true) process.exit(1);
+          };
+          await probe("/v1/mitra/mcp/status");
+          await probe("/v1/mitra/mcp/capabilities");
+          console.log("MITRA_MCP_V1_PROBE_RESULT=safe_probe_passed");
+          NODE
