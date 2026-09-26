@@ -53,9 +53,24 @@ jobs:
           test -n "$ADA_MITRA_BRIDGE_READ_TOKEN"
 
           actual_deploy_sha="$(
-            git -c "http.extraheader=AUTHORIZATION: bearer ${GH_TOKEN}" \
-              ls-remote https://github.com/apidevelopers-digital/apidevelopers-platform \
-              refs/heads/deploy/hostinger-gateway-runtime | awk '{print $1}'
+            node --input-type=module <<'NODE'
+            const response = await fetch(
+              "https://api.github.com/repos/apidevelopers-digital/apidevelopers-platform/git/ref/heads/deploy/hostinger-gateway-runtime",
+              {
+                headers: {
+                  accept: "application/vnd.github+json",
+                  authorization: `Bearer ${process.env.GH_TOKEN}`,
+                  "x-github-api-version": "2022-11-28",
+                },
+              },
+            );
+            if (!response.ok) {
+              console.log(`GITHUB_REF_HTTP_${response.status}`);
+              process.exit(1);
+            }
+            const body = await response.json();
+            console.log(body?.object?.sha || "");
+            NODE
           )"
           echo "MITRA_MCP_V1_PUBLIC_PROBE_DEPLOY_SHA=${actual_deploy_sha}"
           test "$actual_deploy_sha" = "$EXPECTED_DEPLOY_SHA"
