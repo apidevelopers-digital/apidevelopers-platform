@@ -1,0 +1,133 @@
+name: Mitra MCP v1 Public Saved Token Probe
+
+on:
+  workflow_dispatch:
+    inputs:
+      approval:
+        description: "Exact Igor approval token for public saved-token probe"
+        required: true
+        type: string
+      expected_deploy_sha:
+        description: "Expected deploy/hostinger-gateway-runtime commit SHA"
+        required: true
+        type: string
+      gateway_origin:
+        description: "Gateway origin"
+        required: true
+        default: "https://gateway.apidevelopers.digital"
+        type: string
+
+permissions:
+  contents: read
+
+concurrency:
+  group: mitra-mcp-v1-public-saved-token-probe
+  cancel-in-progress: false
+
+jobs:
+  probe:
+    if: >-
+      github.event_name == 'workflow_dispatch' &&
+      github.ref == 'refs/heads/main' &&
+      github.event.inputs.approval == 'IGOR_APROVA_MITRA_MCP_V1_PUBLIC_SAVED_TOKEN_PROBE'
+    runs-on:
+      - self-hosted
+      - macOS
+      - X64
+    timeout-minutes: 10
+    env:
+      EXPECTED_DEPLOY_SHA: ${{ github.event.inputs.expected_deploy_sha }}
+      GATEWAY_ORIGIN: ${{ github.event.inputs.gateway_origin }}
+      ADA_MITRA_BRIDGE_TENANT_ID: ${{ secrets.ADA_MITRA_BRIDGE_TENANT_ID }}
+      ADA_MITRA_BRIDGE_READ_TOKEN: ${{ secrets.ADA_MITRA_BRIDGE_READ_TOKEN }}
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          ref: main
+
+      - name: Validate target and secrets presence
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$GATEWAY_ORIGIN" = "https://gateway.apidevelopers.digital"
+          test -n "$EXPECTED_DEPLOY_SHA"
+          test -n "$ADA_MITRA_BRIDGE_TENANT_ID"
+          test -n "$ADA_MITRA_BRIDGE_READ_TOKEN"
+
+          actual_deploy_sha="$(git ls-remote origin refs/heads/deploy/hostinger-gateway-runtime | awk '{print $1}')"
+          echo "MITRA_MCP_V1_PUBLIC_PROBE_DEPLOY_SHA=${actual_deploy_sha}"
+          test "$actual_deploy_sha" = "$EXPECTED_DEPLOY_SHA"
+
+      - name: Probe public Mitra MCP v1 routes with saved token
+        shell: bash
+        run: |
+          set -euo pipefail
+          node --input-type=module <<'NODE'
+          const origin = process.env.GATEWAY_ORIGIN;
+          const tenantId = process.env.ADA_MITRA_BRIDGE_TENANT_ID || "";
+          const token = process.env.ADA_MITRA_BRIDGE_READ_TOKEN || "";
+          const routes = [
+            "/v1/mitra/mcp/status",
+            "/v1/mitra/mcp/capabilities",
+          ];
+
+          const emit = (key, value) => console.log(`MITRA_MCP_V1_PUBLIC_PROBE_${key}=${String(value)}`);
+          const safe = (value) => String(value ?? "unmapped").slice(0, 180).replace(/[^a-zA-Z0-9_.:/-]/g, "_");
+          const fail = (message) => {
+            emit("FAILURE", safe(message));
+            process.exit(1);
+          };
+          const assertNoSecretLikeText = (text) => {
+            const lower = String(text).toLowerCase();
+            for (const forbidden of ["authorization", "bearer ", "cookie", "password", "private_key", "access_token", "refresh_token"]) {
+              if (lower.includes(forbidden)) fail(`secret_like_text_detected:${forbidden.trim()}`);
+            }
+            if (token && String(text).includes(token)) fail("raw_saved_token_detected_in_response");
+          };
+
+          emit("TENANT_PRESENT", tenantId ? "true" : "false");
+          emit("READ_TOKEN_PRESENT", token ? "true" : "false");
+          if (!tenantId) fail("missing_secret_ADA_MITRA_BRIDGE_TENANT_ID");
+          if (!token) fail("missing_secret_ADA_MITRA_BRIDGE_READ_TOKEN");
+
+          for (const route of routes) {
+            const response = await fetch(`${origin}${route}`, {
+              method: "GET",
+              headers: {
+                accept: "application/json",
+                "x-api-key": token,
+                "x-tenant-id": tenantId,
+                "user-agent": "apidevelopers-platform/mitra-mcp-v1-public-saved-token-probe",
+              },
+            });
+
+            const text = await response.text();
+            assertNoSecretLikeText(text);
+
+            let body = {};
+            try {
+              body = JSON.parse(text);
+            } catch {
+              fail(`unparseable_response_${route}_http_${response.status}`);
+            }
+
+            emit(`ROUTE_${route.replaceAll("/", "_")}_HTTP_STATUS`, response.status);
+            emit(`ROUTE_${route.replaceAll("/", "_")}_OK`, body.ok === true ? "true" : "false");
+            emit(`ROUTE_${route.replaceAll("/", "_")}_SERVICE`, safe(body.service || "none"));
+
+            if (response.status !== 200) fail(`http_${response.status}_${route}_${body.error || body.reason || "unmapped"}`);
+            if (body.ok !== true) fail(`not_ok_${route}_${body.error || body.reason || "unmapped"}`);
+            if (body.service !== "mitra-mcp") fail(`unexpected_service_${route}_${body.service || "none"}`);
+
+            if (route.endsWith("/capabilities")) {
+              const tools = Array.isArray(body.tools) ? body.tools : [];
+              emit("CAPABILITIES_TOOL_COUNT", tools.length);
+              if (!tools.includes("mitra.status")) fail("missing_tool_mitra_status");
+              if (!tools.includes("mitra.capabilities")) fail("missing_tool_mitra_capabilities");
+            }
+          }
+
+          emit("RESULT", "public_saved_token_probe_passed");
+          NODE
