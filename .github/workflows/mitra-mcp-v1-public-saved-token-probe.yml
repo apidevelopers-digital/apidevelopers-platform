@@ -40,13 +40,9 @@ jobs:
       GATEWAY_ORIGIN: ${{ github.event.inputs.gateway_origin }}
       ADA_MITRA_BRIDGE_TENANT_ID: ${{ secrets.ADA_MITRA_BRIDGE_TENANT_ID }}
       ADA_MITRA_BRIDGE_READ_TOKEN: ${{ secrets.ADA_MITRA_BRIDGE_READ_TOKEN }}
+      GH_TOKEN: ${{ github.token }}
 
     steps:
-      - name: Checkout
-        uses: actions/checkout@v4
-        with:
-          ref: main
-
       - name: Validate target and secrets presence
         shell: bash
         run: |
@@ -56,7 +52,11 @@ jobs:
           test -n "$ADA_MITRA_BRIDGE_TENANT_ID"
           test -n "$ADA_MITRA_BRIDGE_READ_TOKEN"
 
-          actual_deploy_sha="$(git ls-remote origin refs/heads/deploy/hostinger-gateway-runtime | awk '{print $1}')"
+          actual_deploy_sha="$(
+            git -c "http.extraheader=AUTHORIZATION: bearer ${GH_TOKEN}" \
+              ls-remote https://github.com/apidevelopers-digital/apidevelopers-platform \
+              refs/heads/deploy/hostinger-gateway-runtime | awk '{print $1}'
+          )"
           echo "MITRA_MCP_V1_PUBLIC_PROBE_DEPLOY_SHA=${actual_deploy_sha}"
           test "$actual_deploy_sha" = "$EXPECTED_DEPLOY_SHA"
 
@@ -77,12 +77,15 @@ jobs:
           const safe = (value) => String(value ?? "unmapped").slice(0, 180).replace(/[^a-zA-Z0-9_.:/-]/g, "_");
           const fail = (message) => {
             emit("FAILURE", safe(message));
-            process.exit(1);
+            process.exitCode = 1;
           };
+
           const assertNoSecretLikeText = (text) => {
             const lower = String(text).toLowerCase();
             for (const forbidden of ["authorization", "bearer ", "cookie", "password", "private_key", "access_token", "refresh_token"]) {
-              if (lower.includes(forbidden)) fail(`secret_like_text_detected:${forbidden.trim()}`);
+              if (lower.includes(forbidden)) {
+                fail(`secret_like_text_detected:${forbidden.trim()}`);
+              }
             }
             if (token && String(text).includes(token)) fail("raw_saved_token_detected_in_response");
           };
@@ -93,29 +96,40 @@ jobs:
           if (!token) fail("missing_secret_ADA_MITRA_BRIDGE_READ_TOKEN");
 
           for (const route of routes) {
-            const response = await fetch(`${origin}${route}`, {
-              method: "GET",
-              headers: {
-                accept: "application/json",
-                "x-api-key": token,
-                "x-tenant-id": tenantId,
-                "user-agent": "apidevelopers-platform/mitra-mcp-v1-public-saved-token-probe",
-              },
-            });
+            let response;
+            let text = "";
+            let body = {};
+            try {
+              response = await fetch(`${origin}${route}`, {
+                method: "GET",
+                headers: {
+                  accept: "application/json",
+                  "x-api-key": token,
+                  "x-tenant-id": tenantId,
+                  "user-agent": "apidevelopers-platform/mitra-mcp-v1-public-saved-token-probe",
+                },
+              });
+              text = await response.text();
+            } catch (error) {
+              fail(`fetch_failed_${route}_${error?.name || "unknown"}`);
+              continue;
+            }
 
-            const text = await response.text();
             assertNoSecretLikeText(text);
 
-            let body = {};
             try {
               body = JSON.parse(text);
             } catch {
+              emit(`ROUTE_${route.replaceAll("/", "_")}_HTTP_STATUS`, response.status);
+              emit(`ROUTE_${route.replaceAll("/", "_")}_PARSE`, "invalid_json");
               fail(`unparseable_response_${route}_http_${response.status}`);
+              continue;
             }
 
             emit(`ROUTE_${route.replaceAll("/", "_")}_HTTP_STATUS`, response.status);
             emit(`ROUTE_${route.replaceAll("/", "_")}_OK`, body.ok === true ? "true" : "false");
             emit(`ROUTE_${route.replaceAll("/", "_")}_SERVICE`, safe(body.service || "none"));
+            emit(`ROUTE_${route.replaceAll("/", "_")}_ERROR`, safe(body.error || body.reason || "none"));
 
             if (response.status !== 200) fail(`http_${response.status}_${route}_${body.error || body.reason || "unmapped"}`);
             if (body.ok !== true) fail(`not_ok_${route}_${body.error || body.reason || "unmapped"}`);
@@ -129,5 +143,6 @@ jobs:
             }
           }
 
+          if (process.exitCode) process.exit(process.exitCode);
           emit("RESULT", "public_saved_token_probe_passed");
           NODE
