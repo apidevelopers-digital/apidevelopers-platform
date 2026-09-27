@@ -70,4 +70,17 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          node scripts/ops/gateway-key-provisioner-real-issue-store.mjs
+          log_file="$(mktemp)"
+          set +e
+          node scripts/ops/gateway-key-provisioner-real-issue-store.mjs 2>&1 | tee "$log_file"
+          status=${PIPESTATUS[0]}
+          set -e
+          if [ "$status" -ne 0 ]; then
+            failure="$(grep 'GATEWAY_KEY_PROVISIONER_REAL_FAILURE=' "$log_file" | tail -n 1 | sed 's/^.*GATEWAY_KEY_PROVISIONER_REAL_FAILURE=//' || true)"
+            if [ -z "$failure" ]; then
+              failure="unknown_failure_see_step_log"
+            fi
+            echo "::error title=Gateway Key Provisioner Real::${failure}"
+            echo "GATEWAY_KEY_PROVISIONER_REAL_COMPACT_FAILURE=${failure}"
+            exit "$status"
+          fi
