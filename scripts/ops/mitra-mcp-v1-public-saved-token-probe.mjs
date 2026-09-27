@@ -14,6 +14,14 @@ const ROUTES = [
   "/v1/mitra/mcp/capabilities",
 ];
 
+const REQUIRED_CAPABILITY_TOOLS = Object.freeze([
+  "mitra.status",
+  "mitra.capabilities",
+  "mitra.buscar_jurisprudencia",
+  "mitra.pesquisar_fontes_oficiais",
+  "mitra.buscar_processo",
+]);
+
 function emit(key, value) {
   console.log(`MITRA_MCP_V1_PUBLIC_PROBE_${key}=${String(value)}`);
 }
@@ -127,8 +135,11 @@ async function probeRoute(route) {
   if (route.endsWith("/capabilities")) {
     const tools = Array.isArray(body.tools) ? body.tools : [];
     emit("CAPABILITIES_TOOL_COUNT", tools.length);
-    if (!tools.includes("mitra.status")) fail("missing_tool_mitra_status");
-    if (!tools.includes("mitra.capabilities")) fail("missing_tool_mitra_capabilities");
+
+    for (const tool of REQUIRED_CAPABILITY_TOOLS) {
+      emit(`CAPABILITIES_HAS_${tool.replaceAll(".", "_")}`, tools.includes(tool) ? "true" : "false");
+      if (!tools.includes(tool)) fail(`missing_tool_${tool.replaceAll(".", "_")}`);
+    }
   }
 }
 
