@@ -2,7 +2,7 @@ const {
   EXPECTED_DEPLOY_SHA = "",
   GATEWAY_ORIGIN = "",
   ADA_MITRA_BRIDGE_TENANT_ID = "",
-  ADA_MITRA_BRIDGE_READ_TOKEN = "",
+  ADA_MITRA_MCP_V1_READ_TOKEN = "",
   GH_TOKEN = "",
 } = process.env;
 
@@ -47,7 +47,7 @@ function assertNoSecretLikeText(text) {
     if (lower.includes(forbidden)) fail(`secret_like_text_detected:${forbidden.trim()}`);
   }
 
-  if (ADA_MITRA_BRIDGE_READ_TOKEN && String(text).includes(ADA_MITRA_BRIDGE_READ_TOKEN)) {
+  if (ADA_MITRA_MCP_V1_READ_TOKEN && String(text).includes(ADA_MITRA_MCP_V1_READ_TOKEN)) {
     fail("raw_saved_token_detected_in_response");
   }
 }
@@ -87,7 +87,7 @@ async function probeRoute(route) {
       method: "GET",
       headers: {
         accept: "application/json",
-        "x-api-key": ADA_MITRA_BRIDGE_READ_TOKEN,
+        "x-api-key": ADA_MITRA_MCP_V1_READ_TOKEN,
         "x-tenant-id": ADA_MITRA_BRIDGE_TENANT_ID,
         "user-agent": "apidevelopers-platform/mitra-mcp-v1-public-saved-token-probe",
       },
@@ -140,10 +140,11 @@ async function main() {
   requiredEnv("EXPECTED_DEPLOY_SHA", EXPECTED_DEPLOY_SHA);
   requiredEnv("GH_TOKEN", GH_TOKEN);
   requiredEnv("ADA_MITRA_BRIDGE_TENANT_ID", ADA_MITRA_BRIDGE_TENANT_ID);
-  requiredEnv("ADA_MITRA_BRIDGE_READ_TOKEN", ADA_MITRA_BRIDGE_READ_TOKEN);
+  requiredEnv("ADA_MITRA_MCP_V1_READ_TOKEN", ADA_MITRA_MCP_V1_READ_TOKEN);
 
   emit("TENANT_PRESENT", ADA_MITRA_BRIDGE_TENANT_ID ? "true" : "false");
-  emit("READ_TOKEN_PRESENT", ADA_MITRA_BRIDGE_READ_TOKEN ? "true" : "false");
+  emit("MCP_READ_TOKEN_PRESENT", ADA_MITRA_MCP_V1_READ_TOKEN ? "true" : "false");
+  emit("SECRET_SOURCE", "ADA_MITRA_MCP_V1_READ_TOKEN");
 
   await validateDeployRef();
 
