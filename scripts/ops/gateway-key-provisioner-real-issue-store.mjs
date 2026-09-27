@@ -8,6 +8,10 @@ const tenantId = env.ADA_MITRA_BRIDGE_TENANT_ID || "";
 const org = env.ORG || "";
 const repoName = env.REPO_NAME || "";
 const scopes = ["ada:mitra:read", "mitra:status:read", "mitra:capabilities:read"];
+const secretTargets = Object.freeze([
+  "ADA_MITRA_BRIDGE_READ_TOKEN",
+  "ADA_MITRA_MCP_V1_READ_TOKEN",
+]);
 
 const emit = (key, value) => console.log(`GATEWAY_KEY_PROVISIONER_REAL_${key}=${String(value)}`);
 const safe = (value) => String(value ?? "unmapped").slice(0, 180).replace(/[^a-zA-Z0-9_.:-]/g, "_");
@@ -41,6 +45,23 @@ function assertScopes(actualScopes) {
   for (const scope of scopes) {
     if (!actualScopes.includes(scope)) fail(`issue_missing_scope_${scope}`);
   }
+}
+
+function storeSecret(secretName, secret) {
+  const gh = spawnSync("gh", [
+    "secret",
+    "set",
+    secretName,
+    "--org",
+    org,
+    "--repos",
+    repoName,
+    "--body",
+    secret,
+  ], { encoding: "utf8" });
+
+  if (gh.status !== 0) fail(`github_org_secret_store_failed_${secretName}:${safe(gh.stderr || gh.stdout || "no_output")}`);
+  emit(`SECRET_STORED_${secretName}`, "true");
 }
 
 async function verifyRoute({ path, secret, expectedService }) {
@@ -85,6 +106,7 @@ requireValue("REPO_NAME", repoName);
 emit("OPERATOR_KEY_PRESENT", "true");
 emit("TENANT_PRESENT", "true");
 emit("SECRET_TARGET", "organization_secret");
+emit("SECRET_TARGETS", secretTargets.join(","));
 emit("REQUESTED_SCOPES", scopes.join(","));
 
 const sourceResponse = await fetch(`${origin}/SOURCE_SHA`, { headers: { accept: "text/plain" } });
@@ -147,19 +169,9 @@ if (!issueBody.secret || typeof issueBody.secret !== "string") fail("issue_missi
 
 console.log(`::add-mask::${issueBody.secret}`);
 
-const gh = spawnSync("gh", [
-  "secret",
-  "set",
-  "ADA_MITRA_BRIDGE_READ_TOKEN",
-  "--org",
-  org,
-  "--repos",
-  repoName,
-  "--body",
-  issueBody.secret,
-], { encoding: "utf8" });
-
-if (gh.status !== 0) fail(`github_org_secret_store_failed:${safe(gh.stderr || gh.stdout || "no_output")}`);
+for (const secretName of secretTargets) {
+  storeSecret(secretName, issueBody.secret);
+}
 
 emit("SECRET_STORED", "true");
 emit("SECRET_TARGET", "organization_secret");
@@ -173,4 +185,4 @@ emit("MITRA_MCP_CAPABILITIES_TOOL_COUNT", tools.length);
 if (!tools.includes("mitra.status")) fail("mitra_mcp_missing_tool_status");
 if (!tools.includes("mitra.capabilities")) fail("mitra_mcp_missing_tool_capabilities");
 
-emit("RESULT", "real_key_issued_stored_as_org_secret_and_verified_for_ada_mitra_and_mitra_mcp");
+emit("RESULT", "real_key_issued_stored_as_org_secrets_and_verified_for_ada_mitra_and_mitra_mcp");

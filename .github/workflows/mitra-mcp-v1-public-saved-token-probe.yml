@@ -39,7 +39,7 @@ jobs:
       EXPECTED_DEPLOY_SHA: ${{ github.event.inputs.expected_deploy_sha }}
       GATEWAY_ORIGIN: ${{ github.event.inputs.gateway_origin }}
       ADA_MITRA_BRIDGE_TENANT_ID: ${{ secrets.ADA_MITRA_BRIDGE_TENANT_ID }}
-      ADA_MITRA_BRIDGE_READ_TOKEN: ${{ secrets.ADA_MITRA_BRIDGE_READ_TOKEN }}
+      ADA_MITRA_MCP_V1_READ_TOKEN: ${{ secrets.ADA_MITRA_MCP_V1_READ_TOKEN }}
       GH_TOKEN: ${{ github.token }}
 
     steps:
