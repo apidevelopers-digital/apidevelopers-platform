@@ -64,6 +64,7 @@ export function createUniAccountPreviewRuntimeComposition({
   loginBootstrap,
   redeemerAuthorization,
   zuniPreviewRedeemerAuthorization,
+  zuniProductionRedeemerAuthorization = process.env.ZUNI_PRODUCTION_HANDOFF_REDEEMER_AUTHORIZATION,
   zuniPreviewEnabled = true,
   enabled = false,
   ttlSeconds = 60,
@@ -78,6 +79,7 @@ export function createUniAccountPreviewRuntimeComposition({
       loginRequired: true,
       redeemerConfigured: false,
       zuniPreviewEnabled: false,
+      zuniProductionEnabled: false,
       runtimeAutoWiring: false,
     }),
   });
@@ -97,6 +99,13 @@ export function createUniAccountPreviewRuntimeComposition({
     principalId: "server.site-zuni-preview",
     principalName: "Site Zuni Preview Handoff Redeemer",
     scopes: ["zuni:handoff:redeem"],
+  });
+
+  const zuniProductionRedeemerAuthenticator = createUniAccountPreviewRedeemerAuthenticator({
+    authorization: zuniProductionRedeemerAuthorization,
+    principalId: "server.site-zuni-production",
+    principalName: "Site Zuni Production Handoff Redeemer",
+    scopes: ["zuni-production:handoff:redeem"],
   });
 
   const providers = createWebAgentShadowPersistenceProviders({ store: persistenceStore });
@@ -120,6 +129,11 @@ export function createUniAccountPreviewRuntimeComposition({
           persistenceStore,
           sourceAuthenticator,
           redeemerAuthenticator: zuniRedeemerAuthenticator,
+          productionRedeemerAuthenticator:
+            zuniProductionRedeemerAuthenticator.configured === true
+              ? zuniProductionRedeemerAuthenticator
+              : null,
+          productionEnabled: zuniProductionRedeemerAuthenticator.configured === true,
           enabled: true,
           ttlSeconds,
         })
@@ -131,6 +145,7 @@ export function createUniAccountPreviewRuntimeComposition({
             targetOrigin: "https://preview-zuni.sitedauni.com",
             productionEnabled: false,
             redeemerConfigured: zuniRedeemerAuthenticator.configured === true,
+            productionRedeemerConfigured: zuniProductionRedeemerAuthenticator.configured === true,
             runtimeAutoWiring: true,
           }),
         });
@@ -149,6 +164,7 @@ export function createUniAccountPreviewRuntimeComposition({
     sourceAuthenticator,
     redeemerAuthenticator,
     zuniRedeemerAuthenticator,
+    zuniProductionRedeemerAuthenticator,
     descriptor: Object.freeze({
       mode: "preview-only",
       productionEnabled: false,
@@ -160,6 +176,10 @@ export function createUniAccountPreviewRuntimeComposition({
       redeemerServerAuthenticationRequired: handoff.descriptor.redeemerServerAuthenticationRequired,
       redeemerConfigured: true,
       zuniPreviewEnabled: zuniHandoff.enabled === true,
+      zuniProductionEnabled:
+        zuniHandoff.enabled === true &&
+        zuniHandoff.descriptor?.productionEnabled === true,
+      zuniProductionRedeemerConfigured: zuniProductionRedeemerAuthenticator.configured === true,
       zuniPreview: zuniHandoff.descriptor,
       runtimeAutoWiring: true,
     }),

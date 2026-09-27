@@ -192,6 +192,7 @@ export function createZuniPreviewHandoffComposition({
   persistenceStore,
   sourceAuthenticator,
   redeemerAuthenticator,
+  productionRedeemerAuthenticator,
   enabled = false,
   productionEnabled = true,
   ttlSeconds = 60,
@@ -199,6 +200,11 @@ export function createZuniPreviewHandoffComposition({
   if (typeof app?.handleRequest !== "function") {
     throw new TypeError("app.handleRequest is required");
   }
+
+  const productionAuthenticator =
+    productionRedeemerAuthenticator ?? redeemerAuthenticator;
+  const productionRoutesEnabled =
+    productionEnabled === true && productionAuthenticator != null;
 
   if (enabled !== true) {
     return Object.freeze({
@@ -209,6 +215,7 @@ export function createZuniPreviewHandoffComposition({
         targetOrigin: ZUNI_PREVIEW_HANDOFF_TARGET_ORIGIN,
         productionTargetOrigin: ZUNI_PRODUCTION_HANDOFF_TARGET_ORIGIN,
         productionEnabled: false,
+        productionRedeemerIsolated: false,
         persistence: "not-configured",
         runtimeAutoWiring: true,
       }),
@@ -218,6 +225,9 @@ export function createZuniPreviewHandoffComposition({
   requireAuthenticator(sourceAuthenticator, "sourceAuthenticator");
   requireAuthenticator(redeemerAuthenticator, "redeemerAuthenticator");
   requireFunction(persistenceStore?.transaction, "persistenceStore.transaction");
+  if (productionRoutesEnabled) {
+    requireAuthenticator(productionAuthenticator, "productionRedeemerAuthenticator");
+  }
 
   const handoffStore = createPersistenceBackedBrowserSessionHandoffStore({
     persistenceStore,
@@ -228,7 +238,9 @@ export function createZuniPreviewHandoffComposition({
     store: handoffStore,
     allowedTargetOrigins: [
       ZUNI_PREVIEW_HANDOFF_TARGET_ORIGIN,
-      ZUNI_PRODUCTION_HANDOFF_TARGET_ORIGIN,
+      ...(productionRoutesEnabled
+        ? [ZUNI_PRODUCTION_HANDOFF_TARGET_ORIGIN]
+        : []),
     ],
     ttlSeconds,
   });
@@ -258,11 +270,11 @@ export function createZuniPreviewHandoffComposition({
   });
 
   const productionHttp =
-    productionEnabled === true
+    productionRoutesEnabled === true
       ? createBrowserSessionHandoffHttpApp({
           app: previewAuthorizeApp,
           handoffService,
-          redeemerAuthenticator,
+          redeemerAuthenticator: productionAuthenticator,
           redeemTargetOrigin: ZUNI_PRODUCTION_HANDOFF_TARGET_ORIGIN,
           issuePath: zuniProductionBrowserSessionHandoffIssuePath,
           redeemPath: zuniProductionBrowserSessionHandoffRedeemPath,
@@ -273,7 +285,7 @@ export function createZuniPreviewHandoffComposition({
         });
 
   if (
-    productionEnabled === true &&
+    productionRoutesEnabled === true &&
     (productionHttp.enabled !== true ||
       typeof productionHttp.app?.handleRequest !== "function")
   ) {
@@ -281,7 +293,7 @@ export function createZuniPreviewHandoffComposition({
   }
 
   const productionAuthorizeApp =
-    productionEnabled === true
+    productionRoutesEnabled === true
       ? createZuniHandoffAuthorizeApp({
           app: productionHttp.app,
           handoffService,
@@ -300,15 +312,23 @@ export function createZuniPreviewHandoffComposition({
       mode: "zuni-preview-and-production",
       targetOrigin: ZUNI_PREVIEW_HANDOFF_TARGET_ORIGIN,
       productionTargetOrigin: ZUNI_PRODUCTION_HANDOFF_TARGET_ORIGIN,
-      productionEnabled: productionEnabled === true,
+      productionEnabled: productionRoutesEnabled === true,
+      productionRedeemerIsolated:
+        productionRoutesEnabled === true && productionAuthenticator !== redeemerAuthenticator,
       persistence: "persistence-core",
       browserBinding: "S256",
       issuePath: zuniPreviewBrowserSessionHandoffIssuePath,
       redeemPath: zuniPreviewBrowserSessionHandoffRedeemPath,
       authorizePath: zuniPreviewBrowserSessionHandoffAuthorizePath,
-      productionIssuePath: zuniProductionBrowserSessionHandoffIssuePath,
-      productionRedeemPath: zuniProductionBrowserSessionHandoffRedeemPath,
-      productionAuthorizePath: zuniProductionBrowserSessionHandoffAuthorizePath,
+      productionIssuePath: productionRoutesEnabled
+        ? zuniProductionBrowserSessionHandoffIssuePath
+        : null,
+      productionRedeemPath: productionRoutesEnabled
+        ? zuniProductionBrowserSessionHandoffRedeemPath
+        : null,
+      productionAuthorizePath: productionRoutesEnabled
+        ? zuniProductionBrowserSessionHandoffAuthorizePath
+        : null,
       oneTimeRedemptionRequired: true,
       redeemerServerAuthenticationRequired: true,
       runtimeAutoWiring: true,
