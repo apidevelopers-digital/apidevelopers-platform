@@ -3,7 +3,7 @@
   "format": "managed-node-zip",
   "service": "api-gateway",
   "version": "0.8.0",
-  "sourceRevision": "6ff2abdea18729a83fc2ed6c19a941f0870bf251",
+  "sourceRevision": "464f90c9df77853d3a222b7f77b0fba2abb29b00",
   "runtime": {
     "node": ">=22",
     "entrypoint": "src/hostinger-entry.mjs",
@@ -119,8 +119,8 @@
     },
     {
       "path": "src/ada-mitra-bridge-readonly.mjs",
-      "bytes": 5366,
-      "sha256": "892e01c215c6e4dc8eb65821763f371970b885eb354a045b754df59fdfa3f57c"
+      "bytes": 7312,
+      "sha256": "293bb3cd3bb71a8b8efeb9260b9a771d8194ef6e7b2d224c5eb372738c659572"
     },
     {
       "path": "src/audit-query-http.mjs",
@@ -574,8 +574,8 @@
     },
     {
       "path": "src/hostinger-entry.mjs",
-      "bytes": 3213,
-      "sha256": "6b7d92c6e46fd4ee3c4d8609b0143e0ef976c895867d181480232da528675d12"
+      "bytes": 3383,
+      "sha256": "4e93f9427e97c740d837e5254cb91f6c866b0ea219f876568e2375d150d7a5fa"
     },
     {
       "path": "src/hostinger-runtime-env.mjs",
@@ -591,6 +591,26 @@
       "path": "src/mitra-embedded-professional-facade.mjs",
       "bytes": 1543,
       "sha256": "7eeb5b07a990b825ec0c5d258bc24f4564a76c97a98cff208ca10192a84e3631"
+    },
+    {
+      "path": "src/mitra-mcp-v1-contract.mjs",
+      "bytes": 12116,
+      "sha256": "b49a27d56c76183cc08de432d6ee9bddf19a5603c96ea5ca058176298e303565"
+    },
+    {
+      "path": "src/mitra-mcp-v1-gateway-wrapper.mjs",
+      "bytes": 641,
+      "sha256": "6378cb26e2c6052539a553d52cfa776ebb6d433cd89f271a064d1e27bc4b7f30"
+    },
+    {
+      "path": "src/mitra-mcp-v1-http.mjs",
+      "bytes": 5658,
+      "sha256": "6556cdf82a0081cedfdede99e024efe4cccba1646bcc01b5ee2c5376aff8aa32"
+    },
+    {
+      "path": "src/mitra-mcp-v1-runtime.mjs",
+      "bytes": 4855,
+      "sha256": "8184a0895447b290704a615d9ece7f44e6c30779adea6cdcbcae315602616f65"
     },
     {
       "path": "src/mitra-professional-common.mjs",
@@ -1074,8 +1094,8 @@
     },
     {
       "path": "src/saas-uni-co-provisioning.mjs",
-      "bytes": 14031,
-      "sha256": "6331f2a9bf752207773778ee3de81391e52fbbfb66c3c03af9bc1a2b8e35d461"
+      "bytes": 14083,
+      "sha256": "94fc575a966d6c45ff67ef60c926abeb3da81e692798fcbb9be3f8bff7e3b885"
     },
     {
       "path": "src/saas-unijuri-access-grant-writer.mjs",
@@ -1209,8 +1229,8 @@
     },
     {
       "path": "src/trust-face-access-durable-service.mjs",
-      "bytes": 7209,
-      "sha256": "8b61f41d5f39aa64d8c398641d54d6c50ceb8617bcc6e984ee29cec525876326"
+      "bytes": 11431,
+      "sha256": "ba0cd26320d599c3da01c6e8af5c376e4d35d3bcdf8b1a9b2f3430a3a7d7a19f"
     },
     {
       "path": "src/trust-face-access-durable-store.mjs",

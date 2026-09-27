@@ -36,15 +36,9 @@ function redactPlan({ tenantId, name, scopes, requestedBy, reason, mode }) {
   });
 }
 
-export const GATEWAY_KEY_PROVISIONER_ALLOWED_SCOPES = Object.freeze([
-  "ada:mitra:read",
-  "mitra:status:read",
-  "mitra:capabilities:read",
-]);
-
 export function createGatewayKeyProvisioner({
   lifecycleService,
-  allowedScopes = GATEWAY_KEY_PROVISIONER_ALLOWED_SCOPES,
+  allowedScopes = ["ada:mitra:read"],
   approvalPhrase = "IGOR_APROVA_GATEWAY_KEY_PROVISIONER_REAL",
 } = {}) {
   if (!lifecycleService || typeof lifecycleService.issueApiKey !== "function") {
