@@ -12,6 +12,42 @@ const ROUTES = Object.freeze({
   connectors: "/v1/ada/mitra/connectors",
 });
 
+const LEGAL_READ_ONLY_ADAPTERS = Object.freeze([
+  Object.freeze({
+    id: "mitra.buscar_jurisprudencia",
+    domain: "legal",
+    access: "read_only",
+    executionStatus: "contract_only",
+    externalConnectionEnabled: false,
+    credentialsRequired: false,
+    writeAllowed: false,
+    rawSqlAllowed: false,
+    description: "Register the read-only jurisprudence search adapter contract without external execution.",
+  }),
+  Object.freeze({
+    id: "mitra.pesquisar_fontes_oficiais",
+    domain: "legal",
+    access: "read_only",
+    executionStatus: "contract_only",
+    externalConnectionEnabled: false,
+    credentialsRequired: false,
+    writeAllowed: false,
+    rawSqlAllowed: false,
+    description: "Register the read-only official sources research adapter contract without external execution.",
+  }),
+  Object.freeze({
+    id: "mitra.buscar_processo",
+    domain: "legal",
+    access: "read_only",
+    executionStatus: "contract_only",
+    externalConnectionEnabled: false,
+    credentialsRequired: false,
+    writeAllowed: false,
+    rawSqlAllowed: false,
+    description: "Register the read-only process lookup adapter contract without external execution.",
+  }),
+]);
+
 function jsonResponse(status, payload) {
   return Object.freeze({ status, headers: JSON_HEADERS, body: JSON.stringify(payload) });
 }
@@ -59,6 +95,22 @@ function statusPayload({ identity, now }) {
   });
 }
 
+function legalCapabilityPayload(adapter) {
+  return Object.freeze({
+    id: adapter.id,
+    method: "GET",
+    path: null,
+    access: adapter.access,
+    domain: adapter.domain,
+    executionStatus: adapter.executionStatus,
+    externalConnectionEnabled: adapter.externalConnectionEnabled,
+    credentialsRequired: adapter.credentialsRequired,
+    writeAllowed: adapter.writeAllowed,
+    rawSqlAllowed: adapter.rawSqlAllowed,
+    description: adapter.description,
+  });
+}
+
 function capabilitiesPayload({ identity, now }) {
   return Object.freeze({
     ok: true,
@@ -88,13 +140,16 @@ function capabilitiesPayload({ identity, now }) {
         access: "read_only",
         description: "List registered safe connectors without credentials.",
       }),
+      ...LEGAL_READ_ONLY_ADAPTERS.map(legalCapabilityPayload),
     ]),
+    legalAdapters: LEGAL_READ_ONLY_ADAPTERS,
     unavailableUntilApproved: Object.freeze([
       "live_database_query",
       "dry_run_actions",
       "approved_execution",
       "raw_sql",
       "credential_management",
+      "external_lex_mitra_execution",
     ]),
     identity: safeIdentity(identity),
   });
@@ -106,13 +161,14 @@ function connectorsPayload({ identity, now }) {
     service: "ada-mitra-bridge",
     productId: PRODUCT_ID,
     generatedAt: now(),
-    connectors: Object.freeze([]),
-    connectorCount: 0,
+    connectors: LEGAL_READ_ONLY_ADAPTERS,
+    connectorCount: LEGAL_READ_ONLY_ADAPTERS.length,
     liveDatabaseConnected: false,
     credentialsConfigured: false,
+    externalConnectionEnabled: false,
     rawSqlAllowed: false,
     writeAllowed: false,
-    nextStep: "register_first_read_only_connector_via_separate_approved_pr",
+    nextStep: "prepare_first_read_only_legal_adapter_execution_stub_via_separate_approved_pr",
     identity: safeIdentity(identity),
   });
 }
@@ -166,6 +222,7 @@ export const adaMitraBridgeReadOnlyContract = Object.freeze({
   requiredScope: REQUIRED_SCOPE,
   routes: ROUTES,
   previewRuntimeSha: PREVIEW_RUNTIME_SHA,
+  legalReadOnlyAdapters: LEGAL_READ_ONLY_ADAPTERS,
   liveDatabaseConnected: false,
   rawSqlAllowed: false,
   writeAllowed: false,

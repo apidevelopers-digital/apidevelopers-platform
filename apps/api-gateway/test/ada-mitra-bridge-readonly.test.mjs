@@ -29,12 +29,30 @@ function authenticator(value = identity()) {
   });
 }
 
+const EXPECTED_LEGAL_ADAPTERS = Object.freeze([
+  "mitra.buscar_jurisprudencia",
+  "mitra.pesquisar_fontes_oficiais",
+  "mitra.buscar_processo",
+]);
+
 test("ADA Mitra bridge contract is read-only and does not expose SQL or writes", () => {
   assert.equal(adaMitraBridgeReadOnlyContract.productId, "product:mitra");
   assert.equal(adaMitraBridgeReadOnlyContract.requiredScope, "ada:mitra:read");
   assert.equal(adaMitraBridgeReadOnlyContract.liveDatabaseConnected, false);
   assert.equal(adaMitraBridgeReadOnlyContract.rawSqlAllowed, false);
   assert.equal(adaMitraBridgeReadOnlyContract.writeAllowed, false);
+  assert.deepEqual(
+    adaMitraBridgeReadOnlyContract.legalReadOnlyAdapters.map((adapter) => adapter.id),
+    EXPECTED_LEGAL_ADAPTERS,
+  );
+  for (const adapter of adaMitraBridgeReadOnlyContract.legalReadOnlyAdapters) {
+    assert.equal(adapter.access, "read_only");
+    assert.equal(adapter.executionStatus, "contract_only");
+    assert.equal(adapter.externalConnectionEnabled, false);
+    assert.equal(adapter.credentialsRequired, false);
+    assert.equal(adapter.writeAllowed, false);
+    assert.equal(adapter.rawSqlAllowed, false);
+  }
   assert.equal(
     adaMitraBridgeReadOnlyContract.previewRuntimeSha,
     "64fe412b75962f6a0f07c1423cd0b6f11dd64540",
@@ -103,14 +121,38 @@ test("ADA Mitra bridge exposes read-only status, capabilities and connector inve
   assert.equal(capabilities.status, 200);
   const capabilitiesBody = JSON.parse(capabilities.body);
   assert.deepEqual(
-    capabilitiesBody.capabilities.map((item) => item.path),
+    capabilitiesBody.capabilities.map((item) => item.id),
     [
-      "/v1/ada/mitra/status",
-      "/v1/ada/mitra/capabilities",
-      "/v1/ada/mitra/connectors",
+      "mitra.status",
+      "mitra.capabilities",
+      "mitra.connectors",
+      ...EXPECTED_LEGAL_ADAPTERS,
     ],
   );
+  assert.deepEqual(
+    capabilitiesBody.capabilities
+      .filter((item) => EXPECTED_LEGAL_ADAPTERS.includes(item.id))
+      .map((item) => ({
+        id: item.id,
+        access: item.access,
+        executionStatus: item.executionStatus,
+        externalConnectionEnabled: item.externalConnectionEnabled,
+        credentialsRequired: item.credentialsRequired,
+        writeAllowed: item.writeAllowed,
+        rawSqlAllowed: item.rawSqlAllowed,
+      })),
+    EXPECTED_LEGAL_ADAPTERS.map((id) => ({
+      id,
+      access: "read_only",
+      executionStatus: "contract_only",
+      externalConnectionEnabled: false,
+      credentialsRequired: false,
+      writeAllowed: false,
+      rawSqlAllowed: false,
+    })),
+  );
   assert.ok(capabilitiesBody.unavailableUntilApproved.includes("raw_sql"));
+  assert.ok(capabilitiesBody.unavailableUntilApproved.includes("external_lex_mitra_execution"));
 
   const connectors = await bridge.handleRequest({
     method: "GET",
@@ -118,10 +160,14 @@ test("ADA Mitra bridge exposes read-only status, capabilities and connector inve
   });
   assert.equal(connectors.status, 200);
   const connectorsBody = JSON.parse(connectors.body);
-  assert.equal(connectorsBody.connectorCount, 0);
-  assert.deepEqual(connectorsBody.connectors, []);
+  assert.equal(connectorsBody.connectorCount, 3);
+  assert.deepEqual(
+    connectorsBody.connectors.map((connector) => connector.id),
+    EXPECTED_LEGAL_ADAPTERS,
+  );
   assert.equal(connectorsBody.liveDatabaseConnected, false);
   assert.equal(connectorsBody.credentialsConfigured, false);
+  assert.equal(connectorsBody.externalConnectionEnabled, false);
   assert.equal(connectorsBody.rawSqlAllowed, false);
   assert.equal(connectorsBody.writeAllowed, false);
 });
