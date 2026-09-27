@@ -15,6 +15,9 @@ import {
 export const ZUNI_PREVIEW_HANDOFF_TARGET_ORIGIN =
   "https://preview-zuni.sitedauni.com";
 
+export const ZUNI_PRODUCTION_HANDOFF_TARGET_ORIGIN =
+  "https://zuni.sitedauni.com";
+
 export const zuniPreviewBrowserSessionHandoffIssuePath =
   "/v1/zuni/browser-session/handoff/issue";
 
@@ -23,6 +26,15 @@ export const zuniPreviewBrowserSessionHandoffRedeemPath =
 
 export const zuniPreviewBrowserSessionHandoffAuthorizePath =
   "/v1/zuni/browser-session/handoff/authorize";
+
+export const zuniProductionBrowserSessionHandoffIssuePath =
+  "/v1/zuni-production/browser-session/handoff/issue";
+
+export const zuniProductionBrowserSessionHandoffRedeemPath =
+  "/v1/zuni-production/browser-session/handoff/redeem";
+
+export const zuniProductionBrowserSessionHandoffAuthorizePath =
+  "/v1/zuni-production/browser-session/handoff/authorize";
 
 const JSON_HEADERS = Object.freeze({
   "content-type": "application/json; charset=utf-8",
@@ -105,12 +117,24 @@ function safeFailure(error) {
   });
 }
 
-function createZuniPreviewHandoffAuthorizeApp({ app, handoffService } = {}) {
+function createZuniHandoffAuthorizeApp({
+  app,
+  handoffService,
+  targetOrigin,
+  authorizePath,
+  diagnostic,
+} = {}) {
   if (typeof app?.handleRequest !== "function") {
     throw new TypeError("app.handleRequest is required");
   }
   if (typeof handoffService?.issue !== "function") {
     throw new TypeError("handoffService.issue is required");
+  }
+  if (typeof targetOrigin !== "string" || !targetOrigin.trim()) {
+    throw new TypeError("targetOrigin is required");
+  }
+  if (typeof authorizePath !== "string" || !authorizePath.startsWith("/")) {
+    throw new TypeError("authorizePath must be an absolute path");
   }
 
   return Object.freeze({
@@ -121,7 +145,7 @@ function createZuniPreviewHandoffAuthorizeApp({ app, handoffService } = {}) {
         "https://gateway.apidevelopers.digital",
       );
 
-      if (parsed.pathname !== zuniPreviewBrowserSessionHandoffAuthorizePath) {
+      if (parsed.pathname !== authorizePath) {
         return app.handleRequest(request);
       }
 
@@ -138,11 +162,11 @@ function createZuniPreviewHandoffAuthorizeApp({ app, handoffService } = {}) {
         const verifier = createPkceVerifier();
         const issued = await handoffService.issue({
           headers: request.headers ?? {},
-          targetOrigin: ZUNI_PREVIEW_HANDOFF_TARGET_ORIGIN,
+          targetOrigin,
           codeChallenge: codeChallengeFor(verifier),
         });
 
-        const location = new URL("/", ZUNI_PREVIEW_HANDOFF_TARGET_ORIGIN);
+        const location = new URL("/", targetOrigin);
         location.hash = new URLSearchParams({
           trustLoginToken: issued.code,
           trustLoginVerifier: verifier,
@@ -154,7 +178,7 @@ function createZuniPreviewHandoffAuthorizeApp({ app, handoffService } = {}) {
         return response(failure.status, {
           ok: false,
           error: failure.code,
-          diagnostic: "zuni_preview_handoff_authorize",
+          diagnostic,
           secretReturned: false,
           writes: false,
         });
@@ -169,6 +193,7 @@ export function createZuniPreviewHandoffComposition({
   sourceAuthenticator,
   redeemerAuthenticator,
   enabled = false,
+  productionEnabled = true,
   ttlSeconds = 60,
 } = {}) {
   if (typeof app?.handleRequest !== "function") {
@@ -182,6 +207,7 @@ export function createZuniPreviewHandoffComposition({
       descriptor: Object.freeze({
         mode: "zuni-preview",
         targetOrigin: ZUNI_PREVIEW_HANDOFF_TARGET_ORIGIN,
+        productionTargetOrigin: ZUNI_PRODUCTION_HANDOFF_TARGET_ORIGIN,
         productionEnabled: false,
         persistence: "not-configured",
         runtimeAutoWiring: true,
@@ -200,11 +226,14 @@ export function createZuniPreviewHandoffComposition({
   const handoffService = createBrowserSessionHandoffService({
     sourceAuthenticator,
     store: handoffStore,
-    allowedTargetOrigins: [ZUNI_PREVIEW_HANDOFF_TARGET_ORIGIN],
+    allowedTargetOrigins: [
+      ZUNI_PREVIEW_HANDOFF_TARGET_ORIGIN,
+      ZUNI_PRODUCTION_HANDOFF_TARGET_ORIGIN,
+    ],
     ttlSeconds,
   });
 
-  const http = createBrowserSessionHandoffHttpApp({
+  const previewHttp = createBrowserSessionHandoffHttpApp({
     app,
     handoffService,
     redeemerAuthenticator,
@@ -213,29 +242,73 @@ export function createZuniPreviewHandoffComposition({
     redeemPath: zuniPreviewBrowserSessionHandoffRedeemPath,
   });
 
-  if (http.enabled !== true || typeof http.app?.handleRequest !== "function") {
+  if (
+    previewHttp.enabled !== true ||
+    typeof previewHttp.app?.handleRequest !== "function"
+  ) {
     throw new TypeError("Zuni preview handoff HTTP composition is unavailable");
   }
 
-  const authorizeApp = createZuniPreviewHandoffAuthorizeApp({
-    app: http.app,
+  const previewAuthorizeApp = createZuniHandoffAuthorizeApp({
+    app: previewHttp.app,
     handoffService,
+    targetOrigin: ZUNI_PREVIEW_HANDOFF_TARGET_ORIGIN,
+    authorizePath: zuniPreviewBrowserSessionHandoffAuthorizePath,
+    diagnostic: "zuni_preview_handoff_authorize",
   });
+
+  const productionHttp =
+    productionEnabled === true
+      ? createBrowserSessionHandoffHttpApp({
+          app: previewAuthorizeApp,
+          handoffService,
+          redeemerAuthenticator,
+          redeemTargetOrigin: ZUNI_PRODUCTION_HANDOFF_TARGET_ORIGIN,
+          issuePath: zuniProductionBrowserSessionHandoffIssuePath,
+          redeemPath: zuniProductionBrowserSessionHandoffRedeemPath,
+        })
+      : Object.freeze({
+          enabled: false,
+          app: previewAuthorizeApp,
+        });
+
+  if (
+    productionEnabled === true &&
+    (productionHttp.enabled !== true ||
+      typeof productionHttp.app?.handleRequest !== "function")
+  ) {
+    throw new TypeError("Zuni production handoff HTTP composition is unavailable");
+  }
+
+  const productionAuthorizeApp =
+    productionEnabled === true
+      ? createZuniHandoffAuthorizeApp({
+          app: productionHttp.app,
+          handoffService,
+          targetOrigin: ZUNI_PRODUCTION_HANDOFF_TARGET_ORIGIN,
+          authorizePath: zuniProductionBrowserSessionHandoffAuthorizePath,
+          diagnostic: "zuni_production_handoff_authorize",
+        })
+      : previewAuthorizeApp;
 
   return Object.freeze({
     enabled: true,
-    app: authorizeApp,
+    app: productionAuthorizeApp,
     handoffService,
     handoffStore,
     descriptor: Object.freeze({
-      mode: "zuni-preview",
+      mode: "zuni-preview-and-production",
       targetOrigin: ZUNI_PREVIEW_HANDOFF_TARGET_ORIGIN,
-      productionEnabled: false,
+      productionTargetOrigin: ZUNI_PRODUCTION_HANDOFF_TARGET_ORIGIN,
+      productionEnabled: productionEnabled === true,
       persistence: "persistence-core",
       browserBinding: "S256",
       issuePath: zuniPreviewBrowserSessionHandoffIssuePath,
       redeemPath: zuniPreviewBrowserSessionHandoffRedeemPath,
       authorizePath: zuniPreviewBrowserSessionHandoffAuthorizePath,
+      productionIssuePath: zuniProductionBrowserSessionHandoffIssuePath,
+      productionRedeemPath: zuniProductionBrowserSessionHandoffRedeemPath,
+      productionAuthorizePath: zuniProductionBrowserSessionHandoffAuthorizePath,
       oneTimeRedemptionRequired: true,
       redeemerServerAuthenticationRequired: true,
       runtimeAutoWiring: true,
