@@ -1,0 +1,81 @@
+name: Prepare gateway internal-error observability
+
+on:
+  push:
+    branches:
+      - ada/gateway-internal-error-observability-v1
+
+permissions:
+  contents: write
+
+jobs:
+  patch:
+    runs-on:
+      - self-hosted
+      - macOS
+      - X64
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ada/gateway-internal-error-observability-v1
+          fetch-depth: 0
+
+      - name: Apply safe structured error logging
+        shell: bash
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+          p = Path("apps/api-gateway/src/operational-http-transport.mjs")
+          s = p.read_text()
+          old = """      if (isConversation) {
+        writeConversationTelemetry(logger, {
+          stage: "transport_error",
+          method: String(request.method ?? "GET").toUpperCase(),
+          path,
+          status: 500,
+          bodyBytes: 0,
+          contentType: JSON_HEADERS["content-type"],
+          error: "internal_error",
+        });
+      }
+
+      writeJson(response, 500, {
+"""
+          new = """      if (typeof logger?.error === "function") {
+        logger.error(JSON.stringify(Object.freeze({
+          event: "operational_http_unhandled_error",
+          method: String(request.method ?? "GET").toUpperCase(),
+          path,
+          errorName: String(error?.name ?? "Error"),
+          errorMessage: String(error?.message ?? "internal_error"),
+        })));
+      }
+
+      if (isConversation) {
+        writeConversationTelemetry(logger, {
+          stage: "transport_error",
+          method: String(request.method ?? "GET").toUpperCase(),
+          path,
+          status: 500,
+          bodyBytes: 0,
+          contentType: JSON_HEADERS["content-type"],
+          error: "internal_error",
+        });
+      }
+
+      writeJson(response, 500, {
+"""
+          if s.count(old) != 1:
+              raise SystemExit("target block not found exactly once")
+          p.write_text(s.replace(old, new, 1))
+          PY
+          node --check apps/api-gateway/src/operational-http-transport.mjs
+          git diff --check
+
+      - name: Commit functional patch and remove temporary workflow
+        shell: bash
+        run: |
+          rm -f .github/workflows/tmp-gateway-internal-error-observability.yml
+          git add -A
+          git -c user.name="github-actions[bot]" -c user.email="41898282+github-actions[bot]@users.noreply.github.com" commit -m "fix(gateway): log unhandled HTTP errors safely"
+          git push origin HEAD:ada/gateway-internal-error-observability-v1
