@@ -14,6 +14,17 @@ const ROUTES = [
   "/v1/mitra/mcp/capabilities",
 ];
 
+const REQUIRED_BASE_TOOLS = [
+  "mitra.status",
+  "mitra.capabilities",
+];
+
+const EXPECTED_LEGAL_CONTRACT_TOOLS = [
+  "mitra.buscar_jurisprudencia",
+  "mitra.pesquisar_fontes_oficiais",
+  "mitra.buscar_processo",
+];
+
 function emit(key, value) {
   console.log(`MITRA_MCP_V1_PUBLIC_PROBE_${key}=${String(value)}`);
 }
@@ -77,6 +88,42 @@ async function validateDeployRef() {
   }
 }
 
+function assertExpectedService({ route, body }) {
+  if (route.endsWith("/status")) {
+    if (body.service !== "mitra-mcp") {
+      fail(`unexpected_service_${route}_${body.service || "none"}`);
+    }
+    return;
+  }
+
+  if (route.endsWith("/capabilities")) {
+    if (body.service && body.service !== "mitra-mcp") {
+      fail(`unexpected_service_${route}_${body.service}`);
+    }
+  }
+}
+
+function getTools(body) {
+  if (Array.isArray(body.tools)) return body.tools;
+  if (Array.isArray(body.capabilities)) return body.capabilities.map((item) => item?.id ?? item).filter(Boolean);
+  return [];
+}
+
+function assertCapabilitiesTools(body) {
+  const tools = getTools(body);
+  emit("CAPABILITIES_TOOL_COUNT", tools.length);
+
+  for (const tool of REQUIRED_BASE_TOOLS) {
+    if (!tools.includes(tool)) fail(`missing_tool_${tool.replaceAll(".", "_")}`);
+  }
+
+  const missingLegalTools = EXPECTED_LEGAL_CONTRACT_TOOLS.filter((tool) => !tools.includes(tool));
+  emit("LEGAL_CONTRACT_TOOL_COUNT", EXPECTED_LEGAL_CONTRACT_TOOLS.length - missingLegalTools.length);
+  if (missingLegalTools.length > 0) {
+    fail(`missing_legal_contract_tools_${missingLegalTools.map((tool) => tool.replaceAll(".", "_")).join("_")}`);
+  }
+}
+
 async function probeRoute(route) {
   let response;
   let text = "";
@@ -120,15 +167,11 @@ async function probeRoute(route) {
   if (body.ok !== true) {
     fail(`not_ok_${route}_${body.error || body.reason || "unmapped"}`);
   }
-  if (body.service !== "mitra-mcp") {
-    fail(`unexpected_service_${route}_${body.service || "none"}`);
-  }
+
+  assertExpectedService({ route, body });
 
   if (route.endsWith("/capabilities")) {
-    const tools = Array.isArray(body.tools) ? body.tools : [];
-    emit("CAPABILITIES_TOOL_COUNT", tools.length);
-    if (!tools.includes("mitra.status")) fail("missing_tool_mitra_status");
-    if (!tools.includes("mitra.capabilities")) fail("missing_tool_mitra_capabilities");
+    assertCapabilitiesTools(body);
   }
 }
 
