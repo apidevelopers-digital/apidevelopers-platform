@@ -1,0 +1,73 @@
+name: Prepare upstream uni.co grant preservation
+on:
+  push:
+    branches: [ada/upstream-preserve-existing-access-grant-v1]
+permissions:
+  contents: write
+jobs:
+  patch:
+    if: ${{ !contains(github.event.head_commit.message, '[grant-fix-applied]') }}
+    runs-on: [self-hosted, macOS, X64]
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ada/upstream-preserve-existing-access-grant-v1
+          fetch-depth: 0
+      - name: Apply validated PR 633 semantics upstream
+        shell: bash
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+          p=Path("apps/api-gateway/src/saas-uni-co-provisioning.mjs")
+          s=p.read_text()
+          pairs=[
+          ("""        let resolved = await saasAccess.resolveActiveGrant({ tenantId, principalId: principal.principalId, productId });
+
+        if (!resolved.resolved) {""","""        let resolved = await saasAccess.resolveActiveGrant({ tenantId, principalId: principal.principalId, productId });
+        let effectiveWorkspaceId = workspaceId;
+
+        if (!resolved.resolved && resolved.reason === "access_grant_ambiguous") {
+          throw new Error("access_grant_ambiguous");
+        }
+
+        if (!resolved.resolved) {"""),
+          ("""        const grant = resolved.grant;
+        same(grant.workspaceId, workspaceId, "access_binding_mismatch");
+        same(grant.productId, productId, "access_binding_mismatch");
+        same(grant.principalId, principal.principalId, "access_binding_mismatch");
+
+        provisioningStage = "onboarding";
+        await saasAccess.setOnboarding({
+          tenantId,
+          workspaceId,
+          productId,""","""        const grant = resolved.grant;
+        same(grant.tenantId, tenantId, "access_binding_mismatch");
+        same(grant.productId, productId, "access_binding_mismatch");
+        same(grant.principalId, principal.principalId, "access_binding_mismatch");
+        if (grant.workspaceId !== workspaceId) effectiveWorkspaceId = grant.workspaceId;
+
+        provisioningStage = "onboarding";
+        await saasAccess.setOnboarding({
+          tenantId,
+          workspaceId: effectiveWorkspaceId,
+          productId,"""),
+          ("""          tenantId,
+          workspaceId,
+          principalId: principal.principalId,""","""          tenantId,
+          workspaceId: effectiveWorkspaceId,
+          principalId: principal.principalId,""")]
+          for old,new in pairs:
+              if old not in s: raise SystemExit("target block not found")
+              s=s.replace(old,new,1)
+          p.write_text(s)
+          PY
+      - name: Validate and commit
+        shell: bash
+        run: |
+          git diff --check
+          git config user.name "ADA institutional operator"
+          git config user.email "actions@users.noreply.github.com"
+          rm .github/workflows/tmp-upstream-grant-fix.yml
+          git add apps/api-gateway/src/saas-uni-co-provisioning.mjs .github/workflows/tmp-upstream-grant-fix.yml
+          git commit -m "fix(gateway): preserve existing uni.co access grant [grant-fix-applied]"
+          git push origin HEAD:ada/upstream-preserve-existing-access-grant-v1
