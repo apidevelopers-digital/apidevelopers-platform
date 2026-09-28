@@ -53,6 +53,7 @@ jobs:
         run: |
           set -uo pipefail
           output_file="$(mktemp -t mitra-mcp-v1-public-probe.XXXXXX.log)"
+          probe_status=0
 
           set +e
           node scripts/ops/mitra-mcp-v1-public-saved-token-probe.mjs 2>&1 | tee "$output_file"
@@ -61,25 +62,42 @@ jobs:
 
           if [ "$probe_status" -ne 0 ]; then
             failure="$(
-              grep -E '^MITRA_MCP_V1_PUBLIC_PROBE_FAILURE=' "$output_file" \
-                | tail -n 1 \
-                | sed 's/^MITRA_MCP_V1_PUBLIC_PROBE_FAILURE=//'
+              awk '
+                /^MITRA_MCP_V1_PUBLIC_PROBE_FAILURE=/ {
+                  value = $0
+                  sub(/^MITRA_MCP_V1_PUBLIC_PROBE_FAILURE=/, "", value)
+                }
+                END { print value }
+              ' "$output_file" || true
             )"
 
             status_summary="$(
-              grep -E '^MITRA_MCP_V1_PUBLIC_PROBE_(GITHUB_REF_HTTP_STATUS|DEPLOY_SHA|ROUTE_|CAPABILITIES_TOOL_COUNT|TENANT_PRESENT|MCP_READ_TOKEN_PRESENT)=' "$output_file" \
-                | tail -n 12 \
-                | tr '\n' ';' \
-                | sed 's/;*$//'
-            ")
+              awk '
+                /^MITRA_MCP_V1_PUBLIC_PROBE_(GITHUB_REF_HTTP_STATUS|DEPLOY_SHA|ROUTE_|CAPABILITIES_TOOL_COUNT|TENANT_PRESENT|MCP_READ_TOKEN_PRESENT)=/ {
+                  lines[++n] = $0
+                }
+                END {
+                  start = n - 11
+                  if (start < 1) start = 1
+                  for (i = start; i <= n; i++) {
+                    if (lines[i] != "") {
+                      if (printed) printf ";"
+                      printf "%s", lines[i]
+                      printed = 1
+                    }
+                  }
+                }
+              ' "$output_file" || true
+            )"
 
             if [ -z "$failure" ]; then
-              failure="probe_failed_without_failure_marker"
+              failure="probe_failed_without_failure_marker_status_${probe_status}"
             fi
 
             if [ -n "$status_summary" ]; then
               echo "::notice title=Mitra MCP v1 public probe summary::$status_summary"
             fi
+
             echo "::error title=Mitra MCP v1 public probe failure::$failure"
             exit "$probe_status"
           fi
