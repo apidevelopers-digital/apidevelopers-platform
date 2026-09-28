@@ -10,6 +10,7 @@ const ROUTES = Object.freeze({
   status: "/v1/ada/mitra/status",
   capabilities: "/v1/ada/mitra/capabilities",
   connectors: "/v1/ada/mitra/connectors",
+  buscarJurisprudencia: "/v1/ada/mitra/legal/jurisprudencia",
 });
 
 const LEGAL_READ_ONLY_ADAPTERS = Object.freeze([
@@ -17,18 +18,20 @@ const LEGAL_READ_ONLY_ADAPTERS = Object.freeze([
     id: "mitra.buscar_jurisprudencia",
     domain: "legal",
     access: "read_only",
-    executionStatus: "contract_only",
+    executionStatus: "stub_unavailable",
+    route: ROUTES.buscarJurisprudencia,
     externalConnectionEnabled: false,
     credentialsRequired: false,
     writeAllowed: false,
     rawSqlAllowed: false,
-    description: "Register the read-only jurisprudence search adapter contract without external execution.",
+    description: "Read-only jurisprudence search adapter stub. It validates the safe execution envelope and returns dependency_unavailable until an approved external source is connected.",
   }),
   Object.freeze({
     id: "mitra.pesquisar_fontes_oficiais",
     domain: "legal",
     access: "read_only",
     executionStatus: "contract_only",
+    route: null,
     externalConnectionEnabled: false,
     credentialsRequired: false,
     writeAllowed: false,
@@ -40,6 +43,7 @@ const LEGAL_READ_ONLY_ADAPTERS = Object.freeze([
     domain: "legal",
     access: "read_only",
     executionStatus: "contract_only",
+    route: null,
     externalConnectionEnabled: false,
     credentialsRequired: false,
     writeAllowed: false,
@@ -99,7 +103,7 @@ function legalCapabilityPayload(adapter) {
   return Object.freeze({
     id: adapter.id,
     method: "GET",
-    path: null,
+    path: adapter.route,
     access: adapter.access,
     domain: adapter.domain,
     executionStatus: adapter.executionStatus,
@@ -173,6 +177,31 @@ function connectorsPayload({ identity, now }) {
   });
 }
 
+function jurisprudenciaStubPayload({ identity, now }) {
+  return Object.freeze({
+    ok: false,
+    service: "ada-mitra-bridge",
+    productId: PRODUCT_ID,
+    generatedAt: now(),
+    adapterId: "mitra.buscar_jurisprudencia",
+    status: "unavailable",
+    error: "dependency_unavailable",
+    reason: "jurisprudence_source_not_connected",
+    executionStatus: "stub_unavailable",
+    access: "read_only",
+    readOnly: true,
+    writeExecuted: false,
+    externalConnectionEnabled: false,
+    liveDatabaseConnected: false,
+    credentialsRequired: false,
+    rawSqlAllowed: false,
+    writeAllowed: false,
+    secretsExposed: false,
+    nextStep: "connect_approved_read_only_jurisprudence_source_via_separate_pr",
+    identity: safeIdentity(identity),
+  });
+}
+
 export function createAdaMitraBridgeReadOnly({
   authenticator,
   requiredScope = REQUIRED_SCOPE,
@@ -211,6 +240,7 @@ export function createAdaMitraBridgeReadOnly({
       if (pathname === ROUTES.status) return jsonResponse(200, statusPayload({ identity, now }));
       if (pathname === ROUTES.capabilities) return jsonResponse(200, capabilitiesPayload({ identity, now }));
       if (pathname === ROUTES.connectors) return jsonResponse(200, connectorsPayload({ identity, now }));
+      if (pathname === ROUTES.buscarJurisprudencia) return jsonResponse(503, jurisprudenciaStubPayload({ identity, now }));
 
       return null;
     },
