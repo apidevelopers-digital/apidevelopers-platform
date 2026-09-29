@@ -84,6 +84,26 @@ function writeConversationTelemetry(logger, payload) {
   })));
 }
 
+
+function writeUnhandledTransportExceptionTelemetry(logger, { method, path, error }) {
+  const writer =
+    typeof logger?.error === "function"
+      ? logger.error.bind(logger)
+      : typeof logger?.log === "function"
+        ? logger.log.bind(logger)
+        : null;
+  if (!writer) return;
+
+  writer(JSON.stringify(Object.freeze({
+    method,
+    path,
+    error: Object.freeze({
+      name: typeof error?.name === "string" ? error.name : "Error",
+      message: typeof error?.message === "string" ? error.message : String(error),
+    }),
+  })));
+}
+
 export function createOperationalHttpServer({
   app,
   maxBodyBytes = DEFAULT_MAX_BODY_BYTES,
@@ -161,10 +181,17 @@ export function createOperationalHttpServer({
         return;
       }
 
+      const method = String(request.method ?? "GET").toUpperCase();
+      writeUnhandledTransportExceptionTelemetry(logger, {
+        method,
+        path,
+        error,
+      });
+
       if (isConversation) {
         writeConversationTelemetry(logger, {
           stage: "transport_error",
-          method: String(request.method ?? "GET").toUpperCase(),
+          method,
           path,
           status: 500,
           bodyBytes: 0,
