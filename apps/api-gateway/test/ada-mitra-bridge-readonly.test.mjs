@@ -41,7 +41,7 @@ const EXPECTED_LEGAL_EXECUTION_STATUS = Object.freeze({
   "mitra.buscar_processo": "contract_only",
 });
 
-test("ADA Mitra bridge contract is read-only and does not expose SQL or writes", () => {
+test("ADA Mitra bridge contract is read-only and keeps jurisprudence route safe", () => {
   assert.equal(adaMitraBridgeReadOnlyContract.productId, "product:mitra");
   assert.equal(adaMitraBridgeReadOnlyContract.requiredScope, "ada:mitra:read");
   assert.equal(adaMitraBridgeReadOnlyContract.liveDatabaseConnected, false);
@@ -206,7 +206,7 @@ test("ADA Mitra bridge exposes read-only status, capabilities and connector inve
   assert.equal(connectorsBody.writeAllowed, false);
 });
 
-test("ADA Mitra jurisprudence stub is authenticated, read-only and dependency unavailable", async () => {
+test("ADA Mitra jurisprudence provider wiring remains disabled by default", async () => {
   const bridge = createAdaMitraBridgeReadOnly({
     authenticator: authenticator(),
     now: () => NOW,
@@ -236,7 +236,99 @@ test("ADA Mitra jurisprudence stub is authenticated, read-only and dependency un
   assert.equal(body.secretsExposed, false);
 });
 
-test("ADA Mitra jurisprudence stub rejects unauthenticated, insufficient scope and write methods", async () => {
+test("ADA Mitra jurisprudence provider wiring validates input before provider execution", async () => {
+  let calls = 0;
+  const bridge = createAdaMitraBridgeReadOnly({
+    authenticator: authenticator(),
+    now: () => NOW,
+    jurisprudenceProvider: Object.freeze({
+      async search() {
+        calls += 1;
+        return { results: [] };
+      },
+    }),
+  });
+
+  const response = await bridge.handleRequest({
+    method: "GET",
+    url: "/v1/ada/mitra/legal/jurisprudencia?q=ab&periodFrom=2026/01/01",
+  });
+
+  assert.equal(response.status, 400);
+  const body = JSON.parse(response.body);
+  assert.equal(body.ok, false);
+  assert.equal(body.error, "invalid_query");
+  assert.equal(body.writeExecuted, false);
+  assert.equal(calls, 0);
+});
+
+test("ADA Mitra jurisprudence provider wiring uses injected mock provider with safe output", async () => {
+  const received = [];
+  const bridge = createAdaMitraBridgeReadOnly({
+    authenticator: authenticator(),
+    now: () => NOW,
+    jurisprudenceProvider: Object.freeze({
+      async search(query, context) {
+        received.push({ query, context });
+        return {
+          results: [
+            {
+              id: " r1 ",
+              title: " Resultado   público ",
+              source: "Mock",
+              url: "https://example.test/r1",
+              court: " STJ ",
+              date: "2026-01-02",
+              summary: " decisão   pública ",
+              access_token: "must-not-leak",
+              password: "must-not-leak",
+            },
+          ],
+        };
+      },
+    }),
+  });
+
+  const response = await bridge.handleRequest({
+    method: "GET",
+    url: "/v1/ada/mitra/legal/jurisprudencia?q= tema &tribunal= STJ &limit=2",
+  });
+
+  assert.equal(response.status, 200);
+  const body = JSON.parse(response.body);
+  assert.equal(body.ok, true);
+  assert.equal(body.service, "ada-mitra-bridge");
+  assert.equal(body.adapterId, "mitra.buscar_jurisprudencia");
+  assert.equal(body.status, "ready");
+  assert.equal(body.executionStatus, "read_only_provider_result");
+  assert.equal(body.externalConnectionEnabled, false);
+  assert.equal(body.liveDatabaseConnected, false);
+  assert.equal(body.credentialsRequired, false);
+  assert.equal(body.rawSqlAllowed, false);
+  assert.equal(body.writeAllowed, false);
+  assert.equal(body.writeExecuted, false);
+  assert.deepEqual(received[0].query, { q: "tema", tribunal: "STJ", limit: 2 });
+  assert.equal(received[0].context.adapterId, "mitra.buscar_jurisprudencia");
+  assert.equal(received[0].context.rawSqlAllowed, false);
+  assert.equal(received[0].context.writeAllowed, false);
+  assert.deepEqual(body.results, [
+    {
+      id: "r1",
+      title: "Resultado público",
+      source: "Mock",
+      url: "https://example.test/r1",
+      court: "STJ",
+      date: "2026-01-02",
+      summary: "decisão pública",
+    },
+  ]);
+  const serialized = JSON.stringify(body).toLowerCase();
+  assert.equal(serialized.includes("must-not-leak"), false);
+  assert.equal(serialized.includes("access_token"), false);
+  assert.equal(serialized.includes("password"), false);
+});
+
+test("ADA Mitra jurisprudencie route rejects unauthenticated, insufficient scope and write methods", async () => {
   const noAuthBridge = createAdaMitraBridgeReadOnly();
   const unavailable = await noAuthBridge.handleRequest({
     method: "GET",
