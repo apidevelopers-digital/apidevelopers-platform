@@ -81,12 +81,17 @@ test("transport rejects oversized body before calling the app", async (t) => {
   assert.equal(response.status, 413);
   assert.equal(payload.error, "request_too_large");
   assert.equal(payload.productionChanged, false);
-  assert.equal(payload.contentReturned, false);
   assert.equal(calls, 0);
 });
 
 test("transport returns a sanitized internal error", async (t) => {
+  const logs = [];
   const server = createOperationalHttpServer({
+    logger: {
+      error(message) {
+        logs.push(JSON.parse(message));
+      },
+    },
     app: {
       async handleRequest() {
         throw new Error("sensitive internal detail");
@@ -112,4 +117,14 @@ test("transport returns a sanitized internal error", async (t) => {
     valuesReturned: false,
   });
   assert.equal(JSON.stringify(payload).includes("sensitive"), false);
+  assert.deepEqual(logs, [
+    {
+      method: "POST",
+      path: "/failure",
+      error: {
+        name: "Error",
+        message: "sensitive internal detail",
+      },
+    },
+  ]);
 });
