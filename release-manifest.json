@@ -3,7 +3,7 @@
   "format": "managed-node-zip",
   "service": "api-gateway",
   "version": "0.8.0",
-  "sourceRevision": "995539fffd46794d3a85d1f78e39a2f0fd0859f4",
+  "sourceRevision": "007de2af84528aa62d5e6dcac45826164d937e68",
   "runtime": {
     "node": ">=22",
     "entrypoint": "src/hostinger-entry.mjs",
@@ -119,8 +119,8 @@
     },
     {
       "path": "src/ada-mitra-bridge-readonly.mjs",
-      "bytes": 8426,
-      "sha256": "c58498ddef6d5d45b4fd53bfbd532cc0c8955d7f4a0d6a8fd928aef79aa5acad"
+      "bytes": 10784,
+      "sha256": "db5cb17ea0080050ee8fa0d2e4a72d73d6a395186b741a0dde97d66e542a5196"
     },
     {
       "path": "src/audit-query-http.mjs",
@@ -591,6 +591,11 @@
       "path": "src/mitra-embedded-professional-facade.mjs",
       "bytes": 1543,
       "sha256": "7eeb5b07a990b825ec0c5d258bc24f4564a76c97a98cff208ca10192a84e3631"
+    },
+    {
+      "path": "src/mitra-jurisprudence-provider-readonly.mjs",
+      "bytes": 4745,
+      "sha256": "e8cb312ca5d11855d236a0ecb3a144e74dcea34e94e8352552596cde86771e52"
     },
     {
       "path": "src/mitra-mcp-v1-contract.mjs",

@@ -1,3 +1,5 @@
+import { createMitraJurisprudenceProviderRunner } from "./mitra-jurisprudence-provider-readonly.mjs";
+
 const JSON_HEADERS = Object.freeze({
   "content-type": "application/json; charset=utf-8",
   "cache-control": "no-store",
@@ -202,14 +204,58 @@ function jurisprudenciaStubPayload({ identity, now }) {
   });
 }
 
+function jurisprudenceProviderInputFromUrl(url) {
+  const parsed = new URL(String(url), "http://api-gateway.local");
+  const searchParams = parsed.searchParams;
+  return Object.freeze({
+    q: searchParams.get("q") ?? searchParams.get("query") ?? "",
+    ...(searchParams.has("tribunal") ? { tribunal: searchParams.get("tribunal") } : {}),
+    ...(searchParams.has("periodFrom") ? { periodFrom: searchParams.get("periodFrom") } : {}),
+    ...(searchParams.has("periodTo") ? { periodTo: searchParams.get("periodTo") } : {}),
+    ...(searchParams.has("limit") ? { limit: searchParams.get("limit") } : {}),
+  });
+}
+
+function jurisprudenceProviderPayload({ result, identity, now }) {
+  return Object.freeze({
+    ok: result.ok === true,
+    service: "ada-mitra-bridge",
+    productId: PRODUCT_ID,
+    generatedAt: now(),
+    adapterId: "mitra.buscar_jurisprudencia",
+    status: result.ok === true ? "ready" : "unavailable",
+    ...(result.error ? { error: result.error } : {}),
+    ...(result.reason ? { reason: result.reason } : {}),
+    executionStatus: result.executionStatus ?? (result.ok === true ? "read_only_provider_result" : "provider_contract_ready"),
+    access: "read_only",
+    readOnly: true,
+    writeExecuted: false,
+    externalConnectionEnabled: false,
+    liveDatabaseConnected: false,
+    credentialsRequired: false,
+    rawSqlAllowed: false,
+    writeAllowed: false,
+    secretsExposed: false,
+    ...(result.query ? { query: result.query } : {}),
+    ...(Array.isArray(result.results) ? { results: Object.freeze([...result.results]) } : {}),
+    nextStep: result.ok === true
+      ? "connect_approved_public_jurisprudence_source_via_separate_pr"
+      : "connect_approved_read_only_jurisprudence_source_via_separate_pr",
+    identity: safeIdentity(identity),
+  });
+}
+
 export function createAdaMitraBridgeReadOnly({
   authenticator,
   requiredScope = REQUIRED_SCOPE,
   now = () => new Date().toISOString(),
+  jurisprudenceProvider,
 } = {}) {
   if (authenticator !== undefined && typeof authenticator?.authenticate !== "function") {
     throw new TypeError("authenticator.authenticate must be a function");
   }
+
+  const jurisprudenceProviderRunner = createMitraJurisprudenceProviderRunner( { provider: jurisprudenceProvider });
 
   return Object.freeze({
     routes: ROUTES,
@@ -240,7 +286,14 @@ export function createAdaMitraBridgeReadOnly({
       if (pathname === ROUTES.status) return jsonResponse(200, statusPayload({ identity, now }));
       if (pathname === ROUTES.capabilities) return jsonResponse(200, capabilitiesPayload({ identity, now }));
       if (pathname === ROUTES.connectors) return jsonResponse(200, connectorsPayload({ identity, now }));
-      if (pathname === ROUTES.buscarJurisprudencia) return jsonResponse(503, jurisprudenciaStubPayload({ identity, now }));
+      if (pathname === ROUTES.buscarJurisprudencia) {
+        if (!jurisprudenceProviderRunner.enabled) {
+          return jsonResponse(503, jurisprudenciaStubPayload({ identity, now }));
+        }
+
+        const result = await jurisprudenceProviderRunner.search(jurisprudenceProviderInputFromUrl(url), identity);
+        return jsonResponse(result.status ?? (result.ok ? 200 : 503), jurisprudenceProviderPayload({ result, identity, now }));
+      }
 
       return null;
     },
