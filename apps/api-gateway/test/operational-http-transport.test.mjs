@@ -18,7 +18,6 @@ async function close(server) {
     server.close((error) => (error ? reject(error) : resolve()));
   });
 }
-
 test("transport passes bounded JSON body to the operational app", async (t) => {
   const calls = [];
   const server = createOperationalHttpServer({
@@ -36,7 +35,6 @@ test("transport passes bounded JSON body to the operational app", async (t) => {
 
   const address = await listen(server);
   t.after(() => close(server));
-
   const response = await fetch(
     `http://127.0.0.1:${address.port}/v1/operator/status`,
     {
@@ -45,7 +43,6 @@ test("transport passes bounded JSON body to the operational app", async (t) => {
       body: JSON.stringify({ correlationId: "corr_1" }),
     },
   );
-
   assert.equal(response.status, 200);
   assert.deepEqual(await response.json(), { ok: true });
   assert.equal(calls.length, 1);
@@ -53,7 +50,6 @@ test("transport passes bounded JSON body to the operational app", async (t) => {
   assert.equal(calls[0].url, "/v1/operator/status");
   assert.deepEqual(JSON.parse(calls[0].body), { correlationId: "corr_1" });
 });
-
 test("transport rejects oversized body before calling the app", async (t) => {
   let calls = 0;
   const server = createOperationalHttpServer({
@@ -68,7 +64,6 @@ test("transport rejects oversized body before calling the app", async (t) => {
 
   const address = await listen(server);
   t.after(() => close(server));
-
   const response = await fetch(
     `http://127.0.0.1:${address.port}/v1/operator/status`,
     {
@@ -84,7 +79,6 @@ test("transport rejects oversized body before calling the app", async (t) => {
   assert.equal(payload.contentReturned, false);
   assert.equal(calls, 0);
 });
-
 test("transport returns a sanitized internal error", async (t) => {
   const logs = [];
   const server = createOperationalHttpServer({
@@ -102,13 +96,11 @@ test("transport returns a sanitized internal error", async (t) => {
 
   const address = await listen(server);
   t.after(() => close(server));
-
   const response = await fetch(`http://127.0.0.1:${address.port}/failure`, {
     method: "POST",
     body: "{}",
   });
   const payload = await response.json();
-
   assert.equal(response.status, 500);
   assert.deepEqual(payload, {
     error: "internal_error",
@@ -128,4 +120,47 @@ test("transport returns a sanitized internal error", async (t) => {
       },
     },
   ]);
+});
+
+test("transport reads pre-materialized request bodies from managed adapters", async () => {
+  const calls = [];
+  const response = {
+    status: null,
+    headers: null,
+    body: "",
+    writeHead(status, headers) {
+      this.status = status;
+      this.headers = headers;
+    },
+    end(body = "") {
+      this.body = body;
+    },
+  };
+  const server = createOperationalHttpServer({
+    app: {
+      async handleRequest(request) {
+        calls.push(request);
+        return {
+          status: 200,
+          headers: { "content-type": "application/json" },
+          body: JSON.stringify({ ok: true }),
+        };
+      },
+    },
+  });
+  const listener = server.listeners("request")[0];
+
+  await listener({
+    method: "POST",
+    url: "/v1/web-agent/conversations",
+    headers: { "content-type": "application/json" },
+    body: { message: "olá" },
+  }, response);
+
+  assert.equal(response.status, 200);
+  assert.deepEqual(JSON.parse(response.body), { ok: true });
+  assert.equal(calls.length, 1);
+  assert.equal(calls[0].method, "POST");
+  assert.equal(calls[0].url, "/v1/web-agent/conversations");
+  assert.deepEqual(JSON.parse(calls[0].body), { message: "olá" });
 });
