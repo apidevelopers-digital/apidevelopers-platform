@@ -3,7 +3,7 @@
   "format": "managed-node-zip",
   "service": "api-gateway",
   "version": "0.8.0",
-  "sourceRevision": "ac0cf4f0d08def2cd80336d34e20f04542f7bf04",
+  "sourceRevision": "3e105fefc48bc7a7eaa79919e572d0f469740915",
   "runtime": {
     "node": ">=22",
     "entrypoint": "src/hostinger-entry.mjs",
@@ -119,8 +119,8 @@
     },
     {
       "path": "src/ada-mitra-bridge-readonly.mjs",
-      "bytes": 7312,
-      "sha256": "293bb3cd3bb71a8b8efeb9260b9a771d8194ef6e7b2d224c5eb372738c659572"
+      "bytes": 8426,
+      "sha256": "c58498ddef6d5d45b4fd53bfbd532cc0c8955d7f4a0d6a8fd928aef79aa5acad"
     },
     {
       "path": "src/audit-query-http.mjs",
