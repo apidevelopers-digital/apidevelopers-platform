@@ -35,19 +35,29 @@ const EXPECTED_LEGAL_ADAPTERS = Object.freeze([
   "mitra.buscar_processo",
 ]);
 
+const EXPECTED_LEGAL_EXECUTION_STATUS = Object.freeze({
+  "mitra.buscar_jurisprudencia": "stub_unavailable",
+  "mitra.pesquisar_fontes_oficiais": "contract_only",
+  "mitra.buscar_processo": "contract_only",
+});
+
 test("ADA Mitra bridge contract is read-only and does not expose SQL or writes", () => {
   assert.equal(adaMitraBridgeReadOnlyContract.productId, "product:mitra");
   assert.equal(adaMitraBridgeReadOnlyContract.requiredScope, "ada:mitra:read");
   assert.equal(adaMitraBridgeReadOnlyContract.liveDatabaseConnected, false);
   assert.equal(adaMitraBridgeReadOnlyContract.rawSqlAllowed, false);
   assert.equal(adaMitraBridgeReadOnlyContract.writeAllowed, false);
+  assert.equal(
+    adaMitraBridgeReadOnlyContract.routes.buscarJurisprudencia,
+    "/v1/ada/mitra/legal/jurisprudencia",
+  );
   assert.deepEqual(
     adaMitraBridgeReadOnlyContract.legalReadOnlyAdapters.map((adapter) => adapter.id),
     EXPECTED_LEGAL_ADAPTERS,
   );
   for (const adapter of adaMitraBridgeReadOnlyContract.legalReadOnlyAdapters) {
     assert.equal(adapter.access, "read_only");
-    assert.equal(adapter.executionStatus, "contract_only");
+    assert.equal(adapter.executionStatus, EXPECTED_LEGAL_EXECUTION_STATUS[adapter.id]);
     assert.equal(adapter.externalConnectionEnabled, false);
     assert.equal(adapter.credentialsRequired, false);
     assert.equal(adapter.writeAllowed, false);
@@ -134,6 +144,7 @@ test("ADA Mitra bridge exposes read-only status, capabilities and connector inve
       .filter((item) => EXPECTED_LEGAL_ADAPTERS.includes(item.id))
       .map((item) => ({
         id: item.id,
+        path: item.path,
         access: item.access,
         executionStatus: item.executionStatus,
         externalConnectionEnabled: item.externalConnectionEnabled,
@@ -141,15 +152,38 @@ test("ADA Mitra bridge exposes read-only status, capabilities and connector inve
         writeAllowed: item.writeAllowed,
         rawSqlAllowed: item.rawSqlAllowed,
       })),
-    EXPECTED_LEGAL_ADAPTERS.map((id) => ({
-      id,
-      access: "read_only",
-      executionStatus: "contract_only",
-      externalConnectionEnabled: false,
-      credentialsRequired: false,
-      writeAllowed: false,
-      rawSqlAllowed: false,
-    })),
+    [
+      {
+        id: "mitra.buscar_jurisprudencia",
+        path: "/v1/ada/mitra/legal/jurisprudencia",
+        access: "read_only",
+        executionStatus: "stub_unavailable",
+        externalConnectionEnabled: false,
+        credentialsRequired: false,
+        writeAllowed: false,
+        rawSqlAllowed: false,
+      },
+      {
+        id: "mitra.pesquisar_fontes_oficiais",
+        path: null,
+        access: "read_only",
+        executionStatus: "contract_only",
+        externalConnectionEnabled: false,
+        credentialsRequired: false,
+        writeAllowed: false,
+        rawSqlAllowed: false,
+      },
+      {
+        id: "mitra.buscar_processo",
+        path: null,
+        access: "read_only",
+        executionStatus: "contract_only",
+        externalConnectionEnabled: false,
+        credentialsRequired: false,
+        writeAllowed: false,
+        rawSqlAllowed: false,
+      },
+    ],
   );
   assert.ok(capabilitiesBody.unavailableUntilApproved.includes("raw_sql"));
   assert.ok(capabilitiesBody.unavailableUntilApproved.includes("external_lex_mitra_execution"));
@@ -170,6 +204,68 @@ test("ADA Mitra bridge exposes read-only status, capabilities and connector inve
   assert.equal(connectorsBody.externalConnectionEnabled, false);
   assert.equal(connectorsBody.rawSqlAllowed, false);
   assert.equal(connectorsBody.writeAllowed, false);
+});
+
+test("ADA Mitra jurisprudence stub is authenticated, read-only and dependency unavailable", async () => {
+  const bridge = createAdaMitraBridgeReadOnly({
+    authenticator: authenticator(),
+    now: () => NOW,
+  });
+
+  const response = await bridge.handleRequest({
+    method: "GET",
+    url: "/v1/ada/mitra/legal/jurisprudencia?q=tema",
+  });
+
+  assert.equal(response.status, 503);
+  const body = JSON.parse(response.body);
+  assert.equal(body.ok, false);
+  assert.equal(body.service, "ada-mitra-bridge");
+  assert.equal(body.adapterId, "mitra.buscar_jurisprudencia");
+  assert.equal(body.error, "dependency_unavailable");
+  assert.equal(body.reason, "jurisprudence_source_not_connected");
+  assert.equal(body.executionStatus, "stub_unavailable");
+  assert.equal(body.access, "read_only");
+  assert.equal(body.readOnly, true);
+  assert.equal(body.writeExecuted, false);
+  assert.equal(body.externalConnectionEnabled, false);
+  assert.equal(body.liveDatabaseConnected, false);
+  assert.equal(body.credentialsRequired, false);
+  assert.equal(body.rawSqlAllowed, false);
+  assert.equal(body.writeAllowed, false);
+  assert.equal(body.secretsExposed, false);
+});
+
+test("ADA Mitra jurisprudence stub rejects unauthenticated, insufficient scope and write methods", async () => {
+  const noAuthBridge = createAdaMitraBridgeReadOnly();
+  const unavailable = await noAuthBridge.handleRequest({
+    method: "GET",
+    url: "/v1/ada/mitra/legal/jurisprudencia",
+  });
+  assert.equal(unavailable.status, 503);
+  assert.equal(JSON.parse(unavailable.body).error, "authentication_unavailable");
+
+  const forbiddenBridge = createAdaMitraBridgeReadOnly({
+    authenticator: authenticator(identity(["other:scope"])),
+  });
+  const forbidden = await forbiddenBridge.handleRequest({
+    method: "GET",
+    url: "/v1/ada/mitra/legal/jurisprudencia",
+  });
+  assert.equal(forbidden.status, 403);
+  assert.equal(JSON.parse(forbidden.body).writeExecuted, false);
+
+  const bridge = createAdaMitraBridgeReadOnly({
+    authenticator: authenticator(),
+    now: () => NOW,
+  });
+  const write = await bridge.handleRequest({
+    method: "POST",
+    url: "/v1/ada/mitra/legal/jurisprudencia",
+    body: JSON.stringify({ token: "never" }),
+  });
+  assert.equal(write.status, 405);
+  assert.equal(JSON.parse(write.body).writeExecuted, false);
 });
 
 test("ADA Mitra bridge rejects writes and avoids secret-like payload fields", async () => {
