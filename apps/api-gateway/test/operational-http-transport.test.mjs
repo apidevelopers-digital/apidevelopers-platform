@@ -81,6 +81,7 @@ test("transport rejects oversized body before calling the app", async (t) => {
   assert.equal(response.status, 413);
   assert.equal(payload.error, "request_too_large");
   assert.equal(payload.productionChanged, false);
+  assert.equal(payload.contentReturned, false);
   assert.equal(calls, 0);
 });
 
