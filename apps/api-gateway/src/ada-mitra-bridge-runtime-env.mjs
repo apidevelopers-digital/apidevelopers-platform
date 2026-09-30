@@ -1,5 +1,5 @@
 import { createAdaMitraBridgeReadOnly } from "./ada-mitra-bridge-readonly.mjs";
-import { createJuridimetriaJurisprudenceProviderFromEnv } from "./mitra-jurisprudence-juridimetria-provider-config.mjs";
+import { createPublicJurisprudenceProviderFromEnv } from "./mitra-jurisprudence-public-sources-provider-config.mjs";
 
 export function createAdaMitraBridgeReadOnlyFromRuntimeEnv({
   authenticator,
@@ -7,7 +7,7 @@ export function createAdaMitraBridgeReadOnlyFromRuntimeEnv({
   fetchFn = globalThis.fetch,
   jurisprudenceProvider,
 } = {}) {
-  const configuredProvider = jurisprudenceProvider ?? createJuridimetriaJurisprudenceProviderFromEnv({
+  const configuredProvider = jurisprudenceProvider ?? createPublicJurisprudenceProviderFromEnv({
     env,
     fetchFn,
   });
