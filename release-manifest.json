@@ -3,7 +3,7 @@
   "format": "managed-node-zip",
   "service": "api-gateway",
   "version": "0.8.0",
-  "sourceRevision": "cf5656f220fd020d0fa49c65cc5e8ba207e4e92e",
+  "sourceRevision": "452ab3fb4235b6dbec3274bdf64811c79b4fc0cf",
   "runtime": {
     "node": ">=22",
     "entrypoint": "src/hostinger-entry.mjs",
@@ -124,8 +124,8 @@
     },
     {
       "path": "src/ada-mitra-bridge-runtime-env.mjs",
-      "bytes": 654,
-      "sha256": "764c56adc9a5b2b6e17070dfe88632e63b2697c821b0cec9db21c8dd073f2c6d"
+      "bytes": 644,
+      "sha256": "636f1319c9b7d494ddcdda04ca99854c0460c9688ea41d8400cae042940fffa9"
     },
     {
       "path": "src/audit-query-http.mjs",
@@ -598,6 +598,11 @@
       "sha256": "7eeb5b07a990b825ec0c5d258bc24f4564a76c97a98cff208ca10192a84e3631"
     },
     {
+      "path": "src/mitra-jurisprudence-datajud-provider.mjs",
+      "bytes": 6320,
+      "sha256": "4dfeaca06549464977bc87336c7e2d9b6803f55f12cc3370a3de2f7dff7c402b"
+    },
+    {
       "path": "src/mitra-jurisprudence-juridimetria-provider-config.mjs",
       "bytes": 1960,
       "sha256": "b0f9cc61560a48d8d0d9e3306dfbf26976329bd2ef87e4f36623f779c55817b6"
@@ -608,9 +613,24 @@
       "sha256": "fbd6cfe8d7e0497125e620467123107c044c444a1abe84e48998578eb69954f3"
     },
     {
+      "path": "src/mitra-jurisprudence-lexml-provider.mjs",
+      "bytes": 5386,
+      "sha256": "314b24f5342232673aedbacc56786e04831e18bd30f9927a0626296a2c870c67"
+    },
+    {
       "path": "src/mitra-jurisprudence-provider-readonly.mjs",
       "bytes": 4745,
       "sha256": "e8cb312ca5d11855d236a0ecb3a144e74dcea34e94e8352552596cde86771e52"
+    },
+    {
+      "path": "src/mitra-jurisprudence-public-sources-provider-config.mjs",
+      "bytes": 3290,
+      "sha256": "291480d1e5ccb47289d30ccc322f7386d07ffa367d43f005c5af280d0113c59d"
+    },
+    {
+      "path": "src/mitra-jurisprudence-public-sources-provider.mjs",
+      "bytes": 1461,
+      "sha256": "aea4cc096be9e1ce3e6c4e2b05768ab92c60cadcf89fd50be5da9c95eff7d5f2"
     },
     {
       "path": "src/mitra-mcp-v1-contract.mjs",
