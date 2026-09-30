@@ -9,7 +9,6 @@ const JSON_HEADERS = Object.freeze({
   "cache-control": "no-store",
   "x-content-type-options": "nosniff",
 });
-
 class OperationalTransportError extends Error {
   constructor(code, status) {
     super(code);
@@ -32,25 +31,75 @@ function validateMaxBodyBytes(value) {
   return value;
 }
 
+function materializeRequestBodyValue(value, maxBodyBytes) {
+  if (value === undefined || value === null) return undefined;
+
+  const body = typeof value === "string" || Buffer.isBuffer(value)
+    ? value
+    : JSON.stringify(value);
+  const buffer = Buffer.isBuffer(body) ? body : Buffer.from(String(body));
+
+  if (buffer.length > maxBodyBytes) {
+    throw new OperationalTransportError("request_too_large", 413);
+  }
+
+  return buffer.length > 0 ? buffer.toString("utf8") : undefined;
+}
+
+async function readEventedRequestBody(request, maxBodyBytes) {
+  const chunks = [];
+  let size = 0;
+
+  await new Promise((resolve, reject) => {
+    request.on("data", (chunk) => {
+      const buffer = Buffer.isBuffer(chunk) ? chunk : Buffer.from(chunk);
+      size += buffer.length;
+
+      if (size > maxBodyBytes) {
+        reject(new OperationalTransportError("request_too_large", 413));
+        return;
+      }
+
+      chunks.push(buffer);
+    });
+    request.once("end", resolve);
+    request.once("error", reject);
+  });
+
+  return chunks.length > 0 ? Buffer.concat(chunks).toString("utf8") : undefined;
+}
+
 async function readRequestBody(request, maxBodyBytes) {
   const method = String(request.method ?? "GET").toUpperCase();
   if (method === "GET" || method === "HEAD") return undefined;
 
+  if (Object.hasOwn(request, "body")) {
+    return materializeRequestBodyValue(request.body, maxBodyBytes);
+  }
+
   const chunks = [];
   let size = 0;
 
-  for await (const chunk of request) {
-    const buffer = Buffer.isBuffer(chunk) ? chunk : Buffer.from(chunk);
-    size += buffer.length;
+  if (typeof request?.[Symbol.asyncIterator] === "function") {
+    for await (const chunk of request) {
+      const buffer = Buffer.isBuffer(chunk) ? chunk : Buffer.from(chunk);
+      size += buffer.length;
 
-    if (size > maxBodyBytes) {
-      throw new OperationalTransportError("request_too_large", 413);
+      if (size > maxBodyBytes) {
+        throw new OperationalTransportError("request_too_large", 413);
+      }
+
+      chunks.push(buffer);
     }
 
-    chunks.push(buffer);
+    return chunks.length > 0 ? Buffer.concat(chunks).toString("utf8") : undefined;
   }
 
-  return chunks.length > 0 ? Buffer.concat(chunks).toString("utf8") : undefined;
+  if (typeof request?.on === "function" && typeof request?.once === "function") {
+    return readEventedRequestBody(request, maxBodyBytes);
+  }
+
+  throw new OperationalTransportError("request_body_unreadable", 400);
 }
 
 function writeJson(response, status, payload) {
@@ -65,7 +114,6 @@ function requestPath(url) {
     return "/";
   }
 }
-
 function publicErrorCode(body) {
   if (typeof body !== "string" || !body) return null;
   try {
