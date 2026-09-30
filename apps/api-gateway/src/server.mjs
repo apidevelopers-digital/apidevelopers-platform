@@ -1,7 +1,7 @@
 import http from "node:http";
 import { pathToFileURL } from "node:url";
 
-import { createAdaMitraBridgeReadOnly } from "./ada-mitra-bridge-readonly.mjs";
+import { createAdaMitraBridgeReadOnlyFromRuntimeEnv } from "./ada-mitra-bridge-runtime-env.mjs";
 import { createGatewayGlobalTrustAudit } from "./global-trust-audit.mjs";
 import { createGatewayGlobalTrustTenantContext } from "./global-trust-context.mjs";
 import { getOpenApiDocument } from "./openapi.mjs";
@@ -124,7 +124,7 @@ export function createApp({
   readiness = createReadinessService(),
   saasAccess,
   radarEvents,
-  adaMitraBridge = createAdaMitraBridgeReadOnly({ authenticator }),
+  adaMitraBridge = createAdaMitraBridgeReadOnlyFromRuntimeEnv({ authenticator }),
   trustFaceAccess = createTrustFaceAccessService(),
 } = {}) {
   if (
