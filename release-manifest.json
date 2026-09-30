@@ -3,7 +3,7 @@
   "format": "managed-node-zip",
   "service": "api-gateway",
   "version": "0.8.0",
-  "sourceRevision": "3ce08ca7bd2b8d5829fb3397a1bc0ae1e8e89dfc",
+  "sourceRevision": "cf5656f220fd020d0fa49c65cc5e8ba207e4e92e",
   "runtime": {
     "node": ">=22",
     "entrypoint": "src/hostinger-entry.mjs",
@@ -121,6 +121,11 @@
       "path": "src/ada-mitra-bridge-readonly.mjs",
       "bytes": 10784,
       "sha256": "db5cb17ea0080050ee8fa0d2e4a72d73d6a395186b741a0dde97d66e542a5196"
+    },
+    {
+      "path": "src/ada-mitra-bridge-runtime-env.mjs",
+      "bytes": 654,
+      "sha256": "764c56adc9a5b2b6e17070dfe88632e63b2697c821b0cec9db21c8dd073f2c6d"
     },
     {
       "path": "src/audit-query-http.mjs",
@@ -591,6 +596,16 @@
       "path": "src/mitra-embedded-professional-facade.mjs",
       "bytes": 1543,
       "sha256": "7eeb5b07a990b825ec0c5d258bc24f4564a76c97a98cff208ca10192a84e3631"
+    },
+    {
+      "path": "src/mitra-jurisprudence-juridimetria-provider-config.mjs",
+      "bytes": 1960,
+      "sha256": "b0f9cc61560a48d8d0d9e3306dfbf26976329bd2ef87e4f36623f779c55817b6"
+    },
+    {
+      "path": "src/mitra-jurisprudence-juridimetria-provider.mjs",
+      "bytes": 4042,
+      "sha256": "fbd6cfe8d7e0497125e620467123107c044c444a1abe84e48998578eb69954f3"
     },
     {
       "path": "src/mitra-jurisprudence-provider-readonly.mjs",
@@ -1224,8 +1239,8 @@
     },
     {
       "path": "src/server.mjs",
-      "bytes": 14498,
-      "sha256": "2a0358993aed1e5636e572574d5403cbca526b8eb836b2e332891cb76d58bb62"
+      "bytes": 14529,
+      "sha256": "ae9519560c87ef7d06e5148e34c6ef036e6787fde717fdaef8b380c0fd09aae7"
     },
     {
       "path": "src/trust-face-access-durable-runtime-transform.mjs",
