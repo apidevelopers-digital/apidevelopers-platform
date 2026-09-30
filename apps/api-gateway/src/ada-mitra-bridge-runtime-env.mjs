@@ -7,13 +7,13 @@ export function createAdaMitraBridgeReadOnlyFromRuntimeEnv({
   fetchFn = globalThis.fetch,
   jurisprudenceProvider,
 } = {}) {
-  const provider = jurisprudenceProvider ?? createJuridimetriaJurisprudenceProviderFromEnv({
+  const configuredProvider = jurisprudenceProvider ?? createJuridimetriaJurisprudenceProviderFromEnv({
     env,
     fetchFn,
   });
 
   return createAdaMitraBridgeReadOnly({
     authenticator,
-    jurisprudenceProvider: provider,
+    jurisprudenceProvider: configuredProvider?.enabled ? configuredProvider : undefined,
   });
 }
