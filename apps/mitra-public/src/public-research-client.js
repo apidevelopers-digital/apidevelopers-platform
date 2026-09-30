@@ -1,6 +1,7 @@
 const DEFAULT_TIMEOUT_MS = 12_000;
 const MAX_QUERY_LENGTH = 500;
 const MAX_LIMIT = 20;
+const DEFAULT_ENDPOINT_PATH = "/v1/mitra/public/jurisprudencia";
 
 export class PublicResearchError extends Error {
   constructor(code, message, { status = 0 } = {}) {
@@ -14,6 +15,8 @@ export class PublicResearchError extends Error {
 function cleanBaseUrl(value) {
   const raw = String(value ?? "").trim().replace(/\/+$/, "");
   if (!raw) return "";
+
+  if (raw.startsWith("/")) return raw.replace(/\/+$/, "");
 
   let url;
   try {
@@ -30,6 +33,12 @@ function cleanBaseUrl(value) {
   return url.toString().replace(/\/+$/, "");
 }
 
+function cleanEndpointPath(value) {
+  const raw = String(value || DEFAULT_ENDPOINT_PATH).trim();
+  const normalized = raw.startsWith("/") ? raw : `/${raw}`;
+  return normalized.replace(/\/+$/, "");
+}
+
 function toText(value, max = 2_000) {
   if (value === null || value === undefined) return "";
   return String(value).trim().slice(0, max);
@@ -37,13 +46,22 @@ function toText(value, max = 2_000) {
 
 function normalizeResult(item = {}) {
   const raw = item && typeof item === "object" ? item : {};
+  const title = toText(raw.title || raw.titulo || raw.ementa || raw.id || "Resultado");
+  const source = toText(raw.source || raw.fonte || "Fonte pública", 180);
+  const court = toText(raw.court || raw.tribunal || "", 120);
+  const date = toText(raw.date || raw.data || "", 80);
+  const summary = toText(raw.summary || raw.resumo || raw.snippet || raw.description || "", 2_000);
+  const sourceUrl = toText(raw.source_url || raw.sourceUrl || raw.url || "", 1_000);
+
   return Object.freeze({
-    title: toText(raw.title || raw.titulo || raw.ementa || "Resultado"),
-    summary: toText(raw.summary || raw.resumo || raw.snippet || raw.description || ""),
-    source: toText(raw.source || raw.fonte || "Fonte pública", 180),
-    sourceUrl: toText(raw.source_url || raw.sourceUrl || raw.url || "", 1_000),
-    citation: toText(raw.citation || raw.citacao || raw.reference || "", 1_000),
-    date: toText(raw.date || raw.data || "", 80),
+    id: toText(raw.id || raw.identifier || "", 240),
+    title,
+    summary,
+    source,
+    sourceUrl,
+    court,
+    date,
+    citation: [source, court, date].filter(Boolean).join(" · "),
   });
 }
 
@@ -57,7 +75,8 @@ function normalizePayload(payload) {
 
   return Object.freeze({
     ok: data.ok !== false,
-    source: toText(data.source || "Mitra Public Research", 180),
+    adapterId: toText(data.adapterId || data.adapter_id || "mitra.buscar_jurisprudencia", 180),
+    source: toText(data.source || "Mitra Jurisprudência Pública", 180),
     results: Object.freeze(rows.slice(0, MAX_LIMIT).map(normalizeResult)),
     confidence: toText(data.confidence || "", 80),
     legalWarning: toText(data.legal_warning || data.legalWarning || "", 500),
@@ -65,27 +84,46 @@ function normalizePayload(payload) {
   });
 }
 
+function buildUrl(baseUrl, endpointPath, { query, tribunal, limit, periodFrom, periodTo }) {
+  const normalizedBaseUrl = cleanBaseUrl(baseUrl);
+  const normalizedEndpointPath = cleanEndpointPath(endpointPath);
+  const url = new URL(`${normalizedBaseUrl}${normalizedEndpointPath}`, globalThis.location?.origin || "http://localhost");
+
+  url.searchParams.set("q", query);
+  if (tribunal) url.searchParams.set("tribunal", tribunal);
+  if (periodFrom) url.searchParams.set("periodFrom", periodFrom);
+  if (periodTo) url.searchParams.set("periodTo", periodTo);
+  url.searchParams.set("limit", String(limit));
+
+  if (!normalizedBaseUrl) {
+    return `${normalizedEndpointPath}?${url.searchParams.toString()}`;
+  }
+
+  return url.toString();
+}
+
 export function createPublicResearchClient({
   baseUrl = "",
+  endpointPath = DEFAULT_ENDPOINT_PATH,
   fetchImpl = globalThis.fetch,
   timeoutMs = DEFAULT_TIMEOUT_MS,
 } = {}) {
   const normalizedBaseUrl = cleanBaseUrl(baseUrl);
+  const normalizedEndpointPath = cleanEndpointPath(endpointPath);
 
   return Object.freeze({
-    configured: Boolean(normalizedBaseUrl),
+    configured: true,
     baseUrl: normalizedBaseUrl,
+    endpointPath: normalizedEndpointPath,
 
-    async search({ query, limit = 8 } = {}) {
+    async search({
+      query,
+      tribunal = "STJ",
+      limit = 8,
+      periodFrom = "",
+      periodTo = "",
+    } = {}) {
       const normalizedQuery = String(query ?? "").trim();
-
-      if (!normalizedBaseUrl) {
-        throw new PublicResearchError(
-          "not_configured",
-          "A pesquisa jurídica pública ainda não está conectada neste ambiente.",
-          { status: 503 },
-        );
-      }
 
       if (!normalizedQuery) {
         throw new PublicResearchError("query_required", "Digite um termo para pesquisar.", { status: 400 });
@@ -104,13 +142,17 @@ export function createPublicResearchClient({
       const timer = setTimeout(() => controller.abort(), Math.max(1_000, Number(timeoutMs) || DEFAULT_TIMEOUT_MS));
 
       try {
-        const response = await fetchImpl(`${normalizedBaseUrl}/v1/mitra/public/search`, {
-          method: "POST",
+        const response = await fetchImpl(buildUrl(normalizedBaseUrl, normalizedEndpointPath, {
+          query: normalizedQuery,
+          tribunal: toText(tribunal, 40) || "STJ",
+          limit: safeLimit,
+          periodFrom: toText(periodFrom, 40),
+          periodTo: toText(periodTo, 40),
+        }), {
+          method: "GET",
           headers: {
-            "content-type": "application/json",
-            "accept": "application/json",
+            accept: "application/json",
           },
-          body: JSON.stringify({ query: normalizedQuery, limit: safeLimit }),
           signal: controller.signal,
           credentials: "omit",
           cache: "no-store",
