@@ -11,6 +11,7 @@ function safeText(value, max = 1000) {
 
 function isEnabled(value) {
   const text = safeText(value, 50);
+  if (!text) return false;
   return TRUE_VALUES.has(text.toLowerCase());
 }
 
