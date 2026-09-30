@@ -1,0 +1,121 @@
+name: Mitra Jurisprudencia Public Providers Probe
+
+on:
+  workflow_dispatch:
+    inputs:
+      approval:
+        description: "Exact Igor approval token for public jurisprudencia probe"
+        required: true
+        type: string
+      expected_deploy_sha:
+        description: "Expected deploy/hostinger-gateway-runtime commit SHA"
+        required: true
+        type: string
+      gateway_origin:
+        description: "Gateway origin"
+        required: true
+        default: "https://gateway.apidevelopers.digital"
+        type: string
+      query:
+        description: "Probe query"
+        required: true
+        default: "direito civil"
+        type: string
+      tribunal:
+        description: "Probe tribunal"
+        required: true
+        default: "STJ"
+        type: string
+      limit:
+        description: "Probe result limit"
+        required: true
+        default: "3"
+        type: string
+
+permissions:
+  contents: read
+
+concurrency:
+  group: mitra-jurisprudencia-public-probe
+  cancel-in-progress: false
+
+jobs:
+  probe:
+    if: >-
+      github.event_name == 'workflow_dispatch' &&
+      github.ref == 'refs/heads/main' &&
+      github.event.inputs.approval == 'IGOR_APROVA_MITRA_JURISPRUDENCIA_PUBLIC_PROBE'
+    runs-on:
+      - self-hosted
+      - macOS
+      - X64
+    timeout-minutes: 10
+    env:
+      EXPECTED_DEPLOY_SHA: ${{ github.event.inputs.expected_deploy_sha }}
+      GATEWAY_ORIGIN: ${{ github.event.inputs.gateway_origin }}
+      PROBE_QUERY: ${{ github.event.inputs.query }}
+      PROBE_TRIBUNAL: ${{ github.event.inputs.tribunal }}
+      PROBE_LIMIT: ${{ github.event.inputs.limit }}
+      ADA_MITRA_BRIDGE_TENANT_ID: ${{ secrets.ADA_MITRA_BRIDGE_TENANT_ID }}
+      ADA_MITRA_MCP_V1_READ_TOKEN: ${{ secrets.ADA_MITRA_MCP_V1_READ_TOKEN }}
+      GH_TOKEN: ${{ github.token }}
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          ref: main
+
+      - name: Run Mitra jurisprudencia public providers probe
+        shell: bash
+        run: |
+          set -uo pipefail
+          output_file="$(mktemp -t mitra-jurisprudencia-public-probe.XXXXXX.log)"
+          probe_status=0
+
+          set +e
+          node scripts/ops/mitra-jurisprudencia-public-probe.mjs 2>&1 | tee "$output_file"
+          probe_status=${PIPESTATUS[0]}
+          set -e
+
+          if [ "$probe_status" -ne 0 ]; then
+            failure="$(
+              awk '
+                /^MITRA_JURISPRUDENCIA_PUBLIC_PROBE_FAILURE=/ {
+                  value = $0
+                  sub(/^MITRA_JURISPRUDENCIA_PUBLIC_PROBE_FAILURE=/, "", value)
+                }
+                END { print value }
+              ' "$output_file" || true
+            )"
+
+            status_summary="$(
+              awk '
+                /^MITRA_JURISPRUDENCIA_PUBLIC_PROBE_(GITHUB_REF_HTTP_STATUS|DEPLOY_SHA|ROUTE_HTTP_STATUS|ROUTE_OK|ROUTE_ADAPTER_ID|ROUTE_EXECUTION_STATUS|RESULT_COUNT|RESULT_SOURCES)=/ {
+                  line[++n] = $0
+                }
+                END {
+                  start = n - 11
+                  if (start < 1) start = 1
+                  for (i = start; i <= n; i++) {
+                    if (line[i] != "") {
+                      if (printed) printf ";"
+                      printf "%s", line[i]
+                      printed = 1
+                    }
+                  }
+                }
+              ' "$output_file" || true
+            )"
+
+            if [ -z "$failure" ]; then
+              failure="probe_failed_without_failure_marker_status_${probe_status}"
+            fi
+
+            if [ -n "$status_summary" ]; then
+              echo "::notice title=Mitra jurisprudencia public probe summary::$status_summary"
+            fi
+
+            echo "::error title=Mitra jurisprudencia public probe failure::$failure"
+            exit "$probe_status"
+          fi
