@@ -6,33 +6,27 @@ import {
   PublicResearchError,
 } from "../src/public-research-client.js";
 
-test("public research client stays unconfigured without an API base URL", async () => {
-  const client = createPublicResearchClient();
-  assert.equal(client.configured, false);
-
-  await assert.rejects(
-    () => client.search({ query: "responsabilidade civil" }),
-    (error) => error instanceof PublicResearchError && error.code === "not_configured",
-  );
-});
-
-test("public research client never sends browser credentials or authorization", async () => {
+test("public research client uses same-origin jurisprudence facade by default", async () => {
   let captured;
   const client = createPublicResearchClient({
-    baseUrl: "https://gateway.example.test",
     fetchImpl: async (url, options) => {
-      captured = { url, options };
+      captured = { url: String(url), options };
       return {
         ok: true,
         status: 200,
         async json() {
           return {
             ok: true,
+            adapterId: "mitra.buscar_jurisprudencia",
+            source: "Mitra Jurisprudência Pública",
             results: [
               {
+                id: "ac-1",
                 title: "Resultado público",
-                source: "Fonte aberta",
-                source_url: "https://example.test/fonte",
+                source: "LexML",
+                url: "https://example.test/fonte",
+                court: "STJ",
+                date: "2026-01-02",
               },
             ],
           };
@@ -41,17 +35,49 @@ test("public research client never sends browser credentials or authorization", 
     },
   });
 
-  const response = await client.search({ query: "tema jurídico", limit: 99 });
+  assert.equal(client.configured, true);
 
-  assert.equal(captured.url, "https://gateway.example.test/v1/mitra/public/search");
+  const response = await client.search({ query: "tema jurídico", tribunal: "STJ", limit: 99 });
+
+  assert.equal(captured.url, "/v1/mitra/public/jurisprudencia?q=tema+jur%C3%ADdico&tribunal=STJ&limit=20");
+  assert.equal(captured.options.method, "GET");
   assert.equal(captured.options.credentials, "omit");
   assert.equal(captured.options.headers.authorization, undefined);
   assert.equal(captured.options.headers.Authorization, undefined);
-  assert.deepEqual(JSON.parse(captured.options.body), {
-    query: "tema jurídico",
-    limit: 20,
-  });
+  assert.equal(captured.options.body, undefined);
+  assert.equal(response.adapterId, "mitra.buscar_jurisprudencia");
   assert.equal(response.results[0].title, "Resultado público");
+  assert.equal(response.results[0].source, "LexML");
+});
+
+test("public research client supports https base URL and custom endpoint", async () => {
+  let captured;
+  const client = createPublicResearchClient({
+    baseUrl: "https://mitra.example.test",
+    endpointPath: "/jurisprudencia",
+    fetchImpl: async (url, options) => {
+      captured = { url: String(url), options };
+      return {
+        ok: true,
+        status: 200,
+        async json() {
+          return { ok: true, results: [] };
+        },
+      };
+    },
+  });
+
+  await client.search({
+    query: "contrato",
+    tribunal: "TJSP",
+    limit: 5,
+    periodFrom: "2026-01-01",
+    periodTo: "2026-01-31",
+  });
+
+  assert.equal(captured.url, "https://mitra.example.test/jurisprudencia?q=contrato&tribunal=TJSP&periodFrom=2026-01-01&periodTo=2026-01-31&limit=5");
+  assert.equal(captured.options.method, "GET");
+  assert.equal(captured.options.credentials, "omit");
 });
 
 test("public research client rejects insecure remote base URLs", () => {
@@ -63,7 +89,6 @@ test("public research client rejects insecure remote base URLs", () => {
 
 test("public research client requires a non-empty query", async () => {
   const client = createPublicResearchClient({
-    baseUrl: "https://gateway.example.test",
     fetchImpl: async () => {
       throw new Error("should not fetch");
     },
