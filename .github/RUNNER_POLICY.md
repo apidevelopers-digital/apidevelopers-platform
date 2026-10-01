@@ -82,3 +82,4 @@ Node.js is configured inside each job with `actions/setup-node`. Node.js does no
 6. Do not run `config.sh` again on an already registered runner.
 7. Do not remove runner records before confirming origin, scope, history, and dependencies.
 8. Stateful workloads must document the capability label and host identity that own the local state.
+<!-- Read-only redispatch marker 2026-08-28T02:43-03:00. No runner policy semantics changed. -->
