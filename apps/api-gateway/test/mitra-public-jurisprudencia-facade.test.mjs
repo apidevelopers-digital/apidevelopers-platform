@@ -45,7 +45,7 @@ test("Mitra public jurisprudencia facade forwards server-side credentials and st
   const response = await facade.handleRequest({
     method: "GET",
     url: "/v1/mitra/public/jurisprudencia?q=direito%20civil&tribunal=STJ&limit=99&periodFrom=2026-01-01&periodTo=bad",
-    headers: { authorization: "Bearer browser-token" },
+    headers: { authorization: "Bearer browser-token", cookie: "private=value" },
   });
 
   assert.equal(response.status, 200);
@@ -56,7 +56,10 @@ test("Mitra public jurisprudencia facade forwards server-side credentials and st
   );
   assert.equal(calls[0].headers["x-api-key"], "saved-read-token");
   assert.equal(calls[0].headers["x-tenant-id"], "tenant:institution");
-  assert.equal(calls[0].headers.authorization, "Bearer browser-token");
+  assert.equal(calls[0].headers["x-public-facade"], "mitra-public-jurisprudencia");
+  assert.equal(calls[0].headers.accept, "application/json");
+  assert.equal(calls[0].headers.authorization, undefined);
+  assert.equal(calls[0].headers.cookie, undefined);
 
   const body = JSON.parse(response.body);
   assert.equal(body.ok, true);
