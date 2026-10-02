@@ -3,7 +3,7 @@
   "format": "managed-node-zip",
   "service": "api-gateway",
   "version": "0.8.0",
-  "sourceRevision": "452ab3fb4235b6dbec3274bdf64811c79b4fc0cf",
+  "sourceRevision": "5f006b4c150ae6a4d1ee0ca0634b2070306adf52",
   "runtime": {
     "node": ">=22",
     "entrypoint": "src/hostinger-entry.mjs",
@@ -673,14 +673,19 @@
       "sha256": "3291248639ed9ccd0728c6e6bc1c735741e0198d6f76175ff541daad33c43083"
     },
     {
+      "path": "src/mitra-public-jurisprudencia-facade.mjs",
+      "bytes": 5561,
+      "sha256": "6bb84dbd0bb9ac4c580346eff3fd490c1fae01a0afb2159e8fc39f3c20a9d33f"
+    },
+    {
       "path": "src/mitra-public-lexml-upstream.mjs",
       "bytes": 10167,
       "sha256": "48c3d11a6febd8f64ad0d684e410ed2aa6cff96e0d9cea081ab7d16f7003dbdc"
     },
     {
       "path": "src/mitra-public-operational-wrapper.mjs",
-      "bytes": 4579,
-      "sha256": "44d27b4222067f15ffd1aebbc9679139a4a7b9431f2fb7337bc39f52fc98cd37"
+      "bytes": 5578,
+      "sha256": "f46313c37962553239f3cceeec21f3b8c24a652a31e154305b7b869ca1633063"
     },
     {
       "path": "src/mitra-public-research.mjs",
