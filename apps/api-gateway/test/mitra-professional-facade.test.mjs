@@ -74,8 +74,11 @@ test("assistant uses only server-side bearer, allowlisted payload and strips raw
  assert.equal(captured.options.headers.cookie,undefined);
  const sent=JSON.parse(captured.options.body);
  assert.equal(sent.path,"/v1/analyze");
- assert.deepEqual(Object.keys(sent.payload).sort(),["facts","limit","question","tribunal"].sort());
+ assert.deepEqual(Object.keys(sent.payload).sort(),["dry_run","facts","limit","mode","question","read_only","tribunal"].sort());
  assert.equal(sent.payload.question,"Quais pontos jurídicos devo revisar?");
+ assert.equal(sent.payload.dry_run,false);
+ assert.equal(sent.payload.read_only,true);
+ assert.equal(sent.payload.mode,"retrieval_first");
 });
 
 test("jurimetrics dispatch is forced to real read-only mode and rejects office/private fields",async()=>{

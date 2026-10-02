@@ -15,7 +15,15 @@ const VERITAS_MODES=new Set(["claim_precheck","claim_semantic","normative_validi
 function analyze(body){
  const allowed=new Set(["question","facts","tribunal","limit"]);
  if(Object.keys(body).some(k=>!allowed.has(k)))throw new MitraProfessionalError(400,"analyze_unexpected_input","A análise recebeu campos não permitidos.");
- return{question:requiredText(body.question,"question",5_000),facts:safeFacts(body.facts),tribunal:text(body.tribunal,50)||undefined,limit:safeLimit(body.limit,10,20)};
+ return{
+  dry_run:false,
+  read_only:true,
+  mode:"retrieval_first",
+  question:requiredText(body.question,"question",5_000),
+  facts:safeFacts(body.facts),
+  tribunal:text(body.tribunal,50)||undefined,
+  limit:safeLimit(body.limit,10,20)
+ };
 }
 function period(value){
  if(value===undefined||value===null)return undefined;
