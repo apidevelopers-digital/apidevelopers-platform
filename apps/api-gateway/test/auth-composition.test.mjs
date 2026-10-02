@@ -261,11 +261,89 @@ test("gateway composition rejects operator credential reuse as admin", () => {
   assert.throws(
     () =>
       createGatewayAuthenticator({
-        apiKeyRepository: repository,
+        apiKeyRepository: repositor,
         adminKey: shared,
         operatorKey: shared,
         operatorTenantId: "tenant_institutional_operator",
       }),
     /admin and operator keys must be distinct/,
+  );
+});
+
+test("gateway composition authenticates ADA Mitra MCP read token with read-only scope", async () => {
+  const repository = createRepository([]);
+  const adaMitraMcpReadKey = "ada-mitra-read-secret-1234567890-abcdef";
+  const authenticator = createGatewayAuthenticator({
+    apiKeyRepository: repository,
+    adaMitraMcpReadKey,
+    adaMitraMcpReadTenantId: "tenant:institution",
+  });
+
+  const identity = await authenticator.authenticate({
+    "x-api-key": adaMitraMcpReadKey,
+  });
+
+  assert.equal(identity.role, "service");
+  assert.equal(identity.principal.id, "ada-mitra-mcp-v1-read");
+  assert.equal(identity.principal.tenantId, "tenant:institution");
+  assert.equal(identity.principal.status, "active");
+  assert.deepEqual(identity.principal.scopes, ["ada:mitra:read"]);
+  assert.equal(identity.principal.scopes.includes("admin:*"), false);
+  assert.equal(identity.principal.scopes.includes("operator:resource:read"), false);
+  assert.equal(identity.principal.scopes.includes("saas:provision"), false);
+  assert.equal(identity.principal.scopes.includes("saas:access:delegate"), false);
+  assert.deepEqual(repository.calls, []);
+});
+
+test("gateway composition requires ADA Mitra MCP read token and tenant id together", () => {
+  const repository = createRepository([]);
+
+  assert.throws(
+    () =>
+      createGatewayAuthenticator({
+        apiKeyRepository: repository,
+        adaMitraMcpReadKey: "ada-mitra-read-secret-1234567890-abcdef",
+      }),
+    /ADA_MITRA_MCP_V1_READ_TOKEN and ADA_MITRA_BRIDGE_TENANT_ID must be configured together/,
+  );
+
+  assert.throws(
+    () =>
+      createGatewayAuthenticator({
+        apiKeyRepository: repository,
+        adaMitraMcpReadTenantId: "tenant:institution",
+      }),
+    /ADA_MITRA_MCP_V1_READ_TOKEN and ADA_MITRA_BRIDGE_TENANT_ID must be configured together/,
+  );
+});
+
+test("gateway composition rejects weak ADA Mitra MCP read tokens", () => {
+  const repository = createRepository([]);
+
+  assert.throws(
+    () =>
+      createGatewayAuthenticator({
+        apiKeyRepository: repository,
+        adaMitraMcpReadKey: "too-short",
+        adaMitraMcpReadTenantId: "tenant:institution",
+      }),
+    /ADA_MITRA_MCP_V1_READ_TOKEN must contain at least 32 characters/,
+  );
+});
+
+test("gateway composition rejects ADA Mitra MCP read token reuse across configured roles", () => {
+  const repository = createRepository([]);
+  const shared = "shared-ada-mitra-read-secret-1234567890";
+
+  assert.throws(
+    () =>
+      createGatewayAuthenticator({
+        apiKeyRepository: repository,
+        operatorKey: shared,
+        operatorTenantId: "tenant_institutional_operator",
+        adaMitraMcpReadKey: shared,
+        adaMitraMcpReadTenantId: "tenant:institution",
+      }),
+    /operator and ada-mitra-mcp-read keys must be distinct/,
   );
 });
