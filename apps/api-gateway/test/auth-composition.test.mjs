@@ -61,7 +61,7 @@ test("gateway composition authenticates a tenant-bound durable API key", async (
   ]);
 });
 
-test("gateway composition rejects cross-tenant and tampered credentials", async () => {
+test("gateway composition rejects cross-tenant and tampered durable credentials", async () => {
   const secret = "apid_gateway_secret_1234567890";
   const repository = createRepository([
     {
@@ -101,28 +101,55 @@ test("gateway composition validates its durable repository contract", () => {
   );
 });
 
-test("gateway composition authenticates the dedicated delegated backend key with minimum scope", async () => {
+test("gateway composition authenticates delegated, operator and ADA Mitra service keys with bounded scopes", async () => {
   const repository = createRepository([]);
+  const delegatedKey = "delegate-secret-1234567890";
+  const operatorKey = "operator-secret-1234567890-abcdefghi";
+  const adaMitraMcpReadKey = "ada-mitra-read-secret-1234567890-abcdef";
+
   const authenticator = createGatewayAuthenticator({
     apiKeyRepository: repository,
-    delegatedKey: "delegate-secret-1234567890",
+    delegatedKey,
     delegatedTenantId: "tenant_uni_co",
+    operatorKey,
+    operatorTenantId: "tenant_institutional_operator",
+    adaMitraMcpReadKey,
+    adaMitraMcpReadTenantId: "tenant:institution",
   });
 
-  const identity = await authenticator.authenticate({
-    authorization: "Bearer delegate-secret-1234567890",
+  const delegated = await authenticator.authenticate({
+    authorization: `Bearer ${delegatedKey}`,
   });
+  assert.equal(delegated.role, "service");
+  assert.equal(delegated.principal.id, "backend-delegated");
+  assert.equal(delegated.principal.tenantId, "tenant_uni_co");
+  assert.deepEqual(delegated.principal.scopes, ["saas:access:delegate"]);
 
-  assert.equal(identity.role, "service");
-  assert.equal(identity.principal.id, "backend-delegated");
-  assert.equal(identity.principal.tenantId, "tenant_uni_co");
-  assert.equal(identity.principal.status, "active");
-  assert.deepEqual(identity.principal.scopes, ["saas:access:delegate"]);
-  assert.equal(identity.principal.scopes.includes("admin:*"), false);
+  const operator = await authenticator.authenticate({
+    authorization: `Bearer ${operatorKey}`,
+  });
+  assert.equal(operator.role, "service");
+  assert.equal(operator.principal.id, "institutional-operator");
+  assert.equal(operator.principal.tenantId, "tenant_institutional_operator");
+  assert.deepEqual(operator.principal.scopes, ["operator:resource:read"]);
+
+  const adaMitra = await authenticator.authenticate({
+    "x-api-key": adaMitraMcpReadKey,
+  });
+  assert.equal(adaMitra.role, "service");
+  assert.equal(adaMitra.principal.id, "ada-mitra-mcp-v1-read");
+  assert.equal(adaMitra.principal.tenantId, "tenant:institution");
+  assert.deepEqual(adaMitra.principal.scopes, ["ada:mitra:read"]);
+
+  for (const identity of [delegated, operator, adaMitra]) {
+    assert.equal(identity.principal.status, "active");
+    assert.equal(identity.principal.scopes.includes("admin:*"), false);
+    assert.deepEqual(Object.keys(identity.principal).includes("hash"), false);
+  }
   assert.deepEqual(repository.calls, []);
 });
 
-test("gateway composition keeps delegated backend key fail-closed and falls back to durable auth", async () => {
+test("gateway composition keeps service keys fail-closed and falls back to durable auth", async () => {
   const durableSecret = "apid_gateway_secret_1234567890";
   const repository = createRepository([
     {
@@ -139,11 +166,27 @@ test("gateway composition keeps delegated backend key fail-closed and falls back
     apiKeyRepository: repository,
     delegatedKey: "delegate-secret-1234567890",
     delegatedTenantId: "tenant_uni_co",
+    operatorKey: "operator-secret-1234567890-abcdefghi",
+    operatorTenantId: "tenant_institutional_operator",
+    adaMitraMcpReadKey: "ada-mitra-read-secret-1234567890-abcdef",
+    adaMitraMcpReadTenantId: "tenant:institution",
   });
 
   assert.equal(
     await authenticator.authenticate({
       authorization: "Bearer delegate-secret-tampered",
+    }),
+    null,
+  );
+  assert.equal(
+    await authenticator.authenticate({
+      authorization: "Bearer operator-secret-tampered",
+    }),
+    null,
+  );
+  assert.equal(
+    await authenticator.authenticate({
+      "x-api-key": "ada-mitra-read-secret-tampered",
     }),
     null,
   );
@@ -155,7 +198,7 @@ test("gateway composition keeps delegated backend key fail-closed and falls back
   assert.equal(durableIdentity.principal.id, "key_001");
 });
 
-test("gateway composition requires delegated key and tenant id together", () => {
+test("gateway composition requires service key and tenant id pairs together", () => {
   const repository = createRepository([]);
 
   assert.throws(
@@ -166,7 +209,6 @@ test("gateway composition requires delegated key and tenant id together", () => 
       }),
     /API_GATEWAY_DELEGATED_KEY and API_GATEWAY_DELEGATED_TENANT_ID must be configured together/,
   );
-
   assert.throws(
     () =>
       createGatewayAuthenticator({
@@ -175,35 +217,6 @@ test("gateway composition requires delegated key and tenant id together", () => 
       }),
     /API_GATEWAY_DELEGATED_KEY and API_GATEWAY_DELEGATED_TENANT_ID must be configured together/,
   );
-});
-
-test("gateway composition authenticates a dedicated tenant-bound operator key with minimum scope", async () => {
-  const repository = createRepository([]);
-  const operatorKey = "operator-secret-1234567890-abcdefghi";
-  const authenticator = createGatewayAuthenticator({
-    apiKeyRepository: repository,
-    operatorKey,
-    operatorTenantId: "tenant_institutional_operator",
-  });
-
-  const identity = await authenticator.authenticate({
-    authorization: `Bearer ${operatorKey}`,
-  });
-
-  assert.equal(identity.role, "service");
-  assert.equal(identity.principal.id, "institutional-operator");
-  assert.equal(identity.principal.tenantId, "tenant_institutional_operator");
-  assert.equal(identity.principal.status, "active");
-  assert.deepEqual(identity.principal.scopes, ["operator:resource:read"]);
-  assert.equal(identity.principal.scopes.includes("admin:*"), false);
-  assert.equal(identity.principal.scopes.includes("saas:provision"), false);
-  assert.equal(identity.principal.scopes.includes("saas:access:delegate"), false);
-  assert.deepEqual(repository.calls, []);
-});
-
-test("gateway composition requires operator key and tenant id together", () => {
-  const repository = createRepository([]);
-
   assert.throws(
     () =>
       createGatewayAuthenticator({
@@ -212,7 +225,6 @@ test("gateway composition requires operator key and tenant id together", () => {
       }),
     /API_GATEWAY_OPERATOR_KEY and API_GATEWAY_OPERATOR_TENANT_ID must be configured together/,
   );
-
   assert.throws(
     () =>
       createGatewayAuthenticator({
@@ -221,9 +233,25 @@ test("gateway composition requires operator key and tenant id together", () => {
       }),
     /API_GATEWAY_OPERATOR_KEY and API_GATEWAY_OPERATOR_TENANT_ID must be configured together/,
   );
+  assert.throws(
+    () =>
+      createGatewayAuthenticator({
+        apiKeyRepository: repository,
+        adaMitraMcpReadKey: "ada-mitra-read-secret-1234567890-abcdef",
+      }),
+    /ADA_MITRA_MCP_V1_READ_TOKEN and ADA_MITRA_BRIDGE_TENANT_ID must be configured together/,
+  );
+  assert.throws(
+    () =>
+      createGatewayAuthenticator({
+        apiKeyRepository: repository,
+        adaMitraMcpReadTenantId: "tenant:institution",
+      }),
+    /ADA_MITRA_MCP_V1_READ_TOKEN and ADA_MITRA_BRIDGE_TENANT_ID must be configured together/,
+  );
 });
 
-test("gateway composition rejects weak operator keys", () => {
+test("gateway composition rejects weak scoped service keys", () => {
   const repository = createRepository([]);
 
   assert.throws(
@@ -235,11 +263,21 @@ test("gateway composition rejects weak operator keys", () => {
       }),
     /API_GATEWAY_OPERATOR_KEY must contain at least 32 characters/,
   );
+
+  assert.throws(
+    () =>
+      createGatewayAuthenticator({
+        apiKeyRepository: repository,
+        adaMitraMcpReadKey: "too-short",
+        adaMitraMcpReadTenantId: "tenant:institution",
+      }),
+    /ADA_MITRA_MCP_V1_READ_TOKEN must contain at least 32 characters/,
+  );
 });
 
-test("gateway composition rejects operator credential reuse across service roles", () => {
+test("gateway composition rejects credential reuse across configured service roles", () => {
   const repository = createRepository([]);
-  const shared = "shared-operator-secret-1234567890-abcd";
+  const shared = "shared-service-secret-1234567890-abcdef";
 
   assert.throws(
     () =>
@@ -252,20 +290,27 @@ test("gateway composition rejects operator credential reuse across service roles
       }),
     /delegated and operator keys must be distinct/,
   );
-});
 
-test("gateway composition rejects operator credential reuse as admin", () => {
-  const repository = createRepository([]);
-  const shared = "shared-admin-operator-secret-1234567890";
+  assert.throws(
+    () =>
+      createGatewayAuthenticator({
+        apiKeyRepository: repository,
+        operatorKey: shared,
+        operatorTenantId: "tenant_institutional_operator",
+        adaMitraMcpReadKey: shared,
+        adaMitraMcpReadTenantId: "tenant:institution",
+      }),
+    /operator and ada-mitra-mcp-read keys must be distinct/,
+  );
 
   assert.throws(
     () =>
       createGatewayAuthenticator({
         apiKeyRepository: repository,
         adminKey: shared,
-        operatorKey: shared,
-        operatorTenantId: "tenant_institutional_operator",
+        adaMitraMcpReadKey: shared,
+        adaMitraMcpReadTenantId: "tenant:institution",
       }),
-    /admin and operator keys must be distinct/,
+    /admin and ada-mitra-mcp-read keys must be distinct/,
   );
 });
