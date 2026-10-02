@@ -84,6 +84,15 @@ function buildInternalUrl(requestUrl) {
   return { url: `${internal.pathname}?${internal.searchParams.toString()}` };
 }
 
+function internalHeaders({ readToken, tenantId }) {
+  return Object.freeze({
+    "x-api-key": readToken,
+    "x-tenant-id": tenantId,
+    "x-public-facade": "mitra-public-jurisprudencia",
+    accept: "application/json",
+  });
+}
+
 export function createMitraPublicJurisprudenciaFacade({
   adaMitraBridge,
   env = process.env,
@@ -96,7 +105,6 @@ export function createMitraPublicJurisprudenciaFacade({
     async handleRequest({
       method = "GET",
       url = "/",
-      headers = {},
     } = {}) {
       const normalizedMethod = String(method).toUpperCase();
       const requestUrl = new URL(String(url), "http://api-gateway.local");
@@ -138,12 +146,7 @@ export function createMitraPublicJurisprudenciaFacade({
       const bridgeResponse = await adaMitraBridge.handleRequest({
         method: "GET",
         url: built.url,
-        headers: Object.freeze({
-          ...headers,
-          "x-api-key": readToken,
-          "x-tenant-id": tenantId,
-          "x-public-facade": "mitra-public-jurisprudencia",
-        }),
+        headers: internalHeaders({ readToken, tenantId }),
       });
 
       if (!bridgeResponse) {
