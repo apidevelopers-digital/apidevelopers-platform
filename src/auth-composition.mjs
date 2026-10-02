@@ -51,6 +51,14 @@ export function createGatewayAuthenticator({
     status: "active",
     scopes: ["operator:resource:read"],
   },
+  adaMitraMcpReadKey = optionalText(process.env.ADA_MITRA_MCP_V1_READ_TOKEN),
+  adaMitraMcpReadTenantId = optionalText(process.env.ADA_MITRA_BRIDGE_TENANT_ID),
+  adaMitraMcpReadPrincipal = {
+    id: "ada-mitra-mcp-v1-read",
+    name: "ADA Mitra MCP v1 Read Access",
+    status: "active",
+    scopes: ["ada:mitra:read"],
+  },
   compareSecrets = secureCompareSecrets,
 } = {}) {
   const durableAuthenticator = createDurableApiKeyAuthenticator({
@@ -65,6 +73,8 @@ export function createGatewayAuthenticator({
   const normalizedProvisioningKey = optionalText(provisioningKey);
   const normalizedOperatorKey = optionalText(operatorKey);
   const normalizedOperatorTenantId = optionalText(operatorTenantId);
+  const normalizedAdaMitraMcpReadKey = optionalText(adaMitraMcpReadKey);
+  const normalizedAdaMitraMcpReadTenantId = optionalText(adaMitraMcpReadTenantId);
 
   if (Boolean(normalizedDelegatedKey) !== Boolean(normalizedDelegatedTenantId)) {
     throw new TypeError(
@@ -76,11 +86,19 @@ export function createGatewayAuthenticator({
       "API_GATEWAY_OPERATOR_KEY and API_GATEWAY_OPERATOR_TENANT_ID must be configured together",
     );
   }
+  if (Boolean(normalizedAdaMitraMcpReadKey) !== Boolean(normalizedAdaMitraMcpReadTenantId)) {
+    throw new TypeError(
+      "ADA_MITRA_MCP_V1_READ_TOKEN and ADA_MITRA_BRIDGE_TENANT_ID must be configured together",
+    );
+  }
   if (normalizedProvisioningKey && normalizedProvisioningKey.length < 32) {
     throw new TypeError("API_GATEWAY_PROVISIONING_KEY must contain at least 32 characters");
   }
   if (normalizedOperatorKey && normalizedOperatorKey.length < 32) {
     throw new TypeError("API_GATEWAY_OPERATOR_KEY must contain at least 32 characters");
+  }
+  if (normalizedAdaMitraMcpReadKey && normalizedAdaMitraMcpReadKey.length < 32) {
+    throw new TypeError("ADA_MITRA_MCP_V1_READ_TOKEN must contain at least 32 characters");
   }
 
   const configuredKeys = [
@@ -88,6 +106,7 @@ export function createGatewayAuthenticator({
     ["delegated", normalizedDelegatedKey],
     ["provisioning", normalizedProvisioningKey],
     ["operator", normalizedOperatorKey],
+    ["ada-mitra-mcp-read", normalizedAdaMitraMcpReadKey],
   ].filter(([, key]) => Boolean(key));
 
   for (let left = 0; left < configuredKeys.length; left += 1) {
@@ -100,7 +119,12 @@ export function createGatewayAuthenticator({
     }
   }
 
-  if (!normalizedDelegatedKey && !normalizedProvisioningKey && !normalizedOperatorKey) {
+  if (
+    !normalizedDelegatedKey &&
+    !normalizedProvisioningKey &&
+    !normalizedOperatorKey &&
+    !normalizedAdaMitraMcpReadKey
+  ) {
     return durableAuthenticator;
   }
 
@@ -137,6 +161,17 @@ export function createGatewayAuthenticator({
           ...operatorPrincipal,
           tenantId: normalizedOperatorTenantId,
           scopes: ["operator:resource:read"],
+        });
+      }
+      if (
+        apiKey &&
+        normalizedAdaMitraMcpReadKey &&
+        compareSecrets(apiKey, normalizedAdaMitraMcpReadKey)
+      ) {
+        return freezeIdentity("service", {
+          ...adaMitraMcpReadPrincipal,
+          tenantId: normalizedAdaMitraMcpReadTenantId,
+          scopes: ["ada:mitra:read"],
         });
       }
       return durableAuthenticator.authenticate(headers);
