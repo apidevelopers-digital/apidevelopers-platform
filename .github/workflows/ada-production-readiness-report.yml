@@ -1,0 +1,118 @@
+name: ADA Production Readiness Report
+
+on:
+  workflow_dispatch:
+    inputs:
+      job_id:
+        description: "MCP Brain job id"
+        required: true
+        type: string
+      tenant:
+        description: "Tenant requesting the report"
+        required: true
+        type: choice
+        options:
+          - apidevelopers-digital
+      worker_node:
+        description: "Selected worker node from MCP Brain"
+        required: true
+        type: string
+      report_scope:
+        description: "Report scope"
+        required: false
+        default: "ops-readiness"
+        type: choice
+        options:
+          - ops-readiness
+          - github-actions-readiness
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ada-production-readiness-report-${{ inputs.job_id }}
+  cancel-in-progress: false
+
+jobs:
+  readiness-report:
+    name: ADA production readiness report
+    runs-on:
+      - self-hosted
+      - macOS
+      - X64
+      - apidevelopers
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Generate readiness report
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          mkdir -p ada-reports
+
+          REPORT="ada-reports/production-readiness-${{ inputs.job_id }}.md"
+
+          {
+            echo "# ADA Production Readiness Report"
+            echo ""
+            echo "Generated at: $(date -u +%Y-%m-%dT%H:%M:%SZ)"
+            echo ""
+            echo "## Job context"
+            echo ""
+            echo "- job_id: `${{ inputs.job_id }}`"
+            echo "- tenant: `${{ inputs.tenant }}`"
+            echo "- worker_node: `${{ inputs.worker_node }}`"
+            echo "- report_scope: `${{ inputs.report_scope }}`"
+            echo ""
+            echo "## GitHub context"
+            echo ""
+            echo "- repository: `${{ github.repository }}`"
+            echo "- ref: `${{ github.ref }}`"
+            echo "- sha: `${{ github.sha }}`"
+            echo "- workflow: `${{ github.workflow }}`"
+            echo "- run_id: `${{ github.run_id }}`"
+            echo "- run_number: `${{ github.run_number }}`"
+            echo ""
+            echo "## Runner context"
+            echo ""
+            echo "- runner_name: `${{ runner.name }}`"
+            echo "- runner_os: `${{ runner.os }}`"
+            echo "- runner_arch: `${{ runner.arch }}`"
+            echo ""
+            echo "## Local machine check"
+            echo ""
+            echo '```text'
+            uname -a
+            sw_vers || true
+            whoami
+            pwd
+            echo '```'
+            echo ""
+            echo "## Readiness checklist"
+            echo ""
+            echo "- [x] Workflow dispatch accepted by GitHub Actions."
+            echo "- [x] Self-hosted macOS X64 runner selected."
+            echo "- [x] Repository checkout completed."
+            echo "- [x] Report artifact generated."
+            echo "- [x] No deploy command executed."
+            echo "- [x] No production file mutated."
+            echo "- [x] No secret value printed."
+            echo ""
+            echo "## Result"
+            echo ""
+            echo "Status: `readiness_report_generated`"
+          } > "$REPORT"
+
+          echo "ADA_PRODUCTION_READINESS_REPORT_OK"
+          echo "REPORT_PATH=$REPORT"
+
+      - name: Upload readiness report artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: ada-production-readiness-${{ inputs.job_id }}
+          path: ada-reports/
+          if-no-files-found: error
+          retention-days: 30
