@@ -3,7 +3,7 @@
   "format": "managed-node-zip",
   "service": "api-gateway",
   "version": "0.8.0",
-  "sourceRevision": "2a23aa576f880a196287cfef067d3451416fc39f",
+  "sourceRevision": "6b4b48b59ddaea7c3824e4695e1d3a3453a71958",
   "runtime": {
     "node": ">=22",
     "entrypoint": "src/hostinger-entry.mjs",
@@ -664,8 +664,8 @@
     },
     {
       "path": "src/mitra-professional-facade.mjs",
-      "bytes": 8489,
-      "sha256": "88bff9111a014a479edf3cc5d3dd99c94064a70878b2042378668aa782299575"
+      "bytes": 8564,
+      "sha256": "6282f1b5c7cbd3eb165841202cc63eb992e26c1fbcf732dcf45fc5b9e4f81ce8"
     },
     {
       "path": "src/mitra-public-camara-upstream.mjs",
