@@ -51,9 +51,18 @@ export function createSaasOperationalHttpComposition({
     ...(delegatedBindingSigner ? { bindingSigner: delegatedBindingSigner } : {}),
   });
   const unijuriAccessInventoryApp = createUniJuriAccessInventoryApp({ authenticator, store });
+  const unijuriAccessRuntime = Object.freeze({
+    getTenant: (...args) => saasComposition.saasRuntime.getTenant(...args),
+    getWorkspace: (...args) => saasComposition.saasRuntime.getWorkspace(...args),
+    getSubscription: (...args) => saasComposition.saasRuntime.getSubscription(...args),
+    getEntitlement: (...args) => saasComposition.saasRuntime.getEntitlement(...args),
+    getProvisioningJob: (...args) => saasComposition.saasRuntime.getProvisioningJob(...args),
+    grantAccess: (...args) => saasComposition.saasAccess.grantAccess(...args),
+    activateAccess: (...args) => saasComposition.saasAccess.activateAccess(...args),
+  });
   const unijuriAccessApp = createUniJuriAccessHttpApp({
     authenticator,
-    runtime: saasComposition.saasRuntime,
+    runtime: unijuriAccessRuntime,
     audit: typeof audit === "function" ? audit : async () => {},
     writeEnabled: unijuriAccessWriteEnabled === true,
   });
@@ -137,7 +146,7 @@ export function createSaasOperationalHttpComposition({
         return uniCoCustomerProvisioningApp.handleRequest(request);
       }
       if (pathname === "/v1/saas/zuni/activation/plan") {
-        return zuniCommercialActivationPlanApp.handleRequest(request);
+        return zuniCommercialActivationPlanApp.handleRequest);
       }
       if (pathname === "/v1/saas/zuni/activation/dry-run") {
         return zuniCommercialActivationDryRunApp.handleRequest(request);
