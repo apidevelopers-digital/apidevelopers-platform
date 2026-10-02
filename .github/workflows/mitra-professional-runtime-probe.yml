@@ -1,0 +1,105 @@
+name: Mitra Professional Runtime Probe
+
+on:
+  workflow_dispatch:
+    inputs:
+      approval:
+        description: "Exact Igor approval token for Mitra professional runtime probe"
+        required: true
+        type: string
+      expected_deploy_sha:
+        description: "Expected deploy/hostinger-gateway-runtime commit SHA"
+        required: true
+        type: string
+      gateway_origin:
+        description: "Gateway origin"
+        required: true
+        default: "https://gateway.apidevelopers.digital"
+        type: string
+      probe_origin:
+        description: "Origin header to test CORS"
+        required: true
+        default: "https://mitra-preview.apidevelopers.digital"
+        type: string
+
+permissions:
+  contents: read
+
+concurrency:
+  group: mitra-professional-runtime-probe
+  cancel-in-progress: false
+
+jobs:
+  probe:
+    if: >-
+      github.event_name == 'workflow_dispatch' &&
+      github.ref == 'refs/heads/main' &&
+      github.event.inputs.approval == 'IGOR_APROVA_MITRA_PROFESSIONAL_RUNTIME_PROBE'
+    runs-on:
+      - self-hosted
+      - macOS
+      - X64
+    timeout-minutes: 10
+    env:
+      EXPECTED_DEPLOY_SHA: ${{ github.event.inputs.expected_deploy_sha }}
+      GATEWAY_ORIGIN: ${{ github.event.inputs.gateway_origin }}
+      PROBE_ORIGIN: ${{ github.event.inputs.probe_origin }}
+      GH_TOKEN: ${{ github.token }}
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          ref: main
+
+      - name: Run Mitra professional runtime probe
+        shell: bash
+        run: |
+          set -uo pipefail
+          output_file="$(mktemp -t mitra-professional-runtime-probe.XXXXXX.log)"
+          probe_status=0
+
+          set +e
+          node scripts/ops/mitra-professional-runtime-probe.mjs 2>&1 | tee "$output_file"
+          probe_status=${PIPESTATUS[0]}
+          set -e
+
+          status_summary="$(
+            awk '
+              /^MITRA_PROFESSIONAL_RUNTIME_PROBE_(DEPLOY_SHA|HEALTH_HTTP_STATUS|HEALTH_STATUS|HEALTH_ASSISTANT|HEALTH_JURIMETRICS|HEALTH_VERITAS|HEALTH_DOCUMENTS|DOCUMENT_PREVIEW_HTTP_STATUS|DOCUMENT_PREVIEW_OK|ANALYZE_HTTP_STATUS|ANALYZE_ERROR|JURIMETRICS_HTTP_STATUS|JURIMETRICS_ERROR|VERITAS_HTTP_STATUS|VERITAS_ERROR|RESULT)=/ {
+                line[++n] = $0
+              }
+              END {
+                start = n - 13
+                if (start < 1) start = 1
+                for (i = start; i <= n; i++) {
+                  if (line[i] != "") {
+                    if (printed) printf ";"
+                    printf "%s", line[i]
+                    printed = 1
+                  }
+                }
+              }
+            ' "$output_file" || true
+          )"
+
+          if [ -n "$status_summary" ]; then
+            echo "::notice title=Mitra professional runtime probe summary::$status_summary"
+          fi
+
+          if [ "$probe_status" -ne 0 ]; then
+            failure="$(
+              awk '
+                /^MITRA_PROFESSIONAL_RUNTIME_PROBE_FAILURE=/ {
+                  value = $0
+                  sub(/^MITRA_PROFESSIONAL_RUNTIME_PROBE_FAILURE=/, "", value)
+                }
+                END { print value }
+              ' "$output_file" || true
+            )"
+            if [ -z "$failure" ]; then
+              failure="probe_failed_without_failure_marker_status_${probe_status}"
+            fi
+            echo "::error title=Mitra professional runtime probe failure::$failure"
+            exit "$probe_status"
+          fi
