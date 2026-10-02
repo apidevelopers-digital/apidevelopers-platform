@@ -1,0 +1,67 @@
+name: ADA Job Smoke
+
+on:
+  workflow_dispatch:
+    inputs:
+      job_id:
+        description: "MCP Brain job id"
+        required: true
+        type: string
+      tenant:
+        description: "Tenant requesting the job"
+        required: true
+        type: choice
+        options:
+          - apidevelopers-digital
+      worker_node:
+        description: "Selected worker node from MCP Brain"
+        required: true
+        type: string
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ada-job-smoke-${{ inputs.job_id }}
+  cancel-in-progress: false
+
+jobs:
+  smoke:
+    name: ADA job smoke
+    runs-on:
+      - self-hosted
+      - macOS
+      - X64
+      - apidevelopers
+
+    steps:
+      - name: Show job context
+        shell: bash
+        run: |
+          set -euo pipefail
+          echo "ADA_JOB_SMOKE_START"
+          echo "job_id=${{ inputs.job_id }}"
+          echo "tenant=${{ inputs.tenant }}"
+          echo "worker_node=${{ inputs.worker_node }}"
+          echo "runner_name=${{ runner.name }}"
+          echo "runner_os=${{ runner.os }}"
+          echo "runner_arch=${{ runner.arch }}"
+          echo "github_ref=${{ github.ref }}"
+          echo "github_sha=${{ github.sha }}"
+
+      - name: Validate tenant
+        shell: bash
+        run: |
+          set -euo pipefail
+          if [ "${{ inputs.tenant }}" != "apidevelopers-digital" ]; then
+            echo "Unsupported tenant for this smoke workflow: ${{ inputs.tenant }}"
+            exit 1
+          fi
+
+      - name: Validate macOS runner
+        shell: bash
+        run: |
+          set -euo pipefail
+          uname -a
+          sw_vers || true
+          echo "ADA_JOB_SMOKE_OK"
