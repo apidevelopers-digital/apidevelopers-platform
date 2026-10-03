@@ -52,6 +52,13 @@ function veritas(body){
  const out={mode,claim,evidence},asOf=text(body.as_of_date??body.asOfDate,40);if(asOf)out.as_of_date=asOf;return out;
 }
 function isRoute(path){return Object.values(ROUTES).includes(path)}
+function upstreamErrorCode(data){
+ const candidate=text(data?.status??data?.error,120);
+ return candidate||"professional_upstream_rejected";
+}
+function upstreamErrorMessage(data){
+ return text(data?.message??data?.detail??data?.error,500)||"O motor jurídico profissional não respondeu como esperado.";
+}
 export function createMitraProfessionalFacade({
  upstreamBaseUrl=process.env.MITRA_PROFESSIONAL_ORCHESTRATOR_BASE_URL,
  upstreamBearer=process.env.MITRA_PROFESSIONAL_ORCHESTRATOR_BEARER,
@@ -77,8 +84,7 @@ export function createMitraProfessionalFacade({
    });
    let data=null;try{data=await response.json()}catch{}
    if(!response.ok)throw new MitraProfessionalError(
-    response.status>=500?502:400,"professional_upstream_rejected",
-    text(data?.message??data?.error,500)||"O motor jurídico profissional não respondeu como esperado."
+    response.status>=500?502:400,upstreamErrorCode(data),upstreamErrorMessage(data)
    );
    return sanitize(data);
   }catch(error){
