@@ -5,7 +5,7 @@ import {
   createPeterleMailConnector,
   createUnicoWhatsAppConnector,
   createPeterleMitraConnector,
-} from "@apidevelopers/kernel-retrieval";
+} from "../../../packages/kernel-retrieval/src/index.mjs";
 
 function requiredFunction(value, name) {
   if (typeof value !== "function") {
