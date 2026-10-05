@@ -1,11 +1,10 @@
 # @apidevelopers/kernel-retrieval
 
-Camada de **busca federada read-only** para a Plataforma API Developers.digital.
+Camada de busca federada governada para a Plataforma API Developers.digital.
 
 ## Papel
 
-O pacote normaliza consultas a múltiplos sistemas de origem sem transformar a
-Plataforma em uma cópia indiscriminada desses sistemas.
+O pacote consulta múltiplos sistemas de origem sem transformar a Plataforma em uma cópia indiscriminada desses sistemas. Os provedores continuam sendo a fonte primária dos objetos operacionais.
 
 Princípios:
 
@@ -15,55 +14,53 @@ Princípios:
 - proveniência por resultado;
 - retorno minimizado;
 - nenhuma mutação em provedores;
-- nenhum envio de mensagem;
-- nenhuma alteração de arquivo;
-- nenhuma gravação automática em prontuário;
-- nenhum conteúdo clínico bruto no gate genérico.
+- nenhuma escrita automática em prontuário;
+- nenhuma mensagem enviada pela camada de retrieval.
 
-## Fontes previstas
+## Gates implementados
 
-A federação foi desenhada para receber adaptadores governados de:
+### R1 — contrato federado
+Kernel read-only, isolamento de tenant, domínios, proveniência, minimização e testes.
 
-- e-mail (IMAP/Gmail);
-- Google Drive e storages documentais;
-- agenda/calendário;
-- WhatsApp (WATI/Meta);
-- GitHub;
-- Peterle/Mitra e fontes jurídicas;
-- imuni./EHR e fontes clínicas;
-- `kernel-memory` e `kernel-evidence`.
+### R2 — adaptadores corporativos
+E-mail Peterle, WhatsApp UNICO/Zuni, document-store/Drive e calendário.
 
-Os sistemas de origem permanecem a fonte primária dos objetos operacionais.
-`kernel-memory` registra continuidade institucional; não substitui os provedores.
+Os adaptadores retornam somente metadados governados. Corpo de mensagem, bytes de arquivo, participantes privados e identificadores brutos não atravessam o agregador genérico.
 
-## Gate médico
+### R3 — Peterle/Mitra
+Leitura jurídica read-only de diretório de clientes e assuntos/processos, com IDs opacos e sem corpo de documentos.
 
-Consultas ao domínio `medical` exigem:
+### R4 — imuni./EHR
+Busca clínica exige `medicalContext.subjectId` opaco e `medicalContext.purposeOfUse`.
 
-- `medicalContext.subjectId` opaco;
-- `medicalContext.purposeOfUse` explícito;
-- minimização de resultados no agregador genérico;
-- título seguro (`safeLabel`) em vez de identificação clínica;
-- remoção de snippet e URI na saída federada.
+A federação genérica não retorna nome do paciente, texto clínico livre, URI do prontuário, anexos ou identificadores brutos.
 
-A recuperação de conteúdo clínico completo é uma frente posterior e deve ser
-vinculada a autenticação, autorização, auditoria e política de acesso.
+### R5 — conteúdo completo governado
+`createGovernedContentGate` / `createGovernedContentGateV2` permite fetch pontual somente quando todos os gates forem satisfeitos:
 
-## Contrato de conector
+1. tenant, fonte, objeto e finalidade exatos;
+2. aprovação humana ainda válida e vinculada ao objeto;
+3. autorização explícita;
+4. decisão de política `allow`;
+5. auditoria disponível antes do fetch;
+6. provedor read-only;
+7. limite máximo de conteúdo;
+8. redação obrigatória para domínios `legal` e `medical`;
+9. anexos expostos somente como metadados + digest;
+10. auditoria final com digest, tamanho, contagem de redações e anexos, sem registrar o conteúdo.
 
-```js
-{
-  id: "mail-primary",
-  type: "email",
-  domains: ["corporate"],
-  async search(request) {
-    return [];
-  }
-}
-```
+R5 é deny-by-default e falha fechada quando autorização, política, auditoria ou redação não satisfazem o contrato.
 
-A resposta bruta do conector é normalizada. Campos desconhecidos não atravessam
-o limite do kernel.
+## Conectores
+
+- `createPeterleMailConnector`
+- `createUnicoWhatsAppConnector`
+- `createDocumentStoreConnector`
+- `createCalendarConnector`
+- `createPeterleMitraConnector`
+- `createImuniEhrConnector`
+
+Os sistemas de origem permanecem autoridade. `kernel-memory` registra continuidade institucional; não substitui os provedores.
 
 ## Verificação
 
@@ -71,8 +68,15 @@ o limite do kernel.
 npm run check
 ```
 
-Marcador esperado:
+O CI do pacote roda no runner institucional:
 
-```text
-KERNEL_RETRIEVAL_GATE_OK
+```yaml
+runs-on:
+  - self-hosted
+  - macOS
+  - X64
 ```
+
+## Estado
+
+R1–R5 estão implementados na branch de trabalho do PR #689. Isso não significa merge, deploy ou ativação em produção. Essas ações permanecem bloqueadas até aprovação explícita.
