@@ -1,0 +1,17 @@
+{
+  "name": "@apidevelopers/kernel-retrieval",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Governed, tenant-isolated federated retrieval contract for institutional sources.",
+  "type": "module",
+  "exports": {
+    ".": "./src/index.mjs"
+  },
+  "scripts": {
+    "test": "node --test test/*.test.mjs",
+    "check": "node --check src/retrieval.mjs && node --check src/index.mjs && npm test"
+  },
+  "engines": {
+    "node": ">=22"
+  }
+}
