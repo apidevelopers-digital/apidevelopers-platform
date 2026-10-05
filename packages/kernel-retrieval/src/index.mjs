@@ -1,5 +1,5 @@
 export * from "./retrieval.mjs";
-export * from "./content-gate.mjs";
+export * from "./content-gate-v2.mjs";
 export * from "./connectors/peterle-mail.mjs";
 export * from "./connectors/unico-whatsapp.mjs";
 export * from "./connectors/document-store.mjs";
