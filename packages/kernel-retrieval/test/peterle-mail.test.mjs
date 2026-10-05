@@ -11,19 +11,19 @@ test("Peterle mail adapter maps real provider response shape without body leakag
       return {
         ok: true,
         release: "institutional-mail-control-v2",
-        account: "milena",
+        account: "primary",
         count: 1,
         messages: [
           {
-            account: "milena",
+            account: "primary",
             mailbox: "INBOX",
-            uid: 2069,
+            uid: 4242,
             date: "Mon, 5 Oct 2026 14:10:23 -0300",
             internalDate: "05-Oct-2026 17:10:29 +0000",
-            from: '"servicos@cbl.org.br" <servicos@cbl.org.br>',
-            to: "milena@peterle.adv.br",
-            subject: "BNWeb: 402919 - Ficha Catalográfica",
-            messageId: "<fixture@cbl.org.br>",
+            from: '"registry@example.invalid" <registry@example.invalid>',
+            to: "curadoria@example.invalid",
+            subject: "Documento de registro disponível",
+            messageId: "<fixture@example.invalid>",
             contentType: "text/html; charset=utf-8",
             attachmentHint: false,
             bodyReturned: false,
@@ -38,7 +38,7 @@ test("Peterle mail adapter maps real provider response shape without body leakag
 
   const results = await connector.search({
     tenantId: "peterle",
-    query: "Ficha Catalográfica",
+    query: "documento de registro",
     domains: ["legal"],
     limit: 10,
     requestedAt: "2026-10-05T20:30:00.000Z",
@@ -46,18 +46,18 @@ test("Peterle mail adapter maps real provider response shape without body leakag
 
   assert.deepEqual(calls, [
     {
-      account: "milena",
+      account: "primary",
       mailbox: "INBOX",
-      query: "Ficha Catalográfica",
+      query: "documento de registro",
       limit: 10,
     },
   ]);
   assert.equal(results.length, 1);
-  assert.equal(results[0].id, "mail:milena:INBOX:2069");
+  assert.equal(results[0].id, "mail:primary:INBOX:4242");
   assert.equal(results[0].domain, "legal");
-  assert.equal(results[0].title, "BNWeb: 402919 - Ficha Catalográfica");
-  assert.match(results[0].snippet, /servicos@cbl\.org\.br/);
-  assert.equal(results[0].providerObjectId, "uid:2069");
+  assert.equal(results[0].title, "Documento de registro disponível");
+  assert.match(results[0].snippet, /registry@example\.invalid/);
+  assert.equal(results[0].providerObjectId, "uid:4242");
   assert.match(results[0].evidenceDigest, /^sha256:[a-f0-9]{64}$/);
   assert.equal("text" in results[0], false);
   assert.equal("html" in results[0], false);
