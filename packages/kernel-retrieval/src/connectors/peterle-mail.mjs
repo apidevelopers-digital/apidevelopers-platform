@@ -80,7 +80,7 @@ function normalizeSearchResponse(response) {
 export function createPeterleMailConnector({
   searchMail,
   id = "peterle-mail",
-  account = "milena",
+  account,
   mailbox = "INBOX",
   domains = ["corporate", "legal"],
 } = {}) {
