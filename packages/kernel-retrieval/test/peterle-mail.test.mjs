@@ -3,9 +3,10 @@ import assert from "node:assert/strict";
 
 import { createPeterleMailConnector } from "../src/connectors/peterle-mail.mjs";
 
-test("Peterle mail adapter maps real provider response shape without body leakage", async () => {
+test("Peterle mail adapter maps provider response without body leakage", async () => {
   const calls = [];
   const connector = createPeterleMailConnector({
+    account: "primary",
     searchMail: async (request) => {
       calls.push(request);
       return {
@@ -66,6 +67,7 @@ test("Peterle mail adapter maps real provider response shape without body leakag
 
 test("Peterle mail adapter rejects provider message without uid", async () => {
   const connector = createPeterleMailConnector({
+    account: "primary",
     searchMail: async () => ({ ok: true, messages: [{ subject: "x" }] }),
   });
 
@@ -82,6 +84,7 @@ test("Peterle mail adapter rejects provider message without uid", async () => {
 
 test("Peterle mail adapter rejects failed provider responses", async () => {
   const connector = createPeterleMailConnector({
+    account: "primary",
     searchMail: async () => ({ ok: false, partial: true, errors: ["timeout"] }),
   });
 
