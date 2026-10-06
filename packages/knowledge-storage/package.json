@@ -1,0 +1,17 @@
+{
+  "name": "@apidevelopers/knowledge-storage",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Governed intake planning and storage policy gates for institutional knowledge materials.",
+  "type": "module",
+  "exports": {
+    ".": "./src/index.mjs"
+  },
+  "scripts": {
+    "test": "node --test test/*.test.mjs",
+    "check": "node --check src/intake.mjs && node --check src/index.mjs && npm test"
+  },
+  "engines": {
+    "node": ">=22"
+  }
+}
