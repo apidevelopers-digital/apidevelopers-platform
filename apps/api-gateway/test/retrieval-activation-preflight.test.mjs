@@ -37,7 +37,7 @@ test("preflight does not probe providers while feature flag is disabled", async 
 
 test("preflight blocks activation while kill switch is enabled", async () => {
   let probeCalls = 0;
-  const preflight = createRetrievalActionPreflight({
+  const preflight = createRetrievalActivationPreflight({
     getKillSwitchState: async () => ({ enabled: true }),
     audit: async () => ({ ok: true }),
   });
@@ -136,7 +136,7 @@ test("preflight fails closed when audit is unavailable", async () => {
       retrievalEnabled: true,
       runtime: readyRuntime(),
     }),
-    (error) => error.cod === "RETRIEVAL_PREFLIGHT_AUDIT_FAILED",
+    (error) => error.code === "RETRIEVAL_PREFLIGHT_AUDIT_FAILED",
   );
 });
 
