@@ -98,7 +98,9 @@ function normalizeMetadata(metadata = {}) {
 function missingRequired(metadata) {
   return KNOWLEDGE_INTAKE_REQUIRED_FIELDS.filter((field) => {
     if (field === "tags") return !metadata.tags.length;
-    if (field === "year") return metadata.year === "" || metadata.year === null || metadata.year === undefined;
+    if (field === "year") {
+      return metadata.year === "" || metadata.year === null || metadata.year === undefined;
+    }
     return !text(metadata[field]);
   });
 }
@@ -124,12 +126,15 @@ function artifactErrors(artifact) {
 }
 
 function rawContentKeys(input = {}) {
-  return RAW_CONTENT_KEYS.filter((key) => Object.prototype.hasOwnProperty.call(input, key));
+  return RAW_CONTENT_KEYS.filter((key) =>
+    Object.prototype.hasOwnProperty.call(input ?? {}, key)
+  );
 }
 
 function resolveAllowedUse(metadata, requestedUse) {
   const declaredUse = text(metadata.usage_allowed);
   const requested = text(requestedUse || declaredUse || "reference_only");
+
   if (!KNOWLEDGE_USAGE_MODES.includes(declaredUse)) {
     return { ok: false, reason: "invalid_usage_allowed", effectiveUse: "reference_only" };
   }
@@ -145,17 +150,33 @@ function resolveAllowedUse(metadata, requestedUse) {
   if (REFERENCE_ONLY_LICENSES.has(license)) {
     const safe = declaredUse === "metadata_only" ? "metadata_only" : "reference_only";
     if (requested !== "metadata_only" && requested !== "reference_only") {
-      return { ok: false, reason: "license_blocks_requested_use", effectiveUse: safe };
+      return {
+        ok: false,
+        reason: "license_blocks_requested_use",
+        effectiveUse: safe,
+      };
     }
-    return { ok: license !== "blocked", reason: license === "blocked" ? "license_blocked" : null, effectiveUse: safe };
+    return {
+      ok: license !== "blocked",
+      reason: license === "blocked" ? "license_blocked" : null,
+      effectiveUse: safe,
+    };
   }
 
   if (requested === "fulltext_internal_allowed" && !FULLTEXT_LICENSES.has(license)) {
-    return { ok: false, reason: "fulltext_requires_clear_license", effectiveUse: "reference_only" };
+    return {
+      ok: false,
+      reason: "fulltext_requires_clear_license",
+      effectiveUse: "reference_only",
+    };
   }
 
   if (declaredUse === "fulltext_blocked" && requested === "fulltext_internal_allowed") {
-    return { ok: false, reason: "declared_usage_blocks_fulltext", effectiveUse: "reference_only" };
+    return {
+      ok: false,
+      reason: "declared_usage_blocks_fulltext",
+      effectiveUse: "reference_only",
+    };
   }
 
   return { ok: true, reason: null, effectiveUse: requested };
@@ -165,18 +186,19 @@ export function createKnowledgeIntakePlan(input = {}) {
   const metadata = normalizeMetadata(input.metadata);
   const artifact = normalizeArtifact(input.artifact);
   const reasons = [];
+
   const rejectedRawKeys = [
     ...rawContentKeys(input),
     ...rawContentKeys(input.artifact),
   ];
-
-  if (rejectedRawKeys.length) reasons.push("raw_content_not_accepted_by_intake_planner");
+  if (rejectedRawKeys.length) {
+    reasons.push("raw_content_not_accepted_by_intake_planner");
+  }
 
   const missing = missingRequired(metadata);
   if (missing.length) reasons.push(`metadata_missing:${missing.join(",")}`);
 
-  const artifactProblems = artifactErrors(artifact);
-  reasons.push(...artifactProblems);
+  reasons.push(...artifactErrors(artifact));
 
   if (!KNOWLEDGE_LICENSE_STATUSES.includes(metadata.license_status)) {
     reasons.push("invalid_license_status");
@@ -209,7 +231,7 @@ export function createKnowledgeIntakePlan(input = {}) {
     requested_use: text(input.requested_use || metadata.usage_allowed || "reference_only"),
     effective_use: use.effectiveUse,
     reasons: uniqueReasons,
-    storage_plan* {
+    storage_plan: {
       mode: "dry_run_only",
       raw_content_database_write: false,
       content_write: false,
