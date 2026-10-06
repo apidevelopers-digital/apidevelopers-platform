@@ -30,7 +30,7 @@ on:
         required: true
         type: string
       hard_stop_free_space_gb:
-       description: "Hard stop if technical free space is below this value"
+        description: "Hard stop if technical free space is below this value"
         required: true
         type: string
 
@@ -139,86 +139,86 @@ jobs:
             "$root/registry"
 
           cat > "$root/README.md" <<'EOF'
-# API_STORAGE
+          # API_STORAGE
 
-Raiz local controlada de storage institucional da API Developers.digital.
+          Raiz local controlada de storage institucional da API Developers.digital.
 
-Status inicial:
-- criado por workflow R4 aprovado;
-- sem ingestão de documentos;
-- sem indexação;
-- sem exposição pública;
-- iCloud permitido somente como backup frio/cópia auxiliar;
-- backend ativo deve usar SSD local e limites conservadores.
+          Status inicial:
+          - criado por workflow R4 aprovado;
+          - sem ingestão de documentos;
+          - sem indexação;
+          - sem exposição pública;
+          - iCloud permitido somente como backup frio/cópia auxiliar;
+          - backend ativo deve usar SSD local e limites conservadores.
 
-Estrutura:
-- books/
-- documents/
-- datasets/
-- embeddings/
-- uploads/
-- exports/
-- backups/
-- registry/
-EOF
+          Estrutura:
+          - books/
+          - documents/
+          - datasets/
+          - embeddings/
+          - uploads/
+          - exports/
+          - backups/
+          - registry/
+          EOF
 
           python3 - <<'PY'
-from pathlib import Path
-import json
-from datetime import datetime, timezone
+          from pathlib import Path
+          import json
+          from datetime import datetime, timezone
 
-root = Path("/Users/uniimporteexport/API_STORAGE")
-manifest = {
-    "storage_id": "mac-storage-primary-01",
-    "status": "created",
-    "role": "primary_initial",
-    "tenant": "apidevelopers-digital",
-    "host": "Homosapi-iMac.local",
-    "user": "uniimporteexport",
-    "root": str(root),
-    "created_at_utc": datetime.now(timezone.utc).isoformat(),
-    "created_by": "ADA",
-    "approval": "IGOR_APROVA_R4",
-    "ui_available_gb_observed": 772.49,
-    "apfs_available_gb_observed": 374.6,
-    "df_available_gib_observed": 349,
-    "backend_initial_limit_gb": 200,
-    "hard_stop_free_space_gb": 150,
-    "icloud_policy": "cold_backup_or_auxiliary_copy_only",
-    "backend_policy": "local_ssd_only",
-    "ingestion_enabled": False,
-    "indexing_enabled": False,
-    "public_exposure_enabled": False,
-    "classification_required_before_private_ingest": True,
-    "directories": [
-        "books/raw",
-        "books/processed",
-        "books/metadata",
-        "documents/public",
-        "documents/institutional",
-        "documents/private",
-        "datasets/raw",
-        "datasets/normalized",
-        "embeddings/indexes",
-        "embeddings/manifests",
-        "uploads/inbox",
-        "uploads/quarantine",
-        "uploads/accepted",
-        "exports",
-        "backups",
-        "registry",
-    ],
-}
-(root / "registry" / "storage_manifest.json").write_text(
-    json.dumps(manifest, indent=2, ensure_ascii=False) + "\n"
-)
-(root / "registry" / "checksums.json").write_text(
-    json.dumps({"version": 1, "items": []}, indent=2) + "\n"
-)
-(root / "registry" / "inventory_latest.json").write_text(
-    json.dumps({"version": 1, "items": [], "generated_at_utc": None}, indent=2) + "\n"
-)
-PY
+          root = Path("/Users/uniimporteexport/API_STORAGE")
+          manifest = {
+              "storage_id": "mac-storage-primary-01",
+              "status": "created",
+              "role": "primary_initial",
+              "tenant": "apidevelopers-digital",
+              "host": "Homosapi-iMac.local",
+              "user": "uniimporteexport",
+              "root": str(root),
+              "created_at_utc": datetime.now(timezone.utc).isoformat(),
+              "created_by": "ADA",
+              "approval": "IGOR_APROVA_R4",
+              "ui_available_gb_observed": 772.49,
+              "apfs_available_gb_observed": 374.6,
+              "df_available_gib_observed": 349,
+              "backend_initial_limit_gb": 200,
+              "hard_stop_free_space_gb": 150,
+              "icloud_policy": "cold_backup_or_auxiliary_copy_only",
+              "backend_policy": "local_ssd_only",
+              "ingestion_enabled": False,
+              "indexing_enabled": False,
+              "public_exposure_enabled": False,
+              "classification_required_before_private_ingest": True,
+              "directories": [
+                  "books/raw",
+                  "books/processed",
+                  "books/metadata",
+                  "documents/public",
+                  "documents/institutional",
+                  "documents/private",
+                  "datasets/raw",
+                  "datasets/normalized",
+                  "embeddings/indexes",
+                  "embeddings/manifests",
+                  "uploads/inbox",
+                  "uploads/quarantine",
+                  "uploads/accepted",
+                  "exports",
+                  "backups",
+                  "registry",
+              ],
+          }
+          (root / "registry" / "storage_manifest.json").write_text(
+              json.dumps(manifest, indent=2, ensure_ascii=False) + "\n"
+          )
+          (root / "registry" / "checksums.json").write_text(
+              json.dumps({"version": 1, "items": []}, indent=2) + "\n"
+          )
+          (root / "registry" / "inventory_latest.json").write_text(
+              json.dumps({"version": 1, "items": [], "generated_at_utc": None}, indent=2) + "\n"
+          )
+          PY
 
       - name: Verify creation and build report
         shell: bash
