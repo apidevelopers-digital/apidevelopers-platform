@@ -1,0 +1,87 @@
+{
+  "tenant": "hiddenarquives",
+  "project": "greys",
+  "title": "Greys Files",
+  "theme": "cold lunar cinematic observatory",
+  "claimsPolicy": "Claims are cataloged as claims",
+  "poweredBy": "API Developers.digital",
+  "initialTarget": {
+    "domain": "hiddenarquives.tech",
+    "subdomain": "greys.hiddenarquives.tech",
+    "hostingerRoot": "/home/u242521810/domains/hiddenarquives.tech/public_html",
+    "assetsPath": "assets/species/greys",
+    "pagePath": "greys/index.html"
+  },
+  "images": [
+    {
+      "role": "hero",
+      "title": "Species Overview",
+      "source": "001-hero.png",
+      "caption": "Opening visual map for the Grey archetype.",
+      "order": 1
+    },
+    {
+      "role": "card",
+      "title": "Grey Council",
+      "source": "002-council.png",
+      "caption": "Council and group-structure motif, cataloged as a narrative claim.",
+      "order": 2
+    },
+    {
+      "role": "card",
+      "title": "Anatomy Notes",
+      "source": "003-anatomy.png",
+      "caption": "Visual morphology panel separating description patterns from biological claims.",
+      "order": 3
+    },
+    {
+      "role": "card",
+      "title": "Navigation Chamber",
+      "source": "004-navigation.png",
+      "caption": "Navigation motif with stellar routes and craft-control symbolism.",
+      "order": 4
+    },
+    {
+      "role": "card",
+      "title": "Learning Observatory",
+      "source": "005-learning.png",
+      "caption": "Observatory motif for knowledge, monitoring and information-transfer claims.",
+      "order": 5
+    },
+    {
+      "role": "card",
+      "title": "Life Cycle",
+      "source": "006-life-cycle.png",
+      "caption": "Illustrative sequence for claimed development stages.",
+      "order": 6
+    },
+    {
+      "role": "card",
+      "title": "Society Structure",
+      "source": "007-society.png",
+      "caption": "Collective-observation and chamber motifs organized as claim clusters.",
+      "order": 7
+    },
+    {
+      "role": "card",
+      "title": "Adult Form",
+      "source": "008-adult.png",
+      "caption": "Adult-form visual grammar and recurring morphology motifs.",
+      "order": 8
+    },
+    {
+      "role": "card",
+      "title": "Nursery Chamber",
+      "source": "009-nursery.png",
+      "caption": "Nursery and infant-form narrative motif.",
+      "order": 9
+    },
+    {
+      "role": "card",
+      "title": "Encounter Narratives",
+      "source": "010-encounters.png",
+      "caption": "Witness-report motifs remain cataloged as claims.",
+      "order": 10
+    }
+  ]
+}
