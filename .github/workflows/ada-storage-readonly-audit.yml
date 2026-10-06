@@ -1,0 +1,123 @@
+name: ADA Storage Readonly Audit
+
+on:
+  workflow_dispatch:
+    inputs:
+      job_id:
+        description: "MCP Brain job id"
+        required: true
+        type: string
+      tenant:
+        description: "Tenant requesting the job"
+        required: true
+        type: choice
+        options:
+          - apidevelopers-digital
+      worker_node:
+        description: "Selected worker node from MCP Brain"
+        required: true
+        type: string
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ada-storage-readonly-audit-${{ inputs.job_id }}-${{ inputs.worker_node }}
+  cancel-in-progress: false
+
+jobs:
+  audit:
+    name: Storage readonly audit
+    runs-on:
+      - self-hosted
+      - macOS
+      - X64
+      - apidevelopers
+    timeout-minutes: 15
+
+    steps:
+      - name: Validate request
+        shell: bash
+        run: |
+          set -euo pipefail
+          if [ "${{ inputs.tenant }}" != "apidevelopers-digital" ]; then
+            echo "Unsupported tenant: ${{ inputs.tenant }}"
+            exit 1
+          fi
+          echo "job_id=${{ inputs.job_id }}"
+          echo "tenant=${{ inputs.tenant }}"
+          echo "worker_node=${{ inputs.worker_node }}"
+          echo "runner_name=${{ runner.name }}"
+          echo "runner_os=${{ runner.os }}"
+          echo "runner_arc=${{ runner.arch }}"
+
+      - name: Collect readonly storage audit
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          mkdir -p audit-output
+
+          report="audit-output/storage-readonly-audit.md"
+          raw="audit-output/storage-readonly-raw.txt"
+
+          {
+            echo "# Storage readonly audit"
+            echo
+            echo "- job_id: ${{ inputs.job_id }}"
+            echo "- tenant: ${{ inputs.tenant }}"
+            echo "- worker_node: ${{ inputs.worker_node }}"
+            echo "- runner_name: ${{ runner.name }}"
+            echo "- runner_os: ${{ runner.os }}"
+            echo "- runner_arch: ${{ runner.arch }}"
+            echo "- collected_at_utc: $(date -u +"%Y-%m-%dT%H:%M:%SZ")"
+            echo
+            echo "## Safety"
+            echo
+            echo "Readonly audit only. No rm, mv, cp, chmod, chown, mkdir, indexing, upload of private content, or file content reads."
+            echo
+          } > "$report"
+
+          run_section () {
+            local title="$1"
+            shift
+            {
+              echo
+              echo "## $title"
+              echo
+              echo '```text'
+              "$@" 2>&1 || true
+              echo '```'
+            } >> "$report"
+
+            {
+              echo
+              echo "===== $title ====="
+              "$@" 2>&1 || true
+            } >> "$raw"
+          }
+
+          run_section "Host identity" bash -lc 'hostname; scutil --get ComputerName 2>/dev/null || true; scutil --get LocalHostName 2>/dev/null || true; whoami; pwd'
+          run_section "macOS" bash -lc 'sw_vers; uname -a'
+          run_section "Disk usage df -h" df -h
+          run_section "APFS and disks diskutil list" diskutil list
+          run_section "Mounted volumes" mount
+          run_section "Users directory permissions" bash -lc 'ls -ld /Users /Users/* 2>/dev/null'
+          run_section "Top-level user directory sizes" bash -lc 'du -sh /Users/* 2>/dev/null | sort -h'
+          run_section "Candidate API_STORAGE paths" bash -lc 'for d in /Users/*/API_STORAGE /Users/*/Documents/API_STORAGE /Users/*/Desktop/API_STORAGE; do [ -e "$d" ] && ls -ld "$d"; done'
+          run_section "iCloud candidate indicators" bash -lc 'for d in /Users/*/Library/Mobile\ Documents /Users/*/Library/CloudStorage; do [ -e "$d" ] && ls -ld "$d"; done'
+          run_section "External volumes summary" bash -lc 'ls -ld /Volumes /Volumes/* 2>/dev/null'
+
+          {
+            echo
+            echo "## Next step"
+            echo
+            echo "Review this artifact before any R4 creation of API_STORAGE directories."
+          } >> "$report"
+
+      - name: Upload audit artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: storage-readonly-audit-${{ inputs.job_id }}-${{ runner.name }}
+          path: audit-output/
+          if-no-files-found: error
