@@ -19,7 +19,10 @@ on:
         type: string
 
 permissions:
-  contents: read
+  contents: write
+
+env:
+  AUDIT_BRANCH: audit/storage-readonly
 
 concurrency:
   group: ada-storage-readonly-audit-${{ inputs.job_id }}-${{ inputs.worker_node }}
@@ -36,6 +39,12 @@ jobs:
     timeout-minutes: 15
 
     steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          persist-credentials: true
+
       - name: Validate request
         shell: bash
         run: |
@@ -49,7 +58,7 @@ jobs:
           echo "worker_node=${{ inputs.worker_node }}"
           echo "runner_name=${{ runner.name }}"
           echo "runner_os=${{ runner.os }}"
-          echo "runner_arc=${{ runner.arch }}"
+          echo "runner_arc=${{ runner.arc }}"
 
       - name: Collect readonly storage audit
         shell: bash
@@ -74,7 +83,7 @@ jobs:
             echo
             echo "## Safety"
             echo
-            echo "Readonly audit only. No rm, mv, cp, chmod, chown, mkdir, indexing, upload of private content, or file content reads."
+            echo "Readonly audit only. No rm, mv, cp, chmod, chown, mkdir outside the ephemeral workflow workspace, indexing, upload of private content, or file content reads."
             echo
           } > "$report"
 
@@ -121,3 +130,36 @@ jobs:
           name: storage-readonly-audit-${{ inputs.job_id }}-${{ runner.name }}
           path: audit-output/
           if-no-files-found: error
+
+      - name: Persist sanitized report to audit branch
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          git config user.name "ada-storage-audit-bot"
+          git config user.email "ada-storage-audit-bot@users.noreply.github.com"
+
+          out_dir="audits/storage/${{ inputs.job_id }}/${{ runner.name }}"
+          report_src="audit-output/storage-readonly-audit.md"
+
+          git fetch origin "$AUDIT_BRANCH" || true
+
+          if git show-ref --quiet "refs/remotes/origin/$AUDIT_BRANCH"; then
+            git checkout "$AUDIT_BRANCH"
+            git pull --ff-only origin "$AUDIT_BRANCH" || true
+          else
+            git checkout --orphan "$AUDIT_BRANCH"
+            git rm -rf . >/dev/null 2>&1 || true
+          fi
+
+          mkdir -p "$out_dir"
+          cp "$report_src" "$out_dir/storage-readonly-audit.md"
+
+          git add "$out_dir/storage-readonly-audit.md"
+
+          if git diff --cached --quiet; then
+            echo "No audit report changes to commit."
+          else
+            git commit -m "Add storage readonly audit report for ${{ inputs.job_id }} / ${{ runner.name }}"
+            git push origin "$AUDIT_BRANCH"
+          fi
