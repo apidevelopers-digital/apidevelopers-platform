@@ -1,9 +1,8 @@
-import { createRetrievalRuntime } from "./retrieval-runtime.mjs";
-
 function parseBooleanFlag(value, name) {
   const normalized = String(value ?? "").trim().toLowerCase();
   if (!normalized || normalized === "false") return false;
   if (normalized === "true") return true;
+
   const error = new TypeError(`${name} must be true or false`);
   error.code = "RETRIEVAL_OPERATIONAL_INVALID_FLAG";
   throw error;
@@ -21,6 +20,25 @@ function requireGateway(gateway) {
     throw error;
   }
   return gateway;
+}
+
+function createDisabledRuntime() {
+  return Object.freeze({
+    enabled: false,
+    status: "disabled",
+    connectorIds: Object.freeze([]),
+    resolverIds: Object.freeze([]),
+    search: async () => {
+      const error = new Error("Retrieval runtime is disabled");
+      error.code = "RETRIEVAL_RUNTIME_DISABLED";
+      throw error;
+    },
+    fetchContent: async () => {
+      const error = new Error("Retrieval runtime is disabled");
+      error.code = "RETRIEVAL_RUNTIME_DISABLED";
+      throw error;
+    },
+  });
 }
 
 function normalizeRuntimeDescriptor(runtime, enabled) {
@@ -52,20 +70,18 @@ export function resolveRetrievalOperationalEnabled(env = process.env) {
 export function attachRetrievalOperationalRuntimeToGateway({
   gateway: gatewayInput,
   env = process.env,
-  runtimeFactory = createRetrievalRuntime,
+  runtimeFactory,
   resolveRuntimeOptions,
 } = {}) {
   const gateway = requireGateway(gatewayInput);
-  if (typeof runtimeFactory !== "function") {
-    const error = new TypeError("runtimeFactory must be a function");
-    error.code = "RETRIEVAL_OPERATIONAL_DEPENDENCY_REQUIRED";
-    throw error;
-  }
-
   const enabled = resolveRetrievalOperationalEnabled(env);
 
   if (!enabled) {
-    const runtime = runtimeFactory({ enabled: false });
+    const runtime =
+      typeof runtimeFactory === "function"
+        ? runtimeFactory({ enabled: false })
+        : createDisabledRuntime();
+
     if (!runtime || runtime.enabled !== false || runtime.status !== "disabled") {
       const error = new TypeError(
         "disabled retrieval runtime must resolve with enabled=false and status=disabled",
@@ -79,6 +95,14 @@ export function attachRetrievalOperationalRuntimeToGateway({
       retrievalRuntime: runtime,
       retrievalOperational: normalizeRuntimeDescriptor(runtime, false),
     });
+  }
+
+  if (typeof runtimeFactory !== "function") {
+    const error = new Error(
+      "RETRIEVAL_ENABLED=true requires an explicit governed runtime factory",
+    );
+    error.code = "RETRIEVAL_OPERATIONAL_WIRING_REQUIRED";
+    throw error;
   }
 
   if (typeof resolveRuntimeOptions !== "function") {
