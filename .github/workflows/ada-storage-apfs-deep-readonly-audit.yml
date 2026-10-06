@@ -1,0 +1,195 @@
+name: ADA Storage APFS Deep Readonly Audit
+
+on:
+  workflow_dispatch:
+    inputs:
+      job_id:
+        description: "MCP Brain job id"
+        required: true
+        type: string
+      tenant:
+        description: "Tenant requesting the job"
+        required: true
+        type: choice
+        options:
+          - apidevelopers-digital
+      expected_hostname:
+        description: "Expected hostname/local host name. Job fails fast if different."
+        required: true
+        type: string
+      expected_user:
+        description: "Expected macOS user. Job fails fast if different."
+        required: true
+        type: string
+
+permissions:
+  contents: write
+
+env:
+  AUDIT_BRANCH: audit/storage-apfs-deep-readonly
+
+concurrency:
+  group: ada-storage-apfs-deep-readonly-${{ inputs.job_id }}-${{ inputs.expected_hostname }}
+  cancel-in-progress: false
+
+jobs:
+  audit:
+    name: APFS deep readonly audit
+    runs-on:
+      - self-hosted
+      - macOS
+      - X64
+      - apidevelopers
+    timeout-minutes: 20
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          persist-credentials: true
+
+      - name: Validate request and target host
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "${{ inputs.tenant }}" = "apidevelopers-digital"
+
+          actual_hostname="$(hostname || true)"
+          actual_computer="$(scutil --get ComputerName 2>/dev/null || true)"
+          actual_local="$(scutil --get LocalHostName 2>/dev/null || true)"
+          actual_user="$(whoami)"
+
+          echo "job_id=${{ inputs.job_id }}"
+          echo "expected_hostname=${{ inputs.expected_hostname }}"
+          echo "expected_user=${{ inputs.expected_user }}"
+          echo "actual_hostname=$actual_hostname"
+          echo "actual_computer=$actual_computer"
+          echo "actual_local=$actual_local"
+          echo "actual_user=$actual_user"
+          echo "runner_name=${{ runner.name }}"
+
+          if [ "$actual_user" != "${{ inputs.expected_user }}" ]; then
+            echo "Wrong user. Expected ${{ inputs.expected_user }}, got $actual_user"
+            exit 42
+          fi
+
+          case "${{ inputs.expected_hostname }}" in
+            "$actual_hostname"|"$actual_computer"|"$actual_local")
+              echo "Host validated."
+              ;;
+            *)
+              echo "Wrong host. Expected ${{ inputs.expected_hostname }}, got hostname=$actual_hostname computer=$actual_computer local=$actual_local"
+              exit 43
+              ;;
+          esac
+
+      - name: Collect APFS deep readonly audit
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          mkdir -p audit-output
+          report="audit-output/storage-apfs-deep-readonly-audit.md"
+          raw="audit-output/storage-apfs-deep-readonly-raw.txt"
+
+          {
+            echo "# Storage APFS deep readonly audit"
+            echo
+            echo "- job_id: ${{ inputs.job_id }}"
+            echo "- tenant: ${{ inputs.tenant }}"
+            echo "- expected_hostname: ${{ inputs.expected_hostname }}"
+            echo "- expected_user: ${{ inputs.expected_user }}"
+            echo "- runner_name: ${{ runner.name }}"
+            echo "- runner_os: ${{ runner.os }}"
+            echo "- runner_arch: ${{ runner.arch }}"
+            echo "- collected_at_utc: $(date -u +"%Y-%m-%dT%H:%M:%SZ")"
+            echo
+            echo "## Safety"
+            echo
+            echo "Readonly audit only. No rm, mv, chmod, chown, mkdir outside the ephemeral workflow workspace, indexing, upload of private content, or file content reads."
+            echo
+          } > "$report"
+
+          run_section () {
+            local title="$1"
+            shift
+            {
+              echo
+              echo "## $title"
+              echo
+              echo '```text'
+              "$@" 2>&1 || true
+              echo '```'
+            } >> "$report"
+
+            {
+              echo
+              echo "===== $title ====="
+              "$@" 2>&1 || true
+            } >> "$raw"
+          }
+
+          run_section "Host identity" bash -lc 'hostname; scutil --get ComputerName 2>/dev/null || true; scutil --get LocalHostName 2>/dev/null || true; whoami; pwd'
+          run_section "macOS" bash -lc 'sw_vers; uname -a'
+          run_section "Storage overview df -h" df -h
+          run_section "APFS list" diskutil apfs list
+          run_section "Diskutil list" diskutil list
+          run_section "Disk info root" diskutil info /
+          run_section "Disk info Data volume" diskutil info /System/Volumes/Data
+          run_section "Mounted volumes" mount
+          run_section "Time Machine local snapshots root" tmutil listlocalsnapshots /
+          run_section "Time Machine local snapshots Data" tmutil listlocalsnapshots /System/Volumes/Data
+          run_section "Storage data system profiler" system_profiler SPStorageDataType
+          run_section "Users permissions" bash -lc 'ls -ld /Users /Users/* 2>/dev/null'
+          run_section "Top-level user directory sizes" bash -lc 'du -sh /Users/* 2>/dev/null | sort -h'
+          run_section "Candidate API_STORAGE paths" bash -lc 'for d in /Users/*/API_STORAGE /Users/*/Documents/API_STORAGE /Users/*/Desktop/API_STORAGE; do [ -e "$d" ] && ls -ld "$d"; done'
+          run_section "iCloud and CloudStorage indicators" bash -lc 'for d in /Users/*/Library/Mobile\ Documents /Users/*/Library/CloudStorage; do [ -e "$d" ] && ls -ld "$d"; done'
+          run_section "External volumes summary" bash -lc 'ls -ld /Volumes /Volumes/* 2>/dev/null'
+
+          {
+            echo
+            echo "## Next step"
+            echo
+            echo "Compare this APFS report with the macOS Storage UI before any R4 creation of API_STORAGE directories."
+          } >> "$report"
+
+      - name: Upload audit artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: storage-apfs-deep-readonly-${{ inputs.job_id }}-${{ runner.name }}
+          path: audit-output/
+          if-no-files-found: error
+
+      - name: Persist sanitized report to audit branch
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          git config user.name "ada-storage-audit-bot"
+          git config user.email "ada-storage-audit-bot@users.noreply.github.com"
+
+          out_dir="audits/storage-apfs-deep/${{ inputs.job_id }}/${{ runner.name }}"
+          report_src="audit-output/storage-apfs-deep-readonly-audit.md"
+
+          git fetch origin "$AUDIT_BRANCH" || true
+
+          if git show-ref --quiet "refs/remotes/origin/$AUDIT_BRANCH"; then
+            git checkout "$AUDIT_BRANCH"
+            git pull --ff-only origin "$AUDIT_BRANCH" || true
+          else
+            git checkout --orphan "$AUDIT_BRANCH"
+            git rm -rf . >/dev/null 2>&1 || true
+          fi
+
+          mkdir -p "$out_dir"
+          cp "$report_src" "$out_dir/storage-apfs-deep-readonly-audit.md"
+
+          git add "$out_dir/storage-apfs-deep-readonly-audit.md"
+
+          if git diff --cached --quiet; then
+            echo "No APFS audit report changes to commit."
+          else
+            git commit -m "Add APFS deep readonly audit report for ${{ inputs.job_id }} / ${{ runner.name }}"
+            git push origin "$AUDIT_BRANCH"
+          fi
