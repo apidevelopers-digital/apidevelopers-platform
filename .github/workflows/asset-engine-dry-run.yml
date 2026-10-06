@@ -1,0 +1,41 @@
+name: ADA Asset Engine dry-run
+
+on:
+  workflow_dispatch:
+  pull_request:
+    paths:
+      - 'docs/asset-engine/**'
+      - 'packages/asset-engine/**'
+      - 'apps/asset-api/**'
+      - 'apps/asset-worker/**'
+      - 'media/catalogs/**'
+      - 'scripts/asset-engine-dry-run-greys.mjs'
+
+permissions:
+  contents: read
+
+jobs:
+  hiddenarquives-greys-dry-run:
+    runs-on:
+      - self-hosted
+      - macOS
+      - X64
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: Run Hidden Arquives Greys dry-run
+        run: node scripts/asset-engine-dry-run-greys.mjs
+
+      - name: Upload dry-run manifest
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: hiddenarquives-greys-dry-run-manifest
+          path: artifacts/asset-engine/dry-run/hiddenarquives-greys-dry-run-manifest.json
