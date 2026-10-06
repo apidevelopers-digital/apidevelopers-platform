@@ -10,7 +10,7 @@ import { attachMitraPublicResearchToGateway } from "./mitra-public-operational-w
 import { attachUniJuriProductionHandoffToGateway } from "./unijuri-production-handoff-operational-wrapper.mjs";
 import { attachZuniChannelBindingWriteHostingerComposition } from "./zuni-channel-binding-write-hostinger-wiring.mjs";
 import { attachTrustFaceAccessDurablePreviewToGateway } from "./trust-face-access-durable-runtime-transform.mjs";
-import { attachRetrievalOperationalRuntimeToGateway } from "./retrieval-operational-bootstrap.emjs";
+import { attachRetrievalOperationalRuntimeToGateway } from "./retrieval-operational-bootstrap.mjs";
 import { createOperatorApiKeyProvisioningRuntimeApp } from "./operator-api-key-provisioning-composition.mjs";
 import { createOperatorApiKeyProvisioningWrapper } from "./operator-api-key-provisioning-wrapper.mjs";
 
