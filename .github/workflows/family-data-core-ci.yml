@@ -1,0 +1,54 @@
+name: Family Data Core CI
+
+on:
+  pull_request:
+    branches:
+      - main
+    paths:
+      - "packages/family-data-core/**"
+      - ".github/workflows/family-data-core-ci.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: family-data-core-ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  validate:
+    name: Family Data Core contract and read-only tests
+    runs-on:
+      - self-hosted
+      - macOS
+      - X64
+    timeout-minutes: 10
+    defaults:
+      run:
+        working-directory: packages/family-data-core
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+
+      - name: Check package
+        shell: bash
+        run: |
+          set -euo pipefail
+          npm run check
+
+      - name: Confirm read-only development gate
+        shell: bash
+        run: |
+          set -euo pipefail
+          echo "database_connection_opened=false"
+          echo "schema_applied=false"
+          echo "api_storage_accessed=false"
+          echo "bistek_ingested=false"
+          echo "deploy_executed=false"
