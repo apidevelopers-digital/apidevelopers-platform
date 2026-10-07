@@ -12,7 +12,7 @@ const allowedRemoteRoot = '/home/u242521810/domains/hiddenarquives.tech/public_h
 
 function normalizeRemote(relativePath) {
   const cleaned = String(relativePath || '')
-    .replaceAll('\\', '/')
+    .replace(/\\\\/g, '/')
     .replace(/^\/+/, '')
     .replace(/\/+/g, '/');
 
@@ -34,7 +34,8 @@ const htmlExists = fs.existsSync(htmlPath);
 const files = [];
 
 for (const asset of manifest.assets || []) {
-  const remotePath = normalizeRemote(`${manifest.target?.assetsPath || `assets/species/${manifest.project}`}/${asset.filename}`);
+  const assetPath = manifest.target?.assetsPath || `assets/species/${manifest.project}`;
+  const remotePath = normalizeRemote(`${assetPath}/${asset.filename}`);
   assertInsideAllowedRoot(remotePath);
 
   files.push({
@@ -99,7 +100,7 @@ const plan = {
 fs.mkdirSync(outDir, { recursive: true });
 fs.writeFileSync(outPath, `${JSON.stringify(plan, null, 2)}\n`);
 
-console.log(JSON.stringify {
+console.log(JSON.stringify({
   ok: plan.ok,
   output: path.relative(root, outPath),
   total_files_planned: plan.counts.total_files_planned,
