@@ -32,7 +32,7 @@ jobs:
         with:
           node-version: 22
 
-      - name: Diagnostic dry-run and render
+      - name: Diagnostic dry-run, render and Hostinger publish plan
         continue-on-error: true
         run: |
           set +e
@@ -45,6 +45,9 @@ jobs:
 
           node --check scripts/asset-engine-render-greys.mjs > /tmp/asset-render-check.log 2>&1
           CHECK_RENDER=$?
+
+          node --check scripts/asset-engine-hostinger-plan-greys.mjs > /tmp/asset-hostinger-plan-check.log 2>&1
+          CHECK_PLAN=$?
 
           if [ "$CHECK_DRY" -eq 0 ]; then
             node scripts/asset-engine-dry-run-greys.mjs > /tmp/asset-dry-run.log 2>&1
@@ -60,8 +63,17 @@ jobs:
             RUN_RENDER=99
           fi
 
+          if [ "$RUN_RENDER" -eq 0 ] && [ "$CHECK_PLAN" -eq 0 ]; then
+            node scripts/asset-engine-hostinger-plan-greys.mjs > /tmp/asset-hostinger-plan-run.log 2>&1
+            RUN_PLAN=$?
+          else
+            RUN_PLAN=99
+          fi
+
           VERIFY=99
-          if [ -f artifacts/asset-engine/dry-run/hiddenarquives-greys-dry-run-manifest.json ] && [ -f artifacts/asset-engine/dry-run/hiddenarquives-greys-index.html ]; then
+          if [ -f artifacts/asset-engine/dry-run/hiddenarquives-greys-dry-run-manifest.json ] \
+            && [ -f artifacts/asset-engine/dry-run/hiddenarquives-greys-index.html ] \
+            && [ -f artifacts/asset-engine/dry-run/hostinger-publish-plan.json ]; then
             if grep -q 'ha-https://' artifacts/asset-engine/dry-run/hiddenarquives-greys-index.html; then
               VERIFY=12
             else
@@ -69,9 +81,9 @@ jobs:
             fi
           fi
 
-          python3 - "$REPORT" "$CHECK_DRY" "$CHECK_RENDER" "$RUN_DRY" "$RUN_RENDER" "$VERIFY" <<'PY'
+          python3 - "$REPORT" "$CHECK_DRY" "$CHECK_RENDER" "$CHECK_PLAN" "$RUN_DRY" "$RUN_RENDER" "$RUN_PLAN" "$VERIFY" <<'PY'
           import json, pathlib, sys
-          out, check_dry, check_render, run_dry, run_render, verify = sys.argv[1:]
+          out, check_dry, check_render, check_plan, run_dry, run_render, run_plan, verify = sys.argv[1:]
           def tail(path):
               p = pathlib.Path(path)
               if not p.exists():
@@ -80,20 +92,29 @@ jobs:
           exits = {
               "node_check_dry": int(check_dry),
               "node_check_render": int(check_render),
+              "node_check_hostinger_plan": int(check_plan),
               "run_dry": int(run_dry),
               "run_render": int(run_render),
+              "run_hostinger_plan": int(run_plan),
               "verify": int(verify),
           }
           data = {
               "ok": all(v == 0 for v in exits.values()),
-              "step": "diagnostic_dry_run_render",
+              "step": "diagnostic_dry_run_render_hostinger_plan",
               "exits": exits,
+              "artifacts": {
+                  "manifest": "artifacts/asset-engine/dry-run/hiddenarquives-greys-dry-run-manifest.json",
+                  "html": "artifacts/asset-engine/dry-run/hiddenarquives-greys-index.html",
+                  "hostinger_plan": "artifacts/asset-engine/dry-run/hostinger-publish-plan.json"
+              },
               "logs": {
                   "check_dry": tail("/tmp/asset-dry-check.log"),
                   "check_render": tail("/tmp/asset-render-check.log"),
+                  "check_hostinger_plan": tail("/tmp/asset-hostinger-plan-check.log"),
                   "run_dry": tail("/tmp/asset-dry-run.log"),
                   "run_render": tail("/tmp/asset-render-run.log"),
-              },
+                  "run_hostinger_plan": tail("/tmp/asset-hostinger-plan-run.log"),
+              }
           }
           pathlib.Path(out).write_text(json.dumps(data, indent=2) + "\n", encoding="utf-8")
           PY
@@ -113,4 +134,5 @@ jobs:
           path: |
             artifacts/asset-engine/dry-run/hiddenarquives-greys-dry-run-manifest.json
             artifacts/asset-engine/dry-run/hiddenarquives-greys-index.html
+            artifacts/asset-engine/dry-run/hostinger-publish-plan.json
             artifacts/asset-engine/dry-run/diagnostic-report.json
