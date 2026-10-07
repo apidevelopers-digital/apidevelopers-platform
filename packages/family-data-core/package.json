@@ -1,0 +1,17 @@
+{
+  "name": "@apidevelopers/family-data-core",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Read-only reference implementation for the canonical Family Data Core v1 contract.",
+  "type": "module",
+  "exports": {
+    ".": "./src/index.mjs"
+  },
+  "scripts": {
+    "check": "node --check src/index.mjs && node --check src/in-memory-store.mjs && npm test",
+    "test": "node --test --test-concurrency=1 test/*.test.mjs"
+  },
+  "engines": {
+    "node": ">=22"
+  }
+}
