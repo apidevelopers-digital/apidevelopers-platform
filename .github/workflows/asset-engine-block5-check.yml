@@ -11,6 +11,14 @@ on:
         options:
           - 'false'
           - 'true'
+      execute_http_validation:
+        description: 'Execute public HTTP HEAD validation after an approved publication'
+        required: true
+        default: 'false'
+        type: choice
+        options:
+          - 'false'
+          - 'true'
   pull_request:
     paths:
       - 'docs/asset-engine/**'
@@ -31,6 +39,7 @@ jobs:
 
     env:
       STRICT_INGEST: ${{ github.event_name == 'workflow_dispatch' && inputs.strict == 'true' }}
+      EXECUTE_HTTP_VALIDATION: ${{ github.event_name == 'workflow_dispatch' && inputs.execute_http_validation == 'true' }}
 
     steps:
       - name: Checkout
@@ -50,6 +59,7 @@ jobs:
           node --check scripts/asset-engine-hostinger-plan-greys.mjs
           node --check scripts/asset-engine-hostinger-publish-greys.mjs
           node --check scripts/asset-engine-prepublish-greys.mjs
+          node --check scripts/asset-engine-http-validate-greys.mjs
 
       - name: Run Block 5 safe pipeline
         run: |
@@ -68,6 +78,12 @@ jobs:
           node scripts/asset-engine-hostinger-publish-greys.mjs
           node scripts/asset-engine-prepublish-greys.mjs
 
+          if [ "$EXECUTE_HTTP_VALIDATION" = "true" ]; then
+            ADA_ASSET_ENGINE_HTTP_VALIDATE_REAL=true node scripts/asset-engine-http-validate-greys.mjs --execute
+          else
+            node scripts/asset-engine-http-validate-greys.mjs
+          fi
+
       - name: Upload Block 5 reports
         uses: actions/upload-artifact@v4
         if: always()
@@ -79,5 +95,6 @@ jobs:
             artifacts/asset-engine/dry-run/hiddenarquives-greys-index.html
             artifacts/asset-engine/dry-run/hostinger-publish-plan.json
             artifacts/asset-engine/dry-run/hiddenarquives-greys-prepublication-readiness-report.json
+            artifacts/asset-engine/dry-run/hiddenarquives-greys-http-validation-report.json
             artifacts/asset-engine/dry-run/diagnostic-report.json
           if-no-files-found: warn
