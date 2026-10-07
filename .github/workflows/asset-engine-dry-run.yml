@@ -9,7 +9,9 @@ on:
       - 'apps/asset-api/**'
       - 'apps/asset-worker/**'
       - 'media/catalogs/**'
-      - 'scripts/asset-engine-dry-run-greys.mjs'
+      - 'media/sources/**'
+      - 'templates/asset-engine/**'
+      - 'scripts/asset-engine-*.mjs'
 
 permissions:
   contents: read
@@ -30,12 +32,26 @@ jobs:
         with:
           node-version: 22
 
-      - name: Run Hidden Arquives Greys dry-run
+      - name: Run Hidden Arquives Greys dry-run manifest
         run: node scripts/asset-engine-dry-run-greys.mjs
 
-      - name: Upload dry-run manifest
+      - name: Render Hidden Arquives Greys dry-run HTML
+        run: node scripts/asset-engine-render-greys.mjs
+
+      - name: Verify dry-run outputs
+        run: |
+          test -f artifacts/asset-engine/dry-run/hiddenarquives-greys-dry-run-manifest.json
+          test -f artifacts/asset-engine/dry-run/hiddenarquives-greys-index.html
+          if grep -q 'ha-https://' artifacts/asset-engine/dry-run/hiddenarquives-greys-index.html; then
+            echo "Rendered HTML contains broken ha-https URL."
+            exit 1
+          fi
+
+      - name: Upload dry-run artifacts
         uses: actions/upload-artifact@v4
         if: always()
         with:
-          name: hiddenarquives-greys-dry-run-manifest
-          path: artifacts/asset-engine/dry-run/hiddenarquives-greys-dry-run-manifest.json
+          name: hiddenarquives-greys-asset-engine-dry-run
+          path: |
+            artifacts/asset-engine/dry-run/hiddenarquives-greys-dry-run-manifest.json
+            artifacts/asset-engine/dry-run/hiddenarquives-greys-index.html
