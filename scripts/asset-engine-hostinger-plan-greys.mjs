@@ -12,9 +12,9 @@ const allowedRemoteRoot = '/home/u242521810/domains/hiddenarquives.tech/public_h
 
 function normalizeRemote(relativePath) {
   const cleaned = String(relativePath || '')
-    .replaceAll('\\\\', '/')
-    .replace(/^\\/+/, '')
-    .replace(/\\/+/g, '/');
+    .replaceAll('\\', '/')
+    .replace(/^\/+/, '')
+    .replace(/\/+/g, '/');
 
   if (!cleaned || cleaned.includes('..')) {
     throw new Error(`unsafe_relative_path:${relativePath}`);
@@ -31,7 +31,6 @@ function assertInsideAllowedRoot(remotePath) {
 
 const manifest = JSON.parse(fs.readFileSync(manifestPath, 'utf8'));
 const htmlExists = fs.existsSync(htmlPath);
-
 const files = [];
 
 for (const asset of manifest.assets || []) {
@@ -64,7 +63,7 @@ files.push({
   title: `${manifest.title} generated page`,
   source: path.relative(root, htmlPath),
   source_exists: htmlExists,
-  filename3: path.basename(pageRemotePath),
+  filename: path.basename(pageRemotePath),
   sha1: null,
   size_bytes: htmlExists ? fs.statSync(htmlPath).size : 0,
   public_url: manifest.target?.subdomain ? `https://${manifest.target.subdomain}` : null,
