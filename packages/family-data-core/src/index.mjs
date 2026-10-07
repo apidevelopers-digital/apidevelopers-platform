@@ -4,6 +4,9 @@ export const FAMILY_DATA_SCHEMA_VERSION = "family-data-core.v1";
 export const FAMILY_DATA_TENANT = "homosapiens-id";
 
 export { createInMemoryFamilyDataCore };
+export { buildFamilyDataCoreSchemaSql } from "./postgres-schema.mjs";
+export { createPostgresFamilyDataReadStore } from "./postgres-read-store.mjs";
+export { createFamilyDataMcpReadTools, assertFamilyDataMcpReadOnly } from "./mcp-read-tools.mjs";
 
 export function createFamilyDataEnvelope({ requestId, data, provenance = {}, generatedAt = new Date().toISOString() }) {
   if (!requestId) throw new TypeError("requestId is required");
