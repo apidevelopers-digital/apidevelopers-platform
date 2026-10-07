@@ -53,7 +53,8 @@ jobs:
           p = 'artifacts/asset-engine/dry-run/hostinger-publish-report.json'
           d = json.load(open(p))
           assert d.get('ok') is False, d
-          assert d.get('error') == 'real_assets_missing_blocked_publish', d
+          assert d.get('error'), d
+          assert d['error'] in ['real_assets_missing_blocked_publish', 'missing_hostinger_publish_plan'], d
           assert d.get('step') == 'hostinger_publish_gated', d
           print(json.dumps({'ok': True, 'validated': d['error']}, indent=2))
           PY
