@@ -29,7 +29,7 @@ const catalog = JSON.parse(fs.readFileSync(catalogPath, 'utf8'));
 const manifest = JSON.parse(fs.readFileSync(manifestPath, 'utf8'));
 
 if (!manifest.ok) {
-  throw new Error(`manifest_not_ok:${manifest.errors || []).join(',')}`);
+  throw new Error(`manifest_not_ok:${(manifest.errors || []).join(',')}`);
 }
 
 const hero = manifest.assets.find((asset) => asset.role === 'hero') || manifest.assets[0];
@@ -49,7 +49,7 @@ const html = `<!doctype html>
     .asset-engine-preview{padding:32px;max-width:1180px;margin:auto}
     .hero-preview{width:100%;max-height:520px;object-fit:cover;border-radius:28px}
     .visual-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:18px}
-    .visual-card{border:1px solid #ffffff22;border-radius:24ppx;overflow:hidden;background:#ffffff08}
+    .visual-card{border:1px solid #ffffff22;border-radius:24px;overflow:hidden;background:#ffffff08}
     .visual-card img{display:block;width:100%;aspect-ratio:16/10;object-fit:cover;background:#071018}
     .visual-card figcaption{padding:18px}
     @media(max-width:820px){.visual-grid{grid-template-columns:1fr}}
@@ -86,5 +86,5 @@ console.log(JSON.stringify({
   ok: true,
   output: path.relative(root, outputPath),
   cards: cards.length,
-  hero: Boolean(hero),
+  hero: Boolean(hero)
 }, null, 2));
