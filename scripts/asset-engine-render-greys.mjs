@@ -49,7 +49,7 @@ const html = `<!doctype html>
     .asset-engine-preview{padding:32px;max-width:1180px;margin:auto}
     .hero-preview{width:100%;max-height:520px;object-fit:cover;border-radius:28px}
     .visual-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:18px}
-    .visual-card{border:1px solid #ffffff22;border-radius:24px;overflow:hidden;background:#ffffff08}
+    .visual-card{border:1px solid #ffffff22;border-radius:24ppx;overflow:hidden;background:#ffffff08}
     .visual-card img{display:block;width:100%;aspect-ratio:16/10;object-fit:cover;background:#071018}
     .visual-card figcaption{padding:18px}
     @media(max-width:820px){.visual-grid{grid-template-columns:1fr}}
@@ -73,7 +73,7 @@ ${cards.map(card).join('\n')}
   </main>
 </body>
 </html>
- ;
+`;
 
 if (html.includes('ha-https://')) {
   throw new Error('rendered_html_contains_broken_ha_https');
@@ -81,4 +81,10 @@ if (html.includes('ha-https://')) {
 
 fs.mkdirSync(path.dirname(outputPath), { recursive: true });
 fs.writeFileSync(outputPath, html);
-console.log(JSON.stringify({ ok: true, output: outputPath, cards: cards.length, hero: Boolean(hero) }, null, 2));
+
+console.log(JSON.stringify({
+  ok: true,
+  output: path.relative(root, outputPath),
+  cards: cards.length,
+  hero: Boolean(hero),
+}, null, 2));
