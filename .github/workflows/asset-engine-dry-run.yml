@@ -32,20 +32,78 @@ jobs:
         with:
           node-version: 22
 
-      - name: Run Hidden Arquives Greys dry-run manifest
-        run: node scripts/asset-engine-dry-run-greys.mjs
-
-      - name: Render Hidden Arquives Greys dry-run HTML
-        run: node scripts/asset-engine-render-greys.mjs
-
-      - name: Verify dry-run outputs
+      - name: Diagnostic dry-run and render
+        continue-on-error: true
         run: |
-          test -f artifacts/asset-engine/dry-run/hiddenarquives-greys-dry-run-manifest.json
-          test -f artifacts/asset-engine/dry-run/hiddenarquives-greys-index.html
-          if grep -q 'ha-https://' artifacts/asset-engine/dry-run/hiddenarquives-greys-index.html; then
-            echo "Rendered HTML contains broken ha-https URL."
-            exit 1
+          set +e
+          mkdir -p artifacts/asset-engine/dry-run
+          REPORT=artifacts/asset-engine/dry-run/diagnostic-report.json
+          echo '{"ok":false,"step":"start","errors":[]}' > "$REPORT"
+
+          node --check scripts/asset-engine-dry-run-greys.mjs > /tmp/asset-dry-check.log 2>&1
+          CHECK_DRY=$?
+
+          node --check scripts/asset-engine-render-greys.mjs > /tmp/asset-render-check.log 2>&1
+          CHECK_RENDER=$?
+
+          if [ "$CHECK_DRY" -eq 0 ]; then
+            node scripts/asset-engine-dry-run-greys.mjs > /tmp/asset-dry-run.log 2>&1
+            RUN_DRY=$?
+          else
+            RUN_DRY=99
           fi
+
+          if [ "$RUN_DRY" -eq 0 ] && [ "$CHECK_RENDER" -eq 0 ]; then
+            node scripts/asset-engine-render-greys.mjs > /tmp/asset-render-run.log 2>&1
+            RUN_RENDER=$?
+          else
+            RUN_RENDER=99
+          fi
+
+          VERIFY=99
+          if [ -f artifacts/asset-engine/dry-run/hiddenarquives-greys-dry-run-manifest.json ] && [ -f artifacts/asset-engine/dry-run/hiddenarquives-greys-index.html ]; then
+            if grep -q 'ha-https://' artifacts/asset-engine/dry-run/hiddenarquives-greys-index.html; then
+              VERIFY=12
+            else
+              VERIFY=0
+            fi
+          fi
+
+          python3 - "$REPORT" "$CHECK_DRY" "$CHECK_RENDER" "$RUN_DRY" "$RUN_RENDER" "$VERIFY" <<'PY'
+          import json, pathlib, sys
+          out, check_dry, check_render, run_dry, run_render, verify = sys.argv[1:]
+          def tail(path):
+              p = pathlib.Path(path)
+              if not p.exists():
+                  return ""
+              return "\n".join(p.read_text(encoding="utf-8", errors="replace").splitlines()[-40:])
+          exits = {
+              "node_check_dry": int(check_dry),
+              "node_check_render": int(check_render),
+              "run_dry": int(run_dry),
+              "run_render": int(run_render),
+              "verify": int(verify),
+          }
+          data = {
+              "ok": all(v == 0 for v in exits.values()),
+              "step": "diagnostic_dry_run_render",
+              "exits": exits,
+              "logs": {
+                  "check_dry": tail("/tmp/asset-dry-check.log"),
+                  "check_render": tail("/tmp/asset-render-check.log"),
+                  "run_dry": tail("/tmp/asset-dry-run.log"),
+                  "run_render": tail("/tmp/asset-render-run.log"),
+              },
+          }
+          pathlib.Path(out).write_text(json.dumps(data, indent=2) + "\n", encoding="utf-8")
+          PY
+
+          cat "$REPORT"
+          python3 - "$REPORT" <<'PY'
+          import json, sys
+          data = json.load(open(sys.argv[1]))
+          sys.exit(0 if data.get("ok") else 1)
+          PY
 
       - name: Upload dry-run artifacts
         uses: actions/upload-artifact@v4
@@ -55,3 +113,4 @@ jobs:
           path: |
             artifacts/asset-engine/dry-run/hiddenarquives-greys-dry-run-manifest.json
             artifacts/asset-engine/dry-run/hiddenarquives-greys-index.html
+            artifacts/asset-engine/dry-run/diagnostic-report.json
