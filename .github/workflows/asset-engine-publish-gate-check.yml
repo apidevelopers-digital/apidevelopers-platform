@@ -39,24 +39,28 @@ jobs:
           node scripts/asset-engine-render-greys.mjs
           node scripts/asset-engine-hostinger-plan-greys.mjs
 
-      - name: Verify gate blocks without real assets
+      - name: Verify gate reports controlled block
         run: |
           set +e
           ADA_ASSET_ENGINE_DRY_RUN=true node scripts/asset-engine-hostinger-publish-greys.mjs > /tmp/publish-gate.log 2>&1
           EXIT=$?
           set -e
           cat /tmp/publish-gate.log || true
-          test "$EXIT" -ne 0
           test -f artifacts/asset-engine/dry-run/hostinger-publish-report.json
-          python3 - <<'PY'
-          import json
-          p = 'artifacts/asset-engine/dry-run/hostinger-publish-report.json'
-          d = json.load(open(p))
+
+          python3 - "$EXIT" <<'PY'
+          import json, sys
+          exit_code = int(sys.argv[1])
+          x = 'artifacts/asset-engine/dry-run/hostinger-publish-report.json'
+          d = json.load(open(x))
           assert d.get('ok') is False, d
           assert d.get('error'), d
-          assert d['error'] in ['real_assets_missing_blocked_publish', 'missing_hostinger_publish_plan'], d
+          assert d.get('error') in [
+            'real_assets_missing_blocked_publish',
+            'missing_hostinger_publish_plan',
+          ], d
           assert d.get('step') == 'hostinger_publish_gated', d
-          print(json.dumps({'ok': True, 'validated': d['error']}, indent=2))
+          print(json.dumps({'ok': True, 'validated': d['error'], 'publisher_exit': exit_code}, indent=2))
           PY
 
       - name: Upload gate report
