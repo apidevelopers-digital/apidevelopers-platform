@@ -55,7 +55,7 @@ test("operational authenticator plus injected db query adapter can pass prefligh
 });
 
 test("unsupported tenant fails closed", () => {
-  const result = prefligightFamilyDataOperationalDependencies({
+  const result = preflightFamilyDataOperationalDependencies({
     gateway: operationalGateway(),
     db: { async query() { return { rows: [] }; } },
     householdId: "hh_family_1",
