@@ -172,11 +172,19 @@ export function createPostgresFamilyDataReadStore({
       requireTenant(tenant_id);
       const days = boundedPositiveInteger(window_days, 365, 3650, "window_days");
       const products = await db.query(
-        `SELECT product_id, canonical_name, brand, category, package_quantity::text, package_unit, gtin
-         FROM ${table("products")}
-         WHERE is_food = true OR domain = 'culinary'
-         ORDER BY canonical_name`,
-        []
+        `SELECT pr.product_id, pr.canonical_name, pr.brand, pr.category,
+          pr.package_quantity::text, pr.package_unit, pr.gtin
+         FROM ${table("products")} pr
+         WHERE (pr.is_food = true OR pr.domain = 'culinary')
+           AND EXISTS (
+             SELECT 1
+             FROM ${table("purchase_items")} pi
+             JOIN ${table("purchases")} pp ON pp.purchase_id = pi.purchase_id
+             WHERE pi.product_id = pr.product_id
+               AND pp.household_id = $1
+           )
+         ORDER BY pr.canonical_name`,
+        [scopedHouseholdId]
       );
       const items = await db.query(
         `SELECT i.purchase_item_id, i.purchase_id, i.product_id, i.quantity::text, i.quantity_unit,
@@ -202,9 +210,17 @@ export function createPostgresFamilyDataReadStore({
         throw error;
       }
       const r = await db.query(
-        `SELECT evidence_id, batch_id, source_id, kind, sha256, captured_at::text, immutable, classification, metadata
-         FROM ${table("evidence")} WHERE evidence_id = $1`,
-        [evidence_id]
+        `SELECT e.evidence_id, e.batch_id, e.source_id, e.kind, e.sha256,
+          e.captured_at::text, e.immutable, e.classification, e.metadata
+         FROM ${table("evidence")} e
+         WHERE e.evidence_id = $1
+           AND EXISTS (
+             SELECT 1
+             FROM ${table("purchases")} p
+             WHERE p.household_id = $2
+               AND p.evidence_ids ? e.evidence_id
+           )`,
+        [evidence_id, scopedHouseholdId]
       );
       return envelope(request_id, { evidence: r.rows?.[0] ?? null });
     }
