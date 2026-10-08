@@ -26,6 +26,27 @@ export type AssetChannel =
   | 'vnnox'
   | 'meta-social';
 
+export type AssetCanonicalPolicy = 'approved-original';
+
+export type AssetFileKind =
+  | 'approved_original'
+  | 'derivative'
+  | 'source_part'
+  | 'manifest'
+  | 'publish_plan';
+
+export type AssetDerivativePurpose =
+  | 'web'
+  | 'hero'
+  | 'card'
+  | 'thumb'
+  | 'mobile'
+  | 'whatsapp'
+  | 'email'
+  | 'vnnox'
+  | 'campaign'
+  | 'preview';
+
 export interface AssetRecord {
   asset_id: string;
   tenant: string;
@@ -37,9 +58,61 @@ export interface AssetRecord {
   sha256?: string;
   public_url?: string;
   storage?: AssetStorage;
+
+  /**
+   * Canonical policy for human-approved media.
+   *
+   * When set to "approved-original", the approved file itself is the source
+   * of truth and derivatives can never replace it.
+   */
+  canonical_policy?: AssetCanonicalPolicy;
+  original?: AssetCanonicalOriginal;
+  derivatives?: Record<string, AssetDerivative>;
+
+  /**
+   * Legacy/compatibility variants. Use derivatives for new manifests.
+   */
   variants?: Record<string, AssetVariant>;
   usage?: string[];
   audit?: AssetAudit;
+}
+
+export interface AssetCanonicalOriginal {
+  kind: 'approved_original';
+  approved: boolean;
+  exact_bytes_required: true;
+  filename?: string;
+  source_path?: string;
+  public_url?: string;
+  remote_path?: string;
+  storage?: AssetStorage;
+  mime?: string;
+  width?: number;
+  height?: number;
+  size_bytes?: number;
+  sha1?: string;
+  sha256: string;
+}
+
+export interface AssetDerivative {
+  kind: 'derivative';
+  purpose: AssetDerivativePurpose;
+  derived_from_sha256: string;
+  public_url?: string;
+  remote_path?: string;
+  storage?: AssetStorage;
+  mime?: string;
+  width?: number;
+  height?: number;
+  size_bytes?: number;
+  sha1?: string;
+  sha256?: string;
+  transformation?: {
+    resize?: string;
+    format?: string;
+    quality?: number;
+    notes?: string;
+  };
 }
 
 export interface AssetVariant {
@@ -51,6 +124,7 @@ export interface AssetVariant {
   height?: number;
   size_bytes?: number;
   sha1?: string;
+  sha256?: string;
 }
 
 export interface AssetStorage {
