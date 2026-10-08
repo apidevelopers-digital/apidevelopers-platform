@@ -11,6 +11,7 @@ export { buildFamilyDataCoreSchemaSql } from "./postgres-schema.mjs";
 export { createPostgresFamilyDataReadStore } from "./postgres-read-store.mjs";
 export { createFamilyDataMcpReadTools, assertFamilyDataMcpReadOnly } from "./mcp-read-tools.mjs";
 export { createFamilyDataHttpReadHandler } from "./http-read-handler.mjs";
+export { createPostgresFamilyDataHttpReadBoundary } from "./postgres-http-read-boundary.mjs";
 
 export const familyDataCapabilities = Object.freeze({
   read: [
