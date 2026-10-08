@@ -6,12 +6,12 @@ const SCRIPT_DIRECTORY = dirname(fileURLToPath(import.meta.url));
 const REPOSITORY_ROOT = resolve(
   process.env.GITHUB_WORKSPACE ?? resolve(SCRIPT_DIRECTORY, "../../.."),
 );
-
 const links = Object.freeze([
   ["apps/api-gateway", "lex-legal-runtime"],
   ["apps/api-gateway", "contracts"],
   ["apps/api-gateway", "auth-core"],
   ["apps/api-gateway", "apikey-core"],
+  ["apps/api-gateway", "family-data-core"],
   ["apps/api-gateway", "persistence-core"],
   ["apps/api-gateway", "saas-runtime"],
   ["apps/api-gateway", "trust-governance-runtime"],
@@ -50,7 +50,6 @@ async function ensureLink(ownerDirectory, dependencyDirectory) {
   const destination = join(scope, dependencyDirectory);
 
   await mkdir(scope, { recursive: true });
-
   try {
     const current = await lstat(destination);
     if (!current.isSymbolicLink()) {
