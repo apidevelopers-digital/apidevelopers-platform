@@ -1,7 +1,10 @@
-import { createFamilyDataEnvelope } from "./index.mjs";
+import { createFamilyDataEnvelope } from "./contract.mjs";
+
+const FAMILY_TENANT = "homosapiens-id";
+const SAFE_SCHEMA = /^[A-Za-z_][A-Za-z0-9_]*$/;
 
 function requireTenant(tenantId) {
-  if (tenantId !== "homosapiens-id") {
+  if (tenantId !== FAMILY_TENANT) {
     const error = new Error("tenant_forbidden");
     error.code = "tenant_forbidden";
     throw error;
@@ -14,9 +17,50 @@ function assertDb(db) {
   }
 }
 
-export function createPostgresFamilyDataReadStore({ db, schema = "family_data", generatedAt = () => new Date().toISOString() } = {}) {
+function requireHouseholdId(householdId) {
+  if (typeof householdId !== "string" || householdId.trim() === "") {
+    throw new TypeError("householdId is required");
+  }
+  return householdId.trim();
+}
+
+function requireSafeSchema(schema) {
+  if (typeof schema !== "string" || !SAFE_SCHEMA.test(schema)) {
+    throw new TypeError("schema identifier is invalid");
+  }
+  return schema;
+}
+
+function boundedPositiveInteger(value, fallback, max, field) {
+  if (value === undefined || value === null) return fallback;
+  if (!Number.isInteger(value) || value < 1 || value > max) {
+    const error = new Error(`${field}_invalid`);
+    error.code = `${field}_invalid`;
+    throw error;
+  }
+  return value;
+}
+
+function moneyText(value) {
+  const text = String(value ?? "0");
+  if (!/^-?\d+(?:\.\d+)?$/.test(text)) throw new Error("money_value_invalid");
+  const sign = text.startsWith("-") ? "-" : "";
+  const unsigned = sign ? text.slice(1) : text;
+  const [whole, fraction = ""] = unsigned.split(".");
+  if (fraction.length > 2) throw new Error("money_scale_invalid");
+  return `${sign}${whole}.${fraction.padEnd(2, "0")}`;
+}
+
+export function createPostgresFamilyDataReadStore({
+  db,
+  schema = "family_data",
+  householdId,
+  generatedAt = () => new Date().toISOString()
+} = {}) {
   assertDb(db);
-  const table = (name) => `"${schema}"."${name}"`;
+  const safeSchema = requireSafeSchema(schema);
+  const scopedHouseholdId = requireHouseholdId(householdId);
+  const table = (name) => `"${safeSchema}"."${name}"`;
 
   const envelope = (requestId, data, provenance = {}) =>
     createFamilyDataEnvelope({ requestId, data, provenance, generatedAt: generatedAt() });
@@ -25,13 +69,13 @@ export function createPostgresFamilyDataReadStore({ db, schema = "family_data", 
     async purchaseList({ tenant_id, request_id, date_from = null, date_to = null, merchant_id = null, status = null, limit = 50 } = {}) {
       requireTenant(tenant_id);
       const clauses = ["household_id = $1"];
-      const params = ["hh_default"];
+      const params = [scopedHouseholdId];
       const push = (sql, value) => { params.push(value); clauses.push(sql.replace("?", `$${params.length}`)); };
       if (date_from) push("purchased_at >= ?", date_from);
       if (date_to) push("purchased_at <= ?", date_to);
       if (merchant_id) push("merchant_id = ?", merchant_id);
       if (status) push("status = ?", status);
-      params.push(Math.min(Number(limit) || 50, 200));
+      params.push(boundedPositiveInteger(limit, 50, 200, "limit"));
       const sql = `SELECT purchase_id, purchased_at::text, merchant_id, subtotal::text, discount::text, total::text, currency, status
         FROM ${table("purchases")}
         WHERE ${clauses.join(" AND ")}
@@ -49,11 +93,10 @@ export function createPostgresFamilyDataReadStore({ db, schema = "family_data", 
           reconciliation_status, evidence_ids
          FROM ${table("purchases")}
          WHERE household_id = $1 AND purchase_id = $2`,
-        ["hh_default", purchase_id]
+        [scopedHouseholdId, purchase_id]
       );
       const purchase = p.rows?.[0] ?? null;
       if (!purchase) return envelope(request_id, { purchase: null });
-
       const data = { purchase };
       if (include_items) {
         const r = await db.query(
@@ -82,7 +125,7 @@ export function createPostgresFamilyDataReadStore({ db, schema = "family_data", 
 
     async productStats({ tenant_id, request_id, product_id, date_from = null, date_to = null } = {}) {
       requireTenant(tenant_id);
-      const params = [product_id, "hh_default"];
+      const params = [product_id, scopedHouseholdId];
       const clauses = ["i.product_id = $1", "p.household_id = $2"];
       if (date_from) { params.push(date_from); clauses.push(`p.purchased_at >= $${params.length}`); }
       if (date_to) { params.push(date_to); clauses.push(`p.purchased_at <= $${params.length}`); }
@@ -100,18 +143,18 @@ export function createPostgresFamilyDataReadStore({ db, schema = "family_data", 
         product_id,
         purchase_events: Number(row.purchase_events ?? 0),
         units: String(row.units ?? "0"),
-        spend: Number(row.spend ?? 0).toFixed(2)
+        spend: moneyText(row.spend)
       });
     },
 
     async productPriceHistory({ tenant_id, request_id, product_id, merchant_id = null, date_from = null, date_to = null, limit = 200 } = {}) {
       requireTenant(tenant_id);
-      const params = [product_id, "hh_default"];
+      const params = [product_id, scopedHouseholdId];
       const clauses = ["i.product_id = $1", "p.household_id = $2"];
       if (merchant_id) { params.push(merchant_id); clauses.push(`p.merchant_id = $${params.length}`); }
       if (date_from) { params.push(date_from); clauses.push(`p.purchased_at >= $${params.length}`); }
       if (date_to) { params.push(date_to); clauses.push(`p.purchased_at <= $${params.length}`); }
-      params.push(Math.min(Number(limit) || 200, 500));
+      params.push(boundedPositiveInteger(limit, 200, 500, "limit"));
       const result = await db.query(
         `SELECT p.purchase_id, p.purchased_at::text, p.merchant_id, i.purchase_item_id,
           i.unit_price::text, i.line_total::text, i.currency
@@ -127,7 +170,7 @@ export function createPostgresFamilyDataReadStore({ db, schema = "family_data", 
 
     async chefContext({ tenant_id, request_id, window_days = 365 } = {}) {
       requireTenant(tenant_id);
-      const days = Math.max(1, Math.min(Number(window_days) || 365, 3650));
+      const days = boundedPositiveInteger(window_days, 365, 3650, "window_days");
       const products = await db.query(
         `SELECT product_id, canonical_name, brand, category, package_quantity::text, package_unit, gtin
          FROM ${table("products")}
@@ -146,7 +189,7 @@ export function createPostgresFamilyDataReadStore({ db, schema = "family_data", 
            AND (pr.is_food = true OR pr.domain = 'culinary')
            AND p.purchased_at >= CURRENT_DATE - ($2::int * INTERVAL '1 day')
          ORDER BY p.purchased_at DESC, i.purchase_item_id`,
-        ["hh_default", days]
+        [scopedHouseholdId, days]
       );
       return envelope(request_id, { window_days: days, products: products.rows ?? [], purchase_items: items.rows ?? [] });
     },
