@@ -1,0 +1,221 @@
+{
+  "schema": "ada.asset-engine.canonical-originals.v1",
+  "project": "hiddenarquives",
+  "collection": "greys",
+  "version": "v1",
+  "canonical_policy": "approved-original",
+  "created_at_utc": "2026-10-08T23:49:15Z",
+  "rule": "Approved assets are canonical originals. Derivatives may exist, but never replace the approved original.",
+  "assets": [
+    {
+      "id": "001-hero",
+      "title": "001 Hero",
+      "canonical_policy": "approved-original",
+      "approval_status": "approved",
+      "role": "canonical-original",
+      "original": {
+        "path": "approved/original/001-hero.jpg",
+        "source_filename": "9A3AC133-CE45-47D8-B18F-98546FC3C1DC1).jpeg",
+        "sha256": "287513121538856af1717f8cacb62a5e1ad5ea30305cefb9b393f9f72e7b71ce",
+        "bytes": 448188,
+        "width": 1536,
+        "height": 864,
+        "mime": "image/jpeg",
+        "mode": "RGB",
+        "exact_bytes_required": true,
+        "recompression_allowed": false,
+        "resize_allowed": false
+      },
+      "derivatives": []
+    },
+    {
+      "id": "002-council",
+      "title": "002 Council",
+      "canonical_policy": "approved-original",
+      "approval_status": "approved",
+      "role": "canonical-original",
+      "original": {
+        "path": "approved/original/002-council.jpg",
+        "source_filename": "11AB8CFB-7927-405A-9349-81A253A81B38(1).jpeg",
+        "sha256": "34f41b918565af2ba0bae89d31273b3998539bf2a093d3b66d9c8b7260764b4b",
+        "bytes": 602326,
+        "width": 1536,
+        "height": 864,
+        "mime": "image/jpeg",
+        "mode": "RGB",
+        "exact_bytes_required": true,
+        "recompression_allowed": false,
+        "resize_allowed": false
+      },
+      "derivatives": []
+    },
+    {
+      "id": "003-anatomy",
+      "title": "003 Anatomy",
+      "canonical_policy": "approved-original",
+      "approval_status": "approved",
+      "role": "canonical-original",
+      "original": {
+        "path": "approved/original/003-anatomy.jpg",
+        "source_filename": "0CDDB279-FA61-4163-A797-B2A6FA0DDD5(1).jpeg",
+        "sha256": "ac136f299993d8cfcffd6933230b2008f138d6d591a8f1a920addc5590ed1f03",
+        "bytes": 639545,
+        "width": 1536,
+        "height": 864,
+        "mime": "image/jpeg",
+        "mode": "RGB",
+        "exact_bytes_required": true,
+        "recompression_allowed": false,
+        "resize_allowed": false
+      },
+      "derivatives": []
+    },
+    {
+      "id": "004-navigation",
+      "title": "004 Navigation",
+      "canonical_policy": "approved-original",
+      "approval_status": "approved",
+      "role": "canonical-original",
+      "original": {
+        "path": "approved/original/004-navigation.jpg",
+        "source_filename": "34D9D0D9-32B2-49ED-8216-E0A86B1660BA(1).jpeg",
+        "sha256": "51d4732764bb4919d876fb904dcf4c96efd7d23c3ad32606372c5b7658f1d02b",
+        "bytes": 619972,
+        "width": 1536,
+        "height": 864,
+        "mime": "image/jpeg",
+        "mode": "RGB",
+        "exact_bytes_required": true,
+        "recompression_allowed": false,
+        "resize_allowed": false
+      },
+      "derivatives": []
+    },
+    {
+      "id": "005-learning",
+      "title": "005 Learning",
+      "canonical_policy": "approved-original",
+      "approval_status": "approved",
+      "role": "canonical-original",
+      "original": {
+        "path": "approved/original/005-learning.jpg",
+        "source_filename": "B296716A-8A5B-40F6-8AF2-D6312E835FC9(1).jpeg",
+        "sha256": "21093fd1fce492b23c2426cd5728d7d01c2fad7b2f691e9c605c7525dff6082c",
+        "bytes": 604751,
+        "width": 1536,
+        "height": 864,
+        "mime": "image/jpeg",
+        "mode": "RGB",
+        "exact_bytes_required": true,
+        "recompression_allowed": false,
+        "resize_allowed": false
+      },
+      "derivatives": []
+    },
+    {
+      "id": "006-life-cycle",
+      "title": "006 Life Cycle",
+      "canonical_policy": "approved-original",
+      "approval_status": "approved",
+      "role": "canonical-original",
+      "original": {
+        "path": "approved/original/006-life-cycle.jpg",
+        "source_filename": "DA488F2D-D2DA-41F0-B0B5-74F974EB006B(1).jpeg",
+        "sha256": "e9ca40de9799a4491c5c22dfab9c5f321d476029fc3e8618f23674ed9d6f30aa",
+        "bytes": 483756,
+        "width": 1536,
+        "height": 864,
+        "mime": "image/jpeg",
+        "mode": "RGB",
+        "exact_bytes_required": true,
+        "recompression_allowed": false,
+        "resize_allowed": false
+      },
+      "derivatives": []
+    },
+    {
+      "id": "007-society",
+      "title": "007 Society",
+      "canonical_policy": "approved-original",
+      "approval_status": "approved",
+      "role": "canonical-original",
+      "original": {
+        "path": "approved/original/007-society.jpg",
+        "source_filename": "6E7CE68E-7FF9-4538-9411-FFBD7AC172CE(1).jpeg",
+        "sha256": "fea56b2fcbeb8f657d5f6f28ef81330b4c2465dc32b2faf44bf8bbfcbfe3998c",
+        "bytes": 563652,
+        "width": 1536,
+        "height": 864,
+        "mime": "image/jpeg",
+        "mode": "RGB",
+        "exact_bytes_required": true,
+        "recompression_allowed": false,
+        "resize_allowed": false
+      },
+      "derivatives": []
+    },
+    {
+      "id": "008-adult",
+      "title": "008 Adult",
+      "canonical_policy": "approved-original",
+      "approval_status": "approved",
+      "role": "canonical-original",
+      "original": {
+        "path": "approved/original/008-adult.jpg",
+        "source_filename": "4B944EFC-3275-4C10-B63B-2C0F8FB0B98E(1).jpeg",
+        "sha256": "3c5166f880cd903a715425b7c3ae4bde0bc17f1e58f1d68749356439a6237401",
+        "bytes": 536961,
+        "width": 1536,
+        "height": 864,
+        "mime": "image/jpeg",
+        "mode": "RGB",
+        "exact_bytes_required": true,
+        "recompression_allowed": false,
+        "resize_allowed": false
+      },
+      "derivatives": []
+    },
+    {
+      "id": "009-nursery",
+      "title": "009 Nursery",
+      "canonical_policy": "approved-original",
+      "approval_status": "approved",
+      "role": "canonical-original",
+      "original": {
+        "path": "approved/original/009-nursery.jpg",
+        "source_filename": "897A1D74-3D2F-4BA7-8ED2-4B71E33B9720(1).jpeg",
+        "sha256": "fa24ba4e6d9ba4c86266f0ea557c0b0aec735bdd529e2a626cc44500575bc0c0",
+        "bytes": 444374,
+        "width": 1536,
+        "height": 864,
+        "mime": "image/jpeg",
+        "mode": "RGB",
+        "exact_bytes_required": true,
+        "recompression_allowed": false,
+        "resize_allowed": false
+      },
+      "derivatives": []
+    },
+    {
+      "id": "010-encounters",
+      "title": "010 Encounters",
+      "canonical_policy": "approved-original",
+      "approval_status": "approved",
+      "role": "canonical-original",
+      "original": {
+        "path": "approved/original/010-encounters.jpg",
+        "source_filename": "73827509-4790-4308-8450-C22207787A89(1).jpeg",
+        "sha256": "0505a0f3f0cf8f4bf94ad8a70291970e5c2af1387ca9141648ef36df2866021b",
+        "bytes": 484531,
+        "width": 1536,
+        "height": 864,
+        "mime": "image/jpeg",
+        "mode": "RGB",
+        "exact_bytes_required": true,
+        "recompression_allowed": false,
+        "resize_allowed": false
+      },
+      "derivatives": []
+    }
+  ]
+}
