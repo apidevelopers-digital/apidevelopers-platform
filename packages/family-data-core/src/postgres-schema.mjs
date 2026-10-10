@@ -1,7 +1,23 @@
+const SAFE_SCHEMA_IDENTIFIER = /^[A-Za-z_][A-Za-z0-9_]*$/;
+const POSTGRES_IDENTIFIER_MAX_LENGTH = 63;
+
+function requireSafeSchemaIdentifier(schema) {
+  if (
+    typeof schema !== "string" ||
+    schema.length === 0 ||
+    schema.length > POSTGRES_IDENTIFIER_MAX_LENGTH ||
+    !SAFE_SCHEMA_IDENTIFIER.test(schema)
+  ) {
+    throw new TypeError("schema identifier is invalid");
+  }
+  return schema;
+}
+
 export function buildFamilyDataCoreSchemaSql({ schema = "family_data" } = {}) {
-  const q = (name) => `"${schema}"."${name}"`;
+  const safeSchema = requireSafeSchemaIdentifier(schema);
+  const q = (name) => `"${safeSchema}"."${name}"`;
   return [
-    `CREATE SCHEMA IF NOT EXISTS "${schema}"`,
+    `CREATE SCHEMA IF NOT EXISTS "${safeSchema}"`,
     `CREATE TABLE IF NOT EXISTS ${q("purchases")} (
       purchase_id text PRIMARY KEY,
       household_id text NOT NULL,
