@@ -1,0 +1,138 @@
+name: ADA Asset Engine dry-run
+
+on:
+  workflow_dispatch:
+  pull_request:
+    paths:
+      - 'docs/asset-engine/**'
+      - 'packages/asset-engine/**'
+      - 'apps/asset-api/**'
+      - 'apps/asset-worker/**'
+      - 'media/catalogs/**'
+      - 'media/sources/**'
+      - 'templates/asset-engine/**'
+      - 'scripts/asset-engine-*.mjs'
+
+permissions:
+  contents: read
+
+jobs:
+  hiddenarquives-greys-dry-run:
+    runs-on:
+      - self-hosted
+      - macOS
+      - X64
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: Diagnostic dry-run, render and Hostinger publish plan
+        continue-on-error: true
+        run: |
+          set +e
+          mkdir -p artifacts/asset-engine/dry-run
+          REPORT=artifacts/asset-engine/dry-run/diagnostic-report.json
+          echo '{"ok":false,"step":"start","errors":[]}' > "$REPORT"
+
+          node --check scripts/asset-engine-dry-run-greys.mjs > /tmp/asset-dry-check.log 2>&1
+          CHECK_DRY=$?
+
+          node --check scripts/asset-engine-render-greys.mjs > /tmp/asset-render-check.log 2>&1
+          CHECK_RENDER=$?
+
+          node --check scripts/asset-engine-hostinger-plan-greys.mjs > /tmp/asset-hostinger-plan-check.log 2>&1
+          CHECK_PLAN=$?
+
+          if [ "$CHECK_DRY" -eq 0 ]; then
+            node scripts/asset-engine-dry-run-greys.mjs > /tmp/asset-dry-run.log 2>&1
+            RUN_DRY=$?
+          else
+            RUN_DRY=99
+          fi
+
+          if [ "$RUN_DRY" -eq 0 ] && [ "$CHECK_RENDER" -eq 0 ]; then
+            node scripts/asset-engine-render-greys.mjs > /tmp/asset-render-run.log 2>&1
+            RUN_RENDER=$?
+          else
+            RUN_RENDER=99
+          fi
+
+          if [ "$RUN_RENDER" -eq 0 ] && [ "$CHECK_PLAN" -eq 0 ]; then
+            node scripts/asset-engine-hostinger-plan-greys.mjs > /tmp/asset-hostinger-plan-run.log 2>&1
+            RUN_PLAN=$?
+          else
+            RUN_PLAN=99
+          fi
+
+          VERIFY=99
+          if [ -f artifacts/asset-engine/dry-run/hiddenarquives-greys-dry-run-manifest.json ] \
+            && [ -f artifacts/asset-engine/dry-run/hiddenarquives-greys-index.html ] \
+            && [ -f artifacts/asset-engine/dry-run/hostinger-publish-plan.json ]; then
+            if grep -q 'ha-https://' artifacts/asset-engine/dry-run/hiddenarquives-greys-index.html; then
+              VERIFY=12
+            else
+              VERIFY=0
+            fi
+          fi
+
+          python3 - "$REPORT" "$CHECK_DRY" "$CHECK_RENDER" "$CHECK_PLAN" "$RUN_DRY" "$RUN_RENDER" "$RUN_PLAN" "$VERIFY" <<'PY'
+          import json, pathlib, sys
+          out, check_dry, check_render, check_plan, run_dry, run_render, run_plan, verify = sys.argv[1:]
+          def tail(path):
+              p = pathlib.Path(path)
+              if not p.exists():
+                  return ""
+              return "\n".join(p.read_text(encoding="utf-8", errors="replace").splitlines()[-40:])
+          exits = {
+              "node_check_dry": int(check_dry),
+              "node_check_render": int(check_render),
+              "node_check_hostinger_plan": int(check_plan),
+              "run_dry": int(run_dry),
+              "run_render": int(run_render),
+              "run_hostinger_plan": int(run_plan),
+              "verify": int(verify),
+          }
+          data = {
+              "ok": all(v == 0 for v in exits.values()),
+              "step": "diagnostic_dry_run_render_hostinger_plan",
+              "exits": exits,
+              "artifacts": {
+                  "manifest": "artifacts/asset-engine/dry-run/hiddenarquives-greys-dry-run-manifest.json",
+                  "html": "artifacts/asset-engine/dry-run/hiddenarquives-greys-index.html",
+                  "hostinger_plan": "artifacts/asset-engine/dry-run/hostinger-publish-plan.json"
+              },
+              "logs": {
+                  "check_dry": tail("/tmp/asset-dry-check.log"),
+                  "check_render": tail("/tmp/asset-render-check.log"),
+                  "check_hostinger_plan": tail("/tmp/asset-hostinger-plan-check.log"),
+                  "run_dry": tail("/tmp/asset-dry-run.log"),
+                  "run_render": tail("/tmp/asset-render-run.log"),
+                  "run_hostinger_plan": tail("/tmp/asset-hostinger-plan-run.log"),
+              }
+          }
+          pathlib.Path(out).write_text(json.dumps(data, indent=2) + "\n", encoding="utf-8")
+          PY
+
+          cat "$REPORT"
+          python3 - "$REPORT" <<'PY'
+          import json, sys
+          data = json.load(open(sys.argv[1]))
+          sys.exit(0 if data.get("ok") else 1)
+          PY
+
+      - name: Upload dry-run artifacts
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: hiddenarquives-greys-asset-engine-dry-run
+          path: |
+            artifacts/asset-engine/dry-run/hiddenarquives-greys-dry-run-manifest.json
+            artifacts/asset-engine/dry-run/hiddenarquives-greys-index.html
+            artifacts/asset-engine/dry-run/hostinger-publish-plan.json
+            artifacts/asset-engine/dry-run/diagnostic-report.json
