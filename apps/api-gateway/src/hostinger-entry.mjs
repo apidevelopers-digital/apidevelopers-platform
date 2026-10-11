@@ -13,6 +13,7 @@ import { attachTrustFaceAccessDurablePreviewToGateway } from "./trust-face-acces
 import { createOperatorApiKeyProvisioningRuntimeApp } from "./operator-api-key-provisioning-composition.mjs";
 import { createOperatorApiKeyProvisioningWrapper } from "./operator-api-key-provisioning-wrapper.mjs";
 import { attachFamilyDataGatewayReadinessToGateway } from "./family-data-gateway-readiness-wrapper.mjs";
+import { attachFamilyDataPostgresProtectedPreflightToGateway } from "./family-data-postgres-preflight-wrapper.mjs";
 
 function attachOperatorBootstrap({ gateway }) {
   const app = createOperatorBootstrapHttpApp({
@@ -63,8 +64,12 @@ function attachHostingCompositions({ gateway, env }) {
     gateway: uniJuriGateway,
     env,
   });
-  return attachFamilyDataGatewayReadinessToGateway({
+  const familyDataReadinessGateway = attachFamilyDataGatewayReadinessToGateway({
     gateway: zuniGateway,
+    env,
+  });
+  return attachFamilyDataPostgresProtectedPreflightToGateway({
+    gateway: familyDataReadinessGateway,
     env,
   });
 }
