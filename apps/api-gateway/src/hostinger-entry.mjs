@@ -12,6 +12,7 @@ import { attachZuniChannelBindingWriteHostingerComposition } from "./zuni-channe
 import { attachTrustFaceAccessDurablePreviewToGateway } from "./trust-face-access-durable-runtime-transform.mjs";
 import { createOperatorApiKeyProvisioningRuntimeApp } from "./operator-api-key-provisioning-composition.mjs";
 import { createOperatorApiKeyProvisioningWrapper } from "./operator-api-key-provisioning-wrapper.mjs";
+import { attachFamilyDataGatewayReadinessToGateway } from "./family-data-gateway-readiness-wrapper.mjs";
 
 function attachOperatorBootstrap({ gateway }) {
   const app = createOperatorBootstrapHttpApp({
@@ -42,7 +43,7 @@ function attachOperatorApiKeyProvisioning({ gateway }) {
   });
 }
 
-function attachHostingerCompositions({ gateway, env }) {
+function attachHostingCompositions({ gateway, env }) {
   const operatorGateway = attachOperatorBootstrap({ gateway });
   const keyProvisionerGateway = attachOperatorApiKeyProvisioning({
     gateway: operatorGateway,
@@ -58,15 +59,19 @@ function attachHostingerCompositions({ gateway, env }) {
     gateway: mitraGateway,
     env,
   });
-  return attachZuniChannelBindingWriteHostingerComposition({
+  const zuniGateway = attachZuniChannelBindingWriteHostingerComposition({
     gateway: uniJuriGateway,
+    env,
+  });
+  return attachFamilyDataGatewayReadinessToGateway({
+    gateway: zuniGateway,
     env,
   });
 }
 
 function attachTrustAndHostingerCompositions(context = {}) {
   const trustGateway = attachTrustFaceAccessDurablePreviewToGateway(context);
-  return attachHostingerCompositions({
+  return attachHostingCompositions({
     ...context,
     gateway: trustGateway,
   });
