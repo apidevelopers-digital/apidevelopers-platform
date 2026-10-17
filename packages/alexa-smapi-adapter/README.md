@@ -1,16 +1,13 @@
-# Alexa SMAPI — leitor isolado (pré-integração)
+# Alexa SMAPI - leitura inicial
 
-Cliente somente leitura: lista skills de um vendor e consulta manifestos.
-Sem token no GitHub, sem credenciais no código, sem escrita na Amazon.
+Adaptador HTTP somente leitura para a API oficial da Amazon Alexa.
+Funcoes: listar skills de um vendor e consultar manifesto por skill ID.
+Sem credenciais no codigo, sem alteracoes na Amazon, sem deploy.
 
-- Endpoint oficial: `https://api.amazonalexa.com` (somente GET).
-- Injete `getAccessToken()` com um acesso LWA `alexa::ask:skills:read` obtido por OAuth institucional. Ainda **não** existe no MCP.
-- Autorização atual do ASK CLI no Mac **não** equivale a autorização do servidor.
-- Não instala ferramenta MCP, não altera skills, não publica código nem toca ⃡dio.
-- O mapeamento para as ferramentas `alexa.skills.list` e `alexa.skill.manifest` e a autorização OAuth sã fases seguintes.
-- Testes simulados: `node --test test/reader.test.mjs`.
+Requer token LWA obtido pelo servidor via OAuth; essa integracao ainda nao existe.
+O token local do ASK CLI no Mac nao e uma autorizacao da VPS.
 
-Fontes: https://developer.amazon.com/en-US/docs/alexa/smapi/skill-operations.html
-e https://developer.amazon.com/en-US/docs/alexa/smapi/get-access-token-smapi.html
+Testar: `node --test test/reader.test.mjs` (7 testes com HTTP simulado).
+Proxima fase: registrar as ferramentas no MCP, implementar autorizacao OAuth e validar com a Amazon.
 
-O código deve passar por revisão e integração com o backend MCP antes de qualquer produção.
+Documentacao: https://developer.amazon.com/en-US/docs/alexa/smapi/skill-operations.html
