@@ -1,17 +1,20 @@
-# Alexa SMAPI — adapter de leitura (desenvolvimento)
+# Alexa SMAPI — adaptador em desenvolvimento
 
-Código versionado para consulta de skills e manifestos via SMAPI; nenhuma escrita na Amazon.
+PR #734: https://github.com/apidevelopers-digital/apidevelopers-platform/pull/734
 
-- `src/index.mjs`: `createSmapiReader({getAccessToken})`, com requisições HTTPS GET.
-- `src/lwa-token-provider.mjs`: `createLwaTokenProvider({getCredentials, saveRefreshToken})`, renovação LWA com cache, timeout e erro sanitizado.
-- Segredos são injetados por um cofre do servidor; não há senhas nem tokens neste repositório.
-- O fluxo inicial de consentimento OAuth (authorization code), cofre de segredos da VPS e registro de ferramentas no MCP **ainda não foram implementados**.
-- O ASK CLI autorizado no Mac não concede acesso à VPS.
-- Permissão mínima prevista: `alexa::ask:skills:read`.
-- Teste: `node --test packages/alexa-smapi-adapter/test/*.test.mjs` na raiz do repositório.
+Componentes implementados nesta branch:
+- `src/index.mjs`: leitura de skills e manifestos.
+- `src/lwa-token-provider.mjs`: renovacao LWA e cofre externo.
+- `src/lwa-consent.mjs`: consentimento OAuth authorization_code, PKCE S256 e estado de uso unico.
+- `src/mcp-bridge.mjs`: especificacao de duas ferramentas R1 (ainda nao instaladas).
+- `test/*.test.mjs`: regressao HTTP simulada.
+- `.github/workflows/alexa-smapi-readonly-ci.yml`: testes no runner institucional sem segredos.
 
-## Restrições
-Não efetua deploy, publicação, atualização de skills ou hospedagem de áudio. Integrar no MCP somente após validação de autenticação, origem do cofre e aprovação específica.
+Falta identificar o repositorio canonico do backend MCP Brain, criar a rota HTTPS autenticada de retorno,
+cadastrar redirect_uri na Amazon, implementar cofre e estado atomico na VPS e registrar as ferramentas.
+A autorizacao da conta Amazon exige consentimento real do titular. Nao copiar credenciais ASK CLI do Mac.
 
-Referências: https://developer.amazon.com/en-US/docs/alexa/smapi/get-access-token-smapi.html
-https://developer.amazon.com/en-US/docs/alexa/smapi/skill-operations.html
+Escopo planejado: alexa::ask:skills:read. Nao permite publicar skill, alterar audio ou fazer deploy.
+Sem merge ou implantacao sem aprovacao explicita do Igor.
+
+Testes: node --test packages/alexa-smapi-adapter/test/*.test.mjs
