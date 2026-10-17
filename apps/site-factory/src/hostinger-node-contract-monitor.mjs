@@ -1,130 +1,51 @@
 import crypto from "node:crypto";
-
-const EXPECTED = Object.freeze({
-  issueNumber: 56,
-  openapiVersion: "3.0.0",
-  apiVersion: "1.30.0",
-  endpoint:
-    "/api/hosting/v1/accounts/{username}/websites/{domain}/nodejs/builds/from-archive",
-  operationId: "hosting_createNodeJSBuildFromArchiveV1",
-  mediaType: "application/json",
-  schemaName: "Hosting.V1.NodeJs.CreateFromArchiveRequest",
+const p="/api/hosting/v1/accounts/{username}/websites/{domain}/nodejs";
+export const EXPECTED=Object.freeze({
+ issueNumber:56,issueState:"closed",openapiVersion:"3.0.0",apiVersion:"2.1.0",
+ uploadEndpoint:"/api/hosting/v1/files/upload-urls",uploadOperationId:"hosting_generateUploadURLV1",
+ uploadSchema:"Hosting.V1.Files.GenerateUploadUrlRequest",
+ buildEndpoint:p+"/builds",buildOperationId:"hosting_startNode.jsBuildV1",
+ buildSchema:"Hosting.V1.NodeJs.StartBuildRequest",
+ settingsEndpoint:p+"/builds/settings/from-archive",
+ settingsOperationId:"hosting_getNode.jsBuildSettingsFromArchiveV1",
+ legacyEndpoint:p+"/builds/from-archive"
 });
-
-const CONTRACT_CHECK_NAMES = Object.freeze([
-  "openapiVersionMatches",
-  "endpointPresent",
-  "operationIdMatches",
-  "mediaTypeMatches",
-  "schemaRefMatches",
-  "archiveRequired",
-  "archiveTypeMatches",
-  "archiveFormatAbsent",
-]);
-
-function valueOrNull(value) {
-  return typeof value === "string" && value.trim() ? value.trim() : null;
+const fields=["node_version","app_type","root_directory","output_directory","build_script","source_type","source_options"];
+const ref=o=>o?.requestBody?.content?.["application/json"]?.schema?.$ref;
+const good=o=>Object.keys(o?.requestBody?.content??{}).join()==="application/json";
+export function createHostingerNodeContractMonitorReport({openapi,issue,observedAt=new Date().toISOString()}){
+ if(!openapi||typeof openapi!=="object"||Array.isArray(openapi))throw Error("missing_or_invalid:openapi");
+ if(!issue||typeof issue!=="object"||Array.isArray(issue))throw Error("missing_or_invalid:issue");
+ if(typeof observedAt!=="string"||!observedAt.trim())throw Error("missing_or_invalid:observedAt");
+ const E=EXPECTED,P=openapi.paths??{},S=openapi.components?.schemas??{};
+ const U=P[E.uploadEndpoint]?.post,B=P[E.buildEndpoint]?.post,T=P[E.settingsEndpoint]?.get;
+ const M=S[E.buildSchema],Q=M?.properties?.source_options,A=T?.parameters?.find(x=>x.name==="archive_path"&&x.in==="query");
+ const checks={
+ openapiVersionMatches:openapi.openapi===E.openapiVersion,
+ apiVersionMatches:openapi.info?.version===E.apiVersion,
+ legacyEndpointAbsent:!Object.hasOwn(P,E.legacyEndpoint),
+ uploadOperationIdMatches:U?.operationId===E.uploadOperationId,
+ uploadSchemaMatches:good(U)&&ref(U)==="#/components/schemas/"+E.uploadSchema&&!!S[E.uploadSchema],
+ buildOperationIdMatches:B?.operationId===E.buildOperationId,
+ buildSchemaMatches:B?.requestBody?.required===true&&good(B)&&ref(B)==="#/components/schemas/"+E.buildSchema,
+ buildRequiredFieldsMatch:Array.isArray(M?.required)&&fields.every(x=>M.required.includes(x)),
+ sourceTypeIncludesArchive:M?.properties?.source_type?.enum?.includes("archive")===true,
+ archivePathIsString:Q?.properties?.archive_path?.type==="string",
+ settingsOperationIdMatches:T?.operationId===E.settingsOperationId,
+ settingsArchivePathRequired:A?.required===true&&A?.schema?.type==="string",
+ issueNumberMatches:Number(issue.number)===56,issueStateMatches:issue.state==="closed"
+ };
+ const contractChanged=Object.keys(checks).some(x=>!["apiVersionMatches","issueNumberMatches","issueStateMatches"].includes(x)&&checks[x]!==true);
+ const issueChanged=!checks.issueNumberMatches||!checks.issueStateMatches;
+ const apiVersionChanged=!checks.apiVersionMatches,reviewRequired=contractChanged||issueChanged;
+ const report={schemaVersion:"2.0",kind:"site-factory-hostinger-node-contract-monitor",
+ status:reviewRequired?"review-required":apiVersionChanged?"upstream-metadata-changed-blocked":"unchanged-blocked",
+ reviewRequired,expected:E,observed:{openapiVersion:openapi.openapi??null,apiVersion:openapi.info?.version??null,
+ issueNumber:Number(issue.number),issueState:issue.state??null,issueUrl:issue.html_url??null},checks,
+ changeSignals:{contractChanged,issueChanged,apiVersionChanged,officialIssueClosed:issue.state==="closed"},
+ barriers:{hostingerTokenUsed:false,hostingerRequestPrepared:false,hostingerPostExecuted:false,
+ remoteBuildStarted:false,deployExecuted:false,dnsChanged:false},
+ nextAction:reviewRequired?"open_review_pull_request_before_any_executor_change":"keep_executor_blocked_and_continue_monitoring",
+ observedAt:observedAt.trim()};
+ return Object.freeze({...report,fingerprint:crypto.createHash("sha256").update(JSON.stringify(report)).digest("hex")});
 }
-
-function digest(value) {
-  return crypto.createHash("sha256").update(JSON.stringify(value)).digest("hex");
-}
-
-export function createHostingerNodeContractMonitorReport({
-  openapi,
-  issue,
-  observedAt = new Date().toISOString(),
-}) {
-  if (!openapi || typeof openapi !== "object") {
-    throw new Error("missing_or_invalid:openapi");
-  }
-  if (!issue || typeof issue !== "object") {
-    throw new Error("missing_or_invalid:issue");
-  }
-  if (!valueOrNull(observedAt)) {
-    throw new Error("missing_or_invalid:observedAt");
-  }
-
-  const operation = openapi.paths?.[EXPECTED.endpoint]?.post ?? null;
-  const mediaTypes = Object.keys(operation?.requestBody?.content ?? {}).sort();
-  const requestSchemaRef =
-    operation?.requestBody?.content?.[EXPECTED.mediaType]?.schema?.$ref ?? null;
-  const schema = openapi.components?.schemas?.[EXPECTED.schemaName] ?? null;
-  const required = Array.isArray(schema?.required) ? schema.required : [];
-  const archive = schema?.properties?.archive ?? null;
-
-  const checks = {
-    openapiVersionMatches: openapi.openapi === EXPECTED.openapiVersion,
-    apiVersionMatches: openapi.info?.version === EXPECTED.apiVersion,
-    endpointPresent: Boolean(openapi.paths?.[EXPECTED.endpoint]),
-    operationIdMatches: operation?.operationId === EXPECTED.operationId,
-    mediaTypeMatches:
-      mediaTypes.length === 1 && mediaTypes[0] === EXPECTED.mediaType,
-    schemaRefMatches:
-      requestSchemaRef === `#/components/schemas/${EXPECTED.schemaName}`,
-    archiveRequired: required.includes("archive"),
-    archiveTypeMatches: archive?.type === "string",
-    archiveFormatAbsent: archive?.format == null,
-    issueNumberMatches: Number(issue.number) === EXPECTED.issueNumber,
-    issueStillOpen: issue.state === "open",
-  };
-
-  const contractChanged = CONTRACT_CHECK_NAMES.some(
-    (name) => checks[name] !== true,
-  );
-  const apiVersionChanged = checks.apiVersionMatches !== true;
-  const issueChanged =
-    checks.issueNumberMatches !== true || checks.issueStillOpen !== true;
-  const reviewRequired = contractChanged || issueChanged;
-
-  const report = {
-    schemaVersion: "1.1",
-    kind: "site-factory-hostinger-node-contract-monitor",
-    status: reviewRequired
-      ? "review-required"
-      : apiVersionChanged
-        ? "upstream-metadata-changed-blocked"
-        : "unchanged-blocked",
-    reviewRequired,
-    expected: EXPECTED,
-    observed: {
-      openapiVersion: valueOrNull(openapi.openapi),
-      apiVersion: valueOrNull(openapi.info?.version),
-      operationId: valueOrNull(operation?.operationId),
-      mediaTypes,
-      requestSchemaRef: valueOrNull(requestSchemaRef),
-      archiveRequired: required.includes("archive"),
-      archiveType: valueOrNull(archive?.type),
-      archiveFormat: valueOrNull(archive?.format),
-      issueNumber: Number(issue.number),
-      issueState: valueOrNull(issue.state),
-      issueUpdatedAt: valueOrNull(issue.updated_at),
-      issueUrl: valueOrNull(issue.html_url),
-    },
-    checks,
-    changeSignals: {
-      contractChanged,
-      apiVersionChanged,
-      issueChanged,
-      officialIssueClosed: issue.state === "closed",
-    },
-    barriers: {
-      hostingerTokenUsed: false,
-      hostingerRequestPrepared: false,
-      hostingerPostExecuted: false,
-      remoteBuildStarted: false,
-      deployExecuted: false,
-      dnsChanged: false,
-    },
-    nextAction: reviewRequired
-      ? "open_review_pull_request_before_any_executor_change"
-      : apiVersionChanged
-        ? "record_global_api_version_drift_and_continue_monitoring"
-        : "keep_executor_blocked_and_continue_monitoring",
-    observedAt: observedAt.trim(),
-  };
-
-  return Object.freeze({ ...report, fingerprint: digest(report) });
-}
-
-export { EXPECTED, CONTRACT_CHECK_NAMES };
