@@ -1,0 +1,53 @@
+name: Validate API Gateway Production Deploy
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - ".github/workflows/deploy-api-gateway-production-controlled.yml"
+      - ".github/workflows/validate-api-gateway-production-deploy.yml"
+      - "apps/api-gateway/**"
+      - "packages/saas-runtime/**"
+  push:
+    branches: ["feat/api-gateway-production-deploy-**"]
+permissions:
+  contents: read
+jobs:
+  validate:
+    runs-on: [self-hosted, macOS, X64]
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-node@v5
+        with:
+          node-version: "22"
+      - name: Validate deploy contract
+        shell: bash
+        run: |
+          set -Eeuo pipefail
+          f=.github/workflows/deploy-api-gateway-production-controlled.yml
+          test -s "$f"
+          for p in             'DEPLOY APIDEVELOPERS PLATFORM GATEWAY PRODUCTION'             'environment: production' 'expected_sha' 'saas-runtime'             'release:managed:build' 'release:managed:verify'             'pm2 reload' 'rollback' 'HEALTH_URL'; do
+            grep -q "$p" "$f"
+          done
+          grep -q 'self-hosted' "$f"
+          grep -q 'macOS' "$f"
+          grep -q 'X64' "$f"
+      - name: Link local packages
+        shell: bash
+        run: |
+          set -Eeuo pipefail
+          root="$GITHUB_WORKSPACE"
+          mkdir -p "$root/apps/api-gateway/node_modules/@apidevelopers"
+          for p in contracts auth-core apikey-core persistence-core saas-runtime; do
+            ln -sfn "$root/packages/$p" "$root/apps/api-gateway/node_modules/@apidevelopers/$p"
+          done
+          mkdir -p "$root/packages/auth-core/node_modules/@apidevelopers"
+          ln -sfn "$root/packages/apikey-core" "$root/packages/auth-core/node_modules/@apidevelopers/apikey-core"
+          mkdir -p "$root/packages/apikey-core/node_modules/@apidevelopers"
+          ln -sfn "$root/packages/persistence-core" "$root/packages/apikey-core/node_modules/@apidevelopers/persistence-core"
+      - name: Validate gateway artifact
+        working-directory: apps/api-gateway
+        run: |
+          npm run check
+          npm run release:managed:build
+          npm run release:managed:verify
