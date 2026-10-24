@@ -1,0 +1,12 @@
+{
+  "name": "@apidevelopers/saas-billing",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "exports": { ".": "./src/index.mjs" },
+  "scripts": {
+    "check": "node --check src/catalog.mjs && node --check src/provider.mjs && node --check src/runtime.mjs && node --check src/index.mjs && npm test",
+    "test": "node --test test/*.test.mjs"
+  },
+  "engines": { "node": ">=22" }
+}

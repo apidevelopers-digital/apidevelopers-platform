@@ -1,0 +1,10 @@
+{
+  "ok": true,
+  "mode": "read-only",
+  "sellerMatched": true,
+  "planMatches": 1,
+  "subscriptionSearchHttp": 200,
+  "exactMatches": 0,
+  "statuses": [],
+  "stage": "complete"
+}

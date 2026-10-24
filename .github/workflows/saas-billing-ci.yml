@@ -1,0 +1,76 @@
+name: SaaS Billing CI
+
+on:
+  pull_request:
+    paths:
+      - "packages/saas-billing/**"
+      - "apps/api-gateway/src/saas-billing-*.mjs"
+      - "apps/api-gateway/test/saas-billing-*.test.mjs"
+      - ".github/workflows/saas-billing-ci.yml"
+  push:
+    branches:
+      - "feat/saas-billing-foundation-20260811"
+    paths:
+      - "packages/saas-billing/**"
+      - "apps/api-gateway/src/saas-billing-*.mjs"
+      - "apps/api-gateway/test/saas-billing-*.test.mjs"
+      - ".github/workflows/saas-billing-ci.yml"
+
+permissions:
+  contents: read
+
+jobs:
+  validate:
+    runs-on: [self-hosted, macOS, X64]
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Validate SaaS billing syntax
+        run: |
+          set -euo pipefail
+          find packages/saas-billing/src packages/saas-billing/test -name '*.mjs' -print0 | xargs -0 -n1 node --check
+
+      - name: Validate direct FX unit tests
+        run: |
+          set -euo pipefail
+          node --test packages/saas-billing/test/fx.test.mjs
+
+      - name: Validate FX source policy unit tests
+        run: |
+          set -euo pipefail
+          node --test packages/saas-billing/test/fx-policy.test.mjs
+
+      - name: Validate remaining SaaS billing unit tests
+        run: |
+          set -euo pipefail
+          for file in packages/saas-billing/test/*.test.mjs; do
+            case "$file" in
+              */fx.test.mjs|*/fx-policy.test.mjs) continue ;;
+            esac
+            if ! node --test "$file"; then
+              echo "::error file=$file::SaaS billing test failed: $file"
+              exit 1
+            fi
+          done
+
+      - name: Validate SaaS billing gateway
+        run: |
+          set -euo pipefail
+          node --test apps/api-gateway/test/saas-billing-*.test.mjs
+
+      - name: Validate billing guardrails
+        run: |
+          set -euo pipefail
+          grep -R -q "amountMinor" packages/saas-billing/src
+          grep -R -q "verifyAndParseWebhook" packages/saas-billing/src
+          grep -R -q "putIdempotency" packages/saas-billing/src/runtime.mjs
+          grep -R -q "store.transaction" packages/saas-billing/src/runtime.mjs
+          grep -R -q "x-signature" apps/api-gateway/test/saas-billing-http.test.mjs
+          grep -R -q "x-request-id" apps/api-gateway/test/saas-billing-http.test.mjs
+          grep -R -q "APD_BILLING_LIVE_ENABLED" apps/api-gateway/src/saas-billing-config.mjs
+
+      - name: Scan billing scope for secret-like material
+        run: |
+          set -euo pipefail
+          ! grep -R -E "(sk_live_|sk_test_|access_token|api[_-]?key\s*=|cardNumber|cvv)" packages/saas-billing apps/api-gateway/src/saas-billing-*.mjs apps/api-gateway/test/saas-billing-*.test.mjs
