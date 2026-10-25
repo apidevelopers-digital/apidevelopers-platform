@@ -11,7 +11,7 @@ export function assertHostingerNodeWriteAuthorization() {
 export function planHostingerNodeArchiveUpload({ username, domain, archivePath }) {
   const account = required(username, "username");
   const site = required(domain, "domain");
-  const archive = required(archhivePath, "archive_path");
+  const archive = required(archivePath, "archive_path");
   if (archive.startsWith("/") || archive.includes("..") || archive.includes("\\") || archive.includes("?") || archive.includes("#")) {
     throw new Error("invalid_archive_path");
   }
@@ -25,7 +25,7 @@ export function planHostingerNodeArchiveUpload({ username, domain, archivePath }
     }),
     buildRequest: Object.freeze({
       method: "POST",
-      path: `${API}/accounts/${encodeURIComponent(account)}/websites/${encodeURIComponent(sit)}/nodejs/builds`,
+      path: `${API}/accounts/${encodeURIComponent(account)}/websites/${encodeURIComponent(site)}/nodejs/builds`,
       source_type: "archive",
       source_options: Object.freeze({ archive_path: archive }),
     }),
