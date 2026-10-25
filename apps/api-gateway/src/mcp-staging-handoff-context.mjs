@@ -1,5 +1,4 @@
-// Staging-only verification of an institutionally redeemed browser-session handoff.
-// Deliberately not wired to the API gateway or any production OAuth endpoint.
+// Staging-only contract; not mounted in any HTTP runtime.
 export const MCP_STAGING_HANDOFF_CONTEXT_V1 = "mcp-staging-handoff-context/v1";
 export const MCP_STAGING_HANDOFF_TARGET_ORIGIN = "https://mcp-staging.apidevelopers.digital";
 
@@ -11,57 +10,42 @@ export class McpStagingHandoffError extends Error {
   }
 }
 
-function reject(code) {
-  throw new McpStagingHandoffError(code);
-}
-
-function nonEmpty(value) {
-  return typeof value === "string" && value.length > 0 && value === value.trim();
-}
-
-function exactScopes(values) {
-  if (!Array.isArray(values) || values.length === 0) reject("scopes_required");
-  const normalized = new Set();
-  for (const scope of values) {
-    if (!nonEmpty(scope) || !/^[a-z0-9][a-z0-9:._-]{0,127}$/i.test(scope)) {
-      reject("scopes_invalid");
-    }
-    if (normalized.has(scope)) reject("duplicate_scopes");
-    normalized.add(scope);
+const reject = (code) => { throw new McpStagingHandoffError(code); };
+const text = (v) => typeof v === "string" && v.trim() === v && v.length > 0;
+const shape = (v, code) => {
+  if (!v || typeof v !== "object" || Array.isArray(v)) reject(code);
+  return v;
+};
+const scopes = (values) => {
+  if (!Array.isArray(values) || !values.length) reject("scopes_required");
+  const seen = new Set();
+  for (const value of values) {
+    if (!text(value) || !/^[a-z0-9][a-z0-9:._-]{0,127}$/i.test(value)) reject("scopes_invalid");
+    if (seen.has(value)) reject("duplicate_scopes");
+    seen.add(value);
   }
-  return Object.freeze([...normalized].sort());
-}
-
-function verifiedTime(value) {
-  if (typeof value !== "string" || !/^\d{4}-\d\d-\d\dT\d\d:\d\d:\d\d\.\d{3}Z$/.test(value)) {
+  return Object.freeze([...seen].sort());
+};
+const timeMs = (v) => {
+  if (typeof v !== "string" || !/^\d{4}-\d\d-\d\dT\d\d:\d\d:\d\d\.\d{3}Z$/.test(v)) {
     reject("authentication_time_invalid");
   }
-  const parsed = Date.parse(value);
-  if (!Number.isFinite(parsed) || new Date(parsed).toISOString() !== value) {
-    reject("authentication_time_invalid");
-  }
-  return parsed;
-}
-
-function requireShape(value, code) {
-  if (!value || typeof value !== "object" || Array.isArray(value)) reject(code);
-  return value;
-}
+  const ms = Date.parse(v);
+  if (!Number.isFinite(ms) || new Date(ms).toISOString() !== v) reject("authentication_time_invalid");
+  return ms;
+};
 
 /**
- * Accepts only a trusted server-side redemption and authoritative session evidence.
- * Does not expose an HTTP route, create a grant, wire a server, or activate production.
- *
- * `redeemHandoff` MUST authenticate the server-to-server caller and enforce atomic
- * single-use PKCE S256 redemption. `resolveSessionEvidence` MUST verify that the
- * evidence is bound to the redeemed handoff, and check current session revocation.
+ * Trusted callbacks MUST enforce server authentication, one-time PKCE redemption,
+ * current session status, revocation, and evidence bound to a unique proof ID.
+ * No HTTP endpoints, grants, or production activation are created here.
  */
 export function createMcpStagingHandoffContext({
   enabled = false,
   targetOrigin = MCP_STAGING_HANDOFF_TARGET_ORIGIN,
   expectedTenantId,
-  audience = "mcp-plugin-gateway",
   expectedRedeemerId,
+  audience = "mcp-plugin-gateway",
   clientAllowedScopes,
   tenantAllowedScopes,
   redeemHandoff,
@@ -72,127 +56,100 @@ export function createMcpStagingHandoffContext({
 } = {}) {
   if (enabled !== true) {
     return Object.freeze({
-      enabled: false,
-      mode: "staging-only",
-      productionEnabled: false,
+      enabled: false, mode: "staging-only", productionEnabled: false,
       async verify() { reject("mcp_staging_handoff_disabled"); },
     });
   }
-
-  // Exact pinned origin; no arbitrary target or production origin can be provided.
   if (targetOrigin !== MCP_STAGING_HANDOFF_TARGET_ORIGIN) reject("staging_target_not_allowed");
-  if (!nonEmpty(expectedTenantId) || !nonEmpty(audience) ||
-      !nonEmpty(expectedRedeemerId)) reject("identity_binding_required");
-  if (typeof redeemHandoff !== "function" ||
-      typeof resolveSessionEvidence !== "function") reject("trusted_backends_required");
+  if (!text(expectedTenantId) || !text(expectedRedeemerId) || !text(audience)) {
+    reject("identity_binding_required");
+  }
+  if (typeof redeemHandoff !== "function" || typeof resolveSessionEvidence !== "function") {
+    reject("trusted_backends_required");
+  }
   if (typeof now !== "function") reject("clock_required");
   if (!Number.isSafeInteger(maxAuthenticationAgeSeconds) ||
       maxAuthenticationAgeSeconds < 30 || maxAuthenticationAgeSeconds > 900 ||
       !Number.isSafeInteger(maxHandoffAgeSeconds) ||
-      maxHandoffAgeSeconds < 30 || maxHandoffAgeSeconds > 300) {
-    reject("freshness_policy_invalid");
-  }
-  const clientScopes = new Set(exactScopes(clientAllowedScopes));
-  const tenantScopes = new Set(exactScopes(tenantAllowedScopes));
+      maxHandoffAgeSeconds < 30 || maxHandoffAgeSeconds > 300) reject("freshness_policy_invalid");
+  const client = new Set(scopes(clientAllowedScopes));
+  const tenant = new Set(scopes(tenantAllowedScopes));
 
   return Object.freeze({
-    enabled: true,
-    mode: "staging-only",
-    productionEnabled: false,
-    targetOrigin,
+    enabled: true, mode: "staging-only", productionEnabled: false, targetOrigin,
     async verify({ code, codeVerifier, requestedScopes } = {}) {
-      const requested = exactScopes(requestedScopes);
-      if (!nonEmpty(code) || !nonEmpty(codeVerifier)) reject("handoff_binding_required");
-
-      let redeemed;
+      const requested = scopes(requestedScopes);
+      if (!text(code) || !text(codeVerifier)) reject("handoff_binding_required");
+      let proof;
       try {
-        redeemed = await redeemHandoff({ code, codeVerifier, targetOrigin });
+        proof = await redeemHandoff({ code, codeVerifier, targetOrigin });
       } catch {
-        // Never expose provider errors or raw codes.
         reject("handoff_redemption_failed");
       }
-      const handoff = requireShape(redeemed, "handoff_proof_invalid");
-      const principal = requireShape(handoff.principal, "handoff_principal_invalid");
-      const source = requireShape(handoff.source, "handoff_source_invalid");
-      if (handoff.authenticated !== true ||
+      const redeemed = shape(proof, "handoff_proof_invalid");
+      const principal = shape(redeemed.principal, "handoff_principal_invalid");
+      const source = shape(redeemed.source, "handoff_source_invalid");
+      if (redeemed.authenticated !== true ||
           source.authenticationMethod !== "browser_session_handoff" ||
           source.browserBindingMethod !== "S256" ||
           source.targetOrigin !== targetOrigin ||
-          !nonEmpty(source.redemptionProofId) ||
+          !text(source.redemptionProofId) ||
           source.redeemerId !== expectedRedeemerId ||
           principal.status !== "active" ||
-          !nonEmpty(principal.id) ||
-          principal.tenantId !== expectedTenantId) {
+          !text(principal.id) || principal.tenantId !== expectedTenantId) {
         reject("handoff_identity_invalid");
       }
-      const principalScopes = new Set(exactScopes(principal.scopes));
+      const principalScopes = new Set(scopes(principal.scopes));
       const current = now();
       if (!(current instanceof Date) || Number.isNaN(current.getTime())) reject("clock_invalid");
-      const issuedAt = verifiedTime(source.issuedAt);
-      const nowMs = current.getTime();
-      if (issuedAt > nowMs || nowMs - issuedAt > maxHandoffAgeSeconds * 1000) {
+      const currentMs = current.getTime();
+      const issuedMs = timeMs(source.issuedAt);
+      if (issuedMs > currentMs || currentMs - issuedMs > maxHandoffAgeSeconds * 1000) {
         reject("handoff_expired");
       }
-
-      // Bound evidence must come from trusted server storage, never browser headers.
-      let evidence;
+      let data;
       try {
-        evidence = await resolveSessionEvidence({
-          principalId: principal.id,
-          tenantId: principal.tenantId,
-          handoffIssuedAt: source.issuedAt,
-          redemptionProofId: source.redemptionProofId,
+        data = await resolveSessionEvidence({
+          principalId: principal.id, tenantId: principal.tenantId,
+          handoffIssuedAt: source.issuedAt, redemptionProofId: source.redemptionProofId,
         });
       } catch {
         reject("session_evidence_unavailable");
       }
-      const session = requireShape(evidence, "session_evidence_missing");
-      if (session.active !== true ||
-          session.revoked === true ||
+      const session = shape(data, "session_evidence_missing");
+      if (session.active !== true || session.revoked === true ||
           session.principalId !== principal.id ||
           session.tenantId !== principal.tenantId ||
           session.handoffIssuedAt !== source.issuedAt ||
           session.redemptionProofId !== source.redemptionProofId ||
-          !nonEmpty(session.subject) ||
-          session.policyDecision !== "allow" ||
-          !nonEmpty(session.policyDecisionId)) {
-        reject("session_evidence_invalid");
-      }
-      const originalAuthentication = verifiedTime(session.authenticatedAt);
-      const sessionExpiresAt = verifiedTime(session.sessionExpiresAt);
-      if (sessionExpiresAt <= nowMs || originalAuthentication > issuedAt ||
-          originalAuthentication > nowMs ||
-          nowMs - originalAuthentication > maxAuthenticaticationAgeSeconds * 1000) {
+          !text(session.subject) || session.policyDecision !== "allow" ||
+          !text(session.policyDecisionId)) reject("session_evidence_invalid");
+
+      const authenticatedMs = timeMs(session.authenticatedAt);
+      const expiryMs = timeMs(session.sessionExpiresAt);
+      if (expiryMs <= currentMs || authenticatedMs > issuedMs ||
+          authenticatedMs > currentMs ||
+          currentMs - authenticatedMs > maxAuthenticationAgeSeconds * 1000) {
         reject("authentication_stale");
       }
-      const userScopes = new Set(exactScopes(session.userScopes));
-      const policyScopes = new Set(exactScopes(session.policyAllowedScopes));
-
+      const user = new Set(scopes(session.userScopes));
+    const policy = new Set(scopes(session.policyAllowedScopes));
       for (const scope of requested) {
-        if (!clientScopes.has(scope) ||
-            !tenantScopes.has(scope) ||
-            !principalScopes.has(scope) ||
-             !userScopes.has(scope) ||
-            !policyScopes.has(scope)) {
-            reject("scope_not_authorized");
-        }
+        if (!client.has(scope) || !tenant.has(scope) || !principalScopes.has(scope) ||
+            !user.has(scope) || !policy.has(scope)) reject("scope_not_authorized");
       }
-
       return Object.freeze({
         version: MCP_STAGING_HANDOFF_CONTEXT_V1,
-        mode: "staging-only",
-        productionEnabled: false,
+        mode: "staging-only", productionEnabled: false,
         authorizationSubject: Object.freeze({
-          subject: session.subject,
-          tenant_id: expectedTenantId,
-          audience,
-          auth_time: Math.floor(originalAuthentication / 1000),
+          subject: session.subject, tenant_id: expectedTenantId, audience,
+          auth_time: Math.floor(authenticatedMs / 1000),
         }),
         authorizedScopes: requested,
         evidence: Object.freeze({
           policyDecisionId: session.policyDecisionId,
           authenticationMethod: "browser_session_handoff",
-           handoffIssuedAt: source.issuedAt,
+          handoffIssuedAt: source.issuedAt,
           redemptionProofId: source.redemptionProofId,
           originalAuthenticatedAt: session.authenticatedAt,
         }),
