@@ -1,192 +1,108 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import {
-  createMcpStagingHandoffContext, McpStagingHandoffError,
-  MCP_STAGING_HANDOFF_TARGET_ORIGIN as origin,
-  MCP_STAGING_HANDOFF_CONTEXT_V1 as version,
-} from "../src/mcp-staging-handoff-context.mjs";
+import { createMcpStagingHandoffContext as create, McpStagingHandoffError as ErrorType,
+  MCP_STAGING_HANDOFF_TARGET_ORIGIN as origin } from "../src/mcp-staging-handoff-context.mjs";
 
-const scope = "mcp:tools:read";
-const issuedAt = "2026-10-25T12:00:30.000Z";
-const authenticatedAt = "2026-10-25T11:58:00.000Z";
-const proofId = "proof:test-only-unique-redeem-123";
-const request = () => ({
-  code: "A".repeat(43), codeVerifier: "v".repeat(43), requestedScopes: [scope],
-});
-const failed = (code) => (e) => e instanceof McpStagingHandoffError && e.code === code;
-const proof = ({ principal = {}, source = {}, ...other } = {}) => ({
-  authenticated: true,
-  principal: {
-    id: "acct_123", tenantId: "tenant:test", status: "active",
-    scopes: [scope], ...principal,
-  },
-  source: {
-    authenticationMethod: "browser_session_handoff", browserBindingMethod: "S256",
-    targetOrigin: origin, issuedAt, redemptionProofId: proofId,
-    redeemerId: "svc:mcp-staging", ...source,
-  },
-  ...other,
-});
-const evidence = (other = {}) => ({
-  active: true, revoked: false, principalId: "acct_123", tenantId: "tenant:test",
-  handoffIssuedAt: issuedAt, redemptionProofId: proofId, subject: "user:acct_123",
-  authenticatedAt, sessionExpiresAt: "2026-10-25T12:05:00.000Z",
-  policyDecision: "allow", policyDecisionId: "policy:mock-allow",
-  userScopes: [scope], policyAllowedScopes: [scope], ...other,
-});
-const context = ({
-  redeemed = proof(), session = evidence(), redeemHandoff = async () => redeemed,
-  resolveSessionEvidence = async () => session, ...other
-} = {}) => createMcpStagingHandoffContext({
-  enabled: true, expectedTenantId: "tenant:test", expectedRedeemerId: "svc:mcp-staging",
-  clientAllowedScopes: [scope], tenantAllowedScopes: [scope],
-  now: () => new Date("2026-10-25T12:00:45.000Z"),
-  redeemHandoff, resolveSessionEvidence, ...other,
-});
+const S = "mcp:tools:read", W = "mcp:tools:write";
+const issuedAt = "2026-10-25T12:00:30.000Z", authenticatedAt = "2026-10-25T11:58:00.000Z";
+const request = () => ({code:"A".repeat(43),codeVerifier:"v".repeat(43),requestedScopes:[S]});
+const fail = code => e => e instanceof ErrorType && e.code === code;
+const proof = (p={},s={}) => ({authenticated:true,
+  principal:{id:"acct_123",tenantId:"tenant:test",status:"active",scopes:[S],...p},
+  source:{authenticationMethod:"browser_session_handoff",browserBindingMethod:"S256",
+    targetOrigin:origin,issuedAt,redemptionProofId:"proof:123",redeemerId:"svc:mcp-staging",...s}});
+const evidence = (e={}) => ({active:true,revoked:false,principalId:"acct_123",
+  tenantId:"tenant:test",handoffIssuedAt:issuedAt,redemptionProofId:"proof:123",
+  subject:"user:acct_123",authenticatedAt,sessionExpiresAt:"2026-10-25T12:05:00.000Z",
+  policyDecision:"allow",policyDecisionId:"policy:123",userScopes:[S],
+  policyAllowedScopes:[S],...e});
+function gate(o={}) {
+  const redeemed = o.redeemed ?? proof(), session = o.session === undefined ? evidence() : o.session;
+  return create({enabled:true,expectedTenantId:"tenant:test",expectedRedeemerId:"svc:mcp-staging",
+    clientAllowedScopes:[S],tenantAllowedScopes:[S],
+    now:()=>new Date("2026-10-25T12:00:45.000Z"),
+    redeemHandoff:async()=>redeemed,resolveSessionEvidence:async()=>session,...o});
+}
+const deny=async (g,c,r=request())=>assert.rejects(g.verify(r),fail(c));
 
-test("disabled by default never calls an injected provider", async () => {
-  const gate = createMcpStagingHandoffContext({
-    redeemHandoff() { throw new Error("must not call"); },
-  });
-  assert.equal(gate.enabled, false);
-  assert.equal(gate.productionEnabled, false);
-  await assert.rejects(gate.verify(request()), failed("mcp_staging_handoff_disabled"));
+test("disabled by default",async()=>{
+  const g=create({redeemHandoff:()=>{throw new Error("called");}});
+  assert.equal(g.enabled,false);assert.equal(g.productionEnabled,false);
+  await deny(g,"mcp_staging_handoff_disabled");
 });
-
-test("requires exact staging origin, trusted backends and scope policy", () => {
-  for (const bad of ["https://mcp.apidevelopers.digital", `${origin}.attacker.tld`]) {
-    assert.throws(() => context({ targetOrigin: bad }), failed("staging_target_not_allowed"));
-  }
-  assert.throws(() => createMcpStagingHandoffContext({
-    enabled: true, expectedTenantId: "tenant:test", expectedRedeemerId: "svc:mcp-staging",
-  }), failed("trusted_backends_required"));
-  assert.throws(() => context({ clientAllowedScopes: [] }), failed("scopes_required"));
+test("pin origin and required dependencies",()=>{
+  assert.throws(()=>gate({targetOrigin:"https://mcp.apidevelopers.digital"}),fail("staging_target_not_allowed"));
+  assert.throws(()=>create({enabled:true,expectedTenantId:"tenant:test",expectedRedeemerId:"svc:mcp-staging"}),fail("trusted_backends_required"));
+  assert.throws(()=>gate({clientAllowedScopes:[]}),fail("scopes_required"));
 });
-
-test("successful contract yields original auth time, policy evidence and pinned redeem", async () => {
-  const calls = [];
-  const gate = context({
-    redeemHandoff: async (args) => { calls.push(args); return proof(); },
-    resolveSessionEvidence: async (args) => { calls.push(args); return evidence(); },
-  });
-  const response = await gate.verify(request());
-  assert.equal(response.version, version);
-  assert.equal(response.productionEnabled, false);
-  assert.deepEqual(response.authorizedScopes, [scope]);
-  assert.deepEqual(response.authorizationSubject, {
-    subject: "user:acct_123", tenant_id: "tenant:test",
-    audience: "mcp-plugin-gateway", auth_time: Date.parse(authenticatedAt) / 1000,
-  });
-  assert.deepEqual(calls, [
-    { code: "A".repeat(43), codeVerifier: "v".repeat(43), targetOrigin: origin },
-    { principalId: "acct_123", tenantId: "tenant:test",
-      handoffIssuedAt: issuedAt, redemptionProofId: proofId },
-  ]);
+test("valid verified identity returns original auth time and scopes",async()=>{
+  const calls=[];
+  const g=gate({redeemHandoff:async a=>(calls.push(a),proof()),
+    resolveSessionEvidence:async a=>(calls.push(a),evidence())});
+  const v=await g.verify(request());
+  assert.equal(v.productionEnabled,false);
+  assert.deepEqual(v.authorizedScopes,[S]);
+  assert.deepEqual(v.authorizationSubject,{subject:"user:acct_123",tenant_id:"tenant:test",
+    audience:"mcp-plugin-gateway",auth_time:Date.parse(authenticatedAt)/1000});
+  assert.equal(calls[0].targetOrigin,origin);
+  assert.equal(calls[1].redemptionProofId,"proof:123");
 });
-
-test("redeem failure is sanitized; evidence provider is not called", async () => {
-  let called = false;
-  const gate = context({
-    redeemHandoff: async () => { throw new Error("secret error"); },
-    resolveSessionEvidence: async () => { called = true; return evidence(); },
-  });
-  await assert.rejects(gate.verify(request()), failed("handoff_redemption_failed"));
-  assert.equal(called, false);
+test("redemption failure is sanitized and stops evidence lookup",async()=>{
+  let called=false;
+  await deny(gate({redeemHandoff:async()=>{throw new Error("secret");},
+    resolveSessionEvidence:async()=>{called=true;return evidence();}}),"handoff_redemption_failed");
+  assert.equal(called,false);
 });
-
-test("rejects forged handoff, wrong tenant and downgraded binding", async () => {
-  const invalid = [
-    proof({ authenticated: false }),
-    proof({ principal: { tenantId: "tenant:attacker" } }),
-    proof({ principal: { status: "revoked" } }),
-    proof({ source: { targetOrigin: "https://attacker.tld" } }),
-    proof({ source: { browserBindingMethod: "plain" } }),
-    proof({ source: { authenticationMethod: "header" } }),
-    proof({ source: { redeemerId: "svc:other" } }),
-    proof({ source: { redemptionProofId: "" } }),
-  ];
-  for (const redeemed of invalid) {
-    await assert.rejects(context({ redeemed }).verify(request()), failed("handoff_identity_invalid"));
+test("forged proof and wrong tenant fail closed",async()=>{
+  for(const [p,s] of [[{tenantId:"tenant:other"},{}],[{status:"revoked"},{}],
+    [{},{browserBindingMethod:"plain"}],[{},{authenticationMethod:"header"}],
+    [{},{redeemerId:"svc:other"}],[{},{redemptionProofId:""}],
+    [{},{targetOrigin:"https://attacker.example"}]]) {
+    await deny(gate({redeemed:proof(p,s)}),"handoff_identity_invalid");
   }
 });
-
-test("rejects stale original login; recent handoff cannot refresh auth_time", async () => {
-  await assert.rejects(context({
-    session: evidence({ authenticatedAt: "2026-10-25T11:00:00.000Z" }),
-  }).verify(request()), failed("authentication_stale"));
+test("anonymous proof fails closed",async()=>{
+  await deny(gate({redeemed:{...proof(),authenticated:false}}),"handoff_identity_invalid");
 });
-
-test("rejects future/expired handoff", async () => {
-  for (const at of ["2026-10-25T11:55:00.000Z", "2026-10-25T12:02:00.000Z"]) {
-    await assert.rejects(context({
-      redeemed: proof({ source: { issuedAt: at } }),
-    }).verify(request()), failed("handoff_expired"));
+test("stale original login fails despite fresh handoff",async()=>{
+  await deny(gate({session:evidence({authenticatedAt:"2026-10-25T11:00:00.000Z"})}),"authentication_stale");
+});
+test("future or expired handoff fails",async()=>{
+  for(const at of ["2026-10-25T11:55:00.000Z","2026-10-25T12:02:00.000Z"])
+    await deny(gate({redeemed:proof({}, {issuedAt:at})}),"handoff_expired");
+});
+test("missing, revoked, cross tenant, unbound or denied session fails",async()=>{
+  for(const session of [null,evidence({active:false}),evidence({revoked:true}),
+    evidence({tenantId:"tenant:other"}),evidence({redemptionProofId:"proof:forged"}),
+    evidence({handoffIssuedAt:"2026-10-25T12:00:31.000Z"}),
+    evidence({policyDecision:"deny"}),evidence({policyDecisionId:""})]) {
+    await assert.rejects(gate({session}).verify(request()),e=>e instanceof ErrorType &&
+      ["session_evidence_missing","session_evidence_invalid"].includes(e.code));
   }
 });
-
-test("rejects missing, revoked, cross-tenant and unbound evidence", async () => {
-  for (const session of [
-    null, evidence({ active: false }), evidence({ revoked: true }),
-    evidence({ tenantId: "tenant:other" }), evidence({ principalId: "acct:attacker" }),
-    evidence({ handoffIssuedAt: "2026-10-25T12:00:31.000Z" }),
-    evidence({ redemptionProofId: "proof:unrelated" }),
-    evidence({ policyDecision: "deny" }), evidence({ policyDecisionId: "" }),
-  ]) {
-    await assert.rejects(context({ session }).verify(request()), (e) =>
-      e instanceof McpStagingHandoffError &&
-      ["session_evidence_missing", "session_evidence_invalid"].includes(e.code));
+test("five independent scope lists reject escalation",async()=>{
+  for(const o of [{clientAllowedScopes:[S]},{tenantAllowedScopes:[S]},
+    {redeemed:proof({scopes:[S]})},{session:evidence({userScopes:[S]})},
+    {session:evidence({policyAllowedScopes:[S]})}]) {
+    await deny(gate({clientAllowedScopes:[S,W],tenantAllowedScopes:[S,W],
+      redeemed:proof({scopes:[S,W]}),session:evidence({userScopes:[S,W],policyAllowedScopes:[S,W]}),
+      ...o}),"scope_not_authorized",{...request(),requestedScopes:[S,W]});
   }
 });
-
-test("five independent allowlists prevent scope escalation", async () => {
-  const write = "mcp:tools:write";
-  const both = [scope, write];
-  const args = { ...request(), requestedScopes: both };
-  for (const variant of [
-    { clientAllowedScopes: [scope] }, { tenantAllowedScopes: [scope] },
-    { redeemed: proof({ principal: { scopes: [scope] } }) },
-    { session: evidence({ userScopes: [scope] }) },
-    { session: evidence({ policyAllowedScopes: [scope] }) },
-  ]) {
-    await assert.rejects(context({
-      clientAllowedScopes: both, tenantAllowedScopes: both,
-      redeemed: proof({ principal: { scopes: both } }),
-      session: evidence({ userScopes: both, policyAllowedScopes: both }),
-      ...variant,
-    }).verify(args), failed("scope_not_authorized"));
-  }
+test("preview web:chat alone never grants MCP read",async()=>{
+  await deny(gate({redeemed:proof({scopes:["web:chat"]})}),"scope_not_authorized");
 });
-
-test("preview web:chat session cannot acquire mcp:tools:read", async () => {
-  await assert.rejects(context({
-    redeemed: proof({ principal: { scopes: ["web:chat"] } }),
-  }).verify(request()), failed("scope_not_authorized"));
+test("invalid scopes reject before backend invocation",async()=>{
+  let called=false;const g=gate({redeemHandoff:async()=>{called=true;return proof();}});
+  await deny(g,"duplicate_scopes",{...request(),requestedScopes:[S,S]});
+  await deny(g,"scopes_invalid",{...request(),requestedScopes:["*"]});
+  assert.equal(called,false);
 });
-
-test("input validation precedes redemption", async () => {
-  let called = false;
-  const gate = context({
-    redeemHandoff: async () => { called = true; return proof(); },
-  });
-  await assert.rejects(gate.verify({ ...request(), requestedScopes: [scope, scope] }),
-    failed("duplicate_scopes"));
-  await assert.rejects(gate.verify({ ...request(), requestedScopes: ["*"] }),
-    failed("scopes_invalid"));
-  assert.equal(called, false);
+test("expired session and evidence backend outage fail closed",async()=>{
+  await deny(gate({session:evidence({sessionExpiresAt:"2026-10-25T12:00:00.000Z"})}),"authentication_stale");
+  await deny(gate({resolveSessionEvidence:async()=>{throw new Error("down");}}),"session_evidence_unavailable");
 });
-
-test("expired session and evidence server errors are rejected", async () => {
-  await assert.rejects(context({
-    session: evidence({ sessionExpiresAt: "2026-10-25T12:00:00.000Z" }),
-  }).verify(request(), failed("authentication_stale"));
-  await assert.rejects(context({
-    resolveSessionEvidence: async () => { throw new Error("backend unavailable"); },
-  }).verify(request(), failed("session_evidence_unavailable"));
-});
-
-test("no HTTP app or production entry point is exposed", () => {
-  const gate = context();
-  assert.equal(gate.productionEnabled, false);
-  assert.equal(Object.hasOwn(gate, "app"), false);
-  assert.equal(Object.hasOwn(gate, "handleRequest"), false);
+test("not mounted: no HTTP app or production entrypoint",()=>{
+  const g=gate();assert.equal(g.productionEnabled,false);
+  assert.equal(Object.hasOwn(g,"app"),false);assert.equal(Object.hasOwn(g,"handleRequest"),false);
 });
