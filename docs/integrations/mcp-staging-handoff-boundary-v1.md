@@ -35,4 +35,4 @@
 Arquivo de teste: `apps/api-gateway/test/mcp-staging-handoff-boundary.test.mjs`.
 Workflow exclusivo de leitura: `.github/workflows/mcp-staging-handoff-boundary-ci.yml`, runner institucional `[self-hosted, macOS, X64]`, sem segredos ou comandos de deploy.
 
-**Escopo governado:** laboratório e PR Draft. Nenhum merge, deploy, release, publicação de ndpoint, troca de DNS ou alteração de ambiente operacional.
+**Escopo governado:** laboratório e PR Draft. Nenhum merge, deploy, release, publicação de endpoint, troca de DNS ou alteração de ambiente operacional.
