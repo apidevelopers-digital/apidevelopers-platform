@@ -6,17 +6,19 @@ const path = "/api/hosting/v1/accounts/{username}/websites/{domain}/nodejs/build
 const issue = { number: 56, state: "open" };
 test("transition preserves legacy review gate when old endpoint is removed", () => {
   const report = createHostingerNodeContractTransitionReport({
-    openapi: { openapi: "3.0.0", info: { version: "2.2.0" }, paths: {
+    openapi: { openapi: "3.0.0", info: { version: "2.3.0" }, paths: {
       [path]: { post: { requestBody: { content: { "application/json": {
-        schema: { $ref: "#/components/schemas/Hostinger.V1.NodeJs.StartBuildRequest" }
+        schema: { $ref: "#/components/schemas/Hosting.V1.NodeJs.StartBuildRequest" }
       } } } } }
     } },
     issue, observedAt: "2026-10-26T00:00:00Z"
   });
+  assert.equal(report.status, "legacy-removed-new-contract-review-required");
   assert.equal(report.reviewRequired, true);
   assert.equal(report.legacyStatus, "review-required");
   assert.equal(report.checks.currentBuildOperationPresent, true);
   assert.equal(report.changeSignals.legacyEndpointMissing, true);
+  assert.equal(report.changeSignals.currentArchiveFlowDocumented, true);
   assert.equal(report.barriers.writesEnabled, false);
   assert.equal(report.barriers.productionExecutionAllowed, false);
   assert.equal(report.barriers.remoteBuildStarted, false);
