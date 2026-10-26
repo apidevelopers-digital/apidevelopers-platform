@@ -31,18 +31,30 @@ export function runHostingerNodeContractMonitor(argv = process.argv.slice(2)) {
     issue,
     observedAt: process.env.MONITOR_OBSERVED_AT || new Date().toISOString(),
   });
-
   fs.mkdirSync(path.dirname(args.output), { recursive: true });
   fs.writeFileSync(args.output, `${JSON.stringify(report, null, 2)}\n`);
-  process.stdout.write(
-    `${JSON.stringify({
-      status: report.status,
-      reviewRequired: report.reviewRequired,
-      legacyStatus: report.legacyStatus,
-      legacyFingerprint: report.legacyFingerprint,
-    })}\n`,
-  );
 
+  // Only allowlisted, non-sensitive diagnostics are printed. The complete
+  // sanitized report remains in the workflow artifact for detailed review.
+  process.stdout.write(`${JSON.stringify({
+    kind: report.kind,
+    status: report.status,
+    reviewRequired: report.reviewRequired,
+    legacyStatus: report.legacyStatus,
+    checks: {
+      currentBuildOperationPresent: report.checks.currentBuildOperationPresent,
+      legacyBuildOperationPresent: report.checks.legacyBuildOperationPresent,
+    },
+    changeSignals: {
+      legacyEndpointMissing: report.changeSignals.legacyEndpointMissing,
+      currentArchiveFlowDocumented: report.changeSignals.currentArchiveFlowDocumented,
+    },
+    barriers: {
+      writesEnabled: report.barriers.writesEnabled,
+      remoteBuildStarted: report.barriers.remoteBuildStarted,
+      productionExecutionAllowed: report.barriers.productionAllowed,
+    },
+  })}\n`);
   return report.reviewRequired ? 2 : 0;
 }
 
