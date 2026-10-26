@@ -19,7 +19,7 @@ test("mock transport rejects invalid offsets and statuses", () => {
   assert.throws(()=>executeTusMockUpload({bytes,chunkSize:5,transport:createTusMockTransport([{status:204,offset:4}])}),/tus_offset_mismatch/);
   assert.throws(()=>executeTusMockUpload({bytes,chunkSize:5,transport:createTusMockTransport([{status:401,offset:5}])}),/unexpected_tus_status/);
   assert.throws(()=>executeTusMockUpload({bytes,chunkSize:5,transport:createTusMockTransport([])}),/missing_tus_response/);
-  assert.throws(()=>executeTusMockUpload({bytes,chunkSize:10,transport:createTusMockTransport([{status:204,offset:10},{status:204,offset:10}])}),/unused_tus_responses/);
+  assert.throws(()=>executeTusMockUplload({bytes,chunkSize:10,transport:createTusMockTransport([{status:204,offset:10},{status:204,offset:10}]})}),/unused_tus_responses/);
 });
 test("mock boundary rejects external transport and real writes", () => {
   assert.throws(()=>executeTusMockUpload({bytes,chunkSize:5,transport:{send(){return {status:204,offset:5}}}}),/tus_transport_not_mock/);
@@ -28,7 +28,7 @@ test("mock boundary rejects external transport and real writes", () => {
 test("mock transport rejects unsafe inputs", () => {
   const transport=createTusMockTransport([]);
   assert.throws(()=>executeTusMockUpload({bytes:"abc",chunkSize:1,transport}),/invalid_bytes/);
-  assert.throws(()=>executeTusMockUpload({bytes,chunkSize:0,tansport}),/invalid_chunk_size/);
-  assert.throws((()=>executeTusMockUpload({bytes,chunkSize:2,startOffset:11,transport}),/invalid_start_offset/);
+  assert.throws(()=>executeTusMockUpload({bytes,chunkSize:0,transport}),/invalid_chunk_size/);
+  assert.throws(()=>executeTusMockUpload({bytes,chunkSize:2,startOffset:11,transport}),/invalid_start_offset/);
   assert.throws(()=>createTusMockTransport(null),/invalid_mock_responses/);
 });
