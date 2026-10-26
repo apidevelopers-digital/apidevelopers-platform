@@ -2,7 +2,7 @@ import fs from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 
-import { createHostingerNodeContractMonitorReport } from "./hostinger-node-contract-monitor.mjs";
+import { createHostingerNodeContractTransitionReport } from "./hostinger-node-contract-transition.mjs";
 
 function parseArgs(argv) {
   const values = {};
@@ -14,13 +14,11 @@ function parseArgs(argv) {
     }
     values[key.slice(2)] = value;
   }
-
   for (const required of ["openapi", "issue", "output"]) {
     if (!values[required]) {
       throw new Error(`missing_argument:${required}`);
     }
   }
-
   return values;
 }
 
@@ -28,7 +26,7 @@ export function runHostingerNodeContractMonitor(argv = process.argv.slice(2)) {
   const args = parseArgs(argv);
   const openapi = JSON.parse(fs.readFileSync(args.openapi, "utf8"));
   const issue = JSON.parse(fs.readFileSync(args.issue, "utf8"));
-  const report = createHostingerNodeContractMonitorReport({
+  const report = createHostingerNodeContractTransitionReport({
     openapi,
     issue,
     observedAt: process.env.MONITOR_OBSERVED_AT || new Date().toISOString(),
@@ -40,7 +38,8 @@ export function runHostingerNodeContractMonitor(argv = process.argv.slice(2)) {
     `${JSON.stringify({
       status: report.status,
       reviewRequired: report.reviewRequired,
-      fingerprint: report.fingerprint,
+      legacyStatus: report.legacyStatus,
+      legacyFingerprint: report.legacyFingerprint,
     })}\n`,
   );
 
