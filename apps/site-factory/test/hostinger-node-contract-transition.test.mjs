@@ -1,17 +1,12 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 import { createHostingerNodeContractTransitionReport } from "../src/hostinger-node-contract-transition.mjs";
+import { currentOpenApiFixture } from "./fixtures/hostinger-node-build-openapi.mjs";
 
-const path = "/api/hosting/v1/accounts/{username}/websites/{domain}/nodejs/builds";
 const issue = { number: 56, state: "open" };
-test("transition preserves legacy review gate when old endpoint is removed", () => {
+test("transition preserves manual review gate with full current schema", () => {
   const report = createHostingerNodeContractTransitionReport({
-    openapi: { openapi: "3.0.0", info: { version: "2.3.0" }, paths: {
-      [path]: { post: { requestBody: { content: { "application/json": {
-        schema: { $ref: "#/components/schemas/Hosting.V1.NodeJs.StartBuildRequest" }
-      } } } } }
-    } },
-    issue, observedAt: "2026-10-26T00:00:00Z"
+    openapi: currentOpenApiFixture(), issue, observedAt: "2026-10-26T00:00:00Z"
   });
   assert.equal(report.status, "legacy-removed-new-contract-review-required");
   assert.equal(report.reviewRequired, true);
@@ -22,6 +17,16 @@ test("transition preserves legacy review gate when old endpoint is removed", () 
   assert.equal(report.barriers.writesEnabled, false);
   assert.equal(report.barriers.productionExecutionAllowed, false);
   assert.equal(report.barriers.remoteBuildStarted, false);
+});
+test("transition fails closed when current schema drifts", () => {
+  const openapi = currentOpenApiFixture();
+  openapi.components.schemas["Hosting.V1.NodeJs.StartBuildRequest"].properties.source_options.properties.archive_path.type = "integer";
+  const report = createHostingerNodeContractTransitionReport({
+    openapi, issue, observedAt: "2026-10-26T00:00:00Z"
+  });
+  assert.equal(report.status, "contract-unverified-blocked");
+  assert.equal(report.changeSignals.currentArchiveFlowDocumented, false);
+  assert.equal(report.barriers.productionExecutionAllowed, false);
 });
 test("transition fails closed when neither contract is present", () => {
   const report = createHostingerNodeContractTransitionReport({
