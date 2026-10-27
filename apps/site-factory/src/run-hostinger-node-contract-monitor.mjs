@@ -52,7 +52,7 @@ export function runHostingerNodeContractMonitor(argv = process.argv.slice(2)) {
     barriers: {
       writesEnabled: report.barriers.writesEnabled,
       remoteBuildStarted: report.barriers.remoteBuildStarted,
-      productionExecutionAllowed: report.barriers.productionAllowed,
+      productionExecutionAllowed: report.barriers.productionExecutionAllowed,
     },
   })}\n`);
   return report.reviewRequired ? 2 : 0;
