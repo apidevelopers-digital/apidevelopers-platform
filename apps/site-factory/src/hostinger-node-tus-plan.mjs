@@ -7,20 +7,22 @@ const required = (value, name) => {
   if (typeof value !== "string" || !value.trim()) throw new Error(`missing_${name}`);
   return value.trim();
 };
-
 export function assertHostingerNodeWriteAuthorization() {
   throw new Error("hostinger_node_write_blocked:executor_not_approved");
 }
-
 export function planHostingerNodeArchiveUpload({ username, domain, archivePath, startBuildInput } = {}) {
   const account = required(username, "username");
   const site = required(domain, "domain");
   const archive = required(archivePath, "archive_path");
-  if (archive.startsWith("/") || archive.includes("..") || archive.includes("\\") ||
-      archive.includes("?") || archive.includes("#")) {
+  // Reject silent whitespace normalization and invalid TUS destination paths even
+  // for legacy previews without a complete StartBuildRequest.
+  if (archive !== archivePath) throw new Error("invalid_archive_path");
+  if (archive.length > 200 ||
+      !/^[a-zA-Z0-9_./-]+$/.test(archive) ||
+      archive.split("/").some((part) => !part || part === "." || part === "..") ||
+      !/\.(zip|tgz|tar\.gz)$/i.test(archive)) {
     throw new Error("invalid_archive_path");
   }
-
   // No implicit defaults for the StartBuildRequest: the caller must explicitly
   // provide the complete, validated contract body. The legacy preview stays inert.
   const buildPreview = startBuildInput === undefined ? null :
@@ -28,7 +30,6 @@ export function planHostingerNodeArchiveUpload({ username, domain, archivePath, 
   if (buildPreview && buildPreview.body.source_options.archive_path !== archive) {
     throw new Error("archive_path_mismatch");
   }
-
   return Object.freeze({
     mode: "dry-run",
     writesEnabled: false,
