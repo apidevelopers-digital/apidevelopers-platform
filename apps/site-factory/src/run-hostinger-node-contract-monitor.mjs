@@ -48,6 +48,10 @@ export function runHostingerNodeContractMonitor(argv = process.argv.slice(2)) {
     changeSignals: {
       legacyEndpointMissing: report.changeSignals.legacyEndpointMissing,
       currentArchiveFlowDocumented: report.changeSignals.currentArchiveFlowDocumented,
+      contractChanged: report.changeSignals.contractChanged,
+      apiVersionChanged: report.changeSignals.apiVersionChanged,
+      issueChanged: report.changeSignals.issueChanged,
+      officialIssueClosed: report.changeSignals.officialIssueClosed,
     },
     barriers: {
       writesEnabled: report.barriers.writesEnabled,
