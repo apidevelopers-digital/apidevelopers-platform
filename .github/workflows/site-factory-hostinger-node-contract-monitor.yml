@@ -13,7 +13,6 @@ on:
 
 permissions:
   contents: read
-
 concurrency:
   group: site-factory-hostinger-node-contract-monitor
   cancel-in-progress: false
@@ -29,7 +28,6 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v4
-
       - name: Set up Node.js
         uses: actions/setup-node@v4
         with:
@@ -94,6 +92,41 @@ jobs:
             cat "$MONITOR_DIR/sanitized-summary.json"
           fi
           exit 0
+      - name: Publish allowlisted drift check annotations
+        if: always()
+        shell: bash
+        run: |
+          set -euo pipefail
+          test -s "$MONITOR_DIR/sanitized-summary.json"
+          node --input-type=module <<'NODE'
+          import { readFileSync } from "node:fs";
+          const data = JSON.parse(readFileSync(
+            process.env.MONITOR_DIR + "/sanitized-summary.json", "utf8"
+          ));
+          const names = [
+            "legacyEndpointMissing",
+            "currentArchiveFlowDocumented",
+            "contractChanged",
+            "apiVersionChanged",
+            "issueChanged",
+            "officialIssueClosed"
+          ];
+          for (const name of names) {
+            const value = data.changeSignals?.[name];
+            if (typeof value !== "boolean") {
+              throw new Error(`missing_boolean_drift_signal:${name}`);
+            }
+            console.log(
+              `::notice file=apps/site-factory/src/hostinger-node-contract-transition.mjs,line=1,title=Hostinger drift ${name}::${value}`
+            );
+          }
+          if (typeof data.reviewRequired !== "boolean") {
+            throw new Error("invalid_review_required");
+          }
+          console.log(
+            `::notice file=apps/site-factory/src/hostinger-node-contract-transition.mjs,line=1,title=Hostinger drift reviewRequired::${data.reviewRequired}`
+          );
+          NODE
       - name: Upload sanitized monitor report
         if: always()
         uses: actions/upload-artifact@v4
