@@ -25,6 +25,7 @@ export function createHostingerNodeContractTransitionReport({ openapi, issue, ob
     barriers: Object.freeze({
       ...legacy.barriers,
       writesEnabled: false,
+      buildStartAllowed: false,
       remoteBuildStarted: false,
       productionExecutionAllowed: false
     }),
