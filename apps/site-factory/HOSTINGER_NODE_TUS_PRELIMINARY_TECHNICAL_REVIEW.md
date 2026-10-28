@@ -12,8 +12,8 @@ Bloqueado: merge, deploy, upload TUS real, POST de build e escrita em produção
 
 Manter writesEnabled=false, buildStartAllowed=false, remoteBuildStarted=false e productionExecutionAllowed=false.
 
-Parecer: pronto para revisão técnica humana do pacote dry-run, não homologado para produção.
+Parecer: pronto para revisão técnica hum do pacote dry-run, não homologado para produção.
 
 Evidências:
 - https://github.com/apidevelopers-digital/apidevelopers-platform/actions/runs/40702550619
-- https://github.com/apidevelopers-platform/actions/runs/40693348359
+- https://github.com/apidevelopers-digital/apidevelopers-platform/actions/runs/40693348359
