@@ -15,6 +15,7 @@ test("transition preserves manual review gate with full current schema", () => {
   assert.equal(report.changeSignals.legacyEndpointMissing, true);
   assert.equal(report.changeSignals.currentArchiveFlowDocumented, true);
   assert.equal(report.barriers.writesEnabled, false);
+  assert.equal(report.barriers.buildStartAllowed, false);
   assert.equal(report.barriers.productionExecutionAllowed, false);
   assert.equal(report.barriers.remoteBuildStarted, false);
 });
@@ -26,6 +27,7 @@ test("transition fails closed when current schema drifts", () => {
   });
   assert.equal(report.status, "contract-unverified-blocked");
   assert.equal(report.changeSignals.currentArchiveFlowDocumented, false);
+  assert.equal(report.barriers.buildStartAllowed, false);
   assert.equal(report.barriers.productionExecutionAllowed, false);
 });
 test("transition fails closed when neither contract is present", () => {
@@ -35,4 +37,5 @@ test("transition fails closed when neither contract is present", () => {
   assert.equal(report.status, "contract-unverified-blocked");
   assert.equal(report.reviewRequired, true);
   assert.equal(report.barriers.writesEnabled, false);
+  assert.equal(report.barriers.buildStartAllowed, false);
 });
