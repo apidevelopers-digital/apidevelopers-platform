@@ -1,4 +1,5 @@
-// Deliberately minimal OpenAPI fixture mirroring the documented StartBuildRequest shape.
+// Deliberately minimal offline fixture matching Hostinger OpenAPI 2.5.1 (checked 2026-10-28).
+// The contract monitor separately fetches the live upstream OpenAPI.
 export const HOSTINGER_NODE_BUILD_PATH = "/api/hosting/v1/accounts/{username}/websites/{domain}/nodejs/builds";
 export const HOSTINGER_NODE_BUILD_SCHEMA_REF = "#/components/schemas/Hosting.V1.NodeJs.StartBuildRequest";
 export function startBuildSchemaFixture() {
@@ -22,7 +23,7 @@ export function startBuildSchemaFixture() {
 export function currentOpenApiFixture() {
   return {
     openapi: "3.0.0",
-    info: { version: "2.3.0" },
+    info: { version: "2.5.1" },
     paths: {
       [HOSTINGER_NODE_BUILD_PATH]: {
         post: { requestBody: { content: {
