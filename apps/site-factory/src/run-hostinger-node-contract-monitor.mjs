@@ -2,7 +2,7 @@ import fs from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 
-import { createHostingerNodeContractMonitorReport } from "./hostinger-node-contract-monitor.mjs";
+import { createHostingerNodeContractTransitionReport } from "./hostinger-node-contract-transition.mjs";
 
 function parseArgs(argv) {
   const values = {};
@@ -14,13 +14,11 @@ function parseArgs(argv) {
     }
     values[key.slice(2)] = value;
   }
-
   for (const required of ["openapi", "issue", "output"]) {
     if (!values[required]) {
       throw new Error(`missing_argument:${required}`);
     }
   }
-
   return values;
 }
 
@@ -28,22 +26,39 @@ export function runHostingerNodeContractMonitor(argv = process.argv.slice(2)) {
   const args = parseArgs(argv);
   const openapi = JSON.parse(fs.readFileSync(args.openapi, "utf8"));
   const issue = JSON.parse(fs.readFileSync(args.issue, "utf8"));
-  const report = createHostingerNodeContractMonitorReport({
+  const report = createHostingerNodeContractTransitionReport({
     openapi,
     issue,
     observedAt: process.env.MONITOR_OBSERVED_AT || new Date().toISOString(),
   });
-
   fs.mkdirSync(path.dirname(args.output), { recursive: true });
   fs.writeFileSync(args.output, `${JSON.stringify(report, null, 2)}\n`);
-  process.stdout.write(
-    `${JSON.stringify({
-      status: report.status,
-      reviewRequired: report.reviewRequired,
-      fingerprint: report.fingerprint,
-    })}\n`,
-  );
 
+  // Only allowlisted, non-sensitive diagnostics are printed. The complete
+  // sanitized report remains in the workflow artifact for detailed review.
+  process.stdout.write(`${JSON.stringify({
+    kind: report.kind,
+    status: report.status,
+    reviewRequired: report.reviewRequired,
+    legacyStatus: report.legacyStatus,
+    checks: {
+      currentBuildOperationPresent: report.checks.currentBuildOperationPresent,
+      legacyBuildOperationPresent: report.checks.legacyBuildOperationPresent,
+    },
+    changeSignals: {
+      legacyEndpointMissing: report.changeSignals.legacyEndpointMissing,
+      currentArchiveFlowDocumented: report.changeSignals.currentArchiveFlowDocumented,
+      contractChanged: report.changeSignals.contractChanged,
+      apiVersionChanged: report.changeSignals.apiVersionChanged,
+      issueChanged: report.changeSignals.issueChanged,
+      officialIssueClosed: report.changeSignals.officialIssueClosed,
+    },
+    barriers: {
+      writesEnabled: report.barriers.writesEnabled,
+      remoteBuildStarted: report.barriers.remoteBuildStarted,
+      productionExecutionAllowed: report.barriers.productionExecutionAllowed,
+    },
+  })}\n`);
   return report.reviewRequired ? 2 : 0;
 }
 
