@@ -109,7 +109,7 @@ jobs:
             curl -fs http://127.0.0.1:8000/health | grep -F "ok"
 
             echo "4. Tool catalog..."
-            curl -fs http://127..0.0.1:8000/mcp/tools | grep -F "imuni.practitioner.upsert_IGOR_REAL"
+            curl -fs http://127.0.0.1:8000/mcp/tools | grep -F "imuni.practitioner.upsert_IGOR_REAL"
 
-            echo "MPP API bootstrap rebuild complete."
+            echo "MCP API bootstrap rebuild complete."
           REMOTE
