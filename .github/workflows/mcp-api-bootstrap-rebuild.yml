@@ -51,11 +51,6 @@ jobs:
             exit 1
           fi
 
-          if [ -z "${{ secrets.MCP_VPS_SSH_HOST }}" ]; then
-            echo "::error::Missing secret MCP_VPS_SSH_HOST."
-            exit 1
-          fi
-
           if [ -z "${{ secrets.MCP_VPS_SSH_USER }}" ]; then
             echo "::error::Missing secret MCP_VPS_SSH_USER."
             exit 1
@@ -73,8 +68,7 @@ jobs:
           cat <<'EOF'
           PLAN ONLY:
 
-          Target host: secret MCP_VPS_SSH_HOST not printed
-         Normalized SSH target: forced IPv4 to registered VPS IP
+          Target host: fixed IPv4 target for the registered VPS
           Target user: secret MCP_VPS_SSH_USER not printed
           Action: cd /opt/api-dev-brain/apps/mcp-brain-v1 && docker compose build --no-cache mcp-api && docker compose up -d --force-recreate --no-deps mcp-api
           Post-check: ssh probe, docker exec mcp-api docker --version, public health, public tool catalog
@@ -90,7 +84,6 @@ jobs:
         run: |
           set -euo pipefail
           SSH_DIR="${RUNNER_TEMP}/mcp-ssh"
-          SSH_KEY_PATH="{SSH_DIR}/mcp_vps_key"
           SSH_KEY_PATH="${SSH_DIR}/mcp_vps_key"
           mkdir -p "$SSH_DIR"
           chmod 700 "$SSH_DIR"
