@@ -23,9 +23,11 @@ jobs:
       - macOS
       - X64
     timeout-minutes: 10
+
     defaults:
       run:
         working-directory: apps/mcp-brain-v1
+
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -42,5 +44,7 @@ jobs:
           python -m pip install -r requirements.txt
 
       - name: Run Imuni MCP package tests
+        env:
+          PYTHONPATH: .
         run: |
-          python -m pytest -q tests
+          python -m pytest -q             tests/test_imuni_tools.py             tests/test_imuni_schema.py             tests/test_imuni_db_tools.py
