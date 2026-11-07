@@ -78,7 +78,7 @@ create index if not exists idx_imuni_consents_patient
 create table if not exists imuni.access_grants (
   id uuid primary key default gen_random_uuid(),
   tenant_id uuid not null references imuni.tenants(id),
-  practitioner_id uuid not null references imuni.practititioners(id),
+  practitioner_id uuid not null references imuni.practitioners(id),
   patient_id uuid not null references imuni.patients(id),
   scope text not null check (scope in ('read','write','admin','emergency')),
   status text not null default 'active' check (status in ('active','revoked','expired')),
@@ -96,7 +96,7 @@ create table if not exists imuni.encounters (
   started_at timestamptz not null default now(),
   ended_at timestamptz,
   encounter_type text not null default 'consultation',
-  status text not null default 'draft' check (status in ('draft','signed','amended','voided'))
+  status text not null default 'draft' check (status in ('draft','signed','amended','voided')),
   chief_complaint_encrypted text,
   subjective_encrypted text,
   objective_encrypted text,
