@@ -35,6 +35,7 @@ jobs:
     env:
       CONFIRMACAO: ${{ github.event.inputs.confirmacao }}
       DRY_RUN: ${{ github.event.inputs.dry_run }}
+      MCP_VPS_IPv4: "179.236.235.179"
 
     steps:
       - name: Guardrails
@@ -44,13 +45,9 @@ jobs:
           echo "dry_run=${DRY_RUN}"
           echo "confirmacao=[redacted]"
 
+
           if [ "$CONFIRMACAO" != "IGOR_APROVA_R4_MCP_API_BOOTSTRAP_REBUILD" ]; then
             echo "::error::Invalid confirmation."
-            exit 1
-          fi
-
-          if [ -z "${{ secrets.MCP_VPS_SSH_HOST }}" ]; then
-            echo "::error::Missing secret MCP_VPS_SSH_HOST."
             exit 1
           fi
 
@@ -71,10 +68,10 @@ jobs:
           cat <<'EOF'
           PLAN ONLY:
 
-          Target host: secret MCP_VPS_SSH_HOST not printed
+          Target host: fixed IPv4 target for the registered VPS
           Target user: secret MCP_VPS_SSH_USER not printed
           Action: cd /opt/api-dev-brain/apps/mcp-brain-v1 && docker compose build --no-cache mcp-api && docker compose up -d --force-recreate --no-deps mcp-api
-          Post-check: docker exec mcp-api docker --version, public health, public tool catalog
+          Post-check: ssh probe, docker exec mcp-api docker --version, public health, public tool catalog
 
           No PostgreS restart.
           No DNS change.
@@ -103,7 +100,17 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          ssh -o StrictHostKeyChecking=accept-new -i "$SSH_KEY_PATH" "${{ secrets.MCP_VPS_SSH_USER }}@${{ secrets.MCP_VPS_SSH_HOST }}" 'bash -s' <<'REMOTE'
+          SSH_HOST="$MCP_VPS_IPv4"
+          SSH_USER="${{ secrets.MCP_VPS_SSH_USER }}"
+
+          echo "1. SSH ipv4 probe..."
+          ssh -4 -o BatchMode=yes -o ConnectTimeout=15 -o StrictHostKeyChecking=accept-new -i "$SSH_KEY_PATH" "$SSH_USER@$SSH_HOST" 'echo ssh_ok ; hostname ; whoami'
+
+          echo "2. Remote docker preflight..."
+          ssh -4 -o BatchMode=yes -o ConnectTimeout=15 -o StrictHostKeyChecking=accept-new -i "$SSH_KEY_PATH" "$SSH_USER@$SSH_HOST" 'docker --version ; docker compose version'
+
+          echo "3. Rebuilding via remote ssh..."
+          ssh -4 -o BatchMode=yes -o ConnectTimeout=15 -o StrictHostKeyChecking=accept-new -i "$SSH_KEY_PATH" "$SSH_USER@$SSH_HOST" 'bash -s' <<'REMOTE'
             set -euo pipefail
             cd /opt/api-dev-brain/apps/mcp-brain-v1
 
