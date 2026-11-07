@@ -1,0 +1,80 @@
+name: ADA Asset Engine Block 5 readiness
+
+on:
+  workflow_dispatch:
+    inputs:
+      strict:
+        description: 'Fail when approved Greys assets are missing'
+        required: true
+        default: 'false'
+        type: choice
+        options:
+          - 'false'
+          - 'true'
+  pull_request:
+    paths:
+      - 'docs/asset-engine/**'
+      - 'media/catalogs/hiddenarquives/greys.json'
+      - 'media/sources/hiddenarquives/greys/**'
+      - 'scripts/asset-engine-*-greys.mjs'
+      - '.github/workflows/asset-engine-block5-readiness.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  hiddenarquives-greys-block5-readiness:
+    runs-on:
+      - self-hosted
+      - macOS
+      - X64
+
+    env:
+      STRICT_INGEST: ${{ github.event_name == 'workflow_dispatch' && inputs.strict == 'true' }}
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: Validate script syntax
+        run: |
+          set -e
+          node --check scripts/asset-engine-ingest-greys.mjs
+          node --check scripts/asset-engine-dry-run-greys.mjs
+          node --check scripts/asset-engine-render-greys.mjs
+          node --check scripts/asset-engine-hostinger-plan-greys.mjs
+          node --check scripts/asset-engine-hostinger-rollback-plan-greys.mjs
+          node --check scripts/asset-engine-http-validation-plan-greys.mjs
+          node --check scripts/asset-engine-hostinger-publish-greys.mjs
+
+      - name: Run Block 5 readiness package
+        run: |
+          set -e
+          mkdir -p artifacts/asset-engine/dry-run
+
+          if [ "$STRICT_INGEST" = "true" ]; then
+            node scripts/asset-engine-ingest-greys.mjs --strict
+          else
+            node scripts/asset-engine-ingest-greys.mjs --allow-missing
+          fi
+
+          node scripts/asset-engine-dry-run-greys.mjs
+          node scripts/asset-engine-render-greys.mjs
+          node scripts/asset-engine-hostinger-plan-greys.mjs
+          node scripts/asset-engine-hostinger-rollback-plan-greys.mjs
+          node scripts/asset-engine-http-validation-plan-greys.mjs
+          node scripts/asset-engine-hostinger-publish-greys.mjs
+
+      - name: Upload Block 5 readiness artifacts
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: hiddenarquives-greys-block5-readiness
+          path: |
+            artifacts/asset-engine/dry-run/*.json
+            artifacts/asset-engine/dry-run/*.html

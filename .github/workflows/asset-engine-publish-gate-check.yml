@@ -1,0 +1,74 @@
+name: ADA Asset Engine publish gate check
+
+on:
+  workflow_dispatch:
+  pull_request:
+    paths:
+      - 'scripts/asset-engine-*.mjs'
+      - 'media/catalogs/**'
+      - 'media/sources/**'
+
+permissions:
+  contents: read
+
+jobs:
+  publish-gate-safety:
+    runs-on:
+      - self-hosted
+      - macOS
+      - X64
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: Generate dry-run inputs
+        run: |
+          set -e
+          mkdir -p artifacts/asset-engine/dry-run
+          node --check scripts/asset-engine-hostinger-publish-greys.mjs
+          node --check scripts/asset-engine-dry-run-greys.mjs
+          node --check scripts/asset-engine-render-greys.mjs
+          node --check scripts/asset-engine-hostinger-plan-greys.mjs
+          node scripts/asset-engine-dry-run-greys.mjs
+          node scripts/asset-engine-render-greys.mjs
+          node scripts/asset-engine-hostinger-plan-greys.mjs
+
+      - name: Verify gate reports controlled block without real SFTP
+        run: |
+          set -e
+          ADA_ASSET_ENGINE_DRY_RUN=true node scripts/asset-engine-hostinger-publish-greys.mjs > /tmp/publish-gate.log 2>&1
+          cat /tmp/publish-gate.log || true
+          test -f artifacts/asset-engine/dry-run/hostinger-publish-report.json
+
+          python3 - <<'PY'
+          import json
+          p = 'artifacts/asset-engine/dry-run/hostinger-publish-report.json'
+          d = json.load(open(p))
+          assert d.get('step') == 'hostinger_publish_gated', d
+          protection = d.get('protection') or {}
+          assert protection.get('sftp_executed') is False, d
+          if d.get('ok') is False:
+              assert d.get('error') in {
+                  'real_assets_missing_blocked_publish',
+                  'missing_hostinger_publish_plan',
+                  'missing_explicit_real_publish_confirmation',
+                  'plan_not_dry_run_safe'
+              }, d
+          else:
+              assert d.get('ok') is True, d
+              assert d.get('mode') == 'dry-run', d
+          print(json.dumps({'ok': True, 'gate_report_ok': True, 'reported_ok': d.get('ok'), 'error': d.get('error')}, indent=2))
+          PY
+
+      - name: Upload gate report
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: greys-hostinger-publish-gate-report
+          path: artifacts/asset-engine/dry-run/hostinger-publish-report.json
