@@ -15,16 +15,6 @@ on:
         description: "Optional audit string. Real deploy remains blocked here."
         required: false
         default: ""
-  pull_request:
-    paths:
-      - "apps/mcp-brain-v1/**"
-      - ".github/workflows/mcp-brain-v1-reload-plan.yml"
-  push:
-    branches:
-      - "ada/mcp-brain-runtime-imuni-v1-20261107"
-    paths:
-      - "apps/mcp-brain-v1/**"
-      - ".github/workflows/mcp-brain-v1-reload-plan.yml"
 
 permissions:
   contents: read
@@ -38,9 +28,6 @@ jobs:
       - X64
     timeout-minutes: 5
     steps:
-      - name: Checkout
-        uses: actions/checkout@v4
-
       - name: Refuse real reload and emit plan only
         shell: bash
         run: |
@@ -48,7 +35,7 @@ jobs:
 
           DRY_RUN="${{ github.event.inputs.dry_run || 'true' }}"
           CONFIRMACAO="${{ github.event.inputs.confirmacao || '' }}"
-          TARGET="${{ github.event.inputs.target || 'pull_request_or_push' }}"
+          TARGET="${{ github.event.inputs.target || 'manual_dispatch' }}"
 
           echo "dry_run=${DRY_RUN}"
           echo "target=${TARGET}"
@@ -66,11 +53,6 @@ jobs:
 
           cat <<'EOF'
           MCP Brain v1 reload plan — PLAN ONLY
-
-          Target runtime observed:
-            host: srv2028303.hstgr.cloud
-            app path: /opt/api-dev-brain/apps/mcp-brain-v1
-            service: mcp-api
 
           Manual host commands, after human approval and review:
 
