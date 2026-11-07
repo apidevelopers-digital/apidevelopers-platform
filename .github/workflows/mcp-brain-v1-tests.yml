@@ -17,7 +17,7 @@ permissions:
 
 jobs:
   imuni-tools:
-    name: Imuni MCP tool smoke tests
+    name: Imuni MCP package smoke tests
     runs-on:
       - self-hosted
       - macOS
@@ -41,6 +41,6 @@ jobs:
           python -m pip install pytest
           python -m pip install -r requirements.txt
 
-      - name: Run Imuni tool tests
+      - name: Run Imuni MCP package tests
         run: |
-          python -m pytest -q tests/test_imuni_tools.py
+          python -m pytest -q tests/test_imuni_tools.py tests/test_imuni_schema.py
