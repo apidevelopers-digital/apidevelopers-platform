@@ -30,7 +30,7 @@ jobs:
       - self-hosted
       - macOS
       - X64
-    timeout-minutes: 15
+    timeout-minutes: 25
 
     env:
       CONFIRMACAO: ${{ github.event.inputs.confirmacao }}
@@ -41,7 +41,6 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-
           echo "dry_run=${DRY_RUN}"
           echo "confirmacao=[redacted]"
 
@@ -74,8 +73,8 @@ jobs:
 
           Target host: secret MCP_VPS_SSH_HOST not printed
           Target user: secret MCP_VPS_SSH_USER not printed
-          Action: cd /opt/api-dev-brain/apps/mcp-brain-v1 && docker compose up -d --build mcp-api
-          Post-check: docker ps, public Caddy/HTML health/MCP catalog
+          Action: cd /opt/api-dev-brain/apps/mcp-brain-v1 && docker compose build --no-cache mcp-api && docker compose up -d --force-recreate --no-deps mcp-api
+          Post-check: docker exec mcp-api docker --version, public health, public tool catalog
 
           No PostgreS restart.
           No DNS change.
@@ -87,7 +86,6 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-
           SSH_DIR="${RUNNER_TEMP}/mcp-ssh"
           SSH_KEY_PATH="${SSH_DIR}/mcp_vps_key"
           mkdir -p "$SSH_DIR"
@@ -105,22 +103,26 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-
           ssh -o StrictHostKeyChecking=accept-new -i "$SSH_KEY_PATH" "${{ secrets.MCP_VPS_SSH_USER }}@${{ secrets.MCP_VPS_SSH_HOST }}" 'bash -s' <<'REMOTE'
             set -euo pipefail
-
             cd /opt/api-dev-brain/apps/mcp-brain-v1
 
-            echo "1. Building mcp-api..."
-            docker compose up -d --build mcp-api
+            echo "1. Forcing no-cache build of mcp-api..."
+            docker compose build --no-cache mcp-api
 
-            echo "2. Containers..."
+            echo "2. Recreating mcp-api only..."
+            docker compose up -d --force-recreate --no-deps mcp-api
+
+            echo "3. Containers..."
             docker ps
 
-            echo "3. Public health..."
+            echo "4. Verify Docker CLI inside mcp-api..."
+            docker exec mcp-api docker --version
+
+            echo "5. Public health..."
             curl -fs https://mcp.apidevelopers.digital/health | grep -F "ok"
 
-            echo "4. Public tool catalog..."
+            echo "6. Public tool catalog..."
             curl -fs https://mcp.apidevelopers.digital/mcp/tools | grep -F "imuni.practitioner.upsert_IGOR_REAL"
 
             echo "MCP API bootstrap rebuild complete."
