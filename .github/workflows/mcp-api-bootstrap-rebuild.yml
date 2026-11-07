@@ -1,0 +1,127 @@
+name: MCP API bootstrap rebuild
+
+on:
+  workflow_dispatch:
+    inputs:
+      confirmacao:
+        description: "Literal confirmation. Required: IGOR_APROVA_R4_MCP_API_BOOTSTRAP_REBUILD"
+        required: true
+        type: string
+      dry_run:
+        description: "Plan only when true. Real rebuild when false with confirmation."
+        required: true
+        default: "true"
+        type: choice
+        options:
+          - "true"
+          - "false"
+
+permissions:
+  contents: read
+
+concurrency:
+  group: mcp-api-bootstrap-rebuild
+  cancel-in-progress: false
+
+jobs:
+  bootstrap-rebuild:
+    name: MCP API bootstrap rebuild
+    runs-on:
+      - self-hosted
+      - macOS
+      - X64
+    timeout-minutes: 15
+
+    env:
+      CONFIRMACAO: ${{ github.event.inputs.confirmacao }}
+      DRY_RUN: ${{ github.event.inputs.dry_run }}
+
+    steps:
+      - name: Guardrails
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          echo "dry_run=${DRY_RUN}"
+          echo "confirmacao=[redacted]"
+
+          if [ "$CONFIRMACAO" != "IGOR_APROVA_R4_MCP_API_BOOTSTRAP_REBUILD" ]; then
+            echo "::error::Invalid confirmation."
+            exit 1
+          fi
+
+          if [ -z "${{ secrets.MCP_VPS_SSH_HOST }}" ]; then
+            echo "::error::Missing secret MCP_VPS_SSH_HOST."
+            exit 1
+          fi
+
+          if [ -z "${{ secrets.MCP_VPS_SSH_USER }}" ]; then
+            echo "::error::Missing secret MCP_VPS_SSH_USER."
+            exit 1
+          fi
+
+          if [ -z "${{ secrets.MCP_VPS_SSH_KEY }}" ]; then
+            echo "::error::Missing secret MCP_VPS_SSH_KEY."
+            exit 1
+          fi
+
+      - name: Print plan dry-run
+        if: ${{ env.DRY_RUN == 'true' }}
+        shell: bash
+        run: |
+          cat <<'EOF'
+          PLAN ONLY:
+
+          Target host: secret MCP_VPS_SSH_HOST not printed
+          Target user: secret MCP_VPS_SSH_USER not printed
+          Action: cd /opt/api-dev-brain/apps/mcp-brain-v1 && docker compose up -d --build mcp-api
+          Post-check: docker ps, public Caddy/HTML health/MCP catalog
+
+          No PostgreS restart.
+          No DNS change.
+          No clinical write enablement.
+          EOF
+
+      - name: Install temporary SSH key
+        if: ${{ env.DRY_RUN == 'false' }}
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          SSH_DIR="${RUNNER_TEMP}/mcp-ssh"
+          SSH_KEY_PATH="${SSH_DIR}/mcp_vps_key"
+          mkdir -p "$SSH_DIR"
+          chmod 700 "$SSH_DIR"
+          trap 'rm -rf "$SSH_DIR"' EXIT
+
+          cat > "$SSH_KEY_PATH" <<'KEY'
+          ${{ secrets.MCP_VPS_SSH_KEY }}
+          KEY
+          chmod 600 "$SSH_KEY_PATH"
+          echo "SSH_KEY_PATH=$SSH_KEY_PATH" >> "$GITHUB_ENV"
+
+      - name: Rebuild and healthcheck mcp-api
+        if: ${{ env.DRY_RUN == 'false' }}
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          ssh -o StrictHostKeyChecking=accept-new -i "$SSH_KEY_PATH" "${{ secrets.MCP_VPS_SSH_USER }}@${{ secrets.MCP_VPS_SSH_HOST }}" 'bash -s' <<'REMOTE'
+            set -euo pipefail
+
+            cd /opt/api-dev-brain/apps/mcp-brain-v1
+
+            echo "1. Building mcp-api..."
+            docker compose up -d --build mcp-api
+
+            echo "2. Containers..."
+            docker ps
+
+            echo "3. Public health..."
+            curl -fs https://mcp.apidevelopers.digital/health | grep -F "ok"
+
+            echo "4. Public tool catalog..."
+            curl -fs https://mcp.apidevelopers.digital/mcp/tools | grep -F "imuni.practitioner.upsert_IGOR_REAL"
+
+            echo "MCP API bootstrap rebuild complete."
+          REMOTE
