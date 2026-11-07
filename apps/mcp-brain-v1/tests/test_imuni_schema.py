@@ -1,7 +1,9 @@
 from pathlib import Path
 
 
-SCHEMA = Path(__file__).resolve().parents[1] / "db" / "imuni" / "schema.sql"
+ROOT = Path(__file__).resolve().parents[1]
+SCHEMA = ROOT / "db" / "imuni" / "schema.sql"
+COMPOSE = ROOT / "docker-compose.imuni-postgres.dev.yml"
 
 
 def test_schema_file_exists():
@@ -20,6 +22,18 @@ def test_schema_uses_encrypted_clinical_fields():
     ]
     for item in required:
         assert item in sql
+
+
+def test_schema_references_correct_practitioners_table():
+    sql = SCHEMA.read_text(encoding="utf-8")
+    assert "imuni.practitioners" in sql
+    assert "imuni.practititioners" not in sql
+
+
+def test_encounters_status_column_has_trailing_comma():
+    sql = SCHEMA.read_text(encoding="utf-8")
+    assert "status text not null default 'draft' check (status in ('draft','signed','amended','voided'))," in sql
+    assert "status text not null default 'draft' check (status in ('draft','signed','amended','voided'))\n  chief_complaint_encrypted" not in sql
 
 
 def test_audit_table_blocks_raw_clinical_payload():
@@ -47,3 +61,13 @@ def test_no_plaintext_clinical_body_columns():
     ]
     for pattern in forbidden_patterns:
         assert pattern not in sql
+
+
+def test_postgres_compose_uses_external_secret_file_without_imuni_env_mismatch():
+    compose = COMPOSE.read_text(encoding="utf-8")
+    assert "/opt/api-dev-brain/config/imuni-postgres.env" in compose
+    assert "IMUNI_POSTGRES_" not in compose
+    assert "POSTGRES_PASSWORD" not in compose or "${POSTGRES_PASSWORD" not in compose
+    assert "ports:" not in compose
+    assert "expose:" in compose
+    assert "internal: true" in compose
