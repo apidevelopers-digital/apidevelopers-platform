@@ -67,7 +67,12 @@ def test_postgres_compose_uses_external_secret_file_without_imuni_env_mismatch()
     compose = COMPOSE.read_text(encoding="utf-8")
     assert "/opt/api-dev-brain/config/imuni-postgres.env" in compose
     assert "IMUNI_POSTGRES_" not in compose
-    assert "POSTGRES_PASSWORD" not in compose or "${POSTGRES_PASSWORD" not in compose
+    # POSTGRES_USER/DB are allowed in postgres official containers health checks;
+    # the secret guard must block password/DSN exposure or inline secret values.
+    assert "POSTGRES_PASSWORD" not in compose
+    assert "${POSTGRES_PASSWORD" not in compose
+    assert "DATABASE_URL" not in compose
+    assert "DN" not in compose.upper()
     assert "ports:" not in compose
     assert "expose:" in compose
     assert "internal: true" in compose
