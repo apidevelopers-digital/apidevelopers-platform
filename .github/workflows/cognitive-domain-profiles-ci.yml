@@ -1,0 +1,33 @@
+name: Cognitive Domain Profiles CI
+
+on:
+  pull_request:
+    paths:
+      - "packages/cognitive-domain-profile/**"
+      - ".github/workflows/cognitive-domain-profiles-ci.yml"
+  push:
+    branches:
+      - "feat/cognitive-domain-profiles-20260811"
+    paths:
+      - "packages/cognitive-domain-profile/**"
+      - ".github/workflows/cognitive-domain-profiles-ci.yml"
+
+permissions:
+  contents: read
+
+jobs:
+  validate:
+    runs-on:
+      - self-hosted
+      - macOS
+      - X64
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - name: Validate cognitive domain profiles
+        run: |
+          set -euo pipefail
+          npm --prefix packages/cognitive-domain-profile run check
+          grep -R -q '"userDataAllowed": false' packages/cognitive-domain-profile/profiles
+          grep -R -q '"failClosed": true' packages/cognitive-domain-profile/profiles
+          ! grep -R -E 'autonomous_physician.*roles|magistrate.*roles' packages/cognitive-domain-profile/profiles/*.json
