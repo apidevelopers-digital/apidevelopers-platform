@@ -6,3 +6,4 @@ export * from "./zuni-commercial-activation.mjs";
 export * from "./zuni-commercial-activation-runtime.mjs";
 export * from "./zuni-channel-binding-runtime.mjs";
 export * from "./trust-biometric-login-decision-v1.mjs";
+export * from "./mitra-commercial-access-v1.mjs";
