@@ -1,12 +1,18 @@
 from __future__ import annotations
 
+import hashlib
+import hmac
 import http.client
 import json
+import os
 import socket
 import urllib.parse
 from typing import Any
 
 from .imuni_base_tools import base_result
+
+INTERNAL_CREDENTIAL_ENV = "IMUNI_R5_INTERNAL_CREDENTIAL_SHA256"
+HUMAN_CONFIRMATION = "IGOR_APROVA_R5_CADASTRO_MEDICO_IMUNI"
 
 PRACTITIONER_TOOL_DEFINITIONS = [
     {
@@ -17,15 +23,21 @@ PRACTITIONER_TOOL_DEFINITIONS = [
         "plugin_ready": True,
         "would_execute": True,
         "requires_confirmation": True,
-        "required_confirmation": "IGOR_APROVA_R5_CADASTRO_MEDICO_IMUNI",
         "description": (
             "Cria/atualiza o cadastro profissional real do médico Igor no Imuni. "
+            "Exige confirmação humana e credencial interna server-side não publicada. "
             "Não cria paciente real e não ativa escrita clínica geral."
         ),
         "input_schema": {
             "type": "object",
-            "properties": {"confirmacao": {"type": "string"}},
-            "required": ["confirmacao"],
+            "properties": {
+                "confirmacao": {"type": "string"},
+                "operator_credential": {
+                    "type": "string",
+                    "description": "Credencial interna não publicada. Nunca colocar em catálogo, logs ou mensagens.",
+                },
+            },
+            "required": ["confirmacao", "operator_credential"],
         },
     }
 ]
@@ -43,6 +55,15 @@ class _UnixHTTPConnection(http.client.HTTPConnection):
 
 def is_practitioner_tool(tool: str) -> bool:
     return any(item["name"] == tool for item in PRACTITIONER_TOOL_DEFINITIONS)
+
+
+def _credential_ok(args: dict[str, Any]) -> bool:
+    expected_hash = os.environ.get(INTERNAL_CREDENTIAL_ENV, "").strip()
+    supplied = str(args.get("operator_credential") or "")
+    if not expected_hash or not supplied:
+        return False
+    actual_hash = hashlib.sha256(supplied.encode("utf-8")).hexdigest()
+    return hmac.compare_digest(actual_hash, expected_hash)
 
 
 def _docker_api(method: str, path: str, body: dict[str, Any] | None = None, timeout: int = 20) -> dict[str, Any]:
@@ -111,8 +132,24 @@ def _parse_key_values(stdout: str) -> dict[str, str]:
 
 
 def _upsert_igor_real(tool: str, args: dict[str, Any]) -> dict[str, Any]:
-    if args.get("confirmacao") != "IGOR_APROVA_R5_CADASTRO_MEDICO_IMUNI":
-        return base_result(tool, {"ok": False, "blocked": True, "reason": "IGOR_APROVA_R5_CADASTRO_MEDICO_IMUNI confirmation required.", "would_execute": False, "clinical_data_persisted": False})
+    if args.get("confirmacao") != HUMAN_CONFIRMATION:
+        return base_result(tool, {
+            "ok": False,
+            "blocked": True,
+            "reason": "human R5 confirmation required.",
+            "would_execute": False,
+            "clinical_data_persisted": False,
+        })
+
+    if not _credential_ok(args):
+        return base_result(tool, {
+            "ok": False,
+            "blocked": True,
+            "reason": "internal server-side credential required.",
+            "would_execute": False,
+            "clinical_data_persisted": False,
+            "secret_value_exposed": False,
+        })
 
     sql = """
     with tenant as (
@@ -148,7 +185,8 @@ def _upsert_igor_real(tool: str, args: dict[str, Any]) -> dict[str, Any]:
                'clinical_writes_enabled', false,
                'production_writes_enabled', false,
                'permissions', jsonb_build_array('admin','physician','patients:create','patients:read','patients:archive','encounters:create','encounters:update_draft','encounters:sign','notes:add','attachments:add','audit:read'),
-               'cpf_raw_stored', false
+               'cpf_raw_stored', false,
+               'internal_credential_verified', true
              )
       from practitioner
       returning id
@@ -166,8 +204,11 @@ def _upsert_igor_real(tool: str, args: dict[str, Any]) -> dict[str, Any]:
     res = _docker_exec_fixed("imuni-postgres", ["psql", "-U", "imuni_app", "-d", "imuni_clinical", "-v", "ON_ERROR_STOP=1", "-At", "-c", sql], timeout=20)
     fields = _parse_key_values(res.get("stdout") or "")
 
+    ok = bool(res.get("ok") and fields.get("practitioner_id"))
     return base_result(tool, {
-        "ok": bool(res.get("ok") and fields.get("practitioner_id")),
+        "ok": ok,
+        "would_execute": False if not ok else True,
+        "executed": ok,
         "database": "imuni_clinical",
         "environment": "staging_dev_private_real_practitioner",
         "practitioner": {
