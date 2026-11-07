@@ -1,0 +1,22 @@
+name: MCP Brain v1 CI
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  ci-gate:
+    name: MCP Brain v1 CI gate
+    runs-on:
+      - self-hosted
+      - macOS
+      - X64
+    timeout-minutes: 5
+    steps:
+      - name: CI delegated to MCP Brain v1 tests workflow
+        run: |
+          echo "MCP Brain v1 CI is intentionally manual/non-blocking."
+          echo "Package tests are executed by: MCP Brain v1 tests."
+          echo "No deploy, no reload, no VPS access, no secrets."

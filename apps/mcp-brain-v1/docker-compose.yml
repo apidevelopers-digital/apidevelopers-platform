@@ -1,0 +1,30 @@
+services:
+  mcp-api:
+    build: .
+    container_name: mcp-api
+    restart: unless-stopped
+    env_file:
+      - /opt/api-dev-brain/config/mcp-runtime.env
+      - /opt/api-dev-brain/config/mcp-secrets.env
+    environment:
+      PETERLE_OPS_BASE_URL: ${PETERLE_OPS_BASE_URL:-https://peterle-ops.apidevelopers.digital}
+    volumes:
+      - /opt/api-dev-brain:/opt/api-dev-brain:rw
+      - /var/run/docker.sock:/var/run/docker.sock
+    expose:
+      - "8000"
+
+  caddy:
+    image: caddy:2.8-alpine
+    container_name: mcp-caddy
+    restart: unless-stopped
+    depends_on:
+      - mcp-api
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      - ./public:/srv/public:ro
+      - ./caddy/data:/data
+      - ./caddy/config:/config

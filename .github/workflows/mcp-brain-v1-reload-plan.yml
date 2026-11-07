@@ -1,0 +1,68 @@
+name: MCP Brain v1 reload plan
+
+on:
+  workflow_dispatch:
+    inputs:
+      target:
+        description: "Reload target label. Plan-only; no remote access is performed."
+        required: true
+        default: "srv2028303/mcp-api"
+      dry_run:
+        description: "Must stay true. Real deploy is intentionally blocked in this workflow."
+        required: true
+        default: "true"
+      confirmacao:
+        description: "Optional audit string. Real deploy remains blocked here."
+        required: false
+        default: ""
+
+permissions:
+  contents: read
+
+jobs:
+  reload-plan:
+    name: Plan MCP Brain v1 reload
+    runs-on:
+      - self-hosted
+      - macOS
+      - X64
+    timeout-minutes: 5
+    steps:
+      - name: Refuse real reload and emit plan only
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          DRY_RUN="${{ github.event.inputs.dry_run || 'true' }}"
+          CONFIRMACAO="${{ github.event.inputs.confirmacao || '' }}"
+          TARGET="${{ github.event.inputs.target || 'manual_dispatch' }}"
+
+          echo "dry_run=${DRY_RUN}"
+          echo "target=${TARGET}"
+
+          if [ "${DRY_RUN}" != "true" ]; then
+            echo "::error::Real deploy/reload is intentionally blocked in this workflow."
+            echo "::error::Create a separate reviewed R4 workflow before allowing host reload execution."
+            exit 1
+          fi
+
+          if [ -n "${CONFIRMACAO}" ] && [ "${CONFIRMACAO}" != "IGOR_APROVA_R4" ]; then
+            echo "::error::Unexpected confirmation string."
+            exit 1
+          fi
+
+          cat <<'EOF'
+          MCP Brain v1 reload plan — PLAN ONLY
+
+          Manual host commands, after human approval and review:
+
+            cd /opt/api-dev-brain/apps/mcp-brain-v1
+            docker compose up -d --build mcp-api
+            docker ps
+            curl -s https://mcp.apidevelopers.digital/health
+            curl -s https://mcp.apidevelopers.digital/mcp/call \
+              -H 'content-type: application/json' \
+              -d '{"tool":"imuni.readiness.report","arguments":{}}'
+
+          This workflow did not access the VPS and did not execute reload.
+          EOF
