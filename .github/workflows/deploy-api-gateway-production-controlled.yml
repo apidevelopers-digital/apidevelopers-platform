@@ -1,0 +1,177 @@
+name: Deploy API Gateway production controlled
+
+on:
+  workflow_dispatch:
+    inputs:
+      expected_sha:
+        description: Exact approved SHA
+        required: true
+        type: string
+      confirmation:
+        description: Type DEPLOY APIDEVELOPERS PLATFORM GATEWAY PRODUCTION
+        required: true
+        type: string
+
+permissions:
+  contents: read
+
+concurrency:
+  group: apidevelopers-platform-gateway-production
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    runs-on:
+      - self-hosted
+      - macOS
+      - X64
+    environment: production
+    timeout-minutes: 25
+    env:
+      EXPECTED_SHA: ${{ inputs.expected_sha }}
+      CONFIRMATION: ${{ inputs.confirmation }}
+      HOST: ${{ secrets.APIDEVELOPERS_PLATFORM_GATEWAY_DEPLOY_HOST }}
+      USER: ${{ secrets.APIDEVELOPERS_PLATFORM_GATEWAY_DEPLOY_USER }}
+      KEY: ${{ secrets.APIDEVELOPERS_PLATFORM_GATEWAY_DEPLOY_SSH_KEY }}
+      PATH_REMOTE: ${{ secrets.APIDEVELOPERS_PLATFORM_GATEWAY_DEPLOY_PATH }}
+      PM2_APP: ${{ secrets.APIDEVELOPERS_PLATFORM_GATEWAY_PM2_APP }}
+      HEALTH_URL: ${{ secrets.APIDEVELOPERS_PLATFORM_GATEWAY_HEALTH_URL }}
+
+    steps:
+      - name: Validate explicit authorization
+        shell: bash
+        run: |
+          set -Eeuo pipefail
+          test "$CONFIRMATION" = "DEPLOY APIDEVELOPERS PLATFORM GATEWAY PRODUCTION"
+          [[ "$EXPECTED_SHA" =~ ^[0-9a-f]{40}$ ]]
+
+      - uses: actions/checkout@v5
+        with:
+          ref: ${{ env.EXPECTED_SHA }}
+          fetch-depth: 0
+          persist-credentials: false
+
+      - uses: actions/setup-node@v5
+        with:
+          node-version: "22"
+
+      - name: Validate exact main
+        shell: bash
+        run: |
+          set -Eeuo pipefail
+          git fetch origin main --no-tags
+          test "$(git rev-parse HEAD)" = "$EXPECTED_SHA"
+          test "$(git rev-parse origin/main)" = "$EXPECTED_SHA"
+          test -z "$(git status --porcelain)"
+
+      - name: Link local platform dependencies
+        shell: bash
+        run: |
+          set -Eeuo pipefail
+          root="$GITHUB_WORKSPACE"
+          mkdir -p "$root/apps/api-gateway/node_modules/@apidevelopers"
+          for package in contracts auth-core apikey-core persistence-core saas-runtime; do
+            ln -sfn "$root/packages/$package" "$root/apps/api-gateway/node_modules/@apidevelopers/$package"
+          done
+          mkdir -p "$root/packages/auth-core/node_modules/@apidevelopers"
+          ln -sfn "$root/packages/apikey-core" "$root/packages/auth-core/node_modules/@apidevelopers/apikey-core"
+          mkdir -p "$root/packages/apikey-core/node_modules/@apidevelopers"
+          ln -sfn "$root/packages/persistence-core" "$root/packages/apikey-core/node_modules/@apidevelopers/persistence-core"
+
+      - name: Validate and build managed-hosting artifact
+        working-directory: apps/api-gateway
+        shell: bash
+        run: |
+          set -Eeuo pipefail
+          npm run check
+          npm run release:managed:build
+          npm run release:managed:verify
+
+      - name: Validate production connection configuration
+        shell: bash
+        run: |
+          set -Eeuo pipefail
+          for n in HOST USER KEY PATH_REMOTE PM2_APP HEALTH_URL; do
+            test -n "${!n:-}" || { echo "::error title=Missing production configuration::$n is not configured"; exit 64; }
+          done
+          [[ "$PATH_REMOTE" = /* && "$PATH_REMOTE" != "/" ]]
+          [[ "$HEALTH_URL" =~ ^https:// ]]
+
+      - name: Prepare SSH
+        shell: bash
+        run: |
+          set -Eeuo pipefail
+          umask 077
+          printf '%s\n' "$KEY" > "$RUNNER_TEMP/platform-gateway-key"
+          chmod 600 "$RUNNER_TEMP/platform-gateway-key"
+          ssh-keygen -y -f "$RUNNER_TEMP/platform-gateway-key" >/dev/null
+          ssh-keyscan -T 10 -H "$HOST" > "$RUNNER_TEMP/platform-gateway-known-hosts"
+          test -s "$RUNNER_TEMP/platform-gateway-known-hosts"
+
+      - name: Deploy exact SHA with rollback
+        shell: bash
+        run: |
+          set -Eeuo pipefail
+          ssh -i "$RUNNER_TEMP/platform-gateway-key" \
+            -o BatchMode=yes -o IdentitiesOnly=yes \
+            -o StrictHostKeyChecking=yes \
+            -o "UserKnownHostsFile=$RUNNER_TEMP/platform-gateway-known-hosts" \
+            "$USER@$HOST" bash -s -- "$PATH_REMOTE" "$PM2_APP" "$EXPECTED_SHA" "$HEALTH_URL" <<'REMOTE'
+          set -Eeuo pipefail
+          root="$1"
+          app="$2"
+          sha="$3"
+          health="$4"
+
+          cd "$root"
+          test -d .git
+          test -z "$(git status --porcelain)"
+          for command_name in git node npm pm2 curl; do
+            command -v "$command_name" >/dev/null
+          done
+
+          git fetch origin main --no-tags --prune
+          test "$(git rev-parse origin/main)" = "$sha"
+          previous="$(git rev-parse HEAD)"
+          changed=false
+
+          rollback() {
+            if [ "$changed" = true ]; then
+              git checkout --detach "$previous"
+              link_packages
+              cd apps/api-gateway
+              npm run check
+              pm2 reload "$app" --update-env
+            fi
+          }
+
+          link_packages() {
+            local repo="$root"
+            mkdir -p "$repo/apps/api-gateway/node_modules/@apidevelopers"
+            for package in contracts auth-core apikey-core persistence-core saas-runtime; do
+              ln -sfn "$repo/packages/$package" "$repo/apps/api-gateway/node_modules/@apidevelopers/$package"
+            done
+            mkdir -p "$repo/packages/auth-core/node_modules/@apidevelopers"
+            ln -sfn "$repo/packages/apikey-core" "$repo/packages/auth-core/node_modules/@apidevelopers/apikey-core"
+            mkdir -p "$repo/packages/apikey-core/node_modules/@apidevelopers"
+            ln -sfn "$repo/packages/persistence-core" "$repo/packages/apikey-core/node_modules/@apidevelopers/persistence-core"
+          }
+
+          trap rollback ERR
+          git checkout --detach "$sha"
+          link_packages
+          cd apps/api-gateway
+          npm run check
+          changed=true
+          pm2 reload "$app" --update-env
+          pm2 status "$app"
+          curl -fsS --retry 5 --retry-delay 2 --retry-all-errors "$health" >/tmp/apidevelopers-platform-gateway-health.json
+          changed=false
+          trap - ERR
+          echo "deployed_sha=$sha previous_sha=$previous"
+          REMOTE
+
+      - name: Confirm repository unchanged
+        if: always()
+        shell: bash
+        run: test -z "$(git status --porcelain)"
