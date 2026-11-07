@@ -4,7 +4,6 @@
 -- This schema intentionally avoids storing raw clinical narrative in audit logs.
 
 create extension if not exists pgcrypto;
-
 create schema if not exists imuni;
 create schema if not exists imuni_audit;
 
