@@ -1,16 +1,7 @@
 name: MCP Brain v1 CI
 
 on:
-  pull_request:
-    paths:
-      - "apps/mcp-brain-v1/**"
-      - ".github/workflows/mcp-brain-v1-ci.yml"
-  push:
-    branches:
-      - "ada/mcp-brain-runtime-imuni-v1-20261107"
-    paths:
-      - "apps/mcp-brain-v1/**"
-      - ".github/workflows/mcp-brain-v1-ci.yml"
+  workflow_dispatch:
 
 permissions:
   contents: read
@@ -24,11 +15,8 @@ jobs:
       - X64
     timeout-minutes: 5
     steps:
-      - name: Checkout
-        uses: actions/checkout@v4
-
       - name: CI delegated to MCP Brain v1 tests workflow
         run: |
-          echo "MCP Brain v1 CI is a lightweight gate."
+          echo "MCP Brain v1 CI is intentionally manual/non-blocking."
           echo "Package tests are executed by: MCP Brain v1 tests."
           echo "No deploy, no reload, no VPS access, no secrets."
