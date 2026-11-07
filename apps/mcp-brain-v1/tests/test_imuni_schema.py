@@ -1,7 +1,6 @@
 from pathlib import Path
 import re
 
-
 ROOT = Path(__file__).resolve().parents[1]
 SCHEMA = ROOT / "db" / "imuni" / "schema.sql"
 COMPOSE = ROOT / "docker-compose.imuni-postgres.dev.yml"
@@ -30,13 +29,22 @@ def test_schema_references_correct_practitioners_table():
     assert "imuni.practitioners" in sql
     assert "imuni.practititioners" not in sql
 
+
 def test_encounters_status_column_has_trailing_comma():
     sql = SCHEMA.read_text(encoding="utf-8")
-    assert re.search(
-        r"status\s+text\s+not\s+null\s+default\s+'draft'\s+check\s*\(\sstatus\s+in\s*\('draft','signed','amended','voided'\)\)\s,\s+chief_complaint_encrypted",
-        sql,
-        re.IGNORECASE | re.DOTALL,
-    )
+    marker = "create table if not exists imuni.encounters"
+    assert marker in sql
+    block = sql.split(marker, 1)[1].split(");", 1)[0]
+
+    assert "status text not null default 'draft'" in block
+    assert "chief_complaint_encrypted text" in block
+
+    status_pos = block.index("status text not null default 'draft'")
+    chief_pos = block.index("chief_complaint_encrypted text")
+    between = block[status_pos:chief_pos]
+
+    assert "," in between
+    assert "status text not null default 'draft' check (status in ('draft','signed','amended','voided'))\n  chief_complaint_encrypted" not in block
 
 
 def test_audit_table_blocks_raw_clinical_payload():
@@ -45,6 +53,7 @@ def test_audit_table_blocks_raw_clinical_payload():
     assert "no_raw_clinical_payload" in sql
     assert "raw_clinical_text" in sql
     assert "metadata_json ? 'subjective' = false" in sql
+
 
 def test_row_level_security_enabled():
     sql = SCHEMA.read_text(encoding="utf-8").lower()
@@ -63,6 +72,7 @@ def test_no_plaintext_clinical_body_columns():
     ]
     for pattern in forbidden_patterns:
         assert pattern not in sql
+
 
 def test_postgres_compose_uses_external_secret_file_without_imuni_env_mismatch():
     compose = COMPOSE.read_text(encoding="utf-8")
