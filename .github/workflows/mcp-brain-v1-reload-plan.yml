@@ -1,0 +1,149 @@
+name: MCP Brain v1 reload plan
+
+on:
+  workflow_dispatch:
+    inputs:
+      target:
+        description: "Reload target label. Plan-only; no remote access is performed."
+        required: true
+        default: "srv2028303/mcp-api"
+      dry_run:
+        description: "Must stay true. Real deploy is intentionally blocked in this workflow."
+        required: true
+        default: "true"
+      confirmacao:
+        description: "Optional audit string. Real deploy remains blocked here."
+        required: false
+        default: ""
+  pull_request:
+    paths:
+      - "apps/mcp-brain-v1/**"
+      - ".github/workflows/mcp-brain-v1-reload-plan.yml"
+  push:
+    branches:
+      - "ada/mcp-brain-runtime-imuni-v1-20261107"
+    paths:
+      - "apps/mcp-brain-v1/**"
+      - ".github/workflows/mcp-brain-v1-reload-plan.yml"
+
+permissions:
+  contents: read
+
+jobs:
+  reload-plan:
+    name: Plan MCP Brain v1 reload
+    runs-on:
+      - self-hosted
+      - macOS
+      - X64
+    timeout-minutes: 10
+
+    defaults:
+      run:
+        working-directory: apps/mcp-brain-v1
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Refuse real deploy in this workflow
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          DRY_RUN="${{ github.event.inputs.dry_run || 'true' }}"
+          CONFIRMACAO="${{ github.event.inputs.confirmacao || '' }}"
+
+          echo "dry_run=${DRY_RUN}"
+          echo "target=${{ github.event.inputs.target || 'pull_request_or_push' }}"
+
+          if [ "$DRY_RUN" != "true" ]; then
+            echo "::error::Real deploy/reload is intentionally blocked in mcp-brain-v1-reload-plan.yml."
+            echo "::error::Create a separate reviewed R4 workflow before allowing host reload execution."
+            exit 1
+          fi
+
+          if [ -n "$CONFIRMACAO" ] && [ "$CONFIRMACAO" != "IGOR_APROVA_R4" ]; then
+            echo "::error::Unexpected confirmation string."
+            exit 1
+          fi
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install test dependencies
+        shell: bash
+        run: |
+          set -euo pipefail
+          python -m pip install --upgrade pip
+          python -m pip install pytest
+          python -m pip install -r requirements.txt
+
+      - name: Run Imuni MCP smoke tests
+        shell: bash
+        run: |
+          set -euo pipefail
+          python -m pytest -q tests/test_imuni_tools.py
+
+      - name: Check package does not contain obvious forbidden files
+        shell: bash
+        run: |
+          set -euo pipefail
+          python - <<'PY'
+          from pathlib import Path
+
+          forbidden_names = {".env", ".env.local", ".env.production"}
+          forbidden_suffixes = {".bak", ".pem", ".key", ".p12"}
+          forbidden_dirs = {"__pycache__", ".pytest_cache", ".mypy_cache"}
+
+          root = Path(".")
+          findings = []
+
+          for path in root.rglob("*"):
+              rel = path.relative_to(root)
+              parts = set(rel.parts)
+              if parts & forbidden_dirs:
+                  findings.append(str(rel))
+                  continue
+              if path.name in forbidden_names:
+                  findings.append(str(rel))
+                  continue
+              if any(path.name.endswith(suffix) for suffix in forbidden_suffixes):
+                  findings.append(str(rel))
+
+          if findings:
+              print("Forbidden files found:")
+              for item in findings:
+                  print("-", item)
+              raise SystemExit(1)
+
+          print("No forbidden package files found.")
+          PY
+
+      - name: Emit host reload command pack
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          cat <<'EOF'
+          MCP Brain v1 reload plan — PLAN ONLY
+
+          Target runtime observed:
+            host: srv2028303.hstgr.cloud
+            app path: /opt/api-dev-brain/apps/mcp-brain-v1
+            service: mcp-api
+
+          Manual host commands, after human approval and review:
+
+            cd /opt/api-dev-brain/apps/mcp-brain-v1
+            docker compose up -d --build mcp-api
+            docker ps
+            curl -s https://mcp.apidevelopers.digital/health
+            curl -s https://mcp.apidevelopers.digital/mcp/call \
+              -H 'content-type: application/json' \
+              -d '{"tool":"imuni.readiness.report","arguments":{}}'
+
+          This workflow did not access the VPS and did not execute reload.
+          EOF
