@@ -7,12 +7,10 @@ on:
       - ".github/workflows/mcp-brain-v1-ci.yml"
   push:
     branches:
-      - main
-      - "ada/mcp-brain-runtime-imuni-v1-*"
+      - "ada/mcp-brain-runtime-imuni-v1-20261107"
     paths:
       - "apps/mcp-brain-v1/**"
       - ".github/workflows/mcp-brain-v1-ci.yml"
-  workflow_dispatch:
 
 permissions:
   contents: read
@@ -24,23 +22,29 @@ jobs:
       - self-hosted
       - macOS
       - X64
+    timeout-minutes: 10
+
     defaults:
       run:
         working-directory: apps/mcp-brain-v1
+
     steps:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Set up Python
-        uses: actions/setup-python@v5
-        with:
-          python-version: "3.12"
-
-      - name: Install dependencies
+      - name: Check Python available on institutional runner
         run: |
-          python -m pip install --upgrade pip
-          python -m pip install -r requirements.txt pytest
+          python3 --version
+          python3 -m pip --version
 
-      - name: Run Imuni tool tests
+      - name: Install test dependencies
         run: |
-          PYTHONPATH=. python -m pytest -q tests/test_imuni_tools.py
+          python3 -m pip install --upgrade pip
+          python3 -m pip install pytest
+          python3 -m pip install -r requirements.txt
+
+      - name: Run Imuni MCP tool tests
+        env:
+          PYTHONPATH: .
+        run: |
+          python3 -m pytest -q            tests/test_imuni_tools.py            tests/test_imuni_schema.py            tests/test_imuni_db_tools.py
