@@ -32,15 +32,20 @@ jobs:
       - X64
     timeout-minutes: 15
 
+    env:
+      CONFIRMACAO: ${{ github.event.inputs.confirmacao }}
+      DRY_RUN: ${{ github.event.inputs.dry_run }}
+
     steps:
       - name: Guardrails
         shell: bash
         run: |
           set -euo pipefail
-          echo "dry_run=${{ github.event.inputs.dry_run }}"
-          echo "confirmacao=${{ github.event.inputs.confirmacao }}"
 
-          if [ "${{ github.event.inputs.confirmacao }}" != "IGOR_APROVA_R4_MCP_API_BOOTSTRAP_REBUILD" ]; then
+          echo "dry_run=${DRY_RUN}"
+          echo "confirmacao=[redacted]"
+
+          if [ "$CONFIRMACAO" != "IGOR_APROVA_R4_MCP_API_BOOTSTRAP_REBUILD" ]; then
             echo "::error::Invalid confirmation."
             exit 1
           fi
@@ -61,7 +66,7 @@ jobs:
           fi
 
       - name: Print plan dry-run
-        if: ${{ github.event.inputs.dry_run == 'true' }}
+        if: ${{ env.DRY_RUN == 'true' }}
         shell: bash
         run: |
           cat <<'EOF'
@@ -70,31 +75,38 @@ jobs:
           Target host: secret MCP_VPS_SSH_HOST not printed
           Target user: secret MCP_VPS_SSH_USER not printed
           Action: cd /opt/api-dev-brain/apps/mcp-brain-v1 && docker compose up -d --build mcp-api
-          Post-check: docker ps, curl health,curl tools for imuni.practitioner.upsert_IGOR_REAL
+          Post-check: docker ps, public Caddy/HTML health/MCP catalog
 
           No PostgreS restart.
           No DNS change.
           No clinical write enablement.
           EOF
 
-      - name: Install SSH key
-        if: ${{ github.event.inputs.dry_run == 'false' }}
+      - name: Install temporary SSH key
+        if: ${{ env.DRY_RUN == 'false' }}
         shell: bash
         run: |
           set -euo pipefail
-          mkdir -p ~/.ssh
-          chmod 700 ~/.ssh
-          cat > ~/.ssh/mcp_vps_key <<'KEY'
+
+          SSH_DIR="${RUNNER_TEMP}/mcp-ssh"
+          SSH_KEY_PATH="${SSH_DIR}/mcp_vps_key"
+          mkdir -p "$SSH_DIR"
+          chmod 700 "$SSH_DIR"
+          trap 'rm -rf "$SSH_DIR"' EXIT
+
+          cat > "$SSH_KEY_PATH" <<'KEY'
           ${{ secrets.MCP_VPS_SSH_KEY }}
           KEY
-          chmod 600 ~/.ssh/mcp_vps_key
+          chmod 600 "$SSH_KEY_PATH"
+          echo "SSH_KEY_PATH=$SSH_KEY_PATH" >> "$GITHUB_ENV"
 
       - name: Rebuild and healthcheck mcp-api
-        if: ${{ github.event.inputs.dry_run == 'false' }}
+        if: ${{ env.DRY_RUN == 'false' }}
         shell: bash
         run: |
           set -euo pipefail
-          ssh -o StrictHostKeyChecking=new -i ~/.ssh/mcp_vps_key "${{ secrets.MCP_VPS_SSH_USER }}@${{ secrets.MCP_VPS_SSH_HOST }}" 'bash -s' <<'REMOTE'
+
+          ssh -o StrictHostKeyChecking=accept-new -i "$SSH_KEY_PATH" "${{ secrets.MCP_VPS_SSH_USER }}@${{ secrets.MCP_VPS_SSH_HOST }}" 'bash -s' <<'REMOTE'
             set -euo pipefail
 
             cd /opt/api-dev-brain/apps/mcp-brain-v1
@@ -105,11 +117,11 @@ jobs:
             echo "2. Containers..."
             docker ps
 
-            echo "3. Health..."
-            curl -fs http://127.0.0.1:8000/health | grep -F "ok"
+            echo "3. Public health..."
+            curl -fs https://mcp.apidevelopers.digital/health | grep -F "ok"
 
-            echo "4. Tool catalog..."
-            curl -fs http://127.0.0.1:8000/mcp/tools | grep -F "imuni.practitioner.upsert_IGOR_REAL"
+            echo "4. Public tool catalog..."
+            curl -fs https://mcp.apidevelopers.digital/mcp/tools | grep -F "imuni.practitioner.upsert_IGOR_REAL"
 
             echo "MCP API bootstrap rebuild complete."
           REMOTE
