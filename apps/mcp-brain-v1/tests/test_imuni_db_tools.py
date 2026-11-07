@@ -7,6 +7,11 @@ from app.tools.imuni_db_tools import (
 )
 
 
+def _payload(response):
+    """DB tools return the standard MCP-like envelope: {tool, result}."""
+    return response["result"]
+
+
 def test_db_tool_definitions_include_verified_runtime_tools():
     names = {tool["name"] for tool in DB_TOOL_DEFINITIONS}
 
@@ -44,7 +49,7 @@ def test_synthetic_seed_blocks_without_ack():
         "imuni.db.synthetic.seed",
         {"confirmacao": "IGOR_APROVA_R5"},
     )
-    payload = response["result"]
+    payload = _payload(response)
 
     assert payload["ok"] is False
     assert payload["blocked"] is True
@@ -57,7 +62,7 @@ def test_synthetic_seed_blocks_without_r5_confirmation():
         "imuni.db.synthetic.seed",
         {"synthetic_ack": True, "confirmacao": "WRONG"},
     )
-    payload = response["result"]
+    payload = _payload(response)
 
     assert payload["ok"] is False
     assert payload["blocked"] is True
@@ -72,7 +77,7 @@ def test_source_control_runtime_db_calls_are_fail_closed():
         "imuni.db.synthetic.counts",
     ):
         response = call_db_tool(tool_name, {})
-        payload = response["result"]
+        payload = _payload(response)
 
         assert payload["ok"] is False
         assert payload["blocked"] is True
