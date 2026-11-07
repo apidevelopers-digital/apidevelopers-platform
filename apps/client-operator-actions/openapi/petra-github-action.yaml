@@ -1,0 +1,71 @@
+openapi: 3.1.0
+info:
+  title: Petra Advocacia — GitHub Operator Action
+  version: 0.1.0
+  description: Operação API-only da conta GitHub autorizada do cliente, com dry-run e aprovação explícita para escrita.
+servers:
+  - url: https://api.apidevelopers.digital/client-actions/petra
+security:
+  - gatewayBearer: []
+paths:
+  /health:
+    get:
+      operationId: petraGitHubHealth
+      summary: Verifica o gateway e a configuração dos provedores
+      responses:
+        "200":
+          description: Status do gateway
+  /v1/github/execute:
+    post:
+      operationId: petraGitHubExecute
+      summary: Executa uma chamada na API oficial do GitHub
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ExecuteRequest"
+      responses:
+        "200":
+          description: Dry-run ou resposta bem-sucedida
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ExecuteResponse"
+        "401":
+          description: Gateway não autorizado
+        "403":
+          description: Aprovação explícita ausente
+
+components:
+  securitySchemes:
+    gatewayBearer:
+      type: http
+      scheme: bearer
+  schemas:
+    ExecuteRequest:
+      type: object
+      required: [method, path]
+      properties:
+        method:
+          type: string
+          enum: [GET, HEAD, POST, PUT, PATCH, DELETE]
+        path:
+          type: string
+          description: Caminho relativo da API oficial do provedor.
+        query:
+          type: object
+          additionalProperties: true
+        body:
+          type: object
+          additionalProperties: true
+        dry_run:
+          type: boolean
+          default: true
+        confirmacao:
+          type: string
+          description: Use IGOR_APROVA_EXECUCAO para escrita ou IGOR_APROVA_DESTRUICAO para DELETE.
+    ExecuteResponse:
+      type: object
+      additionalProperties: true
+
