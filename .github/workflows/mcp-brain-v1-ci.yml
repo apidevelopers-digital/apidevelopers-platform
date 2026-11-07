@@ -1,0 +1,46 @@
+name: MCP Brain v1 CI
+
+on:
+  pull_request:
+    paths:
+      - "apps/mcp-brain-v1/**"
+      - ".github/workflows/mcp-brain-v1-ci.yml"
+  push:
+    branches:
+      - main
+      - "ada/mcp-brain-runtime-imuni-v1-*"
+    paths:
+      - "apps/mcp-brain-v1/**"
+      - ".github/workflows/mcp-brain-v1-ci.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  imuni-tools:
+    name: Imuni MCP tool tests
+    runs-on:
+      - self-hosted
+      - macOS
+      - X64
+    defaults:
+      run:
+        working-directory: apps/mcp-brain-v1
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install -r requirements.txt pytest
+
+      - name: Run Imuni tool tests
+        run: |
+          PYTHONPATH=. python -m pytest -q tests/test_imuni_tools.py
