@@ -1,33 +1,48 @@
 import crypto from "node:crypto";
 
-const EXPECTED = Object.freeze({
+const NODE_PATH = "/api/hosting/v1/accounts/{username}/websites/{domain}/nodejs";
+
+export const EXPECTED = Object.freeze({
   issueNumber: 56,
+  issueState: "closed",
   openapiVersion: "3.0.0",
-  apiVersion: "1.30.0",
-  endpoint:
-    "/api/hosting/v1/accounts/{username}/websites/{domain}/nodejs/builds/from-archive",
-  operationId: "hosting_createNodeJSBuildFromArchiveV1",
-  mediaType: "application/json",
-  schemaName: "Hosting.V1.NodeJs.CreateFromArchiveRequest",
+  apiVersion: "2.1.0",
+  uploadEndpoint: "/api/hosting/v1/files/upload-urls",
+  uploadOperationId: "hosting_generateUploadURLV1",
+  uploadSchema: "Hosting.V1.Files.GenerateUploadUrlRequest",
+  buildEndpoint: `${NODE_PATH}/builds`,
+  buildOperationId: "hosting_startNode.jsBuildV1",
+  buildSchema: "Hosting.V1.NodeJs.StartBuildRequest",
+  settingsEndpoint: `${NODE_PATH}/builds/settings/from-archive`,
+  settingsOperationId: "hosting_getNode.jsBuildSettingsFromArchiveV1",
+  legacyEndpoint: `${NODE_PATH}/builds/from-archive`,
 });
 
-const CONTRACT_CHECK_NAMES = Object.freeze([
-  "openapiVersionMatches",
-  "endpointPresent",
-  "operationIdMatches",
-  "mediaTypeMatches",
-  "schemaRefMatches",
-  "archiveRequired",
-  "archiveTypeMatches",
-  "archiveFormatAbsent",
-]);
+const BUILD_FIELDS = [
+  "node_version",
+  "app_type",
+  "root_directory",
+  "output_directory",
+  "build_script",
+  "source_type",
+  "source_options",
+];
+const UPLOAD_FIELDS = ["username", "domain"];
 
-function valueOrNull(value) {
-  return typeof value === "string" && value.trim() ? value.trim() : null;
+function requestSchemaRef(operation) {
+  return operation?.requestBody?.content?.["application/json"]?.schema?.$ref;
 }
 
-function digest(value) {
-  return crypto.createHash("sha256").update(JSON.stringify(value)).digest("hex");
+function hasOnlyJsonBody(operation) {
+  return Object.keys(operation?.requestBody?.content ?? {}).join() ===
+    "application/json";
+}
+
+// A new mandatory parameter can break existing clients; fail closed on additions.
+function exactRequiredFields(schema, expectedFields) {
+  return Array.isArray(schema?.required) &&
+    schema.required.length === expectedFields.length &&
+    expectedFields.every((field) => schema.required.includes(field));
 }
 
 export function createHostingerNodeContractMonitorReport({
@@ -35,50 +50,67 @@ export function createHostingerNodeContractMonitorReport({
   issue,
   observedAt = new Date().toISOString(),
 }) {
-  if (!openapi || typeof openapi !== "object") {
+  if (!openapi || typeof openapi !== "object" || Array.isArray(openapi)) {
     throw new Error("missing_or_invalid:openapi");
   }
-  if (!issue || typeof issue !== "object") {
+  if (!issue || typeof issue !== "object" || Array.isArray(issue)) {
     throw new Error("missing_or_invalid:issue");
   }
-  if (!valueOrNull(observedAt)) {
+  if (typeof observedAt !== "string" || !observedAt.trim()) {
     throw new Error("missing_or_invalid:observedAt");
   }
 
-  const operation = openapi.paths?.[EXPECTED.endpoint]?.post ?? null;
-  const mediaTypes = Object.keys(operation?.requestBody?.content ?? {}).sort();
-  const requestSchemaRef =
-    operation?.requestBody?.content?.[EXPECTED.mediaType]?.schema?.$ref ?? null;
-  const schema = openapi.components?.schemas?.[EXPECTED.schemaName] ?? null;
-  const required = Array.isArray(schema?.required) ? schema.required : [];
-  const archive = schema?.properties?.archive ?? null;
+  const paths = openapi.paths ?? {};
+  const schemas = openapi.components?.schemas ?? {};
+  const upload = paths[EXPECTED.uploadEndpoint]?.post;
+  const build = paths[EXPECTED.buildEndpoint]?.post;
+  const settings = paths[EXPECTED.settingsEndpoint]?.get;
+  const buildSchema = schemas[EXPECTED.buildSchema];
+  const sourceOptions = buildSchema?.properties?.source_options;
+  const archivePathParam = settings?.parameters?.find(
+    (entry) => entry.name === "archive_path" && entry.in === "query",
+  );
 
   const checks = {
     openapiVersionMatches: openapi.openapi === EXPECTED.openapiVersion,
     apiVersionMatches: openapi.info?.version === EXPECTED.apiVersion,
-    endpointPresent: Boolean(openapi.paths?.[EXPECTED.endpoint]),
-    operationIdMatches: operation?.operationId === EXPECTED.operationId,
-    mediaTypeMatches:
-      mediaTypes.length === 1 && mediaTypes[0] === EXPECTED.mediaType,
-    schemaRefMatches:
-      requestSchemaRef === `#/components/schemas/${EXPECTED.schemaName}`,
-    archiveRequired: required.includes("archive"),
-    archiveTypeMatches: archive?.type === "string",
-    archiveFormatAbsent: archive?.format == null,
+    legacyEndpointAbsent: !Object.hasOwn(paths, EXPECTED.legacyEndpoint),
+    uploadOperationIdMatches:
+      upload?.operationId === EXPECTED.uploadOperationId,
+    uploadSchemaMatches:
+      hasOnlyJsonBody(upload) &&
+      requestSchemaRef(upload) === `#/components/schemas/${EXPECTED.uploadSchema}` &&
+      Boolean(schemas[EXPECTED.uploadSchema]),
+    uploadRequiredFieldsMatch:
+      exactRequiredFields(schemas[EXPECTED.uploadSchema], UPLOAD_FIELDS),
+    buildOperationIdMatches: build?.operationId === EXPECTED.buildOperationId,
+    buildSchemaMatches:
+      build?.requestBody?.required === true &&
+      hasOnlyJsonBody(build) &&
+      requestSchemaRef(build) === `#/components/schemas/${EXPECTED.buildSchema}`,
+    buildRequiredFieldsMatch: exactRequiredFields(buildSchema, BUILD_FIELDS),
+    sourceTypeIncludesArchive:
+      buildSchema?.properties?.source_type?.enum?.includes("archive") === true,
+    archivePathIsString: sourceOptions?.properties?.archive_path?.type === "string",
+    settingsOperationIdMatches:
+      settings?.operationId === EXPECTED.settingsOperationId,
+    settingsArchivePathRequired:
+      archivePathParam?.required === true && archivePathParam?.schema?.type === "string",
     issueNumberMatches: Number(issue.number) === EXPECTED.issueNumber,
-    issueStillOpen: issue.state === "open",
+    issueStateMatches: issue.state === EXPECTED.issueState,
   };
 
-  const contractChanged = CONTRACT_CHECK_NAMES.some(
-    (name) => checks[name] !== true,
+  const contractChanged = Object.keys(checks).some(
+    (name) =>
+      !["apiVersionMatches", "issueNumberMatches", "issueStateMatches"].includes(name) &&
+      checks[name] !== true,
   );
-  const apiVersionChanged = checks.apiVersionMatches !== true;
-  const issueChanged =
-    checks.issueNumberMatches !== true || checks.issueStillOpen !== true;
+  const issueChanged = !checks.issueNumberMatches || !checks.issueStateMatches;
+  const apiVersionChanged = !checks.apiVersionMatches;
   const reviewRequired = contractChanged || issueChanged;
 
   const report = {
-    schemaVersion: "1.1",
+    schemaVersion: "2.0",
     kind: "site-factory-hostinger-node-contract-monitor",
     status: reviewRequired
       ? "review-required"
@@ -88,24 +120,17 @@ export function createHostingerNodeContractMonitorReport({
     reviewRequired,
     expected: EXPECTED,
     observed: {
-      openapiVersion: valueOrNull(openapi.openapi),
-      apiVersion: valueOrNull(openapi.info?.version),
-      operationId: valueOrNull(operation?.operationId),
-      mediaTypes,
-      requestSchemaRef: valueOrNull(requestSchemaRef),
-      archiveRequired: required.includes("archive"),
-      archiveType: valueOrNull(archive?.type),
-      archiveFormat: valueOrNull(archive?.format),
+      openapiVersion: openapi.openapi ?? null,
+      apiVersion: openapi.info?.version ?? null,
       issueNumber: Number(issue.number),
-      issueState: valueOrNull(issue.state),
-      issueUpdatedAt: valueOrNull(issue.updated_at),
-      issueUrl: valueOrNull(issue.html_url),
+      issueState: issue.state ?? null,
+      issueUrl: issue.html_url ?? null,
     },
     checks,
     changeSignals: {
       contractChanged,
-      apiVersionChanged,
       issueChanged,
+      apiVersionChanged,
       officialIssueClosed: issue.state === "closed",
     },
     barriers: {
@@ -118,13 +143,11 @@ export function createHostingerNodeContractMonitorReport({
     },
     nextAction: reviewRequired
       ? "open_review_pull_request_before_any_executor_change"
-      : apiVersionChanged
-        ? "record_global_api_version_drift_and_continue_monitoring"
-        : "keep_executor_blocked_and_continue_monitoring",
+      : "keep_executor_blocked_and_continue_monitoring",
     observedAt: observedAt.trim(),
   };
-
-  return Object.freeze({ ...report, fingerprint: digest(report) });
+  return Object.freeze({
+    ...report,
+    fingerprint: crypto.createHash("sha256").update(JSON.stringify(report)).digest("hex"),
+  });
 }
-
-export { EXPECTED, CONTRACT_CHECK_NAMES };

@@ -1,57 +1,39 @@
-# Monitor do contrato Hostinger Node
+# Monitor do contrato Hostinger Node.js — revisão v2
 
-Este monitor acompanha diariamente o contrato oficial do endpoint de build Node.js por arquivo e a issue upstream `hostinger/api#56`.
+## Fontes de autoridade
 
-## Fontes oficiais
+- OpenAPI público: `hostinger/api/openapi.json` (baseline observado: `openapi 3.0.0`, `info.version 2.1.0`).
+- [Issue oficial #56](https://github.com/hostinger/api/issues/56): encerrada em 30/09/2026.
+- Endpoint legado `/nodejs/builds/from-archive`: ausente no contrato público atual.
 
-- `hostinger/api/openapi.json`
-- issue `hostinger/api#56`
+## Fluxo oficial observado (leitura de contrato somente)
 
-## Baseline revisada em 2026-08-08
+1. `POST /api/hosting/v1/files/upload-urls`: fornecer URL temporária para upload TUS.
+2. `GET /api/hosting/v1/accounts/{username}/websites/{domain}/nodejs/builds/settings/from-archive`: inspecionar configurações do arquivo por `archive_path`.
+3. `POST /api/hosting/v1/accounts/{username}/websites/{domain}/nodejs/builds`: iniciar build com `source_type=archive` e `source_options.archive_path`.
 
-- OpenAPI `3.0.0`
-- API global observada `1.30.0`
-- endpoint `POST /api/hosting/v1/accounts/{username}/websites/{domain}/nodejs/builds/from-archive`
-- `operationId=hosting_createNodeJSBuildFromArchiveV1`
-- `application/json`
-- schema `Hosting.V1.NodeJs.CreateFromArchiveRequest`
-- `archive` obrigatorio, tipo `string`, sem `format`
-- issue `#56` aberta
+O monitor compara rotas, IDs de operação, tipos de mídia, referências de esquema e os conjuntos **exatos** de campos obrigatórios de upload e build. A adição ou remoção de campo obrigatório dispara revisão humana. Também confere número e estado da issue oficial.
 
-## Regra de monitoramento
+## Estados e bloqueios
 
-O gate e **fail-closed para mudancas materiais do endpoint monitorado** ou para mudanca do estado/numero da issue upstream.
+- `unchanged-blocked`: contrato de referência inalterado.
+- `upstream-metadata-changed-blocked`: mudou apenas `info.version`, sem alteração material no fluxo.
+- `review-required`: mudança material identificada; gate *fail-closed* (`exit 2` no runner).
 
-Mudancas materiais incluem:
+**Todos os estados mantêm o executor de deploy bloqueado.** Aprovação desta correção do monitor não autoriza publicação Node.js nem migração automática do executor histórico.
 
-- OpenAPI major/spec incompatível
-- remocao do endpoint
-- mudanca de `operationId`
-- mudanca do media type
-- mudanca do schema `$ref`
-- mudanca de obrigatoriedade/tipo/formato de `archive`
-- fechamento ou substituicao da issue #56
+## Segurança
 
-A versao global `info.version` da API Hostinger e registrada como metadado. Um bump global isolado, sem mudanca material no endpoint monitorado, **nao falha o gate**. Isso evita falso positivo causado por alteracoes oficiais em outras areas da API.
+Este monitor consulta somente OpenAPI e issue públicos e produz evidência sanitizada. Não utiliza token Hostinger, não envia arquivos, não executa requisições POST, não inicia builds, não faz deploy e não altera DNS.
 
-## Estados
+A execução da suíte depende do runner institucional `self-hosted / macOS / X64`. Mudanças no executor, em produção ou em DNS exigem revisão separada e autorização explícita.
 
-- `unchanged-blocked`: endpoint e issue permanecem no baseline
-- `upstream-metadata-changed-blocked`: apenas metadado global mudou
-- `review-required`: contrato relevante ou issue mudou; revisao humana obrigatoria
+## Testes e evidência
 
-Em todos os estados o executor Hostinger Node permanece bloqueado ate haver decisao especifica.
+A partir da raiz do repositório:
 
-## Seguranca
+```sh
+node --test apps/site-factory/test/hostinger-node-contract-monitor.test.mjs
+```
 
-O workflow:
-
-- usa somente `contents: read`
-- consulta fontes publicas oficiais
-- nao usa `HOSTINGER_API_TOKEN`
-- nao prepara request Hostinger
-- nao executa POST
-- nao inicia build remoto
-- nao executa deploy
-- nao altera DNS
-- roda no runner institucional `self-hosted / macOS / X64`
+A suíte possui **12 cenários de regressão**, incluindo novas exigências obrigatórias em upload e build e rejeição de evidências ausentes. Os checks do GitHub Actions devem ser revalidados no SHA definitivo deste PR antes de promover.
