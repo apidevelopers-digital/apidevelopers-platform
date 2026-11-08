@@ -5,7 +5,7 @@ from typing import Any
 
 from .imuni_base_tools import base_result
 from .imuni_psql_file_transport import psql_file_imuni
-from .imuni_r5_controls import hmac_lookup, require_patient_write_controls, verify_operator_credential
+from .imuni_r5_controls import hmac_lookup, require_patient_write_controls
 
 _CONFIRM = "IGOR_APROVA_R5_IMUNI_PATIENT_SEARCH_READONLY_V1"
 _PATIENT_CODE_RE = re.compile(r"^[A-Z0-9][A-Z0-9_-]{2,79}$")
@@ -48,21 +48,27 @@ def _require_uuid_arg(tool: str, args: dict[str, Any], name: str) -> tuple[bool,
     return True, value.lower()
 
 
-def _cpf_hmac(tool: str, args: dict[str, Any]) -> tuple[bool, str | dict[str, Any]]:
-    if not args.get("cpf"):
-        return True, ""
-    controls_ok, controls_or_reason = require_patient_write_controls(args)
-    if not controls_ok:
-        return False, _blocked(tool, str(controls_or_reason))
-    cpf_lookup = hmac_lookup(args.get("cpf"), controls_or_reason.lookup_hmac_key)
-    return True, cpf_lookup or ""
+def _parse_rows(stdout: str) -> list[dict[str, str]]:
+    rows: list[dict[str, str]] = []
+    for line in (stdout or "").splitlines():
+        row: dict[str, str] = {}
+        for part in line.split("\t"):
+            if "=" in part:
+                key, value = part.split("=", 1)
+                row[key] = value
+        if row:
+            rows.append(row)
+    return rows
 
 
 def _search_patient(tool: str, args: dict[str, Any]) -> dict[str, Any]:
     if args.get("confirmacao") != _CONFIRM:
         return _blocked(tool, "human R5 readonly search confirmation required.")
-    if not verify_operator_credential(args):
-        return _blocked(tool, "internal server-side operator credential required.")
+
+    controls_ok, controls_or_reason = require_patient_write_controls(args)
+    if not controls_ok:
+        return _blocked(tool, str(controls_or_reason))
+    controls = controls_or_reason
 
     ok_tenant, tenant_id = _require_uuid_arg(tool, args, "tenant_id")
     if not ok_tenant:
@@ -75,10 +81,7 @@ def _search_patient(tool: str, args: dict[str, Any]) -> dict[str, Any]:
     if patient_code and not _PATIENT_CODE_RE.fullmatch(patient_code):
         return _blocked(tool, "patient_code has invalid format.")
 
-    ok_cpf, cpf_lookup_or_error = _cpf_hmac(tool, args)
-    if not ok_cpf:
-        return cpf_lookup_or_error
-    cpf_hash = str(cpf_lookup_or_error or "")
+    cpf_hash = hmac_lookup(args.get("cpf"), controls.lookup_hmac_key) or ""
 
     if not patient_code and not cpf_hash:
         return _blocked(tool, "patient_code or cpf is required.")
@@ -107,17 +110,9 @@ order by p.created_at desc
 limit {_safe_limit(args.get("limit"))};
 """
     result = psql_file_imuni(sql, variables=None, timeout=25)
-    rows: list[dict[str, str]] = []
-    for line in (result.get("stdout") or "").splitlines():
-        row: dict[str, str] = {}
-        for part in line.split("\t"):
-            if "=" in part:
-                key, value = part.split("=", 1)
-                row[key] = value
-        if row:
-            rows.append(row)
-
+    rows = _parse_rows(result.get("stdout") or "")
     ok = bool(result.get("ok"))
+
     return base_result(tool, {
         "ok": ok,
         "executed": ok,
