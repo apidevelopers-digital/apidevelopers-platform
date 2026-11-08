@@ -1,14 +1,15 @@
 from __future__ import annotations
 
-import hashlib
 import re
 from typing import Any
 
 from .imuni_base_tools import base_result
 from .imuni_psql_file_transport import psql_file_imuni
+from .imuni_r5_controls import hmac_lookup, require_patient_write_controls, verify_operator_credential
 
 _CONFIRM = "IGOR_APROVA_R5_IMUNI_PATIENT_SEARCH_READONLY_V1"
 _PATIENT_CODE_RE = re.compile(r"^[A-Z0-9][A-Z0-9_-]{2,79}$")
+_UUID_RE = re.compile(r"^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$")
 
 
 def _blocked(tool: str, reason: str) -> dict[str, Any]:
@@ -28,11 +29,6 @@ def _blocked(tool: str, reason: str) -> dict[str, Any]:
     })
 
 
-def _cpf_hash(value: Any) -> str:
-    digits = "".join(ch for ch in str(value or "") if ch.isdigit())
-    return hashlib.sha256(digits.encode("utf-8")).hexdigest() if digits else ""
-
-
 def _sql_literal(value: str) -> str:
     return "'" + value.replace("'", "''") + "'"
 
@@ -45,16 +41,47 @@ def _safe_limit(value: Any, default: int = 10) -> int:
     return max(1, min(parsed, 20))
 
 
+def _require_uuid_arg(tool: str, args: dict[str, Any], name: str) -> tuple[bool, str | dict[str, Any]]:
+    value = str(args.get(name) or "").strip()
+    if not _UUID_RE.fullmatch(value):
+        return False, _blocked(tool, f"{name} is required as UUID to establish RLS context.")
+    return True, value.lower()
+
+
+def _cpf_hmac(tool: str, args: dict[str, Any]) -> tuple[bool, str | dict[str, Any]]:
+    if not args.get("cpf"):
+        return True, ""
+    controls_ok, controls_or_reason = require_patient_write_controls(args)
+    if not controls_ok:
+        return False, _blocked(tool, str(controls_or_reason))
+    cpf_lookup = hmac_lookup(args.get("cpf"), controls_or_reason.lookup_hmac_key)
+    return True, cpf_lookup or ""
+
+
 def _search_patient(tool: str, args: dict[str, Any]) -> dict[str, Any]:
     if args.get("confirmacao") != _CONFIRM:
         return _blocked(tool, "human R5 readonly search confirmation required.")
+    if not verify_operator_credential(args):
+        return _blocked(tool, "internal server-side operator credential required.")
+
+    ok_tenant, tenant_id = _require_uuid_arg(tool, args, "tenant_id")
+    if not ok_tenant:
+        return tenant_id
+    ok_practitioner, practitioner_id = _require_uuid_arg(tool, args, "practitioner_id")
+    if not ok_practitioner:
+        return practitioner_id
 
     patient_code = str(args.get("patient_code") or "").strip().upper()
-    cpf_hash = _cpf_hash(args.get("cpf"))
-    if not patient_code and not cpf_hash:
-        return _blocked(tool, "patient_code or cpf is required.")
     if patient_code and not _PATIENT_CODE_RE.fullmatch(patient_code):
         return _blocked(tool, "patient_code has invalid format.")
+
+    ok_cpf, cpf_lookup_or_error = _cpf_hmac(tool, args)
+    if not ok_cpf:
+        return cpf_lookup_or_error
+    cpf_hash = str(cpf_lookup_or_error or "")
+
+    if not patient_code and not cpf_hash:
+        return _blocked(tool, "patient_code or cpf is required.")
 
     filters: list[str] = []
     if patient_code:
@@ -63,19 +90,18 @@ def _search_patient(tool: str, args: dict[str, Any]) -> dict[str, Any]:
         filters.append(f"p.cpf_hash = {_sql_literal(cpf_hash)}")
 
     sql = f"""
-with ctx as (
-  select id as tenant_id
-  from imuni.tenants
-  where slug = 'imuni-igor-private' and status = 'active'
-  limit 1
+with app_context as (
+  select
+    set_config('imuni.tenant_id', {_sql_literal(str(tenant_id))}, true) as tenant_ctx,
+    set_config('imuni.practitioner_id', {_sql_literal(str(practitioner_id))}, true) as practitioner_ctx
 )
 select
   'patient_code=' || p.patient_code || chr(9) ||
   'status=' || p.status || chr(9) ||
   'created_at=' || p.created_at::text || chr(9) ||
   'archived_at=' || coalesce(p.archived_at::text, '')
-from imuni.patients p, ctx
-where p.tenant_id = ctx.tenant_id
+from imuni.patients p, app_context
+where p.tenant_id = nullif(current_setting('imuni.tenant_id', true), '')::uuid
   and ({' or '.join(filters)})
 order by p.created_at desc
 limit {_safe_limit(args.get("limit"))};
