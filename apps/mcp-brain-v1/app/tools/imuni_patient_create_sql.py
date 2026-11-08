@@ -70,24 +70,52 @@ def create_patient_real(tool: str, args: dict[str, Any]) -> dict[str, Any]:
     emergency_contact = str(args.get("emergency_contact") or "").strip() or None
 
     sql = f"""
-with doctor as (
+with required_policies(schema_name, table_name, policy_name) as (
+  values
+    ('imuni','tenants','imuni_app_tenant_scope'),
+    ('imuni','practitioners','imuni_app_practitioner_scope'),
+    ('imuni','patients','imuni_app_patient_insert_by_active_practitioner'),
+    ('imuni','patients','imuni_app_patient_access_grant_scope'),
+    ('imuni','access_grants','imuni_app_access_grant_insert_self_admin'),
+    ('imuni','access_grants','imuni_app_access_grant_read_scope'),
+    ('imuni_audit','events','imuni_app_audit_insert_same_tenant'),
+    ('imuni_audit','events','imuni_app_audit_read_same_actor')
+),
+policy_guard as (
+  select
+    count(*) = (select count(*) from required_policies)
+    and bool_and(c.relforcerowsecurity) as ready
+  from required_policies rp
+  join pg_policies p
+    on p.schemaname = rp.schema_name
+   and p.tablename = rp.table_name
+   and p.policyname = rp.policy_name
+  join pg_class c on c.relname = rp.table_name
+  join pg_namespace n on n.oid = c.relnamespace and n.nspname = rp.schema_name
+),
+doctor as (
   select p.id as practitioner_id, p.tenant_id
   from imuni.practitioners p
   join imuni.tenants t on t.id = p.tenant_id
-  where t.slug = 'imuni-igor-private'
+  cross join policy_guard guard
+  where guard.ready is true
+    and t.slug = 'imuni-igor-private'
     and p.crm = '18700'
     and p.crm_uf = 'SC'
     and p.status = 'active'
   limit 1
-), app_context as (
+),
+app_context as (
   select
     set_config('imuni.tenant_id', doctor.tenant_id::text, true) as tenant_ctx,
     set_config('imuni.practitioner_id', doctor.practitioner_id::text, true) as practitioner_ctx
   from doctor
-), generated as (
+),
+generated as (
   select 'IMUNI-' || to_char(now(), 'YYYYMMDD') || '-' || upper(substr(encode(gen_random_bytes(4), 'hex'), 1, 8)) as patient_code
   from app_context
-), patient as (
+),
+patient as (
   insert into imuni.patients (
     tenant_id, patient_code, full_name_encrypted, cpf_hash, birth_date_encrypted,
     phone_encrypted, phone_hash, email_encrypted, email_hash, emergency_contact_encrypted,
@@ -108,13 +136,15 @@ with doctor as (
     doctor.practitioner_id
   from doctor, generated, app_context
   returning id, tenant_id, patient_code, status, created_by
-), grant_admin as (
+),
+grant_admin as (
   insert into imuni.access_grants (tenant_id, practitioner_id, patient_id, scope, status, reason)
   select tenant_id, created_by, id, 'admin', 'active', 'patient.create_REAL' from patient
   on conflict (tenant_id, practitioner_id, patient_id, scope)
   do update set status='active', reason=excluded.reason, revoked_at=null
   returning id
-), audit as (
+),
+audit as (
   insert into imuni_audit.events (
     tenant_id, actor_id, actor_role, action, resource_type, resource_id, patient_id_hash, metadata_json
   )
@@ -157,7 +187,6 @@ from patient;
     rows = parse_key_value_rows(result.get("stdout") or "")
     fields = rows[0] if rows else {}
     ok = bool(result.get("ok") and fields.get("patient_id"))
-
     if not ok:
         return _redacted_failure(tool)
 
