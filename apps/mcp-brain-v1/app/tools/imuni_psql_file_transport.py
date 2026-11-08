@@ -43,7 +43,7 @@ def docker_raw_request(
         raw = resp.read()
         return {"ok": 200 <= resp.status < 300, "status": resp.status, "raw_bytes": raw}
     except Exception as exc:
-        return {"ok": False, "status": 0, "raw_bytes": b", "raw": f"{exc.__class__.__name__}: {exc}"}
+        return {"ok": False, "status": 0, "raw_bytes": b"", "raw": f"{exc.__class__.__name__}: {exc}"}
     finally:
         try:
             conn.close()
@@ -81,7 +81,7 @@ def put_text_file(container: str, directory: str, filename: str, content: str, t
 def psql_file_imuni(sql: str, variables: dict[str, str] | None = None, timeout: int = 25) -> dict[str, Any]:
     """Run psql through a temporary SQL file, not argv.
 
-    SQL is uploaded through Docker Archive API. Variables are deliberately
+    SQL proceeds through Docker Archive API. Variables are deliberately
     rejected for now because psql -v places values in Docker's persisted Cmd.
     """
     if not sql.strip():
