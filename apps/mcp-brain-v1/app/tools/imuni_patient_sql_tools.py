@@ -5,7 +5,7 @@ from typing import Any
 
 from .imuni_base_tools import base_result
 from .imuni_psql_file_transport import psql_file_imuni
-from .imuni_r5_controls import hmac_lookup, require_patient_write_controls
+from .imuni_r5_controls import hmac_lookup, require_patient_write_controls, verify_operator_credential
 
 _CONFIRM = "IGOR_APROVA_R5_IMUNI_PATIENT_SEARCH_READONLY_V1"
 _PATIENT_CODE_RE = re.compile(r"^[A-Z0-9][A-Z0-9_-]{2,79}$")
@@ -64,11 +64,8 @@ def _parse_rows(stdout: str) -> list[dict[str, str]]:
 def _search_patient(tool: str, args: dict[str, Any]) -> dict[str, Any]:
     if args.get("confirmacao") != _CONFIRM:
         return _blocked(tool, "human R5 readonly search confirmation required.")
-
-    controls_ok, controls_or_reason = require_patient_write_controls(args)
-    if not controls_ok:
-        return _blocked(tool, str(controls_or_reason))
-    controls = controls_or_reason
+    if not verify_operator_credential(args):
+        return _blocked(tool, "internal server-side operator credential required.")
 
     ok_tenant, tenant_id = _require_uuid_arg(tool, args, "tenant_id")
     if not ok_tenant:
@@ -81,7 +78,12 @@ def _search_patient(tool: str, args: dict[str, Any]) -> dict[str, Any]:
     if patient_code and not _PATIENT_CODE_RE.fullmatch(patient_code):
         return _blocked(tool, "patient_code has invalid format.")
 
-    cpf_hash = hmac_lookup(args.get("cpf"), controls.lookup_hmac_key) or ""
+    cpf_hash = ""
+    if args.get("cpf"):
+        controls_ok, controls_or_reason = require_patient_write_controls(args)
+        if not controls_ok:
+            return _blocked(tool, str(controls_or_reason))
+        cpf_hash = hmac_lookup(args.get("cpf"), controls_or_reason.lookup_hmac_key) or ""
 
     if not patient_code and not cpf_hash:
         return _blocked(tool, "patient_code or cpf is required.")
@@ -134,3 +136,11 @@ def call_patient_sql_tool(tool: str, args: dict[str, Any] | None = None) -> dict
     if tool == "imuni.patient.search_REAL":
         return _search_patient(tool, args)
     return _blocked(tool, "real patient mutation remains blocked; only readonly search is implemented.")
+
+
+def call_patient_tool(tool: str, args: dict[str, Any] | None = None) -> dict[str, Any]:
+    return call_patient_sql_tool(tool, args)
+
+
+def call_patient_sql_real_tool(tool: str, args: dict[str, Any] | None = None) -> dict[str, Any]:
+    return call_patient_sql_tool(tool, args)
