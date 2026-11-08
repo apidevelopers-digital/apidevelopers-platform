@@ -1,9 +1,13 @@
+
 from __future__ import annotations
 
 import http.client
 import json
 import socket
+import urllib.parse
 from typing import Any
+
+DOCKER_SOCKET_PATH = "/var/run/docker.sock"
 
 
 class _UnixHTTPConnection(http.client.HTTPConnection):
@@ -41,9 +45,8 @@ def _as_bytes(payload: Any) -> bytes:
 def demux_docker_exec_bytes(payload: Any) -> bytes:
     """Return payload bytes with Docker attach multiplex headers removed.
 
-    Docker exec/start with TTY=false returns frames:
-      1 byte stream id, 3 zero bytes, 4-byte big-endian payload length, payload.
-    Plain stdout is returned unchanged.
+    Plain stdout is returned unchanged. Framed Docker output uses 8-byte headers:
+    1 byte stream, 3 reserved zero bytes, 4-byte big-endian payload length.
     """
     data = _as_bytes(payload)
     if len(data) < 8:
@@ -73,7 +76,6 @@ def demux_docker_exec_bytes(payload: Any) -> bytes:
 
 
 def docker_exec_text(payload: Any) -> str:
-    """Normalize Docker exec output captured by the MCP Docker helper."""
     data = demux_docker_exec_bytes(payload)
     text = data.decode("utf-8", errors="replace")
     return "".join(ch for ch in text if ch == "\n" or ch == "\t" or ch.isprintable())
@@ -94,7 +96,7 @@ def parse_key_value_rows(stdout: Any) -> list[dict[str, str]]:
 
 
 def _docker_api(method: str, path: str, body: bytes | dict[str, Any] | None = None, timeout: int = 30) -> dict[str, Any]:
-    conn = _UnixHTTPConnection("/var/run/docker.sock", timeout=timeout)
+    conn = _UnixHTTPConnection(DOCKER_SOCKET_PATH, timeout=timeout)
     try:
         headers: dict[str, str] = {}
         payload: bytes | None = None
@@ -123,6 +125,75 @@ def _docker_api(method: str, path: str, body: bytes | dict[str, Any] | None = No
             pass
 
 
+def _create_docker_exec(container: str, cmd: list[str], timeout: int = 30) -> tuple[bool, str]:
+    response = _docker_api(
+        "POST",
+        f"/containers/{urllib.parse.quote(container, safe='')}/exec",
+        {
+            "AttachStdin": True,
+            "AttachStdout": True,
+            "AttachStderr": True,
+            "Tty": False,
+            "Cmd": cmd,
+        },
+        timeout=timeout,
+    )
+    if not response.get("ok") or not isinstance(response.get("body"), dict) or not response["body"].get("Id"):
+        return False, str(response.get("raw") or response.get("body"))[-1000:]
+    return True, response["body"]["Id"]
+
+
+def _read_http_headers(sock: socket.socket) -> tuple[bytes, bytes]:
+    data = b""
+    while b"\r\n\r\n" not in data:
+        chunk = sock.recv(1)
+        if not chunk:
+            break
+        data += chunk
+    if b"\r\n\r\n" in data:
+        return data.split(b"\r\n\r\n", 1)
+    return data, b""
+
+
+def _http_hijack_exec_start(exec_id: str, stdin: bytes, timeout: int = 30) -> bytes:
+    """Start a Docker exec and send stdin over the hijacked raw stream."""
+    request_body = json.dumps({"Detach": False, "Tty": False}).encode("utf-8")
+    request = (
+        f"POST /exec/{exec_id}/start HTTP/1.1\r\n"
+        f"Host: docker\r\n"
+        f"Content-Type: application/json\r\n"
+        f"Content-Length: {len(request_body)}\r\n"
+        f"Connection: Upgrade\r\n"
+        f"Upgrade: tcp\r\n"
+        f"\r\n"
+    ).encode("utf-8") + request_body
+
+    sock = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)
+    sock.settimeout(timeout)
+    try:
+        sock.connect(DOCKER_SOCKET_PATH)
+        sock.sendall(request)
+        header, first_body = _read_http_headers(sock)
+        status_line = header.split(b"\r\n", 1)[0]
+        if b" 200 " not in status_line and b" 101 " not in status_line:
+            return first_body + sock.makefile("bb").read()
+
+        if stdin:
+            sock.sendall(stdin)
+            if not stdin.endswith(b"\n"):
+                sock.sendall(b"\n")
+        try:
+            sock.shutdown(socket.SHUT_WR)
+        except Exception:
+            pass
+        return first_body + sock.makefile("bb").read()
+    finally:
+        try:
+            sock.close()
+        except Exception:
+            pass
+
+
 def docker_exec_psql_stdin(
     *,
     container: str,
@@ -131,37 +202,33 @@ def docker_exec_psql_stdin(
     sql: str,
     timeout: int = 30,
 ) -> dict[str, Any]:
-    """Fail closed until the runtime supports true Docker exec stdin hijack.
+    """Run psql with SQL sent through Docker exec stdin, never argv."""
+    if not sql or not sql.strip():
+        return {"ok": False, "stdout": "", "stderr_tail": "SQL stdin payload is required.", "exit_code": None}
 
-    This helper exists to prevent an unsafe fallback to `psql -c` with sensitive SQL,
-    patient data, or cryptographic material in argv/process metadata.
-    """
-    if sql and sql.strip():
-        return {
-            "ok": False,
-            "stdout": "",
-            "stderr_tail": "protected psql stdin channel is not implemented in this runtime; refusing unsafe argv fallback.",
-            "exit_code": None,
-            "would_execute": False,
-        }
-
-    create = _docker_api(
-        "POST",
-        f"/containers/{container}/exec",
-        {
-            "AttachStdout": True,
-            "AttachStderr": True,
-            "Tty": False,
-            "Cmd": ["psql", "-U", user, "-d", database, "-v", "ON_ERROR_STOP=1", "-At"],
-        },
+    ok, exec_id_or_error = _create_docker_exec(
+        container,
+        ["psql", "-U", user, "-d", database, "-v", "ON_ERROR_STOP=1", "-At"],
         timeout=timeout,
     )
-    if not create.get("ok") or not isinstance(create.get("body"), dict) or not create["body"].get("Id"):
-        return {"ok": False, "stdout": "", "stderr_tail": str(create.get("raw") or create.get("body"))[-1000:], "exit_code": None}
+    if not ok:
+        return {"ok": False, "stdout": "", "stderr_tail": exec_id_or_error, "exit_code": None}
 
-    exec_id = create["body"]["Id"]
-    start = _docker_api("POST", f"/exec/{exec_id}/start", {"Detach": False, "Tty": False}, timeout=timeout)
+    exec_id = exec_id_or_error
+    try:
+        raw = _http_hijack_exec_start(exec_id, sql.encode("utf-8"), timeout)
+    except Exception as exc:
+        return {"ok": False, "stdout": "", "stderr_tail": f"{exc.__class__.__name__}: {exc}", "exit_code": None}
+
     inspect = _docker_api("GET", f"/exec/{exec_id}/json", timeout=timeout)
-    exit_code = inspect.get("body", {}).get("ExitCode") if isinstance(inspect.get("body"), dict) else None
-    stdout = docker_exec_text(start.get("raw") or start.get("body") or b"")
-    return {"ok": bool(start.get("ok") and exit_code == 0), "stdout": stdout, "stderr_tail": "" if exit_code == 0 else stdout[-1000:], "exit_code": exit_code}
+    exit_code = None
+    if isinstance(inspect.get("body"), dict):
+        exit_code = inspect["body"].get("ExitCode")
+
+    stdout = docker_exec_text(raw)
+    return {
+        "ok": exit_code == 0,
+        "stdout": stdout,
+        "stderr_tail": "" if exit_code == 0 else stdout[-1000:],
+        "exit_code": exit_code,
+    }

@@ -1,3 +1,4 @@
+
 from __future__ import annotations
 
 import hashlib
@@ -6,8 +7,9 @@ import os
 from typing import Any
 
 from .imuni_base_tools import base_result
+from .imuni_patient_create_sql import create_patient_real
 
-_INTERNAL_CREDENTIAL_ENV = "IMUNI_R5_INTERNAL_CREDENTIAL_SHA256"
+_INTERNAL_CREDENTIAL_ENV = "IMUNI_R5_OPERATOR_CREDENTIAL_SHA256"
 _HUMAN_CONFIRMATION = "IGOR_APROVA_R5_IMUNI_PATIENT_REAL_V1"
 
 PATIENT_TOOL_DEFINITIONS = [
@@ -21,7 +23,10 @@ PATIENT_TOOL_DEFINITIONS = [
         "requires_confirmation": True,
         "requires_private_operator_credential": True,
         "required_confirmation": "R5_CONFIRMATION_AND_PRIVATE_OPERATOR_CREDENTIAL_REQUIRED",
-        "description": "Cria paciente real no Imuni com gate R5, credencial interna e auditoria.",
+        "description": (
+            "Cria paciente real no Imuni com dados pessoais criptografados, lookup HMAC, "
+            "grant admin para Igor e auditoria sem payload clinico bruto."
+        ),
         "input_schema": {
             "type": "object",
             "properties": {
@@ -47,7 +52,7 @@ PATIENT_TOOL_DEFINITIONS = [
         "requires_confirmation": True,
         "requires_private_operator_credential": True,
         "required_confirmation": "R5_CONFIRMATION_AND_PRIVATE_OPERATOR_CREDENTIAL_REQUIRED",
-        "description": "Busca paciente real por codigo ou CPF com gate R5 e credencial interna.",
+        "description": "Busca paciente real por codigo ou CPF. SQL real permanece bloqueado ate PR revisado.",
         "input_schema": {
             "type": "object",
             "properties": {
@@ -69,8 +74,8 @@ PATIENT_TOOL_DEFINITIONS = [
         "would_execute": True,
         "requires_confirmation": True,
         "requires_private_operator_credential": True,
-        "required_confirmation": "R5_CONFIRMATION_AND_PRIVATE_OPERATOR_CREDENTIAL_REQUIRED",
-        "description": "Arquiva paciente real por codigo. Nao faz hard delete.",
+        "required_confirmation": "R5_CONFIRMATIOON_AND_PRIVATE_OPERATOR_CREDENTIAL_REQUIRED",
+        "description": "Arquiva paciente real por soft archive. Nao faz hard delete. SQL real permanece bloqueado ate PR revisado.",
         "input_schema": {
             "type": "object",
             "properties": {
@@ -116,7 +121,19 @@ def _gate(tool: str, args: dict[str, Any]) -> dict[str, Any] | None:
     if args.get("confirmacao") != _HUMAN_CONFIRMATION:
         return _blocked(tool, "human R5 confirmation required.")
     if not _credential_ok(args):
-        return _blocked(tool, "internal server-side credential required.")
+        return _blocked(tool, "internal server-side operator credential required.")
+    return None
+
+
+def _validate_limit(tool: str, args: dict[str, Any]) -> dict[str, Any] | None:
+    if "limit" not in args:
+        return None
+    try:
+        limit = int(args.get("limit") or 10)
+    except (TypeError, ValueError):
+        return _blocked(tool, "limit must be an integer between 1 and 20.")
+    if limit < 1 or limit > 20:
+        return _blocked(tool, "limit must be an integer between 1 and 20.")
     return None
 
 
@@ -124,11 +141,12 @@ def _not_enabled_yet(tool: str) -> dict[str, Any]:
     return base_result(tool, {
         "ok": False,
         "blocked": True,
-        "reason": "patient REAL operation is declared and gated; SQL execution is intentionally pending a follow-up reviewed implementation.",
+        "reason": "patient REAL SQL operation is intentionally pending a follow-up reviewed implementation.",
         "would_execute": False,
         "executed": False,
         "real_patient_data_persisted": False,
         "clinical_payload_persisted": False,
+        "hard_delete": False,
         "secret_value_exposed": False,
         "dsn_exposed": False,
     })
@@ -136,8 +154,19 @@ def _not_enabled_yet(tool: str) -> dict[str, Any]:
 
 def call_patient_tool(tool: str, args: dict[str, Any] | None = None) -> dict[str, Any]:
     args = args or {}
-    if tool in {"imuni.patient.create_REAL", "imuni.patient.search_REAL", "imuni.patient.archive_REAL"}:
+    if tool not in {item["name"] for item in PATIENT_TOOL_DEFINITIONS}:
+        return {"tool": tool, "result": {"ok": False, "error": "unknown imuni patient tool", "would_execute": False}}
+
+    if tool == "imuni.patient.create_REAL":
+        if blocked := _gate(tool, args):
+            return blocked
+        return create_patient_real(tool, args)
+
+    if tool in {"imuni.patient.search_REAL", "imuni.patient.archive_REAL"}:
+        if limit_error := _validate_limit(tool, args):
+            return limit_error
         if blocked := _gate(tool, args):
             return blocked
         return _not_enabled_yet(tool)
-    return {"tool": tool, "result": {"ok": False, "error": "unknown imuni patient tool", "would_execute": False}}
+
+    return {"tool": tool, "result": {"ok": False, "error": "unknown imuni? patient tool", "would_execute": False}}
