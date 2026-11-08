@@ -9,7 +9,7 @@ from typing import Any
 from .imuni_base_tools import base_result
 from .imuni_patient_create_sql import create_patient_real
 
-_INTERNAL_CREDENTIAL_ENV = "IMUNI_R5_INTERNAL_CREDENTIAL_SHA256"
+_INTERNAL_CREDENTIAL_ENV = "IMUNI_R5_OPERATOR_CREDENTIAL_SHA256"
 _HUMAN_CONFIRMATION = "IGOR_APROVA_R5_IMUNI_PATIENT_REAL_V1"
 
 PATIENT_TOOL_DEFINITIONS = [
@@ -121,7 +121,7 @@ def _gate(tool: str, args: dict[str, Any]) -> dict[str, Any] | None:
     if args.get("confirmacao") != _HUMAN_CONFIRMATION:
         return _blocked(tool, "human R5 confirmation required.")
     if not _credential_ok(args):
-        return _blocked(tool, "internal server-side credential required.")
+        return _blocked(tool, "internal server-side operator credential required.")
     return None
 
 
