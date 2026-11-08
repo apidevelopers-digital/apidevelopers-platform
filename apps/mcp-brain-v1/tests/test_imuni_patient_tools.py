@@ -19,6 +19,31 @@ def test_patient_create_requires_gate():
     assert result["real_patient_data_persisted"] is False
 
 
+def test_patient_limit_validation_does_not_500():
+    response = call_imuni_tool(
+        "imuni.patient.search_REAL",
+        {"confirmacao": "IGOR_APROVA_R5_IMUNI_PATIENT_REAL_V1", "operator_credential": "bad", "limit": "ten"},
+    )
+    result = response["result"]
+    assert result["ok"] is False
+    assert result["blocked"] is True
+    assert result["executed"] is False
+
+
+def test_patient_sql_remains_blocked_after_gate():
+    response = call_imuni_tool(
+        "imuni.patient.create_REAL",
+        {
+            "confirmacao": "IGOR_APROVA_R5_IMUNI_PATIENT_REAL_V1",
+            "operator_credential": "bad",
+            "full_name": "Paciente Teste",
+        },
+    )
+    result = response["result"]
+    assert result["ok"] is False
+    assert result["executed"] is False
+
+
 def test_patient_tool_definitions_do_not_expose_private_values():
     serialized = repr(PATIENT_TOOL_DEFINITIONS)
     assert "049" not in serialized
