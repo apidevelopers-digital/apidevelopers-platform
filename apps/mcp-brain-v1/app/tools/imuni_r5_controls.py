@@ -48,7 +48,7 @@ def require_patient_write_controls(args: dict[str, Any]) -> tuple[bool, str | Pa
     lookup_hmac_key_id = _env(_LOOKUP_HMAC_KEY_ID_ENV)
     lookup_hmac_key = _env(_LOOKUP_HMAC_KEY_ENV)
 
-    missing = []
+    missing: list[str] = []
     if not encryption_key_id:
         missing.append("patient encryption key id")
     if not encryption_key:
@@ -60,6 +60,11 @@ def require_patient_write_controls(args: dict[str, Any]) -> tuple[bool, str | Pa
 
     if missing:
         return False, "missing R5 patient write controls: " + ", ".join(missing) + "."
+
+    if encryption_key == lookup_hmac_key:
+        return False, "patient encryption key and patient lookup HMAC key must be separate."
+    if encryption_key_id == lookup_hmac_key_id:
+        return False, "patient encryption key id and patient lookup HMAC key id must be separate."
 
     return True, PatientWriteControls(
         operator_ok=True,
@@ -92,6 +97,8 @@ def public_controls_status() -> dict[str, Any]:
         "patient_encryption_key_id_configured": bool(_env(_ENCRYPTION_KEY_ID_ENV)),
         "patient_lookup_hmac_key_configured": bool(_env(_LOOKUP_HMAC_KEY_ENV)),
         "patient_lookup_hmac_key_id_configured": bool(_env(_LOOKUP_HMAC_KEY_ID_ENV)),
+        "encryption_and_lookup_keys_separate": bool(_env(_ENCRYPTION_KEY_ENV)) and _env(_ENCRYPTION_KEY_ENV) != _env(_LOOKUP_HMAC_KEY_ENV),
+        "encryption_and_lookup_key_ids_separate": bool(_env(_ENCRYPTION_KEY_ID_ENV)) and _env(_ENCRYPTION_KEY_ID_ENV) != _env(_LOOKUP_HMAC_KEY_ID_ENV),
         "secret_value_exposed": False,
         "dsn_exposed": False,
     }
