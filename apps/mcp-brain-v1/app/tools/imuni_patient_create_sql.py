@@ -18,6 +18,21 @@ def _lit(value: Any) -> str:
     return "'" + str(value).replace("'", "''") + "'"
 
 
+def _redacted_failure(tool: str, reason: str = "patient create SQL failed; diagnostics redacted.") -> dict[str, Any]:
+    return base_result(tool, {
+        "ok": False,
+        "blocked": False,
+        "reason": reason,
+        "would_execute": True,
+        "executed": False,
+        "real_patient_data_persisted": False,
+        "clinical_payload_persisted": False,
+        "secret_value_exposed": False,
+        "dsn_exposed": False,
+        "diagnostic_error_tail": "redacted",
+    })
+
+
 def create_patient_real(tool: str, args: dict[str, Any]) -> dict[str, Any]:
     full_name = str(args.get("full_name") or "").strip()
     if len(full_name) < 2:
@@ -64,8 +79,14 @@ with doctor as (
     and p.crm_uf = 'SC'
     and p.status = 'active'
   limit 1
+), app_context as (
+  select
+    set_config('imuni.tenant_id', doctor.tenant_id::text, true) as tenant_ctx,
+    set_config('imuni.practitioner_id', doctor.practitioner_id::text, true) as practitioner_ctx
+  from doctor
 ), generated as (
   select 'IMUNI-' || to_char(now(), 'YYYYMMDD') || '-' || upper(substr(encode(gen_random_bytes(4), 'hex'), 1, 8)) as patient_code
+  from app_context
 ), patient as (
   insert into imuni.patients (
     tenant_id, patient_code, full_name_encrypted, cpf_hash, birth_date_encrypted,
@@ -85,7 +106,7 @@ with doctor as (
     case when {_lit(emergency_contact)} is null then null else encode(pgp_sym_encrypt({_lit(emergency_contact)}, {_lit(controls.encryption_key)}), 'base64') end,
     'active',
     doctor.practitioner_id
-  from doctor, generated
+  from doctor, generated, app_context
   returning id, tenant_id, patient_code, status, created_by
 ), grant_admin as (
   insert into imuni.access_grants (tenant_id, practitioner_id, patient_id, scope, status, reason)
@@ -137,10 +158,13 @@ from patient;
     fields = rows[0] if rows else {}
     ok = bool(result.get("ok") and fields.get("patient_id"))
 
+    if not ok:
+        return _redacted_failure(tool)
+
     return base_result(tool, {
-        "ok": ok,
-        "would_execute": ok,
-        "executed": ok,
+        "ok": True,
+        "would_execute": True,
+        "executed": True,
         "database": "imuni_clinical",
         "patient": fields,
         "access_grants_created": fields.get("access_grants_created"),
@@ -150,9 +174,9 @@ from patient;
         "lookup_hmac_key_id": controls.lookup_hmac_key_id,
         "encryption_key_id": controls.encryption_key_id,
         "encrypted_fields": ["full_name", "birth_date", "phone", "email", "emergency_contact"],
-        "real_patient_data_persisted": ok,
+        "real_patient_data_persisted": True,
         "clinical_payload_persisted": False,
         "secret_value_exposed": False,
         "dsn_exposed": False,
-        "diagnostic_error_tail": result.get("stderr_tail") if not result.get("ok") else "",
+        "diagnostic_error_tail": "",
     })
