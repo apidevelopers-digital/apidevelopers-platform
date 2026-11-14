@@ -2,6 +2,11 @@ from __future__ import annotations
 
 from typing import Any
 
+from .imuni_attachment_upload_tools import (
+    ATTACHMENT_TOOL_DEFINITIONS,
+    call_attachment_tool,
+    is_attachment_tool,
+)
 from .imuni_base_tools import BASE_TOOL_DEFINITIONS, call_base_tool, is_base_tool
 from .imuni_db_tools import DB_TOOL_DEFINITIONS, call_db_tool, is_db_tool
 from .imuni_patient_sql_tools import call_patient_sql_tool
@@ -30,11 +35,22 @@ IMUNI_TOOL_DEFINITIONS = (
         and tool["name"] not in {item["name"] for item in DB_TOOL_DEFINITIONS}
         and tool["name"] not in {item["name"] for item in PRACTITIONER_TOOL_DEFINITIONS}
     ]
+    + [
+        tool
+        for tool in ATTACHMENT_TOOL_DEFINITIONS
+        if tool["name"]
+        not in {item["name"] for item in BASE_TOOL_DEFINITIONS}
+        and tool["name"] not in {item["name"] for item in DB_TOOL_DEFINITIONS}
+        and tool["name"] not in {item["name"] for item in PRACTITIONER_TOOL_DEFINITIONS}
+        and tool["name"] not in {item["name"] for item in PATIENT_TOOL_DEFINITIONS}
+    ]
 )
 
 
 def call_imuni_tool(tool: str, args: dict[str, Any] | None = None) -> dict[str, Any]:
     args = args or {}
+    if is_attachment_tool(tool):
+        return call_attachment_tool(tool, args)
     if is_patient_tool(tool):
         return call_patient_sql_tool(tool, args)
     if is_practitioner_tool(tool):
