@@ -5,7 +5,7 @@
  * This file contains no tokens. It is safe by default:
  * - dryRun defaults to true
  * - real publish requires an injected access token provider
- * - CLI real publish requires INSTAGRAM_SCHEDULER_EXECUTE=IGOR_APROVA_INSTAGRAM_SCHEDULER_REAL 
+ * - CLI real publish requires INSTAGRAM_SCHEDULER_EXECUTE=IGOR_APROVA_INSTAGRAM_SCHEDULER_REAL
  */
 
 import { writeFile, mkdir } from "node:fs/promises";
@@ -46,6 +46,7 @@ export async function loadJsonFromUrl({ fetchImpl = globalThis.fetch, url }) {
   if (typeof fetchImpl !== "function") {
     throw new InstagramSchedulerJobError("fetch_unavailable", "fetch implementation is required");
   }
+
   const response = await fetchImpl(url, {
     method: "GET",
     headers: { accept: "application/json" },
@@ -160,7 +161,7 @@ export async function runInstagramStoriesSchedulerJob({
 export function parseCliArgs(argv = process.argv.slice(2), env = process.env) {
   const args = new Map();
   for (const arg of argv) {
-    const match = /^--([^=]+=(.)$/.exec(arg);
+    const match = /^--([^=]+)=(.*)$/.exec(arg);
     if (match) args.set(match[1], match[2]);
   }
 
@@ -193,7 +194,7 @@ async function main() {
     },
   });
 
-  console.log(JSON.stringify {
+  console.log(JSON.stringify({
     event: "instagram_scheduler_job_finished",
     ok: result.ok,
     targetDate: result.targetDate,
