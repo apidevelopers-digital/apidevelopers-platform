@@ -21,6 +21,13 @@ function safeLimit(value, fallback = 8, max = 20) {
   return Math.min(Math.max(Math.trunc(number), 1), max);
 }
 
+function buildAnalyzeEvidenceQuery(question, facts = []) {
+  const seededFacts = Array.isArray(facts)
+    ? facts.slice(0, 8).map((item) => clean(item, 800)).filter(Boolean)
+    : [];
+  return [clean(question, 5000), ...seededFacts].filter(Boolean).join(" ");
+}
+
 function publicPolicy(payload = {}) {
   return {
     ...payload,
@@ -79,7 +86,7 @@ async function analyze(payload, deps) {
   let searchResult;
   try {
     searchResult = await deps.consolidatedSearchImpl({
-      query: question,
+      query: buildAnalyzeEvidenceQuery(question, facts),
       tribunal,
       limit,
       globalSearch: deps.globalSearchImpl,
@@ -238,4 +245,4 @@ export function createMitraProfessionalOrchestrator({
 }
 
 export const mitraProfessionalOrchestrator = createMitraProfessionalOrchestrator();
-export const __test = { normalizeDispatch, publicPolicy, safeLimit };
+export const __test = { normalizeDispatch, publicPolicy, safeLimit, buildAnalyzeEvidenceQuery };

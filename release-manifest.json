@@ -3,7 +3,7 @@
   "format": "managed-node-zip",
   "service": "api-gateway",
   "version": "0.8.0",
-  "sourceRevision": "5559826bbe501dc73c02ea3fdbe8350cb93b77f8",
+  "sourceRevision": "c82d9cbb41e0b02ddd29794ffd593c4bc20ee14f",
   "runtime": {
     "node": ">=22",
     "entrypoint": "src/hostinger-entry.mjs",
@@ -181,6 +181,56 @@
       "path": "src/durable-observability.mjs",
       "bytes": 4800,
       "sha256": "8f661725a9ed747d0b6e75618363703d18f069e59c378495b9a1f4284c8ef465"
+    },
+    {
+      "path": "src/family-data-postgres-column-readiness.mjs",
+      "bytes": 4095,
+      "sha256": "339789b53ad7cb0d08d521dcd23a678850d855544afb4edfb4a3d98c0f26ca7b"
+    },
+    {
+      "path": "src/family-data-postgres-connectivity-preflight.mjs",
+      "bytes": 2472,
+      "sha256": "ad1cd4d78435cfbcb9d503e50506899bb88252619f851907e68b6e62fd54494b"
+    },
+    {
+      "path": "src/family-data-postgres-pool-contract.mjs",
+      "bytes": 1859,
+      "sha256": "a4c1f157a7d729167bba45b7ed239f7395cf4de0996fe2c41a369e8be6a7017c"
+    },
+    {
+      "path": "src/family-data-postgres-schema-readiness.mjs",
+      "bytes": 4044,
+      "sha256": "c81fad27e862fa23e7ca729434e5e62cf4b664f6bdda534c2770eff0d311ba94"
+    },
+    {
+      "path": "src/family-data-read-activation.mjs",
+      "bytes": 3655,
+      "sha256": "1f0fde2f8dbde168ad3dfc5877ca85b338670421e822007243c76e0b83f3994e"
+    },
+    {
+      "path": "src/family-data-read-app-integration.mjs",
+      "bytes": 1250,
+      "sha256": "9f03c649ad363d6616199dcc7349a2f25e964998351683595abe7a4017e0d10a"
+    },
+    {
+      "path": "src/family-data-read-gateway-binding.mjs",
+      "bytes": 3097,
+      "sha256": "7bb2544441a799a1e8f8cb14c3c0ddcded2b38c824c6f2450b9dc4b668442003"
+    },
+    {
+      "path": "src/family-data-read-http-server.mjs",
+      "bytes": 736,
+      "sha256": "cdae3ca13f8aa4f6a6d1e4dab51c58c27912917d2284e585fe7697110a974b82"
+    },
+    {
+      "path": "src/family-data-read-operational-preflight.mjs",
+      "bytes": 1924,
+      "sha256": "ea4f45664034019b886eba85dd4d6fab54bdeb07fadf56cce1d7522978a2aca0"
+    },
+    {
+      "path": "src/family-data-read-runtime-gate.mjs",
+      "bytes": 2055,
+      "sha256": "c3b22904573922679586a1669474eebb7ca80854cd4787e08b0b52f1f53dac2f"
     },
     {
       "path": "src/global-trust-admission-gate-http.mjs",
@@ -586,6 +636,16 @@
       "path": "src/hostinger-runtime-env.mjs",
       "bytes": 4726,
       "sha256": "20425f5f7136d78830d40150348beb1ebdb8b6f69fd4005f4f291d4331e8e896"
+    },
+    {
+      "path": "src/instagram-stories-scheduler-job.mjs",
+      "bytes": 6600,
+      "sha256": "fb5a96427452eb4ba4972972d13457e26c8579fcc11173f290084d055f1440c9"
+    },
+    {
+      "path": "src/instagram-stories-scheduler-publisher.mjs",
+      "bytes": 7462,
+      "sha256": "3ed26c34bfad51636e2cb6c50587e526a346e58dcb787890a2f4f9e1bb07c007"
     },
     {
       "path": "src/mitra-embedded-lex-transport.mjs",
@@ -1041,6 +1101,16 @@
       "path": "src/readiness.mjs",
       "bytes": 2678,
       "sha256": "9733b8714018f9e82a6a38919df776ebf848ed96f0bae1fc19c0105a2a0ac5fd"
+    },
+    {
+      "path": "src/retrieval-activation-preflight.mjs",
+      "bytes": 4801,
+      "sha256": "ba9640f5bdc7e0e51281e73bd7c16647b33b460c4d65f572905151ff5533f747"
+    },
+    {
+      "path": "src/retrieval-runtime.mjs",
+      "bytes": 2790,
+      "sha256": "f43006a756093aabc96bed0668c04cbd5280fded04b0b63a68882def341346d8"
     },
     {
       "path": "src/saas-access-composition.mjs",
@@ -1869,8 +1939,8 @@
     },
     {
       "path": "vendor/lex-legal-runtime/src/vendor/lex/src/mitra-orchestrator.js",
-      "bytes": 7349,
-      "sha256": "c97a6a5d5f645f1137df86b3fcafe26af533ec9bd7366553c12db4e3ff0acb25"
+      "bytes": 7673,
+      "sha256": "e1f88b432e9e1a1e39d84f1d60b7e78b9b0f2622e95fb4f0512392f12b0aabbd"
     },
     {
       "path": "vendor/lex-legal-runtime/src/vendor/lex/src/normative-validity-validator.js",
