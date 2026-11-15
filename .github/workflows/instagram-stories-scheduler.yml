@@ -1,0 +1,112 @@
+name: Instagram Stories Scheduler
+
+on:
+  workflow_dispatch:
+    inputs:
+      target_date:
+        description: "Target date in YYYY-MM-DD. Defaults to America/Sao_Paulo today."
+        required: false
+        type: string
+      dry_run:
+        description: "Run without publishing to Meta."
+        required: true
+        default: "true"
+        type: choice
+        options:
+          - "true"
+          - "false"
+  schedule:
+    # 08:30 America/Sao_Paulo = 11:30 UTC during BRT (UTC-3)
+    - cron: "30 11 * * *"
+
+permissions:
+  contents: read
+
+concurrency:
+  group: instagram-stories-scheduler-${{ github.event_name }}-${{ github.event.inputs.target_date || 'scheduled' }}
+  cancel-in-progress: false
+
+jobs:
+  run-instagram-stories-scheduler:
+    name: Run Instagram Stories Scheduler
+    runs-on:
+      - self-hosted
+      - macOS
+      - X64
+
+    env:
+      PLAN_URL: "https://sitedauni.com/assets/campanhas/_instagram_scheduler/plano_stories_recorrente_20261116_20261122.json"
+      LOG_DIR: "artifacts/instagram-stories-scheduler-logs"
+      META_INSTAGRAM_ACCESS_TOKEN: ${{ secrets.META_INSTAGRAM_ACCESS_TOKEN }}
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Resolve target date
+        id: date
+        shell: bash
+        run: |
+          if [ -n "${{ github.event.inputs.target_date }}" ]; then
+            TARGET_DATE="${{ github.event.inputs.target_date }}"
+          else
+            TARGET_DATE="$(TZ=America/Sao_Paulo date +%F)"
+          fi
+          echo "target_date=$TARGET_DATE" >> "$GITHUB_OUTPUT"
+          echo "Target date: $TARGET_DATE"
+
+      - name: Guard approved date window
+        shell: bash
+        run: |
+          TARGET_DATE="${{ steps.date.outputs.target_date }}"
+          if [[ "$TARGET_DATE" < "2026-11-16" || "$TARGET_DATE" > "2026-11-22" ]]; then
+            echo "Date $TARGET_DATE is outside the approved window 2026-11-16..2026-11-22. Nothing to do."
+            exit 0
+          fi
+
+      - name: Prepare log directory
+        shell: bash
+        run: mkdir -p "$LOG_DIR"
+
+      - name: Determine execution mode
+        id: mode
+        shell: bash
+        run: |
+          DRY_RUN="${{ github.event.inputs.dry_run }}"
+          if [ -z "$DRY_RUN" ]; then
+            DRY_RUN="false"
+          fi
+
+          if [ "$DRY_RUN" = "false" ]; then
+            if [ -z "$META_INSTAGRAM_ACCESS_TOKEN" ]; then
+              echo "META_INSTAGRAM_ACCESS_TOKEN secret is missing; refusing real publish."
+              exit 1
+            fi
+            echo "execute=IGOR_APROVA_INSTAGRAM_SCHEDULER_REAL" >> "$GITHUB_OUTPUT"
+            echo "dry_run=false" >> "$GITHUB_OUTPUT"
+          else
+            echo "execute=" >> "$GITHUB_OUTPUT"
+            echo "dry_run=true" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Run scheduler job
+        shell: bash
+        env:
+          INSTAGRAM_SCHEDULER_EXECUTE: ${{ steps.mode.outputs.execute }}
+          INSTAGRAM_SCHEDULER_PLAN_URL: ${{ env.PLAN_URL }}
+          INSTAGRAM_SCHEDULER_DATE: ${{ steps.date.outputs.target_date }}
+          INSTAGRAM_SCHEDULER_LOG_DIR: ${{ env.LOG_DIR }}
+          META_INSTAGRAM_ACCESS_TOKEN: ${{ secrets.META_INSTAGRAM_ACCESS_TOKEN }}
+        run: |
+          node apps/api-gateway/src/instagram-stories-scheduler-job.mjs \
+            --plan-url="$INSTAGRAM_SCHEDULER_PLAN_URL" \
+            --date="$INSTAGRAM_SCHEDULER_DATE" \
+            --log-dir="$INSTAGRAM_SCHEDULER_LOG_DIR"
+
+      - name: Upload scheduler logs
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: instagram-stories-scheduler-${{ steps.date.outputs.target_date }}
+          path: artifacts/instagram-stories-scheduler-logs
+          if-no-files-found: warn
