@@ -3,9 +3,14 @@
  *
  * Internal job wrapper for the safe Instagram Stories scheduler publisher.
  * This file contains no tokens. It is safe by default:
- * - dryRun defaults to true
+ * - dryRun defaults to true unless explicit approval env is present
  * - real publish requires an injected access token provider
  * - CLI real publish requires INSTAGRAM_SCHEDULER_EXECUTE=IGOR_APROVA_INSTAGRAM_SCHEDULER_REAL
+ *
+ * Failure semantics:
+ * - dry-run can finish successfully after planning
+ * - real runs fail the process when any item fails, when zero items are published while items were planned,
+ *   or when the publisher reports ok=false. This prevents green GitHub Actions with zero Instagram output.
  */
 
 import { writeFile, mkdir } from "node:fs/promises";
@@ -101,6 +106,56 @@ export function createEnvironmentAccessTokenProvider({
   };
 }
 
+export function resultFailureSummary(result) {
+  const results = Array.isArray(result?.results) ? result.results : [];
+  const failed = results.filter((entry) => !entry?.ok);
+  const succeeded = results.filter((entry) => entry?.ok);
+  return {
+    failedCount: failed.length,
+    succeededCount: succeeded.length,
+    failed,
+  };
+}
+
+export function assertRealRunSucceeded(result) {
+  if (result?.dryRun) return;
+
+  const planned = Number(result?.planned ?? 0);
+  const published = Number(result?.published ?? 0);
+  const { failedCount, failed } = resultFailureSummary(result);
+
+  if (!result?.ok) {
+    throw new InstagramSchedulerJobError("instagram_scheduler_result_not_ok", "Instagram scheduler returned ok=false", {
+      planned,
+      published,
+      failedCount,
+      failed: failed.slice(0, 20),
+    });
+  }
+
+  if (planned > 0 && published <= 0) {
+    throw new InstagramSchedulerJobError(
+      "instagram_scheduler_zero_published",
+      "Instagram scheduler planned items but published zero stories",
+      {
+        planned,
+        published,
+        failedCount,
+        failed: failed.slice(0, 20),
+      },
+    );
+  }
+
+  if (failedCount > 0) {
+    throw new InstagramSchedulerJobError("instagram_scheduler_partial_failure", "One or more stories failed to publish", {
+      planned,
+      published,
+      failedCount,
+      failed: failed.slice(0, 20),
+    });
+  }
+}
+
 export async function runInstagramStoriesSchedulerJob({
   fetchImpl = globalThis.fetch,
   planUrl = DEFAULT_PLAN_URL,
@@ -134,6 +189,8 @@ export async function runInstagramStoriesSchedulerJob({
     logger,
   });
 
+  const summary = resultFailureSummary(result);
+
   const logPayload = {
     ok: result.ok,
     generatedAt: new Date().toISOString(),
@@ -145,17 +202,25 @@ export async function runInstagramStoriesSchedulerJob({
     published: result.published,
     due: result.due,
     reason: result.reason,
+    failedCount: summary.failedCount,
+    succeededCount: summary.succeededCount,
     results: result.results,
   };
 
   const logPath = await writeJsonLog({ logDir, targetDate, payload: logPayload });
 
-  return Object.freeze({
+  const finalResult = Object.freeze({
     ...result,
     targetDate,
     planUrl,
     logPath,
+    failedCount: summary.failedCount,
+    succeededCount: summary.succeededCount,
   });
+
+  assertRealRunSucceeded(finalResult);
+
+  return finalResult;
 }
 
 export function parseCliArgs(argv = process.argv.slice(2), env = process.env) {
@@ -173,7 +238,8 @@ export function parseCliArgs(argv = process.argv.slice(2), env = process.env) {
     targetDate: args.get("date") ?? env.INSTAGRAM_SCHEDULER_DATE ?? todayInSaoPaulo(),
     logDir: args.get("log-dir") ?? env.INSTAGRAM_SCHEDULER_LOG_DIR,
     dryRun,
-    tokenVariableName: args.get("token-env") ?? env.INSTAGRAM_SCHEDULER_TOKEN_ENV ?? "META_INSTAGRAM_ACCESS_TOKEN",
+    tokenVariableName:
+      args.get("token-env") ?? env.INSTAGRAM_SCHEDULER_TOKEN_ENV ?? "META_INSTAGRAM_ACCESS_TOKEN",
   });
 }
 
@@ -201,6 +267,8 @@ async function main() {
     dryRun: result.dryRun,
     planned: result.planned,
     published: result.published,
+    failedCount: result.failedCount,
+    succeededCount: result.succeededCount,
     logPath: result.logPath,
   }));
 }
@@ -214,9 +282,14 @@ if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) 
       message: error instanceof Error ? error.message : String(error),
       details: error?.details ?? undefined,
     };
+
     if (error instanceof InstagramSchedulerError) {
       payload.schedulerError = true;
     }
+    if (error instanceof InstagramSchedulerJobError) {
+      payload.schedulerJobError = true;
+    }
+
     console.error(JSON.stringify(payload));
     process.exitCode = 1;
   });
