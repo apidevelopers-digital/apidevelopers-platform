@@ -24,7 +24,7 @@ on:
     - cron: "30 11 * * *"
 
 permissions:
-  contents: read
+  contents: write
 
 concurrency:
   group: instagram-stories-scheduler-${{ github.event_name }}-${{ github.event.inputs.target_date || 'scheduled' }}
@@ -119,11 +119,13 @@ jobs:
           set +e
           echo "Running scheduler. dry_run=${{ steps.mode.outputs.dry_run }} target_date=$INSTAGRAM_SCHEDULER_DATE"
           echo "Plan URL: $INSTAGRAM_SCHEDULER_PLAN_URL"
+
           node apps/api-gateway/src/instagram-stories-scheduler-job.mjs \
             --plan-url="$INSTAGRAM_SCHEDULER_PLAN_URL" \
             --date="$INSTAGRAM_SCHEDULER_DATE" \
             --log-dir="$INSTAGRAM_SCHEDULER_LOG_DIR" \
             2>&1 | tee "$INSTAGRAM_SCHEDULER_LOG_DIR/runner-output.log"
+
           EXIT_CODE=${PIPESTATUS[0]}
 
           {
@@ -144,6 +146,78 @@ jobs:
 
           echo "exit_code=$EXIT_CODE" >> "$GITHUB_OUTPUT"
           exit "$EXIT_CODE"
+
+      - name: Persist sanitized diagnostics to repository branch
+        if: always()
+        shell: bash
+        env:
+          TARGET_DATE: ${{ steps.date.outputs.target_date }}
+          DRY_RUN: ${{ steps.mode.outputs.dry_run }}
+          PLAN_URL: ${{ steps.plan.outputs.plan_url }}
+          EXIT_CODE: ${{ steps.run_scheduler.outputs.exit_code }}
+          DIAG_BRANCH: diagnostics/instagram-scheduler
+          RUN_ID: ${{ github.run_id }}
+          RUN_NUMBER: ${{ github.run_number }}
+          RUN_ATTEMPT: ${{ github.run_attempt }}
+          WORKFLOW: ${{ github.workflow }}
+          COMMIT_SHA: ${{ github.sha }}
+        run: |
+          set +e
+          mkdir -p /tmp/instagram-scheduler-diagnostics
+          python3 - <<'PY'
+          import json, os, re, pathlib, datetime
+
+          log_dir = pathlib.Path(os.environ.get("LOG_DIR", "artifacts/instagram-stories-scheduler-logs"))
+          log_path = log_dir / "runner-output.log"
+          raw = log_path.read_text(errors="replace") if log_path.exists() else ""
+
+          redactions = [
+              (r'(?i)(access_token["=:\s]+)[^"\s&]+', r'\1[REDACTED]'),
+              (r'(?i)(bearer\s+)[A-Za-z0-9._\-]+', r'\1[REDACTED]'),
+              (r'(?i)(token["=:\s]+)[^"\s&]+', r'\1[REDACTED]'),
+          ]
+          safe = raw
+          for pattern, repl in redactions:
+              safe = re.sub(pattern, repl, safe)
+
+          tail = "\n".join(safe.splitlines()[-160:])
+          payload = {
+              "generated_at": datetime.datetime.utcnow().isoformat(timespec="seconds") + "Z",
+              "workflow": os.environ.get("WORKFLOW"),
+              "run_id": os.environ.get("RUN_ID"),
+              "run_number": os.environ.get("RUN_NUMBER"),
+              "run_attempt": os.environ.get("RUN_ATTEMPT"),
+              "commit_sha": os.environ.get("COMMIT_SHA"),
+              "target_date": os.environ.get("TARGET_DATE"),
+              "dry_run": os.environ.get("DRY_RUN"),
+              "plan_url": os.environ.get("PLAN_URL"),
+              "exit_code": os.environ.get("EXIT_CODE"),
+              "log_tail": tail,
+          }
+          out = pathlib.Path("/tmp/instagram-scheduler-diagnostics")
+          out.mkdir(parents=True, exist_ok=True)
+          (out / "latest.json").write_text(json.dumps(payload, indent=2, ensure_ascii=False), encoding="utf-8")
+          (out / "latest.log").write_text(tail, encoding="utf-8")
+          PY
+
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+
+          git fetch origin "$DIAG_BRANCH" || true
+          if git show-ref --verify --quiet "refs/remotes/origin/$DIAG_BRANCH"; then
+            git checkout -B "$DIAG_BRANCH" "origin/$DIAG_BRANCH"
+          else
+            git checkout --orphan "$DIAG_BRANCH"
+            git rm -rf . || true
+          fi
+
+          mkdir -p diagnostics/instagram-scheduler
+          cp /tmp/instagram-scheduler-diagnostics/latest.json diagnostics/instagram-scheduler/latest.json
+          cp /tmp/instagram-scheduler-diagnostics/latest.log diagnostics/instagram-scheduler/latest.log
+
+          git add diagnostics/instagram-scheduler/latest.json diagnostics/instagram-scheduler/latest.log
+          git commit -m "chore(instagram): update scheduler diagnostics [skip ci]" || true
+          git push origin "HEAD:$DIAG_BRANCH" || true
 
       - name: Upload scheduler logs
         uses: actions/upload-artifact@v4
