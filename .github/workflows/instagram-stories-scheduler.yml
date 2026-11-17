@@ -106,19 +106,44 @@ jobs:
             echo "dry_run=true" >> "$GITHUB_OUTPUT"
           fi
 
-      - name: Run scheduler job
+      - name: Run scheduler job with captured diagnostics
+        id: run_scheduler
         shell: bash
         env:
           INSTAGRAM_SCHEDULER_EXECUTE: ${{ steps.mode.outputs.execute }}
           INSTAGRAM_SCHEDULER_PLAN_URL: ${{ steps.plan.outputs.plan_url }}
           INSTAGRAM_SCHEDULER_DATE: ${{ steps.date.outputs.target_date }}
-          INSTAGRAM_SCHEDULER_LOG_DIR: ${{ env.LOG_DIR }}
+          INSTAGRAM_SCEDULER_LOG_DIR: ${{ env.LOG_DIR }}
           META_INSTAGRAM_ACCESS_TOKEN: ${{ secrets.META_INSTAGRAM_ACCESS_TOKEN }}
         run: |
+          set +e
+          echo "Running scheduler. dry_run=${{ steps.mode.outputs.dry_run }} target_date=$INSTAGRAM_SCHEDULER_DATE"
+          echo "Plan URL: $INSTAGRAM_SCHEDULER_PLAN_URL"
           node apps/api-gateway/src/instagram-stories-scheduler-job.mjs \
             --plan-url="$INSTAGRAM_SCHEDULER_PLAN_URL" \
             --date="$INSTAGRAM_SCHEDULER_DATE" \
-            --log-dir="$INSTAGRAM_SCHEDULER_LOG_DIR"
+            --log-dir="$INSTAGRAM_SCHEDULER_LOG_DIR" \
+            2>&1 | tee "$INSTAGRAM_SCHEDULER_LOG_DIR/runner-output.log"
+          EXIT_CODE=${PIPESTATUS[0]}
+
+          {
+            echo "## Instagram Stories Scheduler diagnostics"
+            echo ""
+            echo "| Field | Value |"
+            echo "|---|---|"
+            echo "| target_date | \`$INSTAGRAM_SCHEDULER_DATE\` |"
+            echo "| dry_run | \`${{ steps.mode.outputs.dry_run }}\` |"
+            echo "| exit_code | \`$EXIT_CODE\` |"
+            echo "| plan_url | \`$INSTAGRAM_SCHEDULER_PLAN_URL\` |"
+            echo ""
+            echo "### Last scheduler output"
+            echo '```'
+            tail -n 120 "$INSTAGRAM_SCHEDULER_LOG_DIR/runner-output.log" || true
+            echo '```'
+          } >> "$GITHUB_STEP_SUMMARY"
+
+          echo "exit_code=$EXIT_CODE" >> "$GITHUB_OUTPUT"
+          exit "$EXIT_CODE"
 
       - name: Upload scheduler logs
         uses: actions/upload-artifact@v4
