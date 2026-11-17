@@ -15,6 +15,10 @@ on:
         options:
           - "true"
           - "false"
+      plan_url:
+        description: "Optional scheduler plan URL. Defaults to the approved recurring plan."
+        required: false
+        type: string
   schedule:
     # 08:30 America/Sao_Paulo = 11:30 UTC during BRT (UTC-3)
     - cron: "30 11 * * *"
@@ -33,9 +37,10 @@ jobs:
       - self-hosted
       - macOS
       - X64
+    timeout-minutes: 15
 
     env:
-      PLAN_URL: "https://sitedauni.com/assets/campanhas/_instagram_scheduler/plano_stories_recorrente_20261116_20261122.json"
+      DEFAULT_PLAN_URL: "https://sitedauni.com/assets/campanhas/_instagram_scheduler/plano_stories_recorrente_20261116_20261122.json"
       LOG_DIR: "artifacts/instagram-stories-scheduler-logs"
       META_INSTAGRAM_ACCESS_TOKEN: ${{ secrets.META_INSTAGRAM_ACCESS_TOKEN }}
 
@@ -54,6 +59,18 @@ jobs:
           fi
           echo "target_date=$TARGET_DATE" >> "$GITHUB_OUTPUT"
           echo "Target date: $TARGET_DATE"
+
+      - name: Resolve plan URL
+        id: plan
+        shell: bash
+        run: |
+          if [ -n "${{ github.event.inputs.plan_url }}" ]; then
+            PLAN_URL="${{ github.event.inputs.plan_url }}"
+          else
+            PLAN_URL="$DEFAULT_PLAN_URL"
+          fi
+          echo "plan_url=$PLAN_URL" >> "$GITHUB_OUTPUT"
+          echo "Plan URL: $PLAN_URL"
 
       - name: Guard approved date window
         shell: bash
@@ -93,7 +110,7 @@ jobs:
         shell: bash
         env:
           INSTAGRAM_SCHEDULER_EXECUTE: ${{ steps.mode.outputs.execute }}
-          INSTAGRAM_SCHEDULER_PLAN_URL: ${{ env.PLAN_URL }}
+          INSTAGRAM_SCHEDULER_PLAN_URL: ${{ steps.plan.outputs.plan_url }}
           INSTAGRAM_SCHEDULER_DATE: ${{ steps.date.outputs.target_date }}
           INSTAGRAM_SCHEDULER_LOG_DIR: ${{ env.LOG_DIR }}
           META_INSTAGRAM_ACCESS_TOKEN: ${{ secrets.META_INSTAGRAM_ACCESS_TOKEN }}
