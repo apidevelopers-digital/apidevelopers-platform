@@ -12,6 +12,7 @@ import { attachZuniChannelBindingWriteHostingerComposition } from "./zuni-channe
 import { attachTrustFaceAccessDurablePreviewToGateway } from "./trust-face-access-durable-runtime-transform.mjs";
 import { createOperatorApiKeyProvisioningRuntimeApp } from "./operator-api-key-provisioning-composition.mjs";
 import { createOperatorApiKeyProvisioningWrapper } from "./operator-api-key-provisioning-wrapper.mjs";
+import { createInstagramSchedulerBackendBridgeApp } from "./server-with-instagram-bridge.mjs";
 
 function attachOperatorBootstrap({ gateway }) {
   const app = createOperatorBootstrapHttpApp({
@@ -42,6 +43,17 @@ function attachOperatorApiKeyProvisioning({ gateway }) {
   });
 }
 
+function attachInstagramSchedulerBridge({ gateway }) {
+  const app = createInstagramSchedulerBackendBridgeApp({
+    baseApp: gateway.app,
+  });
+
+  return Object.freeze({
+    ...gateway,
+    app,
+  });
+}
+
 function attachHostingerCompositions({ gateway, env }) {
   const operatorGateway = attachOperatorBootstrap({ gateway });
   const keyProvisionerGateway = attachOperatorApiKeyProvisioning({
@@ -58,10 +70,11 @@ function attachHostingerCompositions({ gateway, env }) {
     gateway: mitraGateway,
     env,
   });
-  return attachZuniChannelBindingWriteHostingerComposition({
+  const zuniGateway = attachZuniChannelBindingWriteHostingerComposition({
     gateway: uniJuriGateway,
     env,
   });
+  return attachInstagramSchedulerBridge({ gateway: zuniGateway });
 }
 
 function attachTrustAndHostingerCompositions(context = {}) {
