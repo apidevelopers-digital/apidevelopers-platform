@@ -3,7 +3,7 @@
   "format": "managed-node-zip",
   "service": "api-gateway",
   "version": "0.8.0",
-  "sourceRevision": "7864b7ecdd8c98ba9a02792adfff8c2b1363690e",
+  "sourceRevision": "4f2214171a56214a55e5a17e99a1b92f03600bc6",
   "runtime": {
     "node": ">=22",
     "entrypoint": "src/hostinger-entry.mjs",
@@ -636,6 +636,11 @@
       "path": "src/hostinger-runtime-env.mjs",
       "bytes": 4726,
       "sha256": "20425f5f7136d78830d40150348beb1ebdb8b6f69fd4005f4f291d4331e8e896"
+    },
+    {
+      "path": "src/instagram-scheduler-backend-bridge.mjs",
+      "bytes": 5688,
+      "sha256": "8165cc56499204404e69c106140cdf4c24d061687e1a016ee762d53165a756c1"
     },
     {
       "path": "src/instagram-stories-scheduler-job.mjs",
@@ -1331,6 +1336,11 @@
       "path": "src/secret-handoff.mjs",
       "bytes": 6703,
       "sha256": "bcbe6d1a2d912fb99fc99100b3d220a81dfdc792886a732812a03de6c5e4fd90"
+    },
+    {
+      "path": "src/server-with-instagram-bridge.mjs",
+      "bytes": 3207,
+      "sha256": "692b5d3403086ace3cbecad9b931fd0376c340c4a63f64d9ad634a90090e7bcd"
     },
     {
       "path": "src/server.mjs",
