@@ -2,8 +2,8 @@
  * Instagram Stories Scheduler Publisher
  *
  * Safe institutional publisher for recurring Instagram Stories plans.
- * This module contains no secrets. It expects a token provider injected by
- * the protected backend/runtime and supports dry-run by default.
+ * Contains no secrets. Accepts both canonical snake_case plan keys and
+ * legacy/camelCase keys produced by earlier materializers.
  */
 
 const DEFAULT_GRAPH_BASE_URL = "https://graph.facebook.com/v21.0";
@@ -17,32 +17,51 @@ export class InstagramSchedulerError extends Error {
   }
 }
 
-export function assertStoriesOnlyItem(item) {
+function firstNonEmpty(...values) {
+  for (const value of values) {
+    if (value === undefined || value === null) continue;
+    const text = String(value).trim();
+    if (text) return text;
+  }
+  return "";
+}
+
+export function normalizeStoryItem(item) {
   if (!item || typeof item !== "object") {
     throw new InstagramSchedulerError("invalid_item", "Scheduler item must be an object");
   }
 
-  const igUserId = String(item.ig_user_id ?? "").trim();
-  const imageUrl = String(item.url_publica ?? "").trim();
-  const instagram = String(item.instagram ?? "").trim();
-
-  if (!igUserId) {
-    throw new InstagramSchedulerError("missing_ig_user_id", "Missing ig_user_id", { item });
-  }
-  if (!instagram) {
-    throw new InstagramSchedulerError("missing_instagram", "Missing instagram handle", { item });
-  }
-  if (!/^https:\/\/.+/i.test(imageUrl)) {
-    throw new InstagramSchedulerError("invalid_image_url", "Story image URL must be HTTPS", { imageUrl });
-  }
+  const instagram = firstNonEmpty(item.instagram, item.instagram_handle, item.handle);
+  const igUserId = firstNonEmpty(item.ig_user_id, item.igUserId, item.ig_userId, item.instagram_user_id);
+  const imageUrl = firstNonEmpty(item.url_publica, item.imageUrl, item.image_url, item.public_url, item.url);
 
   return Object.freeze({
     instagram,
     igUserId,
     imageUrl,
-    action: String(item.action ?? "story").trim(),
-    topic: item.topic ?? item.tema_ou_arquivo ?? null,
+    action: firstNonEmpty(item.action, item.acao, "story"),
+    topic: firstNonEmpty(item.topic, item.tema_ou_arquivo, item.file, item.arquivo) || null,
+    source: Object.freeze({ ...item }),
   });
+}
+
+export function assertStoriesOnlyItem(item) {
+  const normalized = normalizeStoryItem(item);
+
+  if (!normalized.igUserId) {
+    throw new InstagramSchedulerError("missing_ig_user_id", "Missing ig_user_id", { item });
+  }
+  if (!normalized.instagram) {
+    throw new InstagramSchedulerError("missing_instagram", "Missing instagram handle", { item });
+  }
+  if (!/^https:\/\/.+/i.test(normalized.imageUrl)) {
+    throw new InstagramSchedulerError("invalid_image_url", "Story image URL must be HTTPS", {
+      imageUrl: normalized.imageUrl,
+      item,
+    });
+  }
+
+  return normalized;
 }
 
 export function daysBetween(startDate, targetDate) {
@@ -63,8 +82,8 @@ export function buildDailyStoryItems(plan, targetDate) {
   }
 
   const active = Boolean(plan.active);
-  const startDate = String(plan.start_date ?? "");
-  const endDate = String(plan.end_date ?? "");
+  const startDate = String(plan.start_date ?? plan.startDate ?? "");
+  const endDate = String(plan.end_date ?? plan.endDate ?? "");
 
   if (!active) {
     return Object.freeze({ due: false, reason: "plan_inactive", items: [] });
@@ -78,22 +97,24 @@ export function buildDailyStoryItems(plan, targetDate) {
 
   const items = [];
 
-  for (const item of plan.daily_repost_items ?? []) {
-    items.push(assertStoriesOnlyItem({ ...item, action: "repost_story" }));
+  for (const item of plan.daily_repost_items ?? plan.dailyRepostItems ?? []) {
+    items.push(assertStoriesOnlyItem({ ...item, action: item.action ?? item.acao ?? "repost_story" }));
   }
 
-  const cycle = plan.peterle_daily_cycle;
+  const cycle = plan.peterle_daily_cycle ?? plan.peterleDailyCycle;
   if (cycle && Array.isArray(cycle.items) && cycle.items.length > 0) {
-    const delta = daysBetween(cycle.cycle_start_date, targetDate);
+    const cycleStartDate = cycle.cycle_start_date ?? cycle.cycleStartDate;
+    const delta = daysBetween(cycleStartDate, targetDate);
     if (delta >= 0) {
       const cycleItem = cycle.items[delta % cycle.items.length];
       items.push(
         assertStoriesOnlyItem({
           action: "peterle_story_of_day",
           instagram: cycle.instagram,
-          ig_user_id: cycle.ig_user_id,
-          url_publica: cycleItem.url_publica,
+          ig_user_id: cycle.ig_user_id ?? cycle.igUserId,
+          url_publica: cycleItem.url_publica ?? cycleItem.imageUrl,
           topic: cycleItem.topic,
+          tema_ou_arquivo: cycleItem.tema_ou_arquivo,
         }),
       );
     }
@@ -236,6 +257,9 @@ export async function runInstagramStoriesSchedule({
       due: false,
       reason: daily.reason,
       targetDate,
+      dryRun,
+      planned: 0,
+      published: 0,
       results,
     });
   }

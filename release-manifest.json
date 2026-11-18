@@ -3,7 +3,7 @@
   "format": "managed-node-zip",
   "service": "api-gateway",
   "version": "0.8.0",
-  "sourceRevision": "9bce62b4cac5eaa6bd70fdaa029d1a2f28557ad8",
+  "sourceRevision": "7864b7ecdd8c98ba9a02792adfff8c2b1363690e",
   "runtime": {
     "node": ">=22",
     "entrypoint": "src/hostinger-entry.mjs",
@@ -644,8 +644,8 @@
     },
     {
       "path": "src/instagram-stories-scheduler-publisher.mjs",
-      "bytes": 7462,
-      "sha256": "3ed26c34bfad51636e2cb6c50587e526a346e58dcb787890a2f4f9e1bb07c007"
+      "bytes": 8399,
+      "sha256": "44a077e7a24d5ca535ac1f961a8f6b3c4f4e03291fa97840809e02d77be89743"
     },
     {
       "path": "src/mitra-embedded-lex-transport.mjs",
