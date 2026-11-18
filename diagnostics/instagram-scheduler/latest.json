@@ -1,0 +1,13 @@
+{
+  "generated_at": "2026-11-18T00:33:16Z",
+  "workflow": "Instagram Stories Scheduler",
+  "run_id": "44208721632",
+  "run_number": "11",
+  "run_attempt": "1",
+  "commit_sha": "5c561a72c4b8e0d7b43dc137f17f202ac6ed9546",
+  "target_date": "2026-11-16",
+  "dry_run": "false",
+  "plan_url": "https://sitedauni.com/assets/campanhas/_instagram_scheduler/plano_teste_1_story_20261116.json",
+  "exit_code": "1",
+  "log_tail": "{\"level\":\"error\",\"event\":\"story_publish_failed\",\"ok\":false,\"item\":{\"instagram\":\"peterleadvocacia\",\"igUserId\":\"17841404237273345\",\"imageUrl\":\"https://sitedauni.com/assets/campanhas/peterle-advocacia-stories-feed-20261115/public/stories_1080x1920/02_SUCESSOES_STORIES_1080x1920.jpg\",\"action\":\"repost_story\",\"topic\":\"02_SUCESSOES_STORIES_1080x1920.jpg\"},\"error\":\"Missing ig_user_id\",\"code\":\"missing_ig_user_id\",\"details\":{\"item\":{\"instagram\":\"peterleadvocacia\",\"igUserId\":\"17841404237273345\",\"imageUrl\":\"https://sitedauni.com/assets/campanhas/peterle-advocacia-stories-feed-20261115/public/stories_1080x1920/02_SUCESSOES_STORIES_1080x1920.jpg\",\"action\":\"repost_story\",\"topic\":\"02_SUCESSOES_STORIES_1080x1920.jpg\"}}}\n{\"event\":\"instagram_scheduler_job_failed\",\"ok\":false,\"code\":\"instagram_scheduler_result_not_ok\",\"message\":\"Instagram scheduler returned ok=false\",\"details\":{\"planned\":1,\"published\":0,\"failedCount\":1,\"failed\":[{\"ok\":false,\"item\":{\"instagram\":\"peterleadvocacia\",\"igUserId\":\"17841404237273345\",\"imageUrl\":\"https://sitedauni.com/assets/campanhas/peterle-advocacia-stories-feed-20261115/public/stories_1080x1920/02_SUCESSOES_STORIES_1080x1920.jpg\",\"action\":\"repost_story\",\"topic\":\"02_SUCESSOES_STORIES_1080x1920.jpg\"},\"error\":\"Missing ig_user_id\",\"code\":\"missing_ig_user_id\",\"details\":{\"item\":{\"instagram\":\"peterleadvocacia\",\"igUserId\":\"17841404237273345\",\"imageUrl\":\"https://sitedauni.com/assets/campanhas/peterle-advocacia-stories-feed-20261115/public/stories_1080x1920/02_SUCESSOES_STORIES_1080x1920.jpg\",\"action\":\"repost_story\",\"topic\":\"02_SUCESSOES_STORIES_1080x1920.jpg\"}}}]},\"schedulerJobError\":true}"
+}
