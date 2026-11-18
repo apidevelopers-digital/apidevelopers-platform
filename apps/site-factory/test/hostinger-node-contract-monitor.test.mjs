@@ -1,141 +1,189 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-
 import {
-  createHostingerNodeContractMonitorReport,
   EXPECTED,
+  createHostingerNodeContractMonitorReport,
 } from "../src/hostinger-node-contract-monitor.mjs";
 
-function createOpenApi({
-  apiVersion = EXPECTED.apiVersion,
-  mediaType = EXPECTED.mediaType,
-  archiveType = "string",
-  operationId = EXPECTED.operationId,
-} = {}) {
-  return {
+const schemaRef = (name) => ({ $ref: `#/components/schemas/${name}` });
+const BUILD_FIELDS = [
+  "node_version",
+  "app_type",
+  "root_directory",
+  "output_directory",
+  "build_script",
+  "source_type",
+  "source_options",
+];
+
+function fixture() {
+  const openapi = {
     openapi: EXPECTED.openapiVersion,
-    info: { version: apiVersion },
+    info: { version: EXPECTED.apiVersion },
     paths: {
-      [EXPECTED.endpoint]: {
+      [EXPECTED.uploadEndpoint]: {
         post: {
-          operationId,
+          operationId: EXPECTED.uploadOperationId,
           requestBody: {
-            content: {
-              [mediaType]: {
-                schema: {
-                  $ref: `#/components/schemas/${EXPECTED.schemaName}`,
-                },
-              },
-            },
+            required: true,
+            content: { "application/json": { schema: schemaRef(EXPECTED.uploadSchema) } },
           },
+        },
+      },
+      [EXPECTED.buildEndpoint]: {
+        post: {
+          operationId: EXPECTED.buildOperationId,
+          requestBody: {
+            required: true,
+            content: { "application/json": { schema: schemaRef(EXPECTED.buildSchema) } },
+          },
+        },
+      },
+      [EXPECTED.settingsEndpoint]: {
+        get: {
+          operationId: EXPECTED.settingsOperationId,
+          parameters: [
+            {
+              name: "archive_path",
+              in: "query",
+              required: true,
+              schema: { type: "string" },
+            },
+          ],
         },
       },
     },
     components: {
       schemas: {
-        [EXPECTED.schemaName]: {
+        [EXPECTED.uploadSchema]: {
           type: "object",
-          required: ["archive"],
+          required: ["username", "domain"],
           properties: {
-            archive: { type: archiveType },
+            username: { type: "string" },
+            domain: { type: "string" },
+          },
+        },
+        [EXPECTED.buildSchema]: {
+          required: [...BUILD_FIELDS],
+          properties: {
+            source_type: { type: "string", enum: ["archive"] },
+            source_options: {
+              properties: { archive_path: { type: "string" } },
+            },
           },
         },
       },
     },
   };
-}
-
-function createIssue({ state = "open", number = 56 } = {}) {
-  return {
-    number,
-    state,
-    title: "Node.js deployment by archive endpoint is not usable",
-    updated_at: "2026-08-02T08:00:00Z",
+  const issue = {
+    number: 56,
+    state: "closed",
     html_url: "https://github.com/hostinger/api/issues/56",
   };
+  return { openapi, issue };
 }
 
-test("returns unchanged-blocked for the pinned official endpoint contract", () => {
-  const first = createHostingerNodeContractMonitorReport({
-    openapi: createOpenApi(),
-    issue: createIssue(),
-    observedAt: "2026-08-08T08:10:00Z",
+function run({ openapi, issue } = fixture()) {
+  return createHostingerNodeContractMonitorReport({
+    openapi,
+    issue,
+    observedAt: "2026-10-16T12:00:00Z",
   });
-  const second = createHostingerNodeContractMonitorReport({
-    openapi: createOpenApi(),
-    issue: createIssue(),
-    observedAt: "2026-08-08T08:10:00Z",
-  });
+}
 
+test("official archive flow unchanged; deployment stays blocked", () => {
+  const first = run();
+  const second = run();
   assert.equal(first.status, "unchanged-blocked");
   assert.equal(first.reviewRequired, false);
-  assert.equal(first.changeSignals.contractChanged, false);
-  assert.equal(first.changeSignals.apiVersionChanged, false);
-  assert.equal(first.changeSignals.issueChanged, false);
-  assert.equal(first.barriers.hostingerPostExecuted, false);
   assert.equal(first.fingerprint, second.fingerprint);
+  assert.deepEqual(Object.values(first.barriers).filter(Boolean), []);
 });
 
-test("global API version drift is informative and does not fail the endpoint gate", () => {
-  const report = createHostingerNodeContractMonitorReport({
-    openapi: createOpenApi({ apiVersion: "1.31.0" }),
-    issue: createIssue(),
-    observedAt: "2026-08-08T08:10:00Z",
-  });
-
-  assert.equal(report.status, "upstream-metadata-changed-blocked");
-  assert.equal(report.reviewRequired, false);
-  assert.equal(report.checks.apiVersionMatches, false);
-  assert.equal(report.changeSignals.apiVersionChanged, true);
-  assert.equal(report.changeSignals.contractChanged, false);
-  assert.equal(
-    report.nextAction,
-    "record_global_api_version_drift_and_continue_monitoring",
-  );
+test("global API metadata drift is informative, not a contract change", () => {
+  const input = fixture();
+  input.openapi.info.version = "2.2.0";
+  assert.equal(run(input).status, "upstream-metadata-changed-blocked");
 });
 
-test("requires review when the official endpoint contract changes", () => {
-  const report = createHostingerNodeContractMonitorReport({
-    openapi: createOpenApi({ mediaType: "multipart/form-data" }),
-    issue: createIssue(),
-    observedAt: "2026-08-08T08:10:00Z",
-  });
-
-  assert.equal(report.status, "review-required");
+test("missing upload operation requires review", () => {
+  const input = fixture();
+  delete input.openapi.paths[EXPECTED.uploadEndpoint];
+  const report = run(input);
+  assert.equal(report.checks.uploadOperationIdMatches, false);
   assert.equal(report.reviewRequired, true);
-  assert.equal(report.changeSignals.contractChanged, true);
-  assert.equal(report.checks.mediaTypeMatches, false);
-  assert.equal(
-    report.nextAction,
-    "open_review_pull_request_before_any_executor_change",
+});
+
+test("return of legacy endpoint requires review", () => {
+  const input = fixture();
+  input.openapi.paths[EXPECTED.legacyEndpoint] = { post: {} };
+  const report = run(input);
+  assert.equal(report.checks.legacyEndpointAbsent, false);
+  assert.equal(report.reviewRequired, true);
+});
+
+test("changed upload schema and build operation require review", () => {
+  const input = fixture();
+  input.openapi.paths[EXPECTED.uploadEndpoint].post
+    .requestBody.content["application/json"].schema.$ref = "#/invalid";
+  input.openapi.paths[EXPECTED.buildEndpoint].post.operationId = "changed";
+  assert.equal(run(input).reviewRequired, true);
+});
+
+test("missing required build field and invalid archive path require review", () => {
+  const input = fixture();
+  const schema = input.openapi.components.schemas[EXPECTED.buildSchema];
+  schema.required.pop();
+  schema.properties.source_options.properties.archive_path.type = "number";
+  const report = run(input);
+  assert.equal(report.checks.archivePathIsString, false);
+  assert.equal(report.checks.buildRequiredFieldsMatch, false);
+  assert.equal(report.reviewRequired, true);
+});
+
+test("additional required build field triggers fail-closed review", () => {
+  const input = fixture();
+  input.openapi.components.schemas[EXPECTED.buildSchema].required.push("new_required_field");
+  const report = run(input);
+  assert.equal(report.checks.buildRequiredFieldsMatch, false);
+  assert.equal(report.reviewRequired, true);
+});
+
+test("additional required upload field triggers fail-closed review", () => {
+  const input = fixture();
+  input.openapi.components.schemas[EXPECTED.uploadSchema].required.push("new_required_field");
+  const report = run(input);
+  assert.equal(report.checks.uploadRequiredFieldsMatch, false);
+  assert.equal(report.reviewRequired, true);
+});
+
+test("missing required upload field triggers review", () => {
+  const input = fixture();
+  input.openapi.components.schemas[EXPECTED.uploadSchema].required.pop();
+  assert.equal(run(input).reviewRequired, true);
+});
+
+test("missing archive settings query triggers review", () => {
+  const input = fixture();
+  input.openapi.paths[EXPECTED.settingsEndpoint].get.parameters = [];
+  const report = run(input);
+  assert.equal(report.checks.settingsArchivePathRequired, false);
+  assert.equal(report.reviewRequired, true);
+});
+
+test("reopened issue triggers review", () => {
+  const input = fixture();
+  input.issue.state = "open";
+  assert.equal(run(input).reviewRequired, true);
+});
+
+test("missing evidence fails closed", () => {
+  assert.throws(
+    () => createHostingerNodeContractMonitorReport({ openapi: null, issue: {} }),
+    /missing_or_invalid:openapi/,
   );
-});
-
-test("requires review when the upstream issue closes", () => {
-  const report = createHostingerNodeContractMonitorReport({
-    openapi: createOpenApi(),
-    issue: createIssue({ state: "closed" }),
-    observedAt: "2026-08-08T08:10:00Z",
-  });
-
-  assert.equal(report.status, "review-required");
-  assert.equal(report.changeSignals.issueChanged, true);
-  assert.equal(report.changeSignals.officialIssueClosed, true);
-  assert.equal(report.checks.issueStillOpen, false);
-});
-
-test("requires review when the request schema reference changes", () => {
-  const openapi = createOpenApi();
-  openapi.paths[EXPECTED.endpoint].post.requestBody.content[
-    EXPECTED.mediaType
-  ].schema.$ref = "#/components/schemas/Missing";
-
-  const report = createHostingerNodeContractMonitorReport({
-    openapi,
-    issue: createIssue(),
-  });
-
-  assert.equal(report.status, "review-required");
-  assert.equal(report.checks.schemaRefMatches, false);
-  assert.equal(report.changeSignals.contractChanged, true);
+  assert.throws(
+    () => createHostingerNodeContractMonitorReport({ openapi: {}, issue: null }),
+    /missing_or_invalid:issue/,
+  );
 });
