@@ -12,7 +12,7 @@ import { attachZuniChannelBindingWriteHostingerComposition } from "./zuni-channe
 import { attachTrustFaceAccessDurablePreviewToGateway } from "./trust-face-access-durable-runtime-transform.mjs";
 import { createOperatorApiKeyProvisioningRuntimeApp } from "./operator-api-key-provisioning-composition.mjs";
 import { createOperatorApiKeyProvisioningWrapper } from "./operator-api-key-provisioning-wrapper.mjs";
-import { createInstagramSchedulerBackendBridgeApp } from "./server-with-instagram-bridge.mjs";
+import { createInstagramSchedulerBridgeApp } from "./server-with-instagram-bridge.mjs";
 
 function attachOperatorBootstrap({ gateway }) {
   const app = createOperatorBootstrapHttpApp({
@@ -44,7 +44,7 @@ function attachOperatorApiKeyProvisioning({ gateway }) {
 }
 
 function attachInstagramSchedulerBridge({ gateway }) {
-  const app = createInstagramSchedulerBackendBridgeApp({
+  const app = createInstagramSchedulerBridgeApp({
     baseApp: gateway.app,
   });
 
