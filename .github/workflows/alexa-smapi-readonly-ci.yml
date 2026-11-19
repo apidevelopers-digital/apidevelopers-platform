@@ -1,0 +1,39 @@
+name: Alexa SMAPI Read-only CI
+
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - "packages/alexa-smapi-adapter/**"
+      - ".github/workflows/alexa-smapi-readonly-ci.yml"
+
+permissions:
+  contents: read
+
+jobs:
+  alexa-smapi-readonly:
+    # Do not execute untrusted fork code on the institutional self-hosted runner.
+    if: github.event.pull_request.head.repo.full_name == github.repository
+    runs-on: [self-hosted, macOS, X64]
+    timeout-minutes: 10
+    steps:
+      - name: Checkout (no persisted token)
+        uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+      - name: Check Alexa adapter JavaScript syntax
+        shell: bash
+        run: |
+          set -euo pipefail
+          for f in packages/alexa-smapi-adapter/src/*.mjs packages/alexa-smapi-adapter/test/*.test.mjs; do
+            node --check "$f"
+          done
+      - name: Test Alexa SMAPI (simulated HTTP, no production secrets)
+        shell: bash
+        run: |
+          set -euo pipefail
+          node --test packages/alexa-smapi-adapter/test/*.test.mjs
