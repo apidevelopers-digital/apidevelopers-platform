@@ -6,14 +6,6 @@ from .imuni_base_tools import BASE_TOOL_DEFINITIONS, call_base_tool, is_base_too
 from .imuni_db_tools import DB_TOOL_DEFINITIONS, call_db_tool, is_db_tool
 from .imuni_patient_sql_tools import call_patient_sql_tool
 from .imuni_patient_tools import PATIENT_TOOL_DEFINITIONS, is_patient_tool
-from . import elevenlabs_tools as _elevenlabs_tools
-
-# Compatibility alias for the ElevenLabs TTS character guard.
-# The implementation uses MAX_TS_CHARS in the validation branch; keep it
-# explicitly mapped to the canonical MAX_TTS_CHARS constant until the module
-# is deployed and can be simplified in a follow-up cleanup.
-_elevenlabs_tools.MAX_TS_CHARS = _elevenlabs_tools.MAX_TTS_CHARS
-
 from .elevenlabs_tools import ELEVENLABS_TOOL_DEFINITIONS, call_elevenlabs_tool, is_elevenlabs_tool
 from .imuni_practitioner_tools import (
     PRACTITIONER_TOOL_DEFINITIONS,
