@@ -6,6 +6,7 @@ from .imuni_base_tools import BASE_TOOL_DEFINITIONS, call_base_tool, is_base_too
 from .imuni_db_tools import DB_TOOL_DEFINITIONS, call_db_tool, is_db_tool
 from .imuni_patient_sql_tools import call_patient_sql_tool
 from .imuni_patient_tools import PATIENT_TOOL_DEFINITIONS, is_patient_tool
+from .elevenlabs_tools import ELEVENLABS_TOOL_DEFINITIONS, call_elevenlabs_tool, is_elevenlabs_tool
 from .imuni_practitioner_tools import (
     PRACTITIONER_TOOL_DEFINITIONS,
     call_practitioner_tool,
@@ -30,6 +31,15 @@ IMUNI_TOOL_DEFINITIONS = (
         and tool["name"] not in {item["name"] for item in DB_TOOL_DEFINITIONS}
         and tool["name"] not in {item["name"] for item in PRACTITIONER_TOOL_DEFINITIONS}
     ]
+    + [
+        tool
+        for tool in ELEVENLABS_TOOL_DEFINITIONS
+        if tool["name"]
+        not in {item["name"] for item in BASE_TOOL_DEFINITIONS}
+        and tool["name"] not in {item["name"] for item in DB_TOOL_DEFINITIONS}
+        and tool["name"] not in {item["name"] for item in PRACTITIONER_TOOL_DEFINITIONS}
+        and tool["name"] not in {item["name"] for item in PATIENT_TOOL_DEFINITIONS}
+    ]
 )
 
 
@@ -43,4 +53,6 @@ def call_imuni_tool(tool: str, args: dict[str, Any] | None = None) -> dict[str, 
         return call_db_tool(tool, args)
     if is_base_tool(tool):
         return call_base_tool(tool, args)
+    if is_elevenlabs_tool(tool):
+        return call_elevenlabs_tool(tool, args)
     return {"tool": tool, "result": {"ok": False, "error": "unknown imuni tool", "would_execute": False}}
