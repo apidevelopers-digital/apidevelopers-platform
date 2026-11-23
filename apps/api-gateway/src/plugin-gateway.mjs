@@ -88,8 +88,73 @@ function publicRuntimeStatus() {
   };
 }
 
+function normalizedBaseUrl(raw) {
+  const value = String(raw ?? "").trim();
+  if (!value) return null;
+  try {
+    const url = new URL(value);
+    url.pathname = url.pathname.replace(/\/$/u, "");
+    return url.toString().replace(/\/$/u, "");
+  } catch {
+    return null;
+  }
+}
+
+async function fetchJsonWithTimeout(url, { method = "GET", headers = {}, body, timeoutMs = 5000 } = {}) {
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), timeoutMs);
+  try {
+    const response = await fetch(url, {
+      method,
+      headers,
+      body,
+      signal: controller.signal,
+    });
+    const text = await response.text();
+    let payload = null;
+    try {
+      payload = text ? JSON.parse(text) : null;
+    } catch {
+      payload = { raw: text.slice(0, 4096) };
+    }
+    return { ok: response.ok, status: response.status, payload };
+  } finally {
+    clearTimeout(timer);
+  }
+}
+
+async function readMcpHealth() {
+  const baseUrl = normalizedBaseUrl(process.env.ADA_MCP_BASE_URL ?? process.env.MCP_BASE_URL);
+  if (!baseUrl) {
+    return {
+      configured: false,
+      ok: false,
+      status: "not_configured",
+    };
+  }
+
+  try {
+    const result = await fetchJsonWithTimeout(`${baseUrl}/health`, {
+      timeoutMs: Number(process.env.ADA_MCP_TIMEOUT_MS ?? 5000),
+    });
+    return {
+      configured: true,
+      ok: result.ok,
+      statusCode: result.status,
+      payload: result.payload,
+    };
+  } catch (error) {
+    return {
+      configured: true,
+      ok: false,
+      error: error instanceof Error ? error.message : "mcp_health_failed",
+    };
+  }
+}
+
 async function builtInInfraAdapter({ operation, dryRun, payload }) {
   if (operation === "operator.status" || operation === "system.status" || operation === "ops.healthcheck") {
+    const mcp = await readMcpHealth();
     return {
       status: 200,
       payload: {
@@ -97,11 +162,12 @@ async function builtInInfraAdapter({ operation, dryRun, payload }) {
         plugin: "infra",
         operation,
         dryRun: Boolean(dryRun),
-        status: "gateway_online",
+        status: mcp.ok ? "mcp_online" : "gateway_online",
         service: "api-gateway",
         checkedAt: nowIso(),
         runtime: publicRuntimeStatus(),
-        note: "Initial safe adapter. VPS, Docker, GitHub, Hostinger and deploy operations remain behind dedicated adapters.",
+        mcp,
+        note: "Safe infra adapter. When ADA_MCP_BASE_URL is configured, this checks the MCP /health endpoint. VPS, Docker, GitHub, Hostinger and deploy operations remain behind dedicated adapters.",
       },
     };
   }
@@ -128,7 +194,7 @@ export function listPluginDefinitions() {
     risk: definition.risk,
     defaultMode: definition.defaultMode,
     operations: [...definition.operations],
-  }));
+  });
 }
 
 export function getPluginDefinition(pluginId) {
