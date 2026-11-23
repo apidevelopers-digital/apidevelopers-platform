@@ -13,6 +13,11 @@ import {
 import { createReadinessService } from "./readiness.mjs";
 import { createTrustFaceAccessService } from "./trust-face-access-passkeys.mjs";
 import { createTrustFaceAccessServerBindings } from "./trust-face-access-server-bindings.mjs";
+import {
+  pluginCapabilities,
+  pluginHealth,
+  routePluginCall,
+} from "./plugin-gateway.mjs";
 
 const JSON_HEADERS = Object.freeze({
   "content-type": "application/json; charset=utf-8",
@@ -211,6 +216,40 @@ export function createApp({
         return jsonResponse(200, getOpenApiDocument());
       }
 
+      const pluginRouteMatch = pathname.match(/^\/v1\/plugins\/([^/]+)\/(health|capabilities|call)$/u);
+      if (pluginRouteMatch) {
+        const [, pluginId, action] = pluginRouteMatch;
+
+        if (action === "health" && normalizedMethod === "GET") {
+          const result = pluginHealth(pluginId);
+          return jsonResponse(result.status, result.payload);
+        }
+
+        if (action === "capabilities" && normalizedMethod === "GET") {
+          const result = pluginCapabilities(pluginId);
+          return jsonResponse(result.status, result.payload);
+        }
+
+        if (action === "call" && normalizedMethod === "POST") {
+          const payload = parseJsonObjectBody(body);
+          const result = await routePluginCall({
+            pluginId,
+            operation: payload.operation,
+            dryRun: payload.dry_run ?? payload.dryRun ?? true,
+            payload: payload.payload ?? {},
+            confirmation: payload.confirmation ?? "",
+          });
+          return jsonResponse(result.status, result.payload);
+        }
+
+        return jsonResponse(405, {
+          ok: false,
+          error: "method_not_allowed",
+          plugin: pluginId,
+          action,
+        });
+      }
+
       if (normalizedMethod === "GET" && pathname === "/v1/trust/face-access/status") {
         if (!trustFaceAccess) {
           return jsonResponse(503, {
@@ -241,7 +280,7 @@ export function createApp({
       ) {
         if (!trustFaceAccess) return jsonResponse(503, { error: "trust_face_access_unavailable" });
         const payload = parseJsonObjectBody(body);
-        return jsonResponse(200, trustFaceAccess.createAuthenticationOptions({
+        return jsonResponse(200, trustFaceAccess.createAuthenticationOptions {
           userId: payload.userId,
         }));
       }
