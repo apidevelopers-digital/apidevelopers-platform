@@ -65,7 +65,7 @@ test("routePluginCall returns not implemented until legal search adapter is conn
 });
 
 test("routePluginCall returns safe juri health status for initial juri adapter", async () => {
-  const result = await routePluginCall {
+  const result = await routePluginCall({
     pluginId: "juri",
     operation: "mitra.runtime.status",
     dryRun: true,
@@ -74,7 +74,7 @@ test("routePluginCall returns safe juri health status for initial juri adapter",
   assert.equal(result.payload.ok, true);
   assert.equal(result.payload.plugin, "juri");
   assert.equal(result.payload.service, "api-gateway");
-  assert.ok(["gateway_online", "peterle_ops_online"].includes(result.payload.status));
+  assert.ok(["gateway_online", "peterleOps_online"].includes(result.payload.status));
 });
 
 test("routePluginCall returns safe comunicacao diagnostics status for initial comunicacao adapter", async () => {
@@ -88,4 +88,17 @@ test("routePluginCall returns safe comunicacao diagnostics status for initial co
   assert.equal(result.payload.plugin, "comunicacao");
   assert.equal(result.payload.service, "api-gateway");
   assert.ok(["gateway_online", "comunicacao_online"].includes(result.payload.status));
+});
+
+test("routePluginCall returns safe media status for initial media adapter", async () => {
+  const result = await routePluginCall({
+    pluginId: "media",
+    operation: "reels.package.status",
+    dryRun: true,
+  });
+  assert.equal(result.status, 200);
+  assert.equal(result.payload.ok, true);
+  assert.equal(result.payload.plugin, "media");
+  assert.equal(result.payload.service, "api-gateway");
+  assert.ok(["gateway_online", "media_online"].includes(result.payload.status));
 });
