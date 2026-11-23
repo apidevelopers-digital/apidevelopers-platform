@@ -1,0 +1,56 @@
+openapi: 3.1.0
+info:
+  title: ADA Juri Plugin
+  version: 0.1.0-draft
+  description: Draft macroplugin facade for API Developers.digital existing backend.
+servers:
+  - url: https://api.apidevelopers.digital
+security:
+  - PluginKey: []
+paths:
+  /v1/plugins/juri/health:
+    get:
+      operationId: juri_health
+      responses:
+        "200":
+          description: OK
+  /v1/plugins/juri/capabilities:
+    get:
+      operationId: juri_capabilities
+      responses:
+        "200":
+          description: Capabilities
+  /v1/plugins/juri/call:
+    post:
+      operationId: juri_call
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [operation]
+              properties:
+                operation:
+                  type: string
+                  enum: ["juri.health", "unijuri.case.search", "unijuri.petition.draft", "peterle.clients.resolve", "peterle.documents.search", "peterle.matters.evidence_pack", "peterle.djen.search", "peterle.legal.search", "milena.product.search", "mitra.runtime.status"]
+                dry_run:
+                  type: boolean
+                  default: true
+                payload:
+                  type: object
+                  additionalProperties: true
+                confirmation:
+                  type: string
+                  nullable: true
+      responses:
+        "200":
+          description: Result
+        "403":
+          description: Confirmation required or action blocked
+components:
+  securitySchemes:
+    PluginKey:
+      type: apiKey
+      in: header
+      name: X-ADA-Plugin-Key
