@@ -152,6 +152,75 @@ async function readMcpHealth() {
   }
 }
 
+async function readPeterleOpsHealth() {
+  const baseUrl = normalizedBaseUrl(
+    process.env.ADA_PETERLE_OPS_BASE_URL
+      ?? process.env.PETERLE_OPS_BASE_URL
+      ?? process.env.ADA_JURI_BASE_URL
+  );
+  if (!baseUrl) {
+    return {
+      configured: false,
+      ok: false,
+      status: "not_configured",
+    };
+  }
+
+  try {
+    const result = await fetchJsonWithTimeout(`${baseUrl}/health`, {
+      timeoutMs: Number(process.env.ADA_JURI_TIMEOUT_MS ?? 5000),
+    });
+    return {
+      configured: true,
+      ok: result.ok,
+      statusCode: result.status,
+      payload: result.payload,
+    };
+  } catch (error) {
+    return {
+      configured: true,
+      ok: false,
+      error: error instanceof Error ? error.message : "peterle_ops_health_failed",
+    };
+  }
+}
+
+async function builtInJuriAdapter({ operation, dryRun, payload }) {
+  if (operation === "juri.health" || operation === "mitra.runtime.status") {
+    const peterleOps = await readPeterleOpsHealth();
+    return {
+      status: 200,
+      payload: {
+        ok: true,
+        plugin: "juri",
+        operation,
+        dryRun: Boolean(dryRun),
+        status: peterleOps.ok ? "peterle_ops_online" : "gateway_online",
+        service: "api-gateway",
+        checkedAt: nowIso(),
+        runtime: publicRuntimeStatus(),
+        peterleOps,
+        note: "Initial safe juri adapter. When ADA_PETERLE_OPS_BASE_URL is configured, this checks peterle-ops /health. Legal searches and document access remain behind dedicated adapters.",
+        payloadKeys: payload && typeof payload === "object" ? Object.keys(payload) : [],
+      },
+    };
+  }
+
+  return {
+    status: 501,
+    payload: {
+      ok: false,
+      error: "juri_operation_adapter_not_implemented",
+      plugin: "juri",
+      operation,
+      dryRun: Boolean(dryRun),
+      acceptedByContract: true,
+      safeFallback: true,
+      payloadKeys: payload && typeof payload === "object" ? Object.keys(payload) : [],
+    },
+  };
+}
+
 async function builtInInfraAdapter({ operation, dryRun, payload }) {
   if (operation === "operator.status" || operation === "system.status" || operation === "ops.healthcheck") {
     const mcp = await readMcpHealth();
@@ -295,7 +364,9 @@ export async function routePluginCall({
     };
   }
 
-  const adapter = adapters[pluginId] ?? (pluginId === "infra" ? builtInInfraAdapter : undefined);
+  const adapter = adapters[pluginId]
+    ?? (pluginId === "infra" ? builtInInfraAdapter : undefined)
+    ?? (pluginId === "juri" ? builtInJuriAdapter : undefined);
   if (typeof adapter === "function") {
     const result = await adapter({ operation, dryRun, payload, confirmation });
     return {
