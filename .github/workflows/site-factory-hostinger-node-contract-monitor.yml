@@ -13,11 +13,9 @@ on:
 
 permissions:
   contents: read
-
 concurrency:
   group: site-factory-hostinger-node-contract-monitor
   cancel-in-progress: false
-
 jobs:
   monitor-contract:
     name: Monitor official Hostinger Node archive contract
@@ -30,19 +28,16 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v4
-
       - name: Set up Node.js
         uses: actions/setup-node@v4
         with:
           node-version: "22"
-
       - name: Install and validate Site Factory
         working-directory: apps/site-factory
         run: |
           set -euo pipefail
           npm install --no-audit --no-fund
           npm run check
-
       - name: Prepare monitor workspace
         shell: bash
         run: |
@@ -55,7 +50,6 @@ jobs:
             echo "ISSUE_PATH=$MONITOR_DIR/issue-56.json"
             echo "REPORT_PATH=$MONITOR_DIR/hostinger-node-contract-monitor-report.json"
           } >> "$GITHUB_ENV"
-
       - name: Fetch official OpenAPI and upstream issue
         shell: bash
         run: |
@@ -64,13 +58,11 @@ jobs:
             --header "User-Agent: apidevelopers-platform-contract-monitor" \
             "https://raw.githubusercontent.com/hostinger/api/main/openapi.json" \
             --output "$OPENAPI_PATH"
-
           curl --fail --location --silent --show-error --retry 3 \
             --header "Accept: application/vnd.github+json" \
             --header "User-Agent: apidevelopers-platform-contract-monitor" \
             "https://api.github.com/repos/hostinger/api/issues/56" \
             --output "$ISSUE_PATH"
-
       - name: Evaluate official contract snapshot
         id: monitor
         shell: bash
@@ -80,11 +72,61 @@ jobs:
           node apps/site-factory/src/run-hostinger-node-contract-monitor.mjs \
             --openapi "$OPENAPI_PATH" \
             --issue "$ISSUE_PATH" \
-            --output "$REPORT_PATH"
+            --output "$REPORT_PATH" > "$MONITOR_DIR/sanitized-summary.json"
           exit_code=$?
           echo "exit_code=$exit_code" >> "$GITHUB_OUTPUT"
+          {
+            echo "### Hostinger Node TUS — sanitized contract monitor"
+            echo
+            echo "Monitor exit code: \`$exit_code\`"
+            echo
+            if [[ -s "$MONITOR_DIR/sanitized-summary.json" ]]; then
+              echo '```json'
+              cat "$MONITOR_DIR/sanitized-summary.json"
+              echo '```'
+            else
+              echo "No sanitized summary emitted; manual review required."
+            fi
+          } >> "$GITHUB_STEP_SUMMARY"
+          if [[ -s "$MONITOR_DIR/sanitized-summary.json" ]]; then
+            cat "$MONITOR_DIR/sanitized-summary.json"
+          fi
           exit 0
-
+      - name: Publish allowlisted drift check annotations
+        if: always()
+        shell: bash
+        run: |
+          set -euo pipefail
+          test -s "$MONITOR_DIR/sanitized-summary.json"
+          node --input-type=module <<'NODE'
+          import { readFileSync } from "node:fs";
+          const data = JSON.parse(readFileSync(
+            process.env.MONITOR_DIR + "/sanitized-summary.json", "utf8"
+          ));
+          const names = [
+            "legacyEndpointMissing",
+            "currentArchiveFlowDocumented",
+            "contractChanged",
+            "apiVersionChanged",
+            "issueChanged",
+            "officialIssueClosed"
+          ];
+          for (const name of names) {
+            const value = data.changeSignals?.[name];
+            if (typeof value !== "boolean") {
+              throw new Error(`missing_boolean_drift_signal:${name}`);
+            }
+            console.log(
+              `::notice file=apps/site-factory/src/hostinger-node-contract-transition.mjs,line=1,title=Hostinger drift ${name}::${value}`
+            );
+          }
+          if (typeof data.reviewRequired !== "boolean") {
+            throw new Error("invalid_review_required");
+          }
+          console.log(
+            `::notice file=apps/site-factory/src/hostinger-node-contract-transition.mjs,line=1,title=Hostinger drift reviewRequired::${data.reviewRequired}`
+          );
+          NODE
       - name: Upload sanitized monitor report
         if: always()
         uses: actions/upload-artifact@v4
@@ -93,7 +135,6 @@ jobs:
           path: ${{ env.REPORT_PATH }}
           if-no-files-found: error
           retention-days: 14
-
       - name: Enforce fail-closed review gate
         if: always()
         shell: bash
