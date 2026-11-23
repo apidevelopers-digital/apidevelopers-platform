@@ -52,7 +52,7 @@ test("routePluginCall returns safe infra status for initial infra adapter", asyn
   assert.equal(result.payload.service, "api-gateway");
 });
 
-test("routePluginCall returns not implemented until non-infra adapter is connected", async () => {
+test("routePluginCall returns not implemented until legal search adapter is connected", async () => {
   const result = await routePluginCall({
     pluginId: "juri",
     operation: "peterle.documents.search",
@@ -60,6 +60,19 @@ test("routePluginCall returns not implemented until non-infra adapter is connect
     payload: { query: "contrato" },
   });
   assert.equal(result.status, 501);
-  assert.equal(result.payload.error, "plugin_adapter_not_implemented");
+  assert.equal(result.payload.error, "juri_operation_adapter_not_implemented");
   assert.equal(result.payload.acceptedByContract, true);
+});
+
+test("routePluginCall returns safe juri health status for initial juri adapter", async () => {
+  const result = await routePluginCall {
+    pluginId: "juri",
+    operation: "mitra.runtime.status",
+    dryRun: true,
+  });
+  assert.equal(result.status, 200);
+  assert.equal(result.payload.ok, true);
+  assert.equal(result.payload.plugin, "juri");
+  assert.equal(result.payload.service, "api-gateway");
+  assert.ok(["gateway_online", "peterle_ops_online"].includes(result.payload.status));
 });
