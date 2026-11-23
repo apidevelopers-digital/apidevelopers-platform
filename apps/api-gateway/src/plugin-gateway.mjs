@@ -229,6 +229,29 @@ async function builtInComunicacaoAdapter({ operation, dryRun, payload }) {
   return notImplemented("comunicacao", operation, dryRun, payload, "comunicacao_operation_adapter_not_implemented");
 }
 
+async function builtInMediaAdapter({ operation, dryRun, payload }) {
+  if (operation === "elevenlabs.tts.runtime" || operation === "reels.package.status" || operation === "vnnox.status") {
+    const media = await readHealthFromEnv {
+      envNames: ["ADA_MEDIA_BASE_URL", "ADA_REELS_BASE_URL", "REELS_BASE_URL", "ADA_MCP_BASE_URL", "MCP_BASE_URL"],
+      timeoutEnvName: "ADA_MEDIA_TIMEOUT_MS",
+    });
+    return {
+      status: 200,
+      payload: statusPayload({
+        plugin: "media",
+        operation,
+        dryRun,
+        backendName: "media",
+        backend: media,
+        payload,
+        note: "Safe media adapter. When ADA_MEDIA_BASE_URL, ADA_REELS_BASE_URL or ADA_MCP_BASE_URL is configured, this checks backend /health. Render, upload, materialize, VNNOX publish and Instagram actions remain behind dedicated adapters and confirmation.",
+      }),
+    };
+  }
+
+  return notImplemented("media", operation, dryRun, payload, "media_operation_adapter_not_implemented");
+}
+
 function notImplemented(plugin, operation, dryRun, payload, error) {
   return {
     status: 501,
@@ -252,7 +275,7 @@ export function listPluginDefinitions() {
     risk: definition.risk,
     defaultMode: definition.defaultMode,
     operations: [...definition.operations],
-  });
+  }));
 }
 
 export function getPluginDefinition(pluginId) {
@@ -356,7 +379,8 @@ export async function routePluginCall({
   const adapter = adapters[pluginId]
     ?? (pluginId === "infra" ? builtInInfraAdapter : undefined)
     ?? (pluginId === "juri" ? builtInJuriAdapter : undefined)
-    ?? (pluginId === "comunicacao" ? builtInComunicacaoAdapter : undefined);
+    ?? (pluginId === "comunicacao" ? builtInComunicacaoAdapter : undefined)
+    ?? (pluginId === "media" ? builtInMediaAdapter : undefined);
 
   if (typeof adapter === "function") {
     const result = await adapter({ operation, dryRun, payload, confirmation });
