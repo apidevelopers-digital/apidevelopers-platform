@@ -70,6 +70,57 @@ const PLUGIN_DEFINITIONS = Object.freeze({
 
 const WRITE_OR_REAL_OPERATION_PATTERN = /(?:execute|approve|deploy|render|upload|generate_file|materialize|snapshot)$/u;
 
+function nowIso() {
+  return new Date().toISOString();
+}
+
+function publicRuntimeStatus() {
+  const memory = process.memoryUsage();
+  return {
+    node: process.version,
+    pid: process.pid,
+    uptimeSeconds: Math.round(process.uptime()),
+    memory: {
+      rss: memory.rss,
+      heapUsed: memory.heapUsed,
+      heapTotal: memory.heapTotal,
+    },
+  };
+}
+
+async function builtInInfraAdapter({ operation, dryRun, payload }) {
+  if (operation === "operator.status" || operation === "system.status" || operation === "ops.healthcheck") {
+    return {
+      status: 200,
+      payload: {
+        ok: true,
+        plugin: "infra",
+        operation,
+        dryRun: Boolean(dryRun),
+        status: "gateway_online",
+        service: "api-gateway",
+        checkedAt: nowIso(),
+        runtime: publicRuntimeStatus(),
+        note: "Initial safe adapter. VPS, Docker, GitHub, Hostinger and deploy operations remain behind dedicated adapters.",
+      },
+    };
+  }
+
+  return {
+    status: 501,
+    payload: {
+      ok: false,
+      error: "infra_operation_adapter_not_implemented",
+      plugin: "infra",
+      operation,
+      dryRun: Boolean(dryRun),
+      acceptedByContract: true,
+      safeFallback: true,
+      payloadKeys: payload && typeof payload === "object" ? Object.keys(payload) : [],
+    },
+  };
+}
+
 export function listPluginDefinitions() {
   return Object.entries(PLUGIN_DEFINITIONS).map(([id, definition]) => ({
     id,
@@ -178,7 +229,7 @@ export async function routePluginCall({
     };
   }
 
-  const adapter = adapters[pluginId];
+  const adapter = adapters[pluginId] ?? (pluginId === "infra" ? builtInInfraAdapter : undefined);
   if (typeof adapter === "function") {
     const result = await adapter({ operation, dryRun, payload, confirmation });
     return {
