@@ -76,3 +76,16 @@ test("routePluginCall returns safe juri health status for initial juri adapter",
   assert.equal(result.payload.service, "api-gateway");
   assert.ok(["gateway_online", "peterle_ops_online"].includes(result.payload.status));
 });
+
+test("routePluginCall returns safe comunicacao diagnostics status for initial comunicacao adapter", async () => {
+  const result = await routePluginCall({
+    pluginId: "comunicacao",
+    operation: "whatsapp.diagnostics",
+    dryRun: true,
+  });
+  assert.equal(result.status, 200);
+  assert.equal(result.payload.ok, true);
+  assert.equal(result.payload.plugin, "comunicacao");
+  assert.equal(result.payload.service, "api-gateway");
+  assert.ok(["gateway_online", "comunicacao_online"].includes(result.payload.status));
+});
