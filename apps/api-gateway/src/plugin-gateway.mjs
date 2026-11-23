@@ -123,130 +123,119 @@ async function fetchJsonWithTimeout(url, { method = "GET", headers = {}, body, t
   }
 }
 
-async function readMcpHealth() {
-  const baseUrl = normalizedBaseUrl(process.env.ADA_MCP_BASE_URL ?? process.env.MCP_BASE_URL);
+async function readHealthFromEnv({ envNames, timeoutEnvName, defaultTimeoutMs = 5000 }) {
+  const raw = envNames.map((name) => process.env[name]).find((value) => String(value ?? "").trim();
+  const baseUrl = normalizedBaseUrl(raw);
   if (!baseUrl) {
-    return {
-      configured: false,
-      ok: false,
-      status: "not_configured",
-    };
+    return { configured: false, ok: false, status: "not_configured" };
   }
 
   try {
     const result = await fetchJsonWithTimeout(`${baseUrl}/health`, {
-      timeoutMs: Number(process.env.ADA_MCP_TIMEOUT_MS ?? 5000),
+      timeoutMs: Number(process.env[timeoutEnvName] ?? defaultTimeoutMs),
     });
-    return {
-      configured: true,
-      ok: result.ok,
-      statusCode: result.status,
-      payload: result.payload,
-    };
+    return { configured: true, ok: result.ok, statusCode: result.status, payload: result.payload };
   } catch (error) {
     return {
       configured: true,
       ok: false,
-      error: error instanceof Error ? error.message : "mcp_health_failed",
+      error: error instanceof Error ? error.message : "health_check_failed",
     };
   }
 }
 
-async function readPeterleOpsHealth() {
-  const baseUrl = normalizedBaseUrl(
-    process.env.ADA_PETERLE_OPS_BASE_URL
-      ?? process.env.PETERLE_OPS_BASE_URL
-      ?? process.env.ADA_JURI_BASE_URL
-  );
-  if (!baseUrl) {
-    return {
-      configured: false,
-      ok: false,
-      status: "not_configured",
-    };
-  }
-
-  try {
-    const result = await fetchJsonWithTimeout(`${baseUrl}/health`, {
-      timeoutMs: Number(process.env.ADA_JURI_TIMEOUT_MS ?? 5000),
-    });
-    return {
-      configured: true,
-      ok: result.ok,
-      statusCode: result.status,
-      payload: result.payload,
-    };
-  } catch (error) {
-    return {
-      configured: true,
-      ok: false,
-      error: error instanceof Error ? error.message : "peterle_ops_health_failed",
-    };
-  }
-}
-
-async function builtInJuriAdapter({ operation, dryRun, payload }) {
-  if (operation === "juri.health" || operation === "mitra.runtime.status") {
-    const peterleOps = await readPeterleOpsHealth();
-    return {
-      status: 200,
-      payload: {
-        ok: true,
-        plugin: "juri",
-        operation,
-        dryRun: Boolean(dryRun),
-        status: peterleOps.ok ? "peterle_ops_online" : "gateway_online",
-        service: "api-gateway",
-        checkedAt: nowIso(),
-        runtime: publicRuntimeStatus(),
-        peterleOps,
-        note: "Initial safe juri adapter. When ADA_PETERLE_OPS_BASE_URL is configured, this checks peterle-ops /health. Legal searches and document access remain behind dedicated adapters.",
-        payloadKeys: payload && typeof payload === "object" ? Object.keys(payload) : [],
-      },
-    };
-  }
-
+function statusPayload({ plugin, operation, dryRun, backendName, backend, note, payload }) {
   return {
-    status: 501,
-    payload: {
-      ok: false,
-      error: "juri_operation_adapter_not_implemented",
-      plugin: "juri",
-      operation,
-      dryRun: Boolean(dryRun),
-      acceptedByContract: true,
-      safeFallback: true,
-      payloadKeys: payload && typeof payload === "object" ? Object.keys(payload) : [],
-    },
+    ok: true,
+    plugin,
+    operation,
+    dryRun: Boolean(dryRun),
+    status: backend.ok ? `${backendName}_online` : "gateway_online",
+    service: "api-gateway",
+    checkedAt: nowIso(),
+    runtime: publicRuntimeStatus(),
+    [backendName]: backend,
+    note,
+    payloadKeys: payload && typeof payload === "object" ? Object.keys(payload) : [],
   };
 }
 
 async function builtInInfraAdapter({ operation, dryRun, payload }) {
   if (operation === "operator.status" || operation === "system.status" || operation === "ops.healthcheck") {
-    const mcp = await readMcpHealth();
+    const mcp = await readHealthFromEnv({
+      envNames: ["ADA_MCP_BASE_URL", "MCP_BASE_URL"],
+      timeoutEnvName: "ADA_MCP_TIMEOUT_MS",
+    });
     return {
       status: 200,
-      payload: {
-        ok: true,
+      payload: statusPayload({
         plugin: "infra",
         operation,
-        dryRun: Boolean(dryRun),
-        status: mcp.ok ? "mcp_online" : "gateway_online",
-        service: "api-gateway",
-        checkedAt: nowIso(),
-        runtime: publicRuntimeStatus(),
-        mcp,
-        note: "Safe infra adapter. When ADA_MCP_BASE_URL is configured, this checks the MCP /health endpoint. VPS, Docker, GitHub, Hostinger and deploy operations remain behind dedicated adapters.",
-      },
+        dryRun,
+        backendName: "mcp",
+        backend: mcp,
+        payload,
+        note: "Safe infra adapter. When ADA_MCP_BASE_URL is configured, this checks MCP /health. VPS, Docker, GitHub, Hostinger and deploy operations remain behind dedicated adapters.",
+      }),
     };
   }
 
+  return notImplemented("infra", operation, dryRun, payload, "infra_operation_adapter_not_implemented");
+}
+
+async function builtInJuriAdapter({ operation, dryRun, payload }) {
+  if (operation === "juri.health" || operation === "mitra.runtime.status") {
+    const peterleOps = await readHealthFromEnv({
+      envNames: ["ADA_PETERLE_OPS_BASE_URL", "PETERLE_OPS_BASE_URL", "ADA_JURI_BASE_URL"],
+      timeoutEnvName: "ADA_JURI_TIMEOUT_MS",
+    });
+    return {
+      status: 200,
+      payload: statusPayload({
+        plugin: "juri",
+        operation,
+        dryRun,
+        backendName: "peterleOps",
+        backend: peterleOps,
+        payload,
+        note: "Safe juri adapter. When ADA_PETERLE_OPS_BASE_URL is configured, this checks peterle-ops /health. Legal searches and document access remain behind dedicated adapters.",
+      }),
+    };
+  }
+
+  return notImplemented("juri", operation, dryRun, payload, "juri_operation_adapter_not_implemented");
+}
+
+async function builtInComunicacaoAdapter({ operation, dryRun, payload }) {
+  if (operation === "whatsapp.diagnostics" || operation === "communication.inbox") {
+    const comunicacao = await readHealthFromEnv({
+      envNames: ["ADA_COMUNICACAO_BASE_URL", "ADA_ZUNI_BASE_URL", "ZUNI_BASE_URL", "ADA_UNICO_BASE_URL"],
+      timeoutEnvName: "ADA_COMUNICACAO_TIMEOUT_MS",
+    });
+    return {
+      status: 200,
+      payload: statusPayload({
+        plugin: "comunicacao",
+        operation,
+        dryRun,
+        backendName: "comunicacao",
+        backend: comunicacao,
+        payload,
+        note: "Safe comunicacao adapter. When ADA_COMUNICACAO_BASE_URL or ADA_ZUNI_BASE_URL is configured, this checks the backend /health. Message send, approve and execute operations remain behind dedicated adapters and confirmation.",
+      }),
+    };
+  }
+
+  return notImplemented("comunicacao", operation, dryRun, payload, "comunicacao_operation_adapter_not_implemented");
+}
+
+function notImplemented(plugin, operation, dryRun, payload, error) {
   return {
     status: 501,
     payload: {
       ok: false,
-      error: "infra_operation_adapter_not_implemented",
-      plugin: "infra",
+      error,
+      plugin,
       operation,
       dryRun: Boolean(dryRun),
       acceptedByContract: true,
@@ -366,7 +355,9 @@ export async function routePluginCall({
 
   const adapter = adapters[pluginId]
     ?? (pluginId === "infra" ? builtInInfraAdapter : undefined)
-    ?? (pluginId === "juri" ? builtInJuriAdapter : undefined);
+    ?? (pluginId === "juri" ? builtInJuriAdapter : undefined)
+    ?? (pluginId === "comunicacao" ? builtInComunicacaoAdapter : undefined);
+
   if (typeof adapter === "function") {
     const result = await adapter({ operation, dryRun, payload, confirmation });
     return {
@@ -375,15 +366,5 @@ export async function routePluginCall({
     };
   }
 
-  return {
-    status: 501,
-    payload: {
-      ok: false,
-      error: "plugin_adapter_not_implemented",
-      plugin: pluginId,
-      operation,
-      dryRun: Boolean(dryRun),
-      acceptedByContract: true,
-    },
-  };
+  return notImplemented(pluginId, operation, dryRun, payload, "plugin_adapter_not_implemented");
 }
