@@ -6,15 +6,13 @@ ENV PYTHONUNBUFFERED=1
 RUN apt-get update \
  && apt-get install -y --no-install-recommends \
     ca-certificates \
+    ffmpeg \
+    fonts-dejavu-core \
     curl \
     procps \
-    coreutils \
-    net-tools \
-    iproute2 \
-    docker.io \
  && rm -rf /var/lib/apt/lists/*
 
-COPY requirements.txt .
+COPY requirems.txt .
 RUN pip install --no-cache-dir -r requirements.txt
 COPY app ./app
 CMD ["uvicorn", "app.entrypoint:app", "--host", "0.0.0.0", "--port", "8000"]
