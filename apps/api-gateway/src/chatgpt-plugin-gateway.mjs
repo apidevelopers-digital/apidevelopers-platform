@@ -95,13 +95,15 @@ function withLegacyPluginShape(response, { method = "GET" } = {}) {
     return response;
   }
 
-  if (
-    payload &&
-    typeof payload === "object" &&
-    typeof payload.plugin === "string" &&
-    !payload.plugin.startsWith("ada-")
-  ) {
-    payload.plugin = `ada-${payload.plugin}`;
+  if (payload && typeof payload === "object") {
+    const existingPlugin = typeof payload.plugin === "string" ? payload.plugin : null;
+    const inferredPlugin = existingPlugin ?? (typeof payload.id === "string" ? payload.id : null);
+
+    if (inferredPlugin && !String(inferredPlugin).startsWith("ada-")) {
+      payload.plugin = `ada-${inferredPlugin}`;
+    } else if (inferredPlugin) {
+      payload.plugin = inferredPlugin;
+    }
   }
 
   if (
