@@ -1,0 +1,55 @@
+name: MCP Brain CI
+
+on:
+  pull_request:
+    branches:
+      - main
+    paths:
+      - "apps/mcp-brain-v1/**"
+      - ".github/workflows/mcp-brain-ci.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  validate:
+    runs-on:
+      - self-hosted
+      - macOS
+      - X64
+    timeout-minutes: 10
+    defaults:
+      run:
+        working-directory: apps/mcp-brain-v1
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Prepare local Python cache
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p .ci-cache/pip .ci-cache/tmp
+          python3 --version
+          python3 -m pip --version
+
+      - name: Install dependencies
+        shell: bash
+        env:
+          PIP_CACHE_DIR: ${{ github.workspace }}/apps/mcp-brain-v1/.ci-cache/pip
+          TMPDIR: ${{ github.workspace }}/apps/mcp-brain-v1/.ci-cache/tmp
+        run: |
+          set -euo pipefail
+          python3 -m pip install --upgrade pip
+          python3 -m pip install -r requirements.txt pytest
+
+      - name: Run MCP Brain tests
+        shell: bash
+        env:
+          PYTHONPATH: ${{ github.workspace }}/apps/mcp-brain-v1
+          TMPDIR: ${{ github.workspace }}/apps/mcp-brain-v1/.ci-cache/tmp
+        run: |
+          set -euo pipefail
+          python3 -m pytest tests/test_juri_datajud_tools.py
