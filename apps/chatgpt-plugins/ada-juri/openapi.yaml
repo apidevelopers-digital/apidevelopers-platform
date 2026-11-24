@@ -1,10 +1,10 @@
 openapi: 3.1.0
 info:
   title: ADA Juri Plugin
-  version: 0.1.0-draft
-  description: Draft macroplugin facade for API Developers.digital existing backend.
+  version: 0.2.0-draft
+  description: Draft macroplugin facade for API Developers.digital legal, Peterle/Milena, Mitra and uni.juri backend operations.
 servers:
-  - url: https://api.apidevelopers.digital
+  - url: https://gateway.apidevelopers.digital
 security:
   - PluginKey: []
 paths:
@@ -33,7 +33,7 @@ paths:
               properties:
                 operation:
                   type: string
-                  enum: ["juri.health", "unijuri.case.search", "unijuri.petition.draft", "peterle.clients.resolve", "peterle.documents.search", "peterle.matters.evidence_pack", "peterle.djen.search", "peterle.legal.search", "milena.product.search", "mitra.runtime.status"]
+                  enum: ["juri.health", "unijuri.case.search", "unijuri.case.get", "unijuri.case.timeline", "unijuri.case.parties", "unijuri.case.deadlines", "unijuri.case.tasks", "unijuri.case.risks", "unijuri.case.strategy", "unijuri.case.summary", "unijuri.petition.draft", "unijuri.petition.review", "unijuri.petition.arguments", "unijuri.petition.attachments.checklist", "unijuri.motion.draft", "unijuri.appeal.draft", "unijuri.contract.review", "unijuri.contract.clauses.extract", "unijuri.contract.risks", "unijuri.power_of_attorney.draft", "unijuri.notice.draft", "peterle.clients.resolve", "peterle.clients.directory", "peterle.clients.profile", "peterle.clients.matters", "peterle.clients.documents", "peterle.documents.search", "peterle.documents.get_metadata", "peterle.documents.classify", "peterle.documents.extract_facts", "peterle.documents.timeline", "peterle.documents.compare", "peterle.documents.draft_response", "peterle.matters.search", "peterle.matters.status", "peterle.matters.reconciliation_audit", "peterle.matters.evidence_pack", "peterle.matters.evidence_index", "peterle.matters.fact_matrix", "peterle.matters.chronology", "peterle.djen.search", "peterle.djen.publication.detail", "peterle.djen.deadline.detect", "peterle.djen.client.match", "peterle.legal.search", "peterle.legal.jurisprudence.search", "peterle.legal.precedents.summarize", "peterle.legal.thesis.map", "peterle.legal.argument.generate", "milena.product.search", "milena.knowledge.search", "milena.template.search", "milena.client_context.resolve", "milena.document.draft", "mitra.runtime.status", "mitra.clients.context", "mitra.clients.registry", "mitra.db.schema", "mitra.db.clients.sample", "mitra.db.matters.audit", "mitra.db.read_model.status", "mitra.auth.bundle.status", "juri.dossier.create_draft", "juri.dossier.audit_checklist", "juri.evidence.search", "juri.evidence.extract", "juri.evidence.chain_of_custody", "juri.hearing.prep", "juri.hearing.questions", "juri.negotiation.brief", "juri.compliance.conflict_check", "juri.billing.scope_note"]
                 dry_run:
                   type: boolean
                   default: true
@@ -46,8 +46,12 @@ paths:
       responses:
         "200":
           description: Result
+        "400":
+          description: Invalid operation or malformed request
         "403":
           description: Confirmation required or action blocked
+        "501":
+          description: Operation accepted by contract but adapter not yet implemented
 components:
   securitySchemes:
     PluginKey:
