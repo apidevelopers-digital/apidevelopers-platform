@@ -68,7 +68,9 @@ const PLUGINS = Object.freeze({
   },
 });
 
-const WRITE_OPERATION_PATTERN = /(?:execute|approve|deploy|render|upload|generate_file|materialize|snapshot)$/u;
+// Matches sensitive verbs either as the final operation segment or as an intermediate segment.
+// Examples: action.execute, reels.render.from_package, media.asset.upload.
+const WRITE_OPERATION_PATTERN = /(?:^|\.)(execute|approve|deploy|render|upload|generate_file|materialize|snapshot)(?:\.|$)/u;
 
 function nowIso() {
   return new Date().toISOString();
