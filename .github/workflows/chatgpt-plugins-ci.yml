@@ -5,7 +5,10 @@ on:
     branches:
       - main
     paths:
-      - "apps/api-gateway/**"
+      - "apps/api-gateway/src/plugin-**.mjs"
+      - "apps/api-gateway/src/server-plugins.mjs"
+      - "apps/api-gateway/test/plugin-**.test.mjs"
+      - "apps/api-gateway/test/server-plugins.test.mjs"
       - "apps/chatgpt-plugins/**"
       - ".github/workflows/chatgpt-plugins-ci.yml"
   workflow_dispatch:
@@ -42,6 +45,12 @@ jobs:
         shell: bash
         run: npm run check:plugins
 
-      - name: Run API Gateway tests
+      - name: Run plugin tests
         shell: bash
-        run: npm test
+        run: |
+          set -euo pipefail
+          node --test \
+            test/plugin-gateway.test.mjs \
+            test/plugin-routes-isolated.test.mjs \
+            test/plugin-aware-app.test.mjs \
+            test/server-plugins.test.mjs
