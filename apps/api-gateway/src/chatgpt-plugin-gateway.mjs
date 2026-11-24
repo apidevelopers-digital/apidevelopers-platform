@@ -27,7 +27,9 @@ export const MACROPLUGINS = Object.freeze(
 );
 
 function parseJsonObject(body) {
-  if (body === undefined || body === null || String(body).trim() === "") return {};
+  if (body === undefined || body === null) return {};
+  if (typeof body === "object" && !Array.isArray(body) && !Buffer.isBuffer(body)) return body;
+  if (String(body).trim() === "") return {};
   try {
     const parsed = JSON.parse(String(body));
     return parsed && typeof parsed === "object" && !Array.isArray(parsed) ? parsed : {};
