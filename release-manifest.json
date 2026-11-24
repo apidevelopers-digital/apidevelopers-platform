@@ -3,7 +3,7 @@
   "format": "managed-node-zip",
   "service": "api-gateway",
   "version": "0.8.0",
-  "sourceRevision": "3d9dedd51329be1533103b40f4e0484126fbda70",
+  "sourceRevision": "c16a2b23e1929e0c6fb1fab46640613780004063",
   "runtime": {
     "node": ">=22",
     "entrypoint": "src/hostinger-entry.mjs",
@@ -166,6 +166,11 @@
       "path": "src/canonical-hash.mjs",
       "bytes": 880,
       "sha256": "ae6f8d6fed1dd677923e90a343fca63353adc9524b047e49c2eb6050b6a6f371"
+    },
+    {
+      "path": "src/chatgpt-plugin-gateway.mjs",
+      "bytes": 3847,
+      "sha256": "ddbde29f6d11f0a8d50bacbb80f185843b365f7e8236603d801d59a875a97563"
     },
     {
       "path": "src/durable-global-trust-audit.mjs",
@@ -794,8 +799,8 @@
     },
     {
       "path": "src/operational-http-transport.mjs",
-      "bytes": 7954,
-      "sha256": "a8fbac776c68be72fd0b8aa86a8b9688d454daf0ac4cace48c95b9e67e83e5a0"
+      "bytes": 8317,
+      "sha256": "ae5a5fef8a3b5a450e55ce06f267306287c0439471929fa409137933c7b0aff4"
     },
     {
       "path": "src/operational-http.mjs",
@@ -1093,6 +1098,21 @@
       "sha256": "3e8a83816ddd8d55b62c480d4fae3ab8ce8f99afae4d930dad60e9a0946e2574"
     },
     {
+      "path": "src/plugin-aware-app.mjs",
+      "bytes": 458,
+      "sha256": "29ba45895311a596a6c1408046dc98c1b1c16ed6659a5c22e1dfc093587fbd4b"
+    },
+    {
+      "path": "src/plugin-gateway.mjs",
+      "bytes": 10168,
+      "sha256": "eb32a65c71481a0b4275cb51dc750801c7eca03c19765236604a492fd131aa2c"
+    },
+    {
+      "path": "src/plugin-routes.mjs",
+      "bytes": 2414,
+      "sha256": "725f8b9303a4269ea03a26417b99444a3508cd303a72297eda8eb27acbb1f9ac"
+    },
+    {
       "path": "src/product-agent-policy.mjs",
       "bytes": 689,
       "sha256": "10e177e4afa69e3bf1d150ebf50078e918ae1b67828d52eaa2bcaf062ab42fc7"
@@ -1338,9 +1358,14 @@
       "sha256": "bcbe6d1a2d912fb99fc99100b3d220a81dfdc792886a732812a03de6c5e4fd90"
     },
     {
+      "path": "src/server-plugins.mjs",
+      "bytes": 1061,
+      "sha256": "5c293535885572ed5977ac7cf022ab71e6dccbc6133bfce53441a8293912da98"
+    },
+    {
       "path": "src/server-with-instagram-bridge.mjs",
-      "bytes": 3207,
-      "sha256": "692b5d3403086ace3cbecad9b931fd0376c340c4a63f64d9ad634a90090e7bcd"
+      "bytes": 3918,
+      "sha256": "29849c7f86367783c20cd1201f47dc212514c9c81512618084e03ac51654b21a"
     },
     {
       "path": "src/server.mjs",

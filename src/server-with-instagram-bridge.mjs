@@ -9,6 +9,7 @@ import {
   createInstagramSchedulerBackendBridge,
   toBridgeJsonResponse,
 } from "./instagram-scheduler-backend-bridge.mjs";
+import { createChatgptPluginGatewayBridge } from "./chatgpt-plugin-gateway.mjs";
 
 const JSON_HEADERS = Object.freeze({
   "content-type": "application/json; charset=utf-8",
@@ -25,6 +26,7 @@ function jsonResult({ status, payload }) {
 export function createInstagramSchedulerBridgeApp({
   baseApp = createBaseApp(),
   instagramSchedulerBridge = createInstagramSchedulerBackendBridge(),
+  chatgptPluginGatewayBridge = createChatgptPluginGatewayBridge(),
 } = {}) {
   if (!baseApp || typeof baseApp.handleRequest !== "function") {
     throw new TypeError("baseApp.handleRequest must be a function");
@@ -35,6 +37,12 @@ export function createInstagramSchedulerBridgeApp({
   ) {
     throw new TypeError("instagramSchedulerBridge.handleRequest must be a function");
   }
+  if (
+    chatgptPluginGatewayBridge !== undefined &&
+    typeof chatgptPluginGatewayBridge?.handleRequest !== "function"
+  ) {
+    throw new TypeError("chatgptPluginGatewayBridge.handleRequest must be a function");
+  }
 
   return Object.freeze({
     async handleRequest({
@@ -44,6 +52,19 @@ export function createInstagramSchedulerBridgeApp({
       body,
     } = {}) {
       const pathname = new URL(String(url), "http://api-gateway.local").pathname;
+
+      if (
+        chatgptPluginGatewayBridge &&
+        pathname.startsWith("/v1/plugins/")
+      ) {
+        const result = await chatgptPluginGatewayBridge.handleRequest({
+          method,
+          pathname,
+          headers,
+          body,
+        });
+        if (result) return result;
+      }
 
       if (
         instagramSchedulerBridge &&
@@ -102,6 +123,7 @@ async function main() {
     host: address.address,
     port: address.port,
     instagramSchedulerBridge: true,
+    chatgptPluginGatewayBridge: true,
   }));
 
   const shutdown = (signal) => {
