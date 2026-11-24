@@ -1,7 +1,16 @@
 import { listPluginDefinitions } from "./plugin-gateway.mjs";
 import { tryHandlePluginRoute } from "./plugin-routes.mjs";
 
-const WRITE_OPERATION_PATTERN = /(?:^|\.)(execute|approve|deploy|render|upload|generate_file|materialize|snapshot)(?:\.|$)/u;
+const WRITE_OPERATION_SEGMENTS = new Set([
+  "execute",
+  "approve",
+  "deploy",
+  "render",
+  "upload",
+  "generate_file",
+  "materialize",
+  "snapshot",
+]);
 
 export const MACROPLUGINS = Object.freeze(
   Object.fromEntries(
@@ -35,21 +44,36 @@ function jsonResponse(status, payload) {
   };
 }
 
+function isPluginCallPath(pathname) {
+  const parts = String(pathname ?? "").split("/").filter(Boolean);
+  return parts.length === 4 && parts[0] === "v1" && parts[1] === "plugins" && parts[3] === "call";
+}
+
+function pluginIdFromPath(pathname) {
+  const parts = String(pathname ?? "").split("/").filter(Boolean);
+  return parts[2] ?? "unknown";
+}
+
+function isWriteLikeOperation(operation) {
+  return String(operation ?? "")
+    .split(".")
+    .some((segment) => WRITE_OPERATION_SEGMENTS.has(segment));
+}
+
 function denyUnconfirmedWriteLikeCall({ method, pathname, body }) {
-  if (String(method).toUpperCase() !== "POST") return null;
-  if (!/^\/v1\/plugins\/[^/]+\/call$/u.test(String(pathname)) return null;
+  if (String(method ?? "GET").toUpperCase() !== "POST") return null;
+  if (!isPluginCallPath(pathname)) return null;
 
   const request = parseJsonObject(body);
   const dryRun = request.dry_run ?? request.dryRun ?? true;
   const operation = typeof request.operation === "string" ? request.operation : "";
   const confirmation = String(request.confirmation ?? "").trim();
 
-  if (dryRun === false && WRITE_OPERATION_PATTERN.test(operation) && !confirmation) {
-    const plugin = String(pathname).split("/")[3] ?? "unknown";
+  if (dryRun === false && isWriteLikeOperation(operation) && !confirmation) {
     return jsonResponse(403, {
       ok: false,
       error: "confirmation_required",
-      plugin,
+      plugin: pluginIdFromPath(pathname),
       operation,
     });
   }
@@ -69,7 +93,12 @@ function withLegacyPluginShape(response, { method = "GET" } = {}) {
     return response;
   }
 
-  if (payload && typeof payload === "object" && typeof payload.plugin === "string" && !payload.plugin.startsWith("ada-")) {
+  if (
+    payload &&
+    typeof payload === "object" &&
+    typeof payload.plugin === "string" &&
+    !payload.plugin.startsWith("ada-")
+  ) {
     payload.plugin = `ada-${payload.plugin}`;
   }
 
