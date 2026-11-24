@@ -1,6 +1,8 @@
 import http from "node:http";
+
 import { maybeHandleGatewayPublicLanding } from "./node-public-landing.mjs";
 import { createOperatorSecretHandoffNodeHandler } from "./operator-secret-handoff-node-http.mjs";
+import { tryHandlePluginRoute } from "./plugin-routes.mjs";
 
 const DEFAULT_MAX_BODY_BYTES = 64 * 1024;
 const WEB_AGENT_CONVERSATION_PATH = "/v1/web-agent/conversations";
@@ -9,6 +11,7 @@ const JSON_HEADERS = Object.freeze({
   "cache-control": "no-store",
   "x-content-type-options": "nosniff",
 });
+
 class OperationalTransportError extends Error {
   constructor(code, status) {
     super(code);
@@ -19,11 +22,7 @@ class OperationalTransportError extends Error {
 }
 
 function validateMaxBodyBytes(value) {
-  if (
-    !Number.isSafeInteger(value) ||
-    value < 1024 ||
-    value > 1024 * 1024
-  ) {
+  if (!Number.isSafeInteger(value) || value < 1024 || value > 1024 * 1024) {
     throw new TypeError(
       "maxBodyBytes must be an integer between 1024 and 1048576",
     );
@@ -77,10 +76,10 @@ async function readRequestBody(request, maxBodyBytes) {
     return materializeRequestBodyValue(request.body, maxBodyBytes);
   }
 
-  const chunks = [];
-  let size = 0;
-
   if (typeof request?.[Symbol.asyncIterator] === "function") {
+    const chunks = [];
+    let size = 0;
+
     for await (const chunk of request) {
       const buffer = Buffer.isBuffer(chunk) ? chunk : Buffer.from(chunk);
       size += buffer.length;
@@ -114,6 +113,7 @@ function requestPath(url) {
     return "/";
   }
 }
+
 function publicErrorCode(body) {
   if (typeof body !== "string" || !body) return null;
   try {
@@ -132,7 +132,6 @@ function writeConversationTelemetry(logger, payload) {
   })));
 }
 
-
 function writeUnhandledTransportExceptionTelemetry(logger, { method, path, error }) {
   const writer =
     typeof logger?.error === "function"
@@ -150,6 +149,11 @@ function writeUnhandledTransportExceptionTelemetry(logger, { method, path, error
       message: typeof error?.message === "string" ? error.message : String(error),
     }),
   })));
+}
+
+function writeResult(response, result) {
+  response.writeHead(result.status, result.headers);
+  response.end(result.body);
 }
 
 export function createOperationalHttpServer({
@@ -182,6 +186,18 @@ export function createOperationalHttpServer({
       }
 
       const body = await readRequestBody(request, bodyLimit);
+      const method = String(request.method ?? "GET").toUpperCase();
+
+      const pluginResult = await tryHandlePluginRoute({
+        method,
+        url: request.url,
+        body,
+      });
+      if (pluginResult) {
+        writeResult(response, pluginResult);
+        return;
+      }
+
       const result = await app.handleRequest({
         method: request.method,
         url: request.url,
@@ -192,7 +208,7 @@ export function createOperationalHttpServer({
       if (isConversation) {
         writeConversationTelemetry(logger, {
           stage: "app_response",
-          method: String(request.method ?? "GET").toUpperCase(),
+          method,
           path,
           status: result.status,
           bodyBytes: Buffer.byteLength(String(result.body ?? ""), "utf8"),
@@ -204,8 +220,7 @@ export function createOperationalHttpServer({
         });
       }
 
-      response.writeHead(result.status, result.headers);
-      response.end(result.body);
+      writeResult(response, result);
     } catch (error) {
       if (error instanceof OperationalTransportError) {
         if (isConversation) {

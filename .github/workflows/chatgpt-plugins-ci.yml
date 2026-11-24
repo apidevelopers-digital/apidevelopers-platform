@@ -1,0 +1,56 @@
+name: ChatGPT Plugins CI
+
+on:
+  pull_request:
+    branches:
+      - main
+    paths:
+      - "apps/api-gateway/src/plugin-**.mjs"
+      - "apps/api-gateway/src/server-plugins.mjs"
+      - "apps/api-gateway/test/plugin-**.test.mjs"
+      - "apps/api-gateway/test/server-plugins.test.mjs"
+      - "apps/chatgpt-plugins/**"
+      - ".github/workflows/chatgpt-plugins-ci.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  validate:
+    runs-on:
+      group: organization-macos-ci
+      labels: [self-hosted, macOS, X64]
+    timeout-minutes: 10
+    defaults:
+      run:
+        working-directory: apps/api-gateway
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+
+      - name: Link local dependencies
+        shell: bash
+        run: |
+          set -euo pipefail
+          node scripts/link-local-dependencies.mjs
+
+      - name: Check plugin files
+        shell: bash
+        run: npm run check:plugins
+
+      - name: Run plugin tests
+        shell: bash
+        run: |
+          set -euo pipefail
+          node --test \
+            test/plugin-gateway.test.mjs \
+            test/plugin-routes-isolated.test.mjs \
+            test/plugin-aware-app.test.mjs \
+            test/server-plugins.test.mjs

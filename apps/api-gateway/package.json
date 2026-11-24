@@ -15,7 +15,9 @@
     "release:bundle": "node scripts/build-release-bundle.mjs",
     "release:verify": "node scripts/verify-release-bundle.mjs",
     "release:managed:build": "node scripts/build-managed-hosting-artifact-with-lex.mjs",
-    "release:managed:verify": "node scripts/verify-managed-hosting-artifact.mjs"
+    "release:managed:verify": "node scripts/verify-managed-hosting-artifact.mjs",
+    "start:plugins": "node src/server-plugins.mjs",
+    "check:plugins": "node --check src/plugin-gateway.mjs && node --check src/plugin-routes.mjs && node --check src/plugin-aware-app.mjs && node --check src/server-plugins.mjs"
   },
   "dependencies": {
     "@apidevelopers/auth-core": "0.2.0",
