@@ -1,9 +1,9 @@
-const PLUGIN_DEFINITIONS = Object.freeze({
-  infra: Object.freeze({
+const PLUGINS = Object.freeze({
+  infra: {
     title: "ADA Infra",
     risk: "high",
     defaultMode: "read-only/dry-run",
-    operations: Object.freeze([
+    operations: [
       "operator.status",
       "system.status",
       "docker.ps",
@@ -14,46 +14,13 @@ const PLUGIN_DEFINITIONS = Object.freeze({
       "github.read",
       "hostinger.read",
       "deploy.dry_run",
-    ]),
-  }),
-  media: Object.freeze({
-    title: "ADA Media",
-    risk: "medium/high",
-    defaultMode: "package/draft/dry-run",
-    operations: Object.freeze([
-      "elevenlabs.tts.runtime",
-      "elevenlabs.tts.voices",
-      "elevenlabs.tts.generate_file",
-      "reels.package.status",
-      "reels.package.materialize",
-      "reels.render.from_package",
-      "media.asset.upload",
-      "vnnox.status",
-      "instagram.draft",
-    ]),
-  }),
-  comunicacao: Object.freeze({
-    title: "ADA Comunicação",
-    risk: "high",
-    defaultMode: "draft/dry-run",
-    operations: Object.freeze([
-      "communication.inbox",
-      "communication.thread",
-      "whatsapp.diagnostics",
-      "whatsapp.templates",
-      "whatsapp.draft",
-      "whatsapp.handoff",
-      "email.search",
-      "email.draft",
-      "action.approve",
-      "action.execute",
-    ]),
-  }),
-  juri: Object.freeze({
+    ],
+  },
+  juri: {
     title: "ADA Júri",
     risk: "high/legal",
     defaultMode: "read-only/draft/dry-run",
-    operations: Object.freeze([
+    operations: [
       "juri.health",
       "unijuri.case.search",
       "unijuri.petition.draft",
@@ -64,11 +31,44 @@ const PLUGIN_DEFINITIONS = Object.freeze({
       "peterle.legal.search",
       "milena.product.search",
       "mitra.runtime.status",
-    ]),
-  }),
+    ],
+  },
+  comunicacao: {
+    title: "ADA Comunicação",
+    risk: "high",
+    defaultMode: "draft/dry-run",
+    operations: [
+      "communication.inbox",
+      "communication.thread",
+      "whatsapp.diagnostics",
+      "whatsapp.templates",
+      "whatsapp.draft",
+      "whatsapp.handoff",
+      "email.search",
+      "email.draft",
+      "action.approve",
+      "action.execute",
+    ],
+  },
+  media: {
+    title: "ADA Media",
+    risk: "medium/high",
+    defaultMode: "package/draft/dry-run",
+    operations: [
+      "elevenlabs.tts.runtime",
+      "elevenlabs.tts.voices",
+      "elevenlabs.tts.generate_file",
+      "reels.package.status",
+      "reels.package.materialize",
+      "reels.render.from_package",
+      "media.asset.upload",
+      "vnnox.status",
+      "instagram.draft",
+    ],
+  },
 });
 
-const WRITE_OR_REAL_OPERATION_PATTERN = /(?:execute|approve|deploy|render|upload|generate_file|materialize|snapshot)$/u;
+const WRITE_OPERATION_PATTERN = /(?:execute|approve|deploy|render|upload|generate_file|materialize|snapshot)$/u;
 
 function nowIso() {
   return new Date().toISOString();
@@ -88,6 +88,16 @@ function publicRuntimeStatus() {
   };
 }
 
+function cloneDefinition(pluginId, definition) {
+  return {
+    id: pluginId,
+    title: definition.title,
+    risk: definition.risk,
+    defaultMode: definition.defaultMode,
+    operations: [...definition.operations],
+  };
+}
+
 function normalizedBaseUrl(raw) {
   const value = String(raw ?? "").trim();
   if (!value) return null;
@@ -100,41 +110,42 @@ function normalizedBaseUrl(raw) {
   }
 }
 
-async function fetchJsonWithTimeout(url, { method = "GET", headers = {}, body, timeoutMs = 5000 } = {}) {
+async function fetchJsonWithTimeout(url, { timeoutMs = 5000 } = {}) {
   const controller = new AbortController();
   const timer = setTimeout(() => controller.abort(), timeoutMs);
+
   try {
-    const response = await fetch(url, {
-      method,
-      headers,
-      body,
-      signal: controller.signal,
-    });
+    const response = await fetch(url, { signal: controller.signal });
     const text = await response.text();
     let payload = null;
+
     try {
       payload = text ? JSON.parse(text) : null;
     } catch {
       payload = { raw: text.slice(0, 4096) };
     }
-    return { ok: response.ok, status: response.status, payload };
+
+    return { ok: response.ok, statusCode: response.status, payload };
   } finally {
     clearTimeout(timer);
   }
 }
 
-async function readHealthFromEnv({ envNames, timeoutEnvName, defaultTimeoutMs = 5000 }) {
-  const raw = envNames.map((name) => process.env[name]).find((value) => String(value ?? "").trim();
+async function readHealthFromEnv(envNames, timeoutEnvName) {
+  const raw = envNames
+    .map((name) => process.env[name])
+    .find((value) => String(value ?? "").trim();
   const baseUrl = normalizedBaseUrl(raw);
+
   if (!baseUrl) {
     return { configured: false, ok: false, status: "not_configured" };
   }
 
   try {
     const result = await fetchJsonWithTimeout(`${baseUrl}/health`, {
-      timeoutMs: Number(process.env[timeoutEnvName] ?? defaultTimeoutMs),
+      timeoutMs: Number(process.env[timeoutEnvName] ?? 5000),
     });
-    return { configured: true, ok: result.ok, statusCode: result.status, payload: result.payload };
+    return { configured: true, ...result };
   } catch (error) {
     return {
       configured: true,
@@ -160,98 +171,6 @@ function statusPayload({ plugin, operation, dryRun, backendName, backend, note, 
   };
 }
 
-async function builtInInfraAdapter({ operation, dryRun, payload }) {
-  if (operation === "operator.status" || operation === "system.status" || operation === "ops.healthcheck") {
-    const mcp = await readHealthFromEnv({
-      envNames: ["ADA_MCP_BASE_URL", "MCP_BASE_URL"],
-      timeoutEnvName: "ADA_MCP_TIMEOUT_MS",
-    });
-    return {
-      status: 200,
-      payload: statusPayload({
-        plugin: "infra",
-        operation,
-        dryRun,
-        backendName: "mcp",
-        backend: mcp,
-        payload,
-        note: "Safe infra adapter. When ADA_MCP_BASE_URL is configured, this checks MCP /health. VPS, Docker, GitHub, Hostinger and deploy operations remain behind dedicated adapters.",
-      }),
-    };
-  }
-
-  return notImplemented("infra", operation, dryRun, payload, "infra_operation_adapter_not_implemented");
-}
-
-async function builtInJuriAdapter({ operation, dryRun, payload }) {
-  if (operation === "juri.health" || operation === "mitra.runtime.status") {
-    const peterleOps = await readHealthFromEnv({
-      envNames: ["ADA_PETERLE_OPS_BASE_URL", "PETERLE_OPS_BASE_URL", "ADA_JURI_BASE_URL"],
-      timeoutEnvName: "ADA_JURI_TIMEOUT_MS",
-    });
-    return {
-      status: 200,
-      payload: statusPayload({
-        plugin: "juri",
-        operation,
-        dryRun,
-        backendName: "peterleOps",
-        backend: peterleOps,
-        payload,
-        note: "Safe juri adapter. When ADA_PETERLE_OPS_BASE_URL is configured, this checks peterle-ops /health. Legal searches and document access remain behind dedicated adapters.",
-      }),
-    };
-  }
-
-  return notImplemented("juri", operation, dryRun, payload, "juri_operation_adapter_not_implemented");
-}
-
-async function builtInComunicacaoAdapter({ operation, dryRun, payload }) {
-  if (operation === "whatsapp.diagnostics" || operation === "communication.inbox") {
-    const comunicacao = await readHealthFromEnv({
-      envNames: ["ADA_COMUNICACAO_BASE_URL", "ADA_ZUNI_BASE_URL", "ZUNI_BASE_URL", "ADA_UNICO_BASE_URL"],
-      timeoutEnvName: "ADA_COMUNICACAO_TIMEOUT_MS",
-    });
-    return {
-      status: 200,
-      payload: statusPayload({
-        plugin: "comunicacao",
-        operation,
-        dryRun,
-        backendName: "comunicacao",
-        backend: comunicacao,
-        payload,
-        note: "Safe comunicacao adapter. When ADA_COMUNICACAO_BASE_URL or ADA_ZUNI_BASE_URL is configured, this checks the backend /health. Message send, approve and execute operations remain behind dedicated adapters and confirmation.",
-      }),
-    };
-  }
-
-  return notImplemented("comunicacao", operation, dryRun, payload, "comunicacao_operation_adapter_not_implemented");
-}
-
-async function builtInMediaAdapter({ operation, dryRun, payload }) {
-  if (operation === "elevenlabs.tts.runtime" || operation === "reels.package.status" || operation === "vnnox.status") {
-    const media = await readHealthFromEnv {
-      envNames: ["ADA_MEDIA_BASE_URL", "ADA_REELS_BASE_URL", "REELS_BASE_URL", "ADA_MCP_BASE_URL", "MCP_BASE_URL"],
-      timeoutEnvName: "ADA_MEDIA_TIMEOUT_MS",
-    });
-    return {
-      status: 200,
-      payload: statusPayload({
-        plugin: "media",
-        operation,
-        dryRun,
-        backendName: "media",
-        backend: media,
-        payload,
-        note: "Safe media adapter. When ADA_MEDIA_BASE_URL, ADA_REELS_BASE_URL or ADA_MCP_BASE_URL is configured, this checks backend /health. Render, upload, materialize, VNNOX publish and Instagram actions remain behind dedicated adapters and confirmation.",
-      }),
-    };
-  }
-
-  return notImplemented("media", operation, dryRun, payload, "media_operation_adapter_not_implemented");
-}
-
 function notImplemented(plugin, operation, dryRun, payload, error) {
   return {
     status: 501,
@@ -269,34 +188,26 @@ function notImplemented(plugin, operation, dryRun, payload, error) {
 }
 
 export function listPluginDefinitions() {
-  return Object.entries(PLUGIN_DEFINITIONS).map(([id, definition]) => ({
-    id,
-    title: definition.title,
-    risk: definition.risk,
-    defaultMode: definition.defaultMode,
-    operations: [...definition.operations],
-  }));
+  return Object.entries(PLUGINS).map(([id, definition]) => cloneDefinition(id, definition));
 }
 
 export function getPluginDefinition(pluginId) {
-  return PLUGIN_DEFINITIONS[pluginId] ?? null;
+  const definition = PLUGINS[pluginId];
+  return definition ? cloneDefinition(pluginId, definition) : null;
 }
 
 export function validatePluginCall({ pluginId, operation, dryRun = true, confirmation = "" } = {}) {
-  const definition = getPluginDefinition(pluginId);
-  if (!definition) {
-    return { ok: false, status: 404, error: "plugin_not_found" };
-  }
+  const definition = PLUGINS[pluginId];
 
+  if (!definition) return { ok: false, status: 404, error: "plugin_not_found" };
   if (!operation || typeof operation !== "string") {
     return { ok: false, status: 400, error: "operation_required" };
   }
-
   if (!definition.operations.includes(operation)) {
     return { ok: false, status: 400, error: "operation_not_allowed_for_plugin" };
   }
 
-  const needsConfirmation = WRITE_OR_REAL_OPERATION_PATTERN.test(operation) && dryRun === false;
+  const needsConfirmation = WRITE_OPERATION_PATTERN.test(operation) && dryRun === false;
   if (needsConfirmation && typeof confirmation !== "string") {
     return { ok: false, status: 403, error: "confirmation_required" };
   }
@@ -304,25 +215,12 @@ export function validatePluginCall({ pluginId, operation, dryRun = true, confirm
     return { ok: false, status: 403, error: "confirmation_required" };
   }
 
-  return {
-    ok: true,
-    status: 200,
-    plugin: {
-      id: pluginId,
-      title: definition.title,
-      risk: definition.risk,
-      defaultMode: definition.defaultMode,
-    },
-    operation,
-    dryRun: Boolean(dryRun),
-  };
+  return { ok: true, status: 200, plugin: cloneDefinition(pluginId, definition), operation, dryRun: Boolean(dryRun) };
 }
 
 export function pluginHealth(pluginId) {
-  const definition = getPluginDefinition(pluginId);
-  if (!definition) {
-    return { status: 404, payload: { ok: false, error: "plugin_not_found" } };
-  }
+  const definition = PLUGINS[pluginId];
+  if (!definition) return { status: 404, payload: { ok: false, error: "plugin_not_found" } };
 
   return {
     status: 200,
@@ -337,58 +235,73 @@ export function pluginHealth(pluginId) {
 }
 
 export function pluginCapabilities(pluginId) {
-  const definition = getPluginDefinition(pluginId);
-  if (!definition) {
-    return { status: 404, payload: { ok: false, error: "plugin_not_found" } };
-  }
+  const definition = PLUGINS[pluginId];
+  if (!definition) return { status: 404, payload: { ok: false, error: "plugin_not_found" } };
 
   return {
     status: 200,
     payload: {
       ok: true,
-      plugin: pluginId,
-      title: definition.title,
-      risk: definition.risk,
-      defaultMode: definition.defaultMode,
-      operations: [...definition.operations],
+      ...cloneDefinition(pluginId, definition),
     },
   };
 }
 
-export async function routePluginCall({
-  pluginId,
-  operation,
-  dryRun = true,
-  payload = {},
-  confirmation = "",
-  adapters = {},
-} = {}) {
+async function builtInInfraAdapter({ operation, dryRun, payload }) {
+  if (["operator.status", "system.status", "ops.healthcheck"].includes(operation)) {
+    const mcp = await readHealthFromEnv(["ADA_MCP_BASE_URL", "MCP_BASE_URL"], "ADA_MCP_TIMEOUT_MS");
+    return { status: 200, payload: statusPayload({ plugin: "infra", operation, dryRun, backendName: "mcp", backend: mcp, payload, note: "Safe infra adapter." }) };
+  }
+
+  return notImplemented("infra", operation, dryRun, payload, "infra_operation_adapter_not_implemented");
+}
+
+async function builtInJuriAdapter({ operation, dryRun, payload }) {
+  if (["juri.health", "mitra.runtime.status"].includes(operation)) {
+    const peterleOps = await readHealthFromEnv(["ADA_PETERLE_OPS_BASE_URL", "PETERLE_OPS_BASE_URL", "ADA_JURI_BASE_URL"], "ADA_JURI_TIMEOUT_MS");
+    return { status: 200, payload: statusPayload({ plugin: "juri", operation, dryRun, backendName: "peterleOps", backend: peterleOps, payload, note: "Safe juri adapter." }) };
+  }
+
+  return notImplemented("juri", operation, dryRun, payload, "juri_operation_adapter_not_implemented");
+}
+
+async function builtInComunicacaoAdapter({ operation, dryRun, payload }) {
+  if (["whatsapp.diagnostics", "communication.inbox"].includes(operation)) {
+    const comunicacao = await readHealthFromEnv(["ADA_COMUNICACAO_BASE_URL", "ADA_ZUNI_BASE_URL", "ZUNI_BASE_URL", "ADA_UNICO_BASE_URL"], "ADA_COMUNICACAO_TIMEOUT_MS");
+    return { status: 200, payload: statusPayload({ plugin: "comunicacao", operation, dryRun, backendName: "comunicacao", backend: comunicacao, payload, note: "Safe comunicacao adapter." }) };
+  }
+
+  return notImplemented("comunicacao", operation, dryRun, payload, "comunicacao_operation_adapter_not_implemented");
+}
+
+async function builtInMediaAdapter({ operation, dryRun, payload }) {
+  if (["elevenlabs.tts.runtime", "reels.package.status", "vnnox.status"].includes(operation)) {
+    const media = await readHealthFromEnv(["ADA_MEDIA_BASE_URL", "ADA_REELS_BASE_URL", "REELS_BASE_URL", "ADA_MCP_BASE_URL", "MCP_BASE_URL"], "ADA_MEDIA_TIMEOUT_MS");
+    return { status: 200, payload: statusPayload({ plugin: "media", operation, dryRun, backendName: "media", backend: media, payload, note: "Safe media adapter." }) };
+  }
+
+  return notImplemented("media", operation, dryRun, payload, "media_operation_adapter_not_implemented");
+}
+
+export async function routePluginCall({ pluginId, operation, dryRun = true, payload = {}, confirmation = "", adapters = {} } = {}) {
   const validation = validatePluginCall({ pluginId, operation, dryRun, confirmation });
+
   if (!validation.ok) {
-    return {
-      status: validation.status,
-      payload: {
-        ok: false,
-        error: validation.error,
-        plugin: pluginId,
-        operation,
-      },
-    };
+    return { status: validation.status, payload: { ok: false, error: validation.error, plugin: pluginId, operation } };
   }
 
-  const adapter = adapters[pluginId]
-    ?? (pluginId === "infra" ? builtInInfraAdapter : undefined)
-    ?? (pluginId === "juri" ? builtInJuriAdapter : undefined)
-    ?? (pluginId === "comunicacao" ? builtInComunicacaoAdapter : undefined)
-    ?? (pluginId === "media" ? builtInMediaAdapter : undefined);
+  const builtInAdapters = {
+    infra: builtInInfraAdapter,
+    juri: builtInJuriAdapter,
+    comunicacao: builtInComunicacaoAdapter,
+    media: builtInMediaAdapter,
+  };
 
-  if (typeof adapter === "function") {
-    const result = await adapter({ operation, dryRun, payload, confirmation });
-    return {
-      status: result?.status ?? 200,
-      payload: result?.payload ?? result ?? { ok: true },
-    };
+  const adapter = adapters[pluginId] ?? builtInAdapters[pluginId];
+  if (typeof adapter !== "function") {
+    return notImplemented(pluginId, operation, dryRun, payload, "plugin_adapter_not_implemented");
   }
 
-  return notImplemented(pluginId, operation, dryRun, payload, "plugin_adapter_not_implemented");
+  const result = await adapter({ operation, dryRun, payload, confirmation });
+  return { status: result?.status ?? 200, payload: result?.payload ?? result ?? { ok: true } };
 }
