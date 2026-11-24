@@ -52,6 +52,7 @@ jobs:
           node --test \
             test/plugin-gateway.test.mjs \
             test/plugin-juri-expanded-catalog.test.mjs \
+            test/plugin-juri-datajud-tools.test.mjs \
             test/plugin-routes-isolated.test.mjs \
             test/plugin-aware-app.test.mjs \
             test/server-plugins.test.mjs
