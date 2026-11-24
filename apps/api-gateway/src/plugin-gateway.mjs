@@ -134,7 +134,7 @@ async function fetchJsonWithTimeout(url, { timeoutMs = 5000 } = {}) {
 async function readHealthFromEnv(envNames, timeoutEnvName) {
   const raw = envNames
     .map((name) => process.env[name])
-    .find((value) => String(value ?? "").trim();
+    .find((value) => String(value ?? "").trim());
   const baseUrl = normalizedBaseUrl(raw);
 
   if (!baseUrl) {
@@ -215,7 +215,13 @@ export function validatePluginCall({ pluginId, operation, dryRun = true, confirm
     return { ok: false, status: 403, error: "confirmation_required" };
   }
 
-  return { ok: true, status: 200, plugin: cloneDefinition(pluginId, definition), operation, dryRun: Boolean(dryRun) };
+  return {
+    ok: true,
+    status: 200,
+    plugin: cloneDefinition(pluginId, definition),
+    operation,
+    dryRun: Boolean(dryRun),
+  };
 }
 
 export function pluginHealth(pluginId) {
@@ -250,7 +256,10 @@ export function pluginCapabilities(pluginId) {
 async function builtInInfraAdapter({ operation, dryRun, payload }) {
   if (["operator.status", "system.status", "ops.healthcheck"].includes(operation)) {
     const mcp = await readHealthFromEnv(["ADA_MCP_BASE_URL", "MCP_BASE_URL"], "ADA_MCP_TIMEOUT_MS");
-    return { status: 200, payload: statusPayload({ plugin: "infra", operation, dryRun, backendName: "mcp", backend: mcp, payload, note: "Safe infra adapter." }) };
+    return {
+      status: 200,
+      payload: statusPayload({ plugin: "infra", operation, dryRun, backendName: "mcp", backend: mcp, payload, note: "Safe infra adapter." }),
+    };
   }
 
   return notImplemented("infra", operation, dryRun, payload, "infra_operation_adapter_not_implemented");
@@ -259,7 +268,10 @@ async function builtInInfraAdapter({ operation, dryRun, payload }) {
 async function builtInJuriAdapter({ operation, dryRun, payload }) {
   if (["juri.health", "mitra.runtime.status"].includes(operation)) {
     const peterleOps = await readHealthFromEnv(["ADA_PETERLE_OPS_BASE_URL", "PETERLE_OPS_BASE_URL", "ADA_JURI_BASE_URL"], "ADA_JURI_TIMEOUT_MS");
-    return { status: 200, payload: statusPayload({ plugin: "juri", operation, dryRun, backendName: "peterleOps", backend: peterleOps, payload, note: "Safe juri adapter." }) };
+    return {
+      status: 200,
+      payload: statusPayload({ plugin: "juri", operation, dryRun, backendName: "peterleOps", backend: peterleOps, payload, note: "Safe juri adapter." }),
+    };
   }
 
   return notImplemented("juri", operation, dryRun, payload, "juri_operation_adapter_not_implemented");
@@ -268,7 +280,10 @@ async function builtInJuriAdapter({ operation, dryRun, payload }) {
 async function builtInComunicacaoAdapter({ operation, dryRun, payload }) {
   if (["whatsapp.diagnostics", "communication.inbox"].includes(operation)) {
     const comunicacao = await readHealthFromEnv(["ADA_COMUNICACAO_BASE_URL", "ADA_ZUNI_BASE_URL", "ZUNI_BASE_URL", "ADA_UNICO_BASE_URL"], "ADA_COMUNICACAO_TIMEOUT_MS");
-    return { status: 200, payload: statusPayload({ plugin: "comunicacao", operation, dryRun, backendName: "comunicacao", backend: comunicacao, payload, note: "Safe comunicacao adapter." }) };
+    return {
+      status: 200,
+      payload: statusPayload({ plugin: "comunicacao", operation, dryRun, backendName: "comunicacao", backend: comunicacao, payload, note: "Safe comunicacao adapter." }),
+    };
   }
 
   return notImplemented("comunicacao", operation, dryRun, payload, "comunicacao_operation_adapter_not_implemented");
@@ -277,7 +292,10 @@ async function builtInComunicacaoAdapter({ operation, dryRun, payload }) {
 async function builtInMediaAdapter({ operation, dryRun, payload }) {
   if (["elevenlabs.tts.runtime", "reels.package.status", "vnnox.status"].includes(operation)) {
     const media = await readHealthFromEnv(["ADA_MEDIA_BASE_URL", "ADA_REELS_BASE_URL", "REELS_BASE_URL", "ADA_MCP_BASE_URL", "MCP_BASE_URL"], "ADA_MEDIA_TIMEOUT_MS");
-    return { status: 200, payload: statusPayload({ plugin: "media", operation, dryRun, backendName: "media", backend: media, payload, note: "Safe media adapter." }) };
+    return {
+      status: 200,
+      payload: statusPayload({ plugin: "media", operation, dryRun, backendName: "media", backend: media, payload, note: "Safe media adapter." }),
+    };
   }
 
   return notImplemented("media", operation, dryRun, payload, "media_operation_adapter_not_implemented");
@@ -287,7 +305,10 @@ export async function routePluginCall({ pluginId, operation, dryRun = true, payl
   const validation = validatePluginCall({ pluginId, operation, dryRun, confirmation });
 
   if (!validation.ok) {
-    return { status: validation.status, payload: { ok: false, error: validation.error, plugin: pluginId, operation } };
+    return {
+      status: validation.status,
+      payload: { ok: false, error: validation.error, plugin: pluginId, operation },
+    };
   }
 
   const builtInAdapters = {
