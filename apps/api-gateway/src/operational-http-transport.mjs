@@ -5,6 +5,7 @@ import { createOperatorSecretHandoffNodeHandler } from "./operator-secret-handof
 import { tryHandlePluginRoute } from "./plugin-routes.mjs";
 
 const DEFAULT_MAX_BODY_BYTES = 64 * 1024;
+const WEB_AGENT_CONVERSATION_PATH = "/v1/web-agent/conversations";
 const JSON_HEADERS = Object.freeze({
   "content-type": "application/json; charset=utf-8",
   "cache-control": "no-store",
@@ -22,47 +23,48 @@ class OperationalTransportError extends Error {
 
 function validateMaxBodyBytes(value) {
   if (!Number.isSafeInteger(value) || value < 1024 || value > 1024 * 1024) {
-    throw new TypeError("maxBodyBytes must be an integer between 1024 and 1048576");
+    throw new TypeError(
+      "maxBodyBytes must be an integer between 1024 and 1048576",
+    );
   }
   return value;
 }
 
-function requestPath(url) {
-  try {
-    return new URL(String(url ?? "/"), "http://api-gateway.local").pathname;
-  } catch {
-    return "/";
-  }
-}
-
 function materializeRequestBodyValue(value, maxBodyBytes) {
   if (value === undefined || value === null) return undefined;
-  const raw = typeof value === "string" || Buffer.isBuffer(value)
+
+  const body = typeof value === "string" || Buffer.isBuffer(value)
     ? value
     : JSON.stringify(value);
-  const buffer = Buffer.isBuffer(raw) ? raw : Buffer.from(String(raw));
+  const buffer = Buffer.isBuffer(body) ? body : Buffer.from(String(body));
+
   if (buffer.length > maxBodyBytes) {
     throw new OperationalTransportError("request_too_large", 413);
   }
+
   return buffer.length > 0 ? buffer.toString("utf8") : undefined;
 }
 
 async function readEventedRequestBody(request, maxBodyBytes) {
   const chunks = [];
   let size = 0;
+
   await new Promise((resolve, reject) => {
     request.on("data", (chunk) => {
       const buffer = Buffer.isBuffer(chunk) ? chunk : Buffer.from(chunk);
       size += buffer.length;
+
       if (size > maxBodyBytes) {
         reject(new OperationalTransportError("request_too_large", 413));
         return;
       }
+
       chunks.push(buffer);
     });
     request.once("end", resolve);
     request.once("error", reject);
   });
+
   return chunks.length > 0 ? Buffer.concat(chunks).toString("utf8") : undefined;
 }
 
@@ -77,14 +79,18 @@ async function readRequestBody(request, maxBodyBytes) {
   if (typeof request?.[Symbol.asyncIterator] === "function") {
     const chunks = [];
     let size = 0;
+
     for await (const chunk of request) {
       const buffer = Buffer.isBuffer(chunk) ? chunk : Buffer.from(chunk);
       size += buffer.length;
+
       if (size > maxBodyBytes) {
         throw new OperationalTransportError("request_too_large", 413);
       }
+
       chunks.push(buffer);
     }
+
     return chunks.length > 0 ? Buffer.concat(chunks).toString("utf8") : undefined;
   }
 
@@ -100,12 +106,33 @@ function writeJson(response, status, payload) {
   response.end(JSON.stringify(payload));
 }
 
-function writeResult(response, result) {
-  response.writeHead(result.status, result.headers);
-  response.end(result.body);
+function requestPath(url) {
+  try {
+    return new URL(String(url ?? "/"), "http://api-gateway.local").pathname;
+  } catch {
+    return "/";
+  }
 }
 
-function logTransportError(logger, { method, path, error }) {
+function publicErrorCode(body) {
+  if (typeof body !== "string" || !body) return null;
+  try {
+    const parsed = JSON.parse(body);
+    return typeof parsed?.error === "string" ? parsed.error : null;
+  } catch {
+    return null;
+  }
+}
+
+function writeConversationTelemetry(logger, payload) {
+  if (typeof logger?.log !== "function") return;
+  logger.log(JSON.stringify(Object.freeze({
+    event: "web_agent_conversation_http",
+    ...payload,
+  })));
+}
+
+function writeUnhandledTransportExceptionTelemetry(logger, { method, path, error }) {
   const writer =
     typeof logger?.error === "function"
       ? logger.error.bind(logger)
@@ -113,14 +140,20 @@ function logTransportError(logger, { method, path, error }) {
         ? logger.log.bind(logger)
         : null;
   if (!writer) return;
-  writer(JSON.stringify({
+
+  writer(JSON.stringify(Object.freeze({
     method,
     path,
-    error: {
+    error: Object.freeze({
       name: typeof error?.name === "string" ? error.name : "Error",
       message: typeof error?.message === "string" ? error.message : String(error),
-    },
-  }));
+    }),
+  })));
+}
+
+function writeResult(response, result) {
+  response.writeHead(result.status, result.headers);
+  response.end(result.body);
 }
 
 export function createOperationalHttpServer({
@@ -140,6 +173,7 @@ export function createOperationalHttpServer({
 
   return http.createServer(async (request, response) => {
     const path = requestPath(request.url);
+    const isConversation = path === WEB_AGENT_CONVERSATION_PATH;
 
     if (maybeHandleGatewayPublicLanding(request, response)) return;
 
@@ -170,9 +204,36 @@ export function createOperationalHttpServer({
         headers: request.headers,
         ...(body !== undefined ? { body } : {}),
       });
+
+      if (isConversation) {
+        writeConversationTelemetry(logger, {
+          stage: "app_response",
+          method,
+          path,
+          status: result.status,
+          bodyBytes: Buffer.byteLength(String(result.body ?? ""), "utf8"),
+          contentType:
+            typeof result.headers?.["content-type"] === "string"
+              ? result.headers["content-type"]
+              : null,
+          error: publicErrorCode(result.body),
+        });
+      }
+
       writeResult(response, result);
     } catch (error) {
       if (error instanceof OperationalTransportError) {
+        if (isConversation) {
+          writeConversationTelemetry(logger, {
+            stage: "transport_error",
+            method: String(request.method ?? "GET").toUpperCase(),
+            path,
+            status: error.status,
+            bodyBytes: 0,
+            contentType: JSON_HEADERS["content-type"],
+            error: error.code,
+          });
+        }
         writeJson(response, error.status, {
           error: error.code,
           productionChanged: false,
@@ -184,7 +245,24 @@ export function createOperationalHttpServer({
       }
 
       const method = String(request.method ?? "GET").toUpperCase();
-      logTransportError(logger, { method, path, error });
+      writeUnhandledTransportExceptionTelemetry(logger, {
+        method,
+        path,
+        error,
+      });
+
+      if (isConversation) {
+        writeConversationTelemetry(logger, {
+          stage: "transport_error",
+          method,
+          path,
+          status: 500,
+          bodyBytes: 0,
+          contentType: JSON_HEADERS["content-type"],
+          error: "internal_error",
+        });
+      }
+
       writeJson(response, 500, {
         error: "internal_error",
         productionChanged: false,
