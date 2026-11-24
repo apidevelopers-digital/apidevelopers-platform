@@ -1,7 +1,7 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 
-import { createApp } from "../src/server.mjs";
+import { createPluginsApp } from "../src/server-plugins.mjs";
 
 async function callApp(app, { method = "GET", url, body }) {
   return app.handleRequest({
@@ -17,7 +17,7 @@ function json(response) {
 }
 
 test("GET /v1/plugins/infra/health returns infra draft health", async () => {
-  const app = createApp();
+  const app = createPluginsApp();
   const response = await callApp(app, { url: "/v1/plugins/infra/health" });
   assert.equal(response.status, 200);
   const body = json(response);
@@ -26,7 +26,7 @@ test("GET /v1/plugins/infra/health returns infra draft health", async () => {
 });
 
 test("GET /v1/plugins/juri/capabilities lists juri operations", async () => {
-  const app = createApp();
+  const app = createPluginsApp();
   const response = await callApp(app, { url: "/v1/plugins/juri/capabilities" });
   assert.equal(response.status, 200);
   const body = json(response);
@@ -34,7 +34,7 @@ test("GET /v1/plugins/juri/capabilities lists juri operations", async () => {
 });
 
 test("POST /v1/plugins/juri/call accepts valid dry-run contract", async () => {
-  const app = createApp();
+  const app = createPluginsApp();
   const response = await callApp(app, {
     method: "POST",
     url: "/v1/plugins/juri/call",
@@ -46,11 +46,11 @@ test("POST /v1/plugins/juri/call accepts valid dry-run contract", async () => {
   });
   assert.equal(response.status, 501);
   const body = json(response);
-  assert.equal(body.error, "plugin_adapter_not_implemented");
+  assert.equal(body.error, "juri_operation_adapter_not_implemented");
 });
 
 test("POST /v1/plugins/media/call blocks real render without confirmation", async () => {
-  const app = createApp();
+  const app = createPluginsApp();
   const response = await callApp(app, {
     method: "POST",
     url: "/v1/plugins/media/call",
