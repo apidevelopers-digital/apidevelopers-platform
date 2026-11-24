@@ -1,0 +1,44 @@
+name: MCP Brain CI
+
+on:
+  pull_request:
+    branches:
+      - main
+    paths:
+      - "apps/mcp-brain-v1/**"
+      - ".github/workflows/mcp-brain-ci.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  validate:
+    runs-on:
+      - self-hosted
+      - macOS
+      - X64
+    timeout-minutes: 10
+    defaults:
+      run:
+        working-directory: apps/mcp-brain-v1
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install dependencies
+        shell: bash
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install -r requirements.txt pytest
+
+      - name: Run MCP Brain tests
+        shell: bash
+        run: |
+          python -m pytest tests/test_juri_datajud_tools.py
