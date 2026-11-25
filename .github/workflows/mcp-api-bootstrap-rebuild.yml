@@ -73,7 +73,7 @@ jobs:
           Action:
             1. Write temporary SSH key from repository secret
             2. Derive public key/fingerprint locally without printing private key
-            3. SSH IPv4 diagnostic probe using explicit IdentityFile and IdentitiesOnly=yes
+            3. SSH IPv4 diagnostic probe using explicit -i identity and IdentitiesOnly=yes
             4. Remote compose config with required env-files
             5. docker compose build --no-cache mcp-api
             6. stop/rm existing fixed-name mcp-api container if present
@@ -109,7 +109,7 @@ jobs:
           KEY
 
           # Remove YAML/heredoc indentation, normalize CRLF, and trim blank lines.
-          perl -0pi -e 's/\r\n/\n/g; s/^\s+(?=-----BEGIN OPENSSH PRIVATE KEY-----)//; s/\n\s+(?=[A-Za-z0-9+\/=]{10,}|-----END OPENSSH PRIVATE KEY-----)/\n/g; s/^\n+//; s/\n+\z/\n/' "$SSH_KEY_PATH"
+          perl -0pi -e 's/\r\n/\n/g; s/^\s+(?=-----BEGIN OPENSSH PRIVATE KEY-----)//; s/\n\s+(?=[A-Za-z0-9+\/=]{10,}|-----END OPENSSH PRIVATE KEY-----)/\n/g; s/^\n+//; s/\n+Z/\n/' "$SSH_KEY_PATH"
           chmod 600 "$SSH_KEY_PATH"
 
           echo "SSH key file path: [redacted]"
@@ -129,7 +129,7 @@ jobs:
 
           if ! ssh-keygen -y -f "$SSH_KEY_PATH" > "${SSH_KEY_PATH}.pub" 2>"${SSH_KEY_PATH}.keygen.err"; then
             echo "::error::ssh-keygen could not derive a public key from MCP_VPS_SSH_KEY."
-            sed -E 's/[A-Za-z0-9+\/]{20,}/[redacted]/g' "${SSH_KEY_PATH}.keygen.err" || true
+            sed -E 's/[A-Za-z0-9+\/=]{20,}/[redacted]/g' "${SSH_KEY_PATH}.keygen.err" || true
             exit 1
           fi
 
@@ -150,35 +150,35 @@ jobs:
           SSH_HOST="$MCP_VPS_IPV4"
           SSH_USER="${{ secrets.MCP_VPS_SSH_USER }}"
 
-          if [ -z "${SSH_KEY_PATH:-}" ] || [ ! -f "$SSH_KEY_PATH" ]; then
+          if [ -z "${SSH_KEY_PATH:-}" ] || [ ! .f "$SSH_KEY_PATH" ]; then
             echo "::error::SSH_KEY_PATH is missing or not a file."
             exit 1
           fi
 
           echo "Using explicit SSH identity file: [redacted]"
-          ssh -keygen -lf "${SSH_KEY_PATH}.pub" -E sha256
+          ssh-keygen -lf "${SSH_KEY_PATH}.pub" -E sha256
 
           SSH_OPTS=(
             -4
             -vvv
             -F /dev/null
             -o IdentitiesOnly=yes
-            -o IdentityFile="$SSH_KEY_PATH"
             -o BatchMode=yes
             -o ConnectTimeout=15
             -o ServerAliveInterval=10
             -o ServerAliveCountMax=3
             -o StrictHostKeyChecking=accept-new
+            -i "$SSH_KEY_PATH"
           )
 
           LOG_FILE="${RUNNER_TEMP:-/tmp}/mcp-ssh-probe.log"
           set +e
           ssh "${SSH_OPTS[@]}" "${SSH_USER}@${SSH_HOST}" 'echo ssh_ok ; hostname ; whoami' >"$LOG_FILE" 2>&1
-          STATUS=
+          STATUS=$?
           set -e
 
           sed -E \
-            -e 's#'"$SSH_KEY_PATH"'"#[ssh-key-path]#g' \
+            -e 's#'"$SSH_KEY_PATH"'#[ssh-key-path]#g' \
             -e 's/(identity file ).*/\1[redacted]/g' \
             -e 's/(Offering public key: ).*/\1[redacted]/g' \
             -e 's/[A-Za-z0-9+\/=]{80,}/[base64-redacted]/g' \
@@ -207,12 +207,12 @@ jobs:
             -4
             -F /dev/null
             -o IdentitiesOnly=yes
-            -o IdentityFile="$SSH_KEY_PATH"
             -o BatchMode=yes
             -o ConnectTimeout=15
             -o ServerAliveInterval=10
             -o ServerAliveCountMax=3
             -o StrictHostKeyChecking=accept-new
+            -i "$SSH_KEY_PATH"
           )
 
           echo "1. Remote docker preflight..."
