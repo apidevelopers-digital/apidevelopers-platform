@@ -70,12 +70,14 @@ jobs:
           Target host: fixed IPv4 target for the registered VPS
           Target user: secret MCP_VPS_SSH_USER not printed
           Action:
-            1. SSH IPv4 probe
-            2. Remote compose config with required env-files
-            3. docker compose build --no-cache mcp-api
-            4. stop/rm existing fixed-name mcp-api container if present
-            5. docker compose up -d --no-deps mcp-api
-            6. post-check public /health and public /mcp/tools
+            1. Write temporary SSH key from repository secret
+            2. Derive public key/fingerprint locally without printing private key
+            3. SSH IPv4 debug probe
+            4. Remote compose config with required env-files
+            5. docker compose build --no-cache mcp-api
+            6. stop/rm existing fixed-name mcp-api container if present
+            7. docker compose up -d --no-deps mcp-api
+            8. post-check public /health and /mcp/tools
 
           Env files used remotely:
             /opt/api-dev-brain/config/mcp-runtime.env
@@ -89,7 +91,7 @@ jobs:
           No clinical write enablement.
           EOF
 
-      - name: Install temporary SSH key
+      - name: Install temporary SSH key and print safe fingerprint
         if: ${{ env.DRY_RUN == 'false' }}
         shell: bash
         run: |
@@ -103,8 +105,71 @@ jobs:
           cat > "$SSH_KEY_PATH" <<'KEY'
           ${{ secrets.MCP_VPS_SSH_KEY }}
           KEY
+
+          # Remove accidental leading spaces from YAML/heredoc indentation and normalize CRLF.
+          perl -0pi -e 's/\r\n/\n/g; s/^\s+(?=-----BEGIN OPENSSH PRIVATE KEY-----)//; s/\n\s+(?=[A-Za-z0-9+\/=]{10,}|-----END OPENSSH PRIVATE KEY-----)/\n/g' "$SSH_KEY_PATH"
           chmod 600 "$SSH_KEY_PATH"
+
+          echo "SSH key byte count: $(wc -c < "$SSH_KEY_PATH")"
+          echo "SSH key first line: $(head -1 "$SSH_KEY_PATH" | sed 's/./*/g')"
+          echo "SSH key last line: $(tail -1 "$SSH_KEY_PATH" | sed 's/./*/g')"
+
+          if ! grep -q -- '^-----BEGIN OPENSSH PRIVATE KEY-----$' "$SSH_KEY_PATH"; then
+            echo "::error::Secret MCP_VPS_SSH_KEY does not start with a valid OPENSSH private key header."
+            exit 1
+          fi
+          if ! tail -1 "$SSH_KEY_PATH" | grep -q -- '^-----END OPENSSH PRIVATE KEY-----$'; then
+            echo "::error::Secret MCP_VPS_SSH_KEY does not end with a valid OPENSSH private key footer."
+            exit 1
+          fi
+
+          if ! ssh-keygen -y -f "$SSH_KEY_PATH" > "${SSH_KEY_PATH}.pub" 2>"${SSH_KEY_PATH}.keygen.err"; then
+            echo "::error::ssh-keygen could not derive a public key from MCP_VPS_SSH_KEY."
+            sed -E 's/[A-Za-z0-9+\/]{20,}/[redacted]/g' "${SSH_KEY_PATH}.keygen.err" || true
+            exit 1
+          fi
+
+          echo "Derived public key fingerprint from GitHub secret:"
+          ssh-keygen -lf "${SSH_KEY_PATH}.pub" -E sha256
+
           echo "SSH_KEY_PATH=$SSH_KEY_PATH" >> "$GITHUB_ENV"
+
+      - name: SSH diagnostic probe
+        if: ${{ env.DRY_RUN == 'false' }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          SSH_HOST="$MCP_VPS_IPV4"
+          SSH_USER="${{ secrets.MCP_VPS_SSH_USER }}"
+
+          SSH_OPTS=(
+            -4
+            -vvv
+            -o BatchMode=yes
+            -o ConnectTimeout=15
+            -o ServerAliveInterval=10
+            -o ServerAliveCountMax=3
+            -o StrictHostKeyChecking=accept-new
+            -i "$SSH_KEY_PATH"
+          )
+
+          LOG_FILE="${RUNNER_TEMP}/mcp-ssh-probe.log"
+          set +e
+          ssh "${SSH_OPTS[@]}" "${SSH_USER}@${SSH_HOST}" 'echo ssh_ok ; hostname ; whoami' >"$LOG_FILE" 2>&1
+          STATUS=$?
+          set -e
+
+          sed -E \
+            -e 's#'"$SSH_KEY_PATH"'#[ssh-key-path]#g' \
+            -e 's/(identity file ).*/\1[redacted]/g' \
+            -e 's/(Offering public key: ).*/\1[redacted]/g' \
+            -e 's/[A-Za-z0-9+\/=]{80,}/[base64-redacted]/g' \
+            "$LOG_FILE"
+
+          if [ "$STATUS" -ne 0 ]; then
+            echo "::error::SSH diagnostic probe failed with exit code ${STATUS}."
+            exit "$STATUS"
+          fi
 
       - name: Rebuild and healthcheck mcp-api
         if: ${{ env.DRY_RUN == 'false' }}
@@ -124,13 +189,10 @@ jobs:
             -i "$SSH_KEY_PATH"
           )
 
-          echo "1. SSH IPv4 probe..."
-          ssh "${SSH_OPTS[@]}" "${SSH_USER}@${SSH_HOST}" 'echo ssh_ok ; hostname ; whoami'
-
-          echo "2. Remote docker preflight..."
+          echo "1. Remote docker preflight..."
           ssh "${SSH_OPTS[@]}" "${SSH_USER}@${SSH_HOST}" 'docker --version ; docker compose version ; test -d /opt/api-dev-brain/apps/mcp-brain-v1 ; test -f /opt/api-dev-brain/apps/mcp-brain-v1/docker-compose.yml'
 
-          echo "3. Rebuild and recreate mcp-api via remote SSH..."
+          echo "2. Rebuild and recreate mcp-api via remote SSH..."
           ssh "${SSH_OPTS[@]}" "${SSH_USER}@${SSH_HOST}" 'bash -s' <<'REMOTE'
             set -euo pipefail
 
@@ -143,31 +205,31 @@ jobs:
               --env-file /opt/api-dev-brain/config/materializador-auth.env
             )
 
-            echo "3.1 Compose config preflight..."
+            echo "2.1 Compose config preflight..."
             docker compose "${ENV_FILES[@]}" config >/tmp/mcp-compose-check.yml
 
-            echo "3.2 Build no-cache mcp-api..."
+            echo "2.2 Build no-cache mcp-api..."
             docker compose "${ENV_FILES[@]}" build --no-cache mcp-api
 
-            echo "3.3 Stop and remove fixed-name mcp-api container if present..."
+            echo "2.3 Stop and remove fixed-name mcp-api container if present..."
             if docker ps -a --format '{{.Names}}' | grep -qx 'mcp-api'; then
               docker stop mcp-api || true
               docker rm mcp-api || true
             fi
 
-            echo "3.4 Start mcp-api..."
+            echo "2.4 Start mcp-api..."
             docker compose "${ENV_FILES[@]}" up -d --no-deps mcp-api
 
-            echo "3.5 Container status..."
+            echo "2.5 Container status..."
             docker ps --filter name=mcp-api
 
-            echo "3.6 Verify image contains Juri DataJud bridge markers..."
+            echo "2.6 Verify image contains Juri DataJud bridge markers..."
             docker exec mcp-api sh -lc 'grep -n "juri.datajud.request" /app/app/main.py | head -5'
 
-            echo "3.7 Public health..."
+            echo "2.7 Public health..."
             curl -fsS https://mcp.apidevelopers.digital/health | grep -F '"ok":true'
 
-            echo "3.8 Public tool catalog..."
+            echo "2.8 Public tool catalog..."
             curl -fsS "https://mcp.apidevelopers.digital/mcp/tools?full=true" | grep -F "juri.datajud.request"
 
             echo "MCP API bootstrap rebuild complete."
