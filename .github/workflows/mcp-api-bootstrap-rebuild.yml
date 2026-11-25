@@ -69,10 +69,11 @@ jobs:
 
           Target host: fixed IPv4 target for the registered VPS
           Target user: secret MCP_VPS_SSH_USER not printed
+
           Action:
             1. Write temporary SSH key from repository secret
             2. Derive public key/fingerprint locally without printing private key
-            3. SSH IPv4 debug probe
+            3. SSH IPv4 diagnostic probe using explicit IdentityFile and IdentitiesOnly=yes
             4. Remote compose config with required env-files
             5. docker compose build --no-cache mcp-api
             6. stop/rm existing fixed-name mcp-api container if present
@@ -96,20 +97,22 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          SSH_DIR="${RUNNER_TEMP}/mcp-ssh"
+
+          SSH_DIR="${RUNNER_TEMP:-/tmp}/mcp-ssh"
           SSH_KEY_PATH="${SSH_DIR}/mcp_vps_key"
+          rm -rf "$SSH_DIR"
           mkdir -p "$SSH_DIR"
           chmod 700 "$SSH_DIR"
-          trap 'rm -rf "$SSH_DIR"' EXIT
 
           cat > "$SSH_KEY_PATH" <<'KEY'
           ${{ secrets.MCP_VPS_SSH_KEY }}
           KEY
 
-          # Remove accidental leading spaces from YAML/heredoc indentation and normalize CRLF.
-          perl -0pi -e 's/\r\n/\n/g; s/^\s+(?=-----BEGIN OPENSSH PRIVATE KEY-----)//; s/\n\s+(?=[A-Za-z0-9+\/=]{10,}|-----END OPENSSH PRIVATE KEY-----)/\n/g' "$SSH_KEY_PATH"
+          # Remove YAML/heredoc indentation, normalize CRLF, and trim blank lines.
+          perl -0pi -e 's/\r\n/\n/g; s/^\s+(?=-----BEGIN OPENSSH PRIVATE KEY-----)//; s/\n\s+(?=[A-Za-z0-9+\/=]{10,}|-----END OPENSSH PRIVATE KEY-----)/\n/g; s/^\n+//; s/\n+\z/\n/' "$SSH_KEY_PATH"
           chmod 600 "$SSH_KEY_PATH"
 
+          echo "SSH key file path: [redacted]"
           echo "SSH key byte count: $(wc -c < "$SSH_KEY_PATH")"
           echo "SSH key first line: $(head -1 "$SSH_KEY_PATH" | sed 's/./*/g')"
           echo "SSH key last line: $(tail -1 "$SSH_KEY_PATH" | sed 's/./*/g')"
@@ -118,6 +121,7 @@ jobs:
             echo "::error::Secret MCP_VPS_SSH_KEY does not start with a valid OPENSSH private key header."
             exit 1
           fi
+
           if ! tail -1 "$SSH_KEY_PATH" | grep -q -- '^-----END OPENSSH PRIVATE KEY-----$'; then
             echo "::error::Secret MCP_VPS_SSH_KEY does not end with a valid OPENSSH private key footer."
             exit 1
@@ -132,35 +136,49 @@ jobs:
           echo "Derived public key fingerprint from GitHub secret:"
           ssh-keygen -lf "${SSH_KEY_PATH}.pub" -E sha256
 
-          echo "SSH_KEY_PATH=$SSH_KEY_PATH" >> "$GITHUB_ENV"
+          {
+            echo "SSH_KEY_PATH=$SSH_KEY_PATH"
+            echo "SSH_DIR=$SSH_DIR"
+          } >> "$GITHUB_ENV"
 
       - name: SSH diagnostic probe
         if: ${{ env.DRY_RUN == 'false' }}
         shell: bash
         run: |
           set -euo pipefail
+
           SSH_HOST="$MCP_VPS_IPV4"
           SSH_USER="${{ secrets.MCP_VPS_SSH_USER }}"
+
+          if [ -z "${SSH_KEY_PATH:-}" ] || [ ! -f "$SSH_KEY_PATH" ]; then
+            echo "::error::SSH_KEY_PATH is missing or not a file."
+            exit 1
+          fi
+
+          echo "Using explicit SSH identity file: [redacted]"
+          ssh -keygen -lf "${SSH_KEY_PATH}.pub" -E sha256
 
           SSH_OPTS=(
             -4
             -vvv
+            -F /dev/null
+            -o IdentitiesOnly=yes
+            -o IdentityFile="$SSH_KEY_PATH"
             -o BatchMode=yes
             -o ConnectTimeout=15
             -o ServerAliveInterval=10
             -o ServerAliveCountMax=3
             -o StrictHostKeyChecking=accept-new
-            -i "$SSH_KEY_PATH"
           )
 
-          LOG_FILE="${RUNNER_TEMP}/mcp-ssh-probe.log"
+          LOG_FILE="${RUNNER_TEMP:-/tmp}/mcp-ssh-probe.log"
           set +e
           ssh "${SSH_OPTS[@]}" "${SSH_USER}@${SSH_HOST}" 'echo ssh_ok ; hostname ; whoami' >"$LOG_FILE" 2>&1
-          STATUS=$?
+          STATUS=
           set -e
 
           sed -E \
-            -e 's#'"$SSH_KEY_PATH"'#[ssh-key-path]#g' \
+            -e 's#'"$SSH_KEY_PATH"'"#[ssh-key-path]#g' \
             -e 's/(identity file ).*/\1[redacted]/g' \
             -e 's/(Offering public key: ).*/\1[redacted]/g' \
             -e 's/[A-Za-z0-9+\/=]{80,}/[base64-redacted]/g' \
@@ -176,17 +194,25 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
+
           SSH_HOST="$MCP_VPS_IPV4"
           SSH_USER="${{ secrets.MCP_VPS_SSH_USER }}"
 
+          if [ -z "${SSH_KEY_PATH:-}" ] || [ ! -f "$SSH_KEY_PATH" ]; then
+            echo "::error::SSH_KEY_PATH is missing or not a file."
+            exit 1
+          fi
+
           SSH_OPTS=(
             -4
+            -F /dev/null
+            -o IdentitiesOnly=yes
+            -o IdentityFile="$SSH_KEY_PATH"
             -o BatchMode=yes
             -o ConnectTimeout=15
             -o ServerAliveInterval=10
             -o ServerAliveCountMax=3
             -o StrictHostKeyChecking=accept-new
-            -i "$SSH_KEY_PATH"
           )
 
           echo "1. Remote docker preflight..."
