@@ -78,7 +78,7 @@ jobs:
             5. docker compose build --no-cache mcp-api
             6. stop/rm existing fixed-name mcp-api container if present
             7. docker compose up -d --no-deps mcp-api
-            8. post-check public /health and /mcp/tools
+            8. post-check public /health and /mcp/tools with retry
 
           Env files used remotely:
             /opt/api-dev-brain/config/mcp-runtime.env
@@ -109,7 +109,7 @@ jobs:
           KEY
 
           # Remove YAML/heredoc indentation, normalize CRLF, and trim blank lines.
-          perl -0pi -e 's/\r\n/\n/g; s/^\s+(?=-----BEGIN OPENSSH PRIVATE KEY-----)//; s/\n\s+(?=[A-Za-z0-9+\/=]{10,}|-----END OPENSSH PRIVATE KEY-----)/\n/g; s/^\n+//; s/\n+Z/\n/' "$SSH_KEY_PATH"
+          perl -0pi -e 's/\r\n/\n/g; s/^\s+(?=-----BEGIN OPENSSH PRIVATE KEY-----)//; s/\n\s+(?=[A-Za-z0-9+\/=]{10,}|-----END OPENSSH PRIVATE KEY-----)/\n/g; s/^\n+//; s/\n+\z/\n/' "$SSH_KEY_PATH"
           chmod 600 "$SSH_KEY_PATH"
 
           echo "SSH key file path: [redacted]"
@@ -150,7 +150,7 @@ jobs:
           SSH_HOST="$MCP_VPS_IPV4"
           SSH_USER="${{ secrets.MCP_VPS_SSH_USER }}"
 
-          if [ -z "${SSH_KEY_PATH:-}" ] || [ ! .f "$SSH_KEY_PATH" ]; then
+          if [ -z "${SSH_KEY_PATH:-}" ] || [ ! -f "$SSH_KEY_PATH" ]; then
             echo "::error::SSH_KEY_PATH is missing or not a file."
             exit 1
           fi
@@ -251,12 +251,34 @@ jobs:
 
             echo "2.6 Verify image contains Juri DataJud bridge markers..."
             docker exec mcp-api sh -lc 'grep -n "juri.datajud.request" /app/app/main.py | head -5'
-
-            echo "2.7 Public health..."
-            curl -fsS https://mcp.apidevelopers.digital/health | grep -F '"ok":true'
-
-            echo "2.8 Public tool catalog..."
-            curl -fsS "https://mcp.apidevelopers.digital/mcp/tools?full=true" | grep -F "juri.datajud.request"
-
-            echo "MCP API bootstrap rebuild complete."
           REMOTE
+
+          retry_check() {
+            local name="$1"
+            local cmd="$2"
+            local attempts="${3:-30}"
+            local sleep_seconds="${4:-5}"
+
+            echo "$name..."
+            for i in $(seq 1 "$attempts"); do
+              if bash -lc "$cmd"; then
+                echo "$name OK on attempt $i/$attempts"
+                return 0
+              fi
+              echo "$name not ready yet ($i/$attempts). Sleeping ${sleep_seconds}s..."
+              sleep "$sleep_seconds"
+            done
+
+            echo "::error::$name failed after ${attempts} attempts."
+            return 1
+          }
+
+          retry_check "2.7 Public health" \
+            "curl -fsS https://mcp.apidevelopers.digital/health | grep -F '\"ok\":true'" \
+            36 5
+
+          retry_check "2.8 Public tool catalog marker" \
+            "curl -fsS 'https://mcp.apidevelopers.digital/mcp/tools?full=true' | grep -F 'juri.datajud.request'" \
+            24 5
+
+          echo "MCP API bootstrap rebuild complete."
