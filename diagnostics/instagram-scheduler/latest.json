@@ -1,13 +1,13 @@
 {
-  "generated_at": "2026-11-25T20:35:56Z",
+  "generated_at": "2026-11-26T20:27:24Z",
   "workflow": "Instagram Stories Scheduler",
-  "run_id": "45696427984",
-  "run_number": "21",
+  "run_id": "45891113471",
+  "run_number": "22",
   "run_attempt": "1",
   "commit_sha": "62ccd01cb7136edda78430bd42d0b7ff6e909e44",
-  "target_date": "2026-11-25",
+  "target_date": "2026-11-26",
   "dry_run": "false",
   "plan_url": "https://sitedauni.com/assets/campanhas/_instagram_scheduler/plano_stories_recorrente_20261116_20261122.json",
   "exit_code": "0",
-  "log_tail": "{\"event\":\"instagram_scheduler_job_finished\",\"ok\":true,\"targetDate\":\"2026-11-25\",\"dryRun\":false,\"planned\":0,\"published\":0,\"failedCount\":0,\"succeededCount\":0,\"logPath\":\"artifacts/instagram-stories-scheduler-logs/2026-11-25.json\"}"
+  "log_tail": "{\"event\":\"instagram_scheduler_job_finished\",\"ok\":true,\"targetDate\":\"2026-11-26\",\"dryRun\":false,\"planned\":0,\"published\":0,\"failedCount\":0,\"succeededCount\":0,\"logPath\":\"artifacts/instagram-stories-scheduler-logs/2026-11-26.json\"}"
 }
